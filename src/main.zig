@@ -6,13 +6,15 @@ const c = @cImport({
 });
 const shader = @import("renderer/shader.zig");
 const mesh_mod = @import("renderer/mesh.zig");
+const camera_mod = @import("camera.zig");
+const math = @import("math.zig");
 
 const window_width = 1280;
 const window_height = 720;
 const window_title = "Zigcraft";
 
 pub fn main() !void {
-    std.debug.print("zigcraft v0.0.2\n", .{});
+    std.debug.print("zigcraft v0.0.3\n", .{});
 
     if (c.glfwInit() == c.GLFW_FALSE) {
         std.debug.print("failed to initialize GLFW\n", .{});
@@ -46,7 +48,10 @@ pub fn main() !void {
     c.glEnable(c.GL_DEPTH_TEST);
     c.glClearColor(0.53, 0.81, 0.92, 1.0);
 
-    // Create shader program
+    // Hide and capture cursor for first-person camera control
+    c.glfwSetInputMode(window, c.GLFW_CURSOR, c.GLFW_CURSOR_DISABLED);
+
+    // Shader program (triangle + MVP uniform)
     const program = try shader.createProgram(
         std.heap.page_allocator,
         shader.default_vert,
@@ -54,16 +59,69 @@ pub fn main() !void {
     );
     defer c.glDeleteProgram(program);
 
-    // Create triangle mesh
+    // Test triangle mesh
     var triangle = try mesh_mod.createTriangle(std.heap.page_allocator);
     defer triangle.deinit();
 
-    std.debug.print("ready. press ESC to close.\n", .{});
+    // Camera setup
+    var cam = camera_mod.Camera.init();
+    cam.position = math.Vec3.init(0, 0, 3);
+
+    // Timing
+    var last_time = c.glfwGetTime();
+
+    // Mouse tracking
+    var last_x: f64 = @floatFromInt(window_width / 2);
+    var last_y: f64 = @floatFromInt(window_height / 2);
+    var first_mouse = true;
+
+    std.debug.print("ready. WASD to move, mouse to look, ESC to close.\n", .{});
 
     while (c.glfwWindowShouldClose(window) == c.GLFW_FALSE) {
+        // Delta time
+        const current_time = c.glfwGetTime();
+        const dt: f32 = @floatCast(current_time - last_time);
+        last_time = current_time;
+
+        // Keyboard input: poll each movement key and forward to camera.
+        // processKey ignores non-press actions, so this is safe to call
+        // unconditionally for every key each frame.
+        cam.processKey(c.GLFW_KEY_W, c.glfwGetKey(window, c.GLFW_KEY_W), dt);
+        cam.processKey(c.GLFW_KEY_S, c.glfwGetKey(window, c.GLFW_KEY_S), dt);
+        cam.processKey(c.GLFW_KEY_A, c.glfwGetKey(window, c.GLFW_KEY_A), dt);
+        cam.processKey(c.GLFW_KEY_D, c.glfwGetKey(window, c.GLFW_KEY_D), dt);
+        cam.processKey(c.GLFW_KEY_SPACE, c.glfwGetKey(window, c.GLFW_KEY_SPACE), dt);
+        cam.processKey(c.GLFW_KEY_LEFT_SHIFT, c.glfwGetKey(window, c.GLFW_KEY_LEFT_SHIFT), dt);
+
+        // Mouse look
+        var xpos: f64 = 0;
+        var ypos: f64 = 0;
+        c.glfwGetCursorPos(window, &xpos, &ypos);
+
+        if (first_mouse) {
+            last_x = xpos;
+            last_y = ypos;
+            first_mouse = false;
+        }
+
+        const x_offset: f32 = @floatCast(xpos - last_x);
+        const y_offset: f32 = @floatCast(ypos - last_y);
+        last_x = xpos;
+        last_y = ypos;
+
+        cam.processMouse(x_offset, y_offset);
+
+        // Build MVP: projection * view (model is identity — triangle is pre-transformed)
+        const aspect: f32 = 1280.0 / 720.0;
+        const proj = cam.projectionMatrix(aspect);
+        const view = cam.viewMatrix();
+        const mvp = math.Mat4.mul(proj, view);
+
+        // Render
         c.glClear(c.GL_COLOR_BUFFER_BIT | c.GL_DEPTH_BUFFER_BIT);
 
         c.glUseProgram(program);
+        shader.setUniformMat4(program, "u_mvp", mvp.ptr());
         triangle.draw();
 
         c.glfwSwapBuffers(window);
