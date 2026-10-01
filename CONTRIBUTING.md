@@ -101,6 +101,33 @@ zig build test         # Run tests
 zig build -Doptimize=ReleaseFast  # Optimized build
 ```
 
+## Zig 0.16 Module Gotchas
+
+### Cross-directory imports fail for standalone tests
+A file at `src/renderer/foo.zig` cannot do `@import("../bar.zig")` when compiled
+as a standalone test target in `build.zig`. The test runner will reject it with
+"import of file outside module path." Workaround: keep files that import each
+other in the same directory, or test them only through the main module.
+
+### addTest does not collect imported-module tests
+`b.addTest(.{ .root_module = exe_mod })` only runs `test` blocks in the root
+file. It does **not** collect tests from files reachable via `@import`. To test
+an imported module, add it as a standalone test target with
+`b.createModule(.{ .root_source_file = b.path("path/to/file.zig") })`.
+
+### Each @cImport creates distinct opaque types
+Two files with separate `@cImport` blocks get distinct `struct GLFWwindow` types.
+You cannot pass a `*c.GLFWwindow` from main.zig to a function in renderer/camera.zig
+if they have separate `@cImport` blocks. Workaround:
+1. Share one `@cImport` in a common module (may require same-directory layout)
+2. Avoid passing C opaque types between modules; pass primitive `c_int` values instead
+3. Do GLFW window polling in the module that owns the window, call helpers with primitives
+
+### Primitive C types are universal
+`c_int`, `c_uint`, `c_float` map to Zig primitives (`i32`, `u32`, `f32`). These
+are compatible across `@cImport` blocks. You can pass `c.GLFW_KEY_W` from any
+module to any other because the value is an `i32`.
+
 ## System Dependencies
 
 These must be installed via pacman before coding:
