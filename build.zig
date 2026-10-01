@@ -12,6 +12,7 @@ pub fn build(b: *std.Build) void {
     });
 
     exe_mod.linkSystemLibrary("glfw3", .{});
+    exe_mod.linkSystemLibrary("gl", .{});
 
     const exe = b.addExecutable(.{
         .name = "zigcraft",
