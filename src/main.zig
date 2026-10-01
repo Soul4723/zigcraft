@@ -4,13 +4,15 @@ const c = @cImport({
     @cInclude("GL/glcorearb.h");
     @cInclude("GLFW/glfw3.h");
 });
+const shader = @import("renderer/shader.zig");
+const mesh_mod = @import("renderer/mesh.zig");
 
 const window_width = 1280;
 const window_height = 720;
 const window_title = "Zigcraft";
 
 pub fn main() !void {
-    std.debug.print("zigcraft v0.0.1\n", .{});
+    std.debug.print("zigcraft v0.0.2\n", .{});
 
     if (c.glfwInit() == c.GLFW_FALSE) {
         std.debug.print("failed to initialize GLFW\n", .{});
@@ -36,17 +38,33 @@ pub fn main() !void {
 
     c.glfwMakeContextCurrent(window);
 
-    const version = c.glGetString(c.GL_VERSION);
-    if (version != null) {
-        std.debug.print("OpenGL {s}\n", .{version});
+    const gl_version = c.glGetString(c.GL_VERSION);
+    if (gl_version != null) {
+        std.debug.print("OpenGL {s}\n", .{gl_version});
     }
-    std.debug.print("window created ({d}x{d})\n", .{ window_width, window_height });
 
     c.glEnable(c.GL_DEPTH_TEST);
     c.glClearColor(0.53, 0.81, 0.92, 1.0);
 
+    // Create shader program
+    const program = try shader.createProgram(
+        std.heap.page_allocator,
+        shader.default_vert,
+        shader.default_frag,
+    );
+    defer c.glDeleteProgram(program);
+
+    // Create triangle mesh
+    var triangle = try mesh_mod.createTriangle(std.heap.page_allocator);
+    defer triangle.deinit();
+
+    std.debug.print("ready. press ESC to close.\n", .{});
+
     while (c.glfwWindowShouldClose(window) == c.GLFW_FALSE) {
         c.glClear(c.GL_COLOR_BUFFER_BIT | c.GL_DEPTH_BUFFER_BIT);
+
+        c.glUseProgram(program);
+        triangle.draw();
 
         c.glfwSwapBuffers(window);
         c.glfwPollEvents();

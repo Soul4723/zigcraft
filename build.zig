@@ -42,6 +42,8 @@ pub fn build(b: *std.Build) void {
         "src/world/block.zig",
         "src/world/chunk.zig",
         "src/world/chunk_mesh.zig",
+        "src/renderer/shader.zig",
+        "src/renderer/mesh.zig",
     };
 
     for (test_files) |test_file| {

@@ -124,3 +124,30 @@ return std.mem.zeroInit(Chunk, .{});
 
 The `.{} ` shorthand doesn't work for nested array fields of complex types.
 zeroInit zero-fills all bytes, which works because BlockId.air = 0.
+
+## C Interop Gotchas
+
+### std.mem.indexOfScalarPos returns ?usize (not !usize)
+
+```zig
+// OLD (pre-0.16)
+const idx = std.mem.indexOfScalarPos(u8, &log, 0, 0) catch 1024;
+
+// NEW (0.16.0) — returns ?usize, use orelse
+const idx = std.mem.indexOfScalarPos(u8, &log, 0, 0) orelse 1024;
+```
+
+The `catch` keyword only works on error unions (`!T`). Optionals (`?T`) use `orelse`.
+
+### glBufferData size parameter type
+
+```zig
+// WRONG — usize doesn't match C's isize
+c.glBufferData(c.GL_ARRAY_BUFFER, vertices.len, vertices.ptr, c.GL_STATIC_DRAW);
+
+// CORRECT — cast to isize
+c.glBufferData(c.GL_ARRAY_BUFFER, @intCast(vertices.len), vertices.ptr, c.GL_STATIC_DRAW);
+```
+
+C functions expecting `isize`/`c_long` parameters need `@intCast` from `usize`.
+The compiler doesn't auto-convert these.
