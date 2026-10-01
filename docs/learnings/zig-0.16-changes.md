@@ -85,3 +85,42 @@ pub fn init() Chunk {
     return .{ .blocks = fillBlocks(.air) };
 }
 ```
+
+## ArrayList API Changes
+
+In Zig 0.16.0, `std.ArrayList` changed significantly:
+
+```zig
+// OLD (pre-0.16) - doesn't compile in 0.16
+var list = std.ArrayList(f32).init(allocator);
+try list.append(item);
+defer list.deinit();
+
+// NEW (0.16.0)
+var list = std.ArrayList(f32).empty;
+try list.append(allocator, item);
+defer list.deinit(allocator);
+
+// toOwnedSlice also takes the allocator
+const slice = try list.toOwnedSlice(allocator);
+```
+
+Key differences:
+- `.empty` replaces `.init(allocator)` for initialization
+- Every mutating method (append, appendSlice, etc.) now takes allocator as first arg
+- `deinit` and `toOwnedSlice` take allocator
+- The allocator is not stored in the struct (unlike old ArrayListUnmanaged)
+- `std.testing.allocator` works with the new API for tests
+
+## Array Initialization
+
+```zig
+// This does NOT work for multi-dimensional arrays of enums:
+return .{ .blocks = .{} };  // Error: expected 16 array elements
+
+// This DOES work (zero-initializes everything):
+return std.mem.zeroInit(Chunk, .{});
+```
+
+The `.{} ` shorthand doesn't work for nested array fields of complex types.
+zeroInit zero-fills all bytes, which works because BlockId.air = 0.

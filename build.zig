@@ -45,6 +45,7 @@ pub fn build(b: *std.Build) void {
     const test_files = [_][]const u8{
         "src/world/block.zig",
         "src/world/chunk.zig",
+        "src/world/chunk_mesh.zig",
     };
 
     for (test_files) |test_file| {
