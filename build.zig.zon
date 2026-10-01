@@ -1,0 +1,12 @@
+.{
+    .name = .zigcraft,
+    .version = "0.0.1",
+    .fingerprint = 0x6113d97c1de7b9ad,
+    .minimum_zig_version = "0.16.0",
+    .dependencies = .{},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
