@@ -110,20 +110,23 @@ pub const default_frag: [:0]const u8 =
 \\}
 ;
 
-/// Chunk shader sources for textured rendering with MVP transform.
-/// Vertex layout: position (loc 0), normal (loc 1), tex_coord (loc 2).
+/// Chunk shader sources for textured rendering with MVP transform and per-vertex Ambient Occlusion.
+/// Vertex layout: position (loc 0), normal (loc 1), tex_coord (loc 2), ao (loc 3).
 pub const chunk_vert: [:0]const u8 =
 \\#version 330 core
 \\layout (location = 0) in vec3 aPos;
 \\layout (location = 1) in vec3 aNormal;
 \\layout (location = 2) in vec2 aTexCoord;
+\\layout (location = 3) in float aAO;
 \\uniform mat4 u_mvp;
 \\out vec2 FragTexCoord;
 \\out vec3 FragNormal;
+\\out float FragAO;
 \\void main() {
 \\    gl_Position = u_mvp * vec4(aPos, 1.0);
 \\    FragTexCoord = aTexCoord;
 \\    FragNormal = aNormal;
+\\    FragAO = aAO;
 \\}
 ;
 
@@ -156,13 +159,16 @@ pub const chunk_frag: [:0]const u8 =
 \\#version 330 core
 \\in vec2 FragTexCoord;
 \\in vec3 FragNormal;
+\\in float FragAO;
 \\out vec4 FragColor;
 \\uniform sampler2D u_texture;
 \\uniform vec3 u_light_dir;
 \\void main() {
 \\    float diff = max(dot(normalize(FragNormal), normalize(u_light_dir)), 0.0);
 \\    float ambient = 0.35;
-\\    float light = ambient + 0.65 * diff;
+\\    // FragAO in [0.0..1.0]: 1.0 = fully open, 0.0 = deeply occluded
+\\    float ao_factor = 0.55 + 0.45 * FragAO;
+\\    float light = (ambient + 0.65 * diff) * ao_factor;
 \\    vec4 tex = texture(u_texture, FragTexCoord);
 \\    FragColor = vec4(tex.rgb * light, tex.a);
 \\}
