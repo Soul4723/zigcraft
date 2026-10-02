@@ -7,8 +7,9 @@ const c = @cImport({
 const chunk_mesh = @import("world/chunk_mesh.zig");
 const shader = @import("renderer/shader.zig");
 const texture = @import("renderer/texture.zig");
+const math = @import("math.zig");
 
-/// Render a chunk mesh using a simple textured shader with ambient occlusion.
+/// Render a chunk mesh using a simple textured shader with ambient occlusion and dynamic lighting.
 pub const ChunkRenderer = struct {
     vao: c.GLuint,
     vbo: c.GLuint,
@@ -99,7 +100,7 @@ pub const ChunkRenderer = struct {
         c.glDeleteTextures(1, &self.texture);
     }
 
-    pub fn draw(self: *ChunkRenderer, mvp_ptr: [*c]const f32) void {
+    pub fn draw(self: *ChunkRenderer, mvp_ptr: [*c]const f32, sun_dir: math.Vec3) void {
         if (self.index_count == 0) return;
         c.glEnable(c.GL_BLEND);
         c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
@@ -108,7 +109,7 @@ pub const ChunkRenderer = struct {
         c.glBindTexture(c.GL_TEXTURE_2D, self.texture);
         shader.setUniformInt(self.program, "u_texture", 0);
         shader.setUniformMat4(self.program, "u_mvp", mvp_ptr);
-        shader.setUniformVec3(self.program, "u_light_dir", 0.45, 0.85, 0.28);
+        shader.setUniformVec3(self.program, "u_light_dir", sun_dir.x, sun_dir.y, sun_dir.z);
         c.glBindVertexArray(self.vao);
         c.glDrawElements(c.GL_TRIANGLES, @intCast(self.index_count), c.GL_UNSIGNED_INT, @ptrFromInt(0));
         c.glDisable(c.GL_BLEND);

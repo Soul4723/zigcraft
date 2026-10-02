@@ -24,7 +24,7 @@ fn pickSolid(x: i32, y: i32, z: i32) bool {
 }
 
 pub fn main() !void {
-    std.debug.print("zigcraft v0.0.7\n", .{});
+    std.debug.print("zigcraft v0.0.8\n", .{});
 
     if (c.glfwInit() == c.GLFW_FALSE) {
         std.debug.print("failed to initialize GLFW\n", .{});
@@ -56,7 +56,7 @@ pub fn main() !void {
     }
 
     c.glEnable(c.GL_DEPTH_TEST);
-    c.glClearColor(0.53, 0.81, 0.92, 1.0);
+    c.glClearColor(0.05, 0.05, 0.1, 1.0);
 
     // Hide and capture cursor for first-person camera control
     c.glfwSetInputMode(window, c.GLFW_CURSOR, c.GLFW_CURSOR_DISABLED);
@@ -85,26 +85,30 @@ pub fn main() !void {
     const hotbar_blocks = [6]block_mod.BlockId{ .stone, .dirt, .grass, .water, .wood, .leaves };
     var selected_slot: usize = 0;
 
-    // Timing
+    // Timing & Day/Night cycle
     var last_time = c.glfwGetTime();
     var frame_count: u64 = 0;
     var hud_frames: u64 = 0;
     var hud_time: f32 = 0;
     var left_down = false;
     var right_down = false;
+    var world_time: f32 = 45.0; // Start at morning daylight
 
     // Mouse tracking
     var last_x: f64 = @floatFromInt(window_width / 2);
     var last_y: f64 = @floatFromInt(window_height / 2);
     var first_mouse = true;
 
-    std.debug.print("ready. Dynamic chunks + Greedy meshing + Trees + Hotbar (1-6). WASD move, mouse look, ESC close.\n", .{});
+    std.debug.print("ready. Dynamic chunks + AO + Day/Night Cycle + Hotbar (1-6). WASD move, mouse look, ESC close.\n", .{});
 
     while (c.glfwWindowShouldClose(window) == c.GLFW_FALSE) {
         // Delta time
         const current_time = c.glfwGetTime();
         const dt: f32 = @floatCast(current_time - last_time);
         last_time = current_time;
+
+        // Advance 2-minute day/night cycle
+        world_time += dt * 0.05;
 
         // Hotbar selection keys 1 through 6
         if (c.glfwGetKey(window, c.GLFW_KEY_1) == c.GLFW_PRESS) selected_slot = 0;
@@ -159,11 +163,35 @@ pub fn main() !void {
         const view = cam.viewMatrix();
         const mvp = math.Mat4.mul(proj, view);
 
+        // Calculate celestial orbit: sun direction and sky dome colors
+        const sun_angle = world_time;
+        const sun_y = @sin(sun_angle);
+        const sun_x = @cos(sun_angle) * 0.8;
+        const sun_dir = math.Vec3.normalize(math.Vec3.init(sun_x, @max(0.05, sun_y), 0.3));
+
+        // Interpolate sky colors based on day factor
+        const day_factor = @max(0.0, @min(1.0, (sun_y + 0.2) / 0.8));
+        const day_top = math.Vec3.init(0.25, 0.50, 0.95);
+        const night_top = math.Vec3.init(0.02, 0.03, 0.08);
+        const day_horizon = math.Vec3.init(0.75, 0.87, 0.95);
+        const night_horizon = math.Vec3.init(0.08, 0.10, 0.18);
+
+        const sky_top = math.Vec3.init(
+            night_top.x + (day_top.x - night_top.x) * day_factor,
+            night_top.y + (day_top.y - night_top.y) * day_factor,
+            night_top.z + (day_top.z - night_top.z) * day_factor,
+        );
+        const sky_horizon = math.Vec3.init(
+            night_horizon.x + (day_horizon.x - night_horizon.x) * day_factor,
+            night_horizon.y + (day_horizon.y - night_horizon.y) * day_factor,
+            night_horizon.z + (day_horizon.z - night_horizon.z) * day_factor,
+        );
+
         // Render world
         c.glClear(c.GL_COLOR_BUFFER_BIT | c.GL_DEPTH_BUFFER_BIT);
 
-        sky.draw(mvp, cam.position);
-        const stats = manager.draw(mvp);
+        sky.draw(mvp, cam.position, sky_top, sky_horizon);
+        const stats = manager.draw(mvp, sun_dir);
 
         // Render 2D UI overlay (crosshair + hotbar)
         ui.draw(aspect, selected_slot);
@@ -181,13 +209,14 @@ pub fn main() !void {
             const dir = cam.front();
             const loaded = manager.loadedChunkCount();
             const current_block = hotbar_blocks[selected_slot];
+            const time_state = if (sun_y > 0.1) "day" else if (sun_y > -0.1) "dusk" else "night";
             if (pick_mod.raycast(&pickSolid, cam.position, dir, 8)) |hit| {
-                std.debug.print("fps={d} xyz=({d},{d},{d}) slot={s} chunk=({d},{d}) loaded={d} drawn={d} culled={d} aim=({d},{d},{d})\n", .{ fps, px, py, pz, @tagName(current_block), @divFloor(px, 16), @divFloor(pz, 16), loaded, stats.drawn, stats.culled, hit.x, hit.y, hit.z });
+                std.debug.print("fps={d} xyz=({d},{d},{d}) time={s} slot={s} chunk=({d},{d}) loaded={d} drawn={d} culled={d} aim=({d},{d},{d})\n", .{ fps, px, py, pz, time_state, @tagName(current_block), @divFloor(px, 16), @divFloor(pz, 16), loaded, stats.drawn, stats.culled, hit.x, hit.y, hit.z });
             } else {
-                std.debug.print("fps={d} xyz=({d},{d},{d}) slot={s} chunk=({d},{d}) loaded={d} drawn={d} culled={d} aim=none\n", .{ fps, px, py, pz, @tagName(current_block), @divFloor(px, 16), @divFloor(pz, 16), loaded, stats.drawn, stats.culled });
+                std.debug.print("fps={d} xyz=({d},{d},{d}) time={s} slot={s} chunk=({d},{d}) loaded={d} drawn={d} culled={d} aim=none\n", .{ fps, px, py, pz, time_state, @tagName(current_block), @divFloor(px, 16), @divFloor(pz, 16), loaded, stats.drawn, stats.culled });
             }
             var title_buf: [128]u8 = undefined;
-            const title = std.fmt.bufPrintZ(&title_buf, "Zigcraft  fps={d}  chunks={d}  block={s}", .{ fps, loaded, @tagName(current_block) }) catch "Zigcraft";
+            const title = std.fmt.bufPrintZ(&title_buf, "Zigcraft  fps={d}  time={s}  chunks={d}  block={s}", .{ fps, time_state, loaded, @tagName(current_block) }) catch "Zigcraft";
             c.glfwSetWindowTitle(window, title.ptr);
         }
 
