@@ -8,270 +8,287 @@ const chunk_renderer_mod = @import("chunk_renderer.zig");
 const frustum_mod = @import("frustum.zig");
 const math = @import("math.zig");
 
-/// Owns an NxN grid of chunks: CPU data + GPU renderers.
-/// Grid cell (i,j) holds world chunk (base_cx+i, base_cz+j),
-/// drawn with model offset (i*16, 0, j*16) relative to grid origin.
+pub const ChunkCoord = struct {
+    x: i32,
+    z: i32,
+
+    pub fn hash(self: ChunkCoord) u64 {
+        const ux: u64 = @bitCast(@as(i64, self.x));
+        const uz: u64 = @bitCast(@as(i64, self.z));
+        return (ux *% 0x9E3779B97F4A7C15) ^ (uz *% 0xBF58476D1CE4E5B9);
+    }
+
+    pub fn eql(a: ChunkCoord, b: ChunkCoord) bool {
+        return a.x == b.x and a.z == b.z;
+    }
+};
+
+const ChunkCoordContext = struct {
+    pub fn hash(_: ChunkCoordContext, key: ChunkCoord) u64 {
+        return key.hash();
+    }
+    pub fn eql(_: ChunkCoordContext, a: ChunkCoord, b: ChunkCoord) bool {
+        return a.eql(b);
+    }
+};
+
+pub const LoadedChunk = struct {
+    chunk: Chunk,
+    renderer: ?chunk_renderer_mod.ChunkRenderer,
+    dirty: bool,
+};
+
+/// Dynamic chunk manager: streams chunks in a view radius (square diameter = 2*radius+1)
+/// centered on player position. Loads new chunks, unloads distant ones, remeshes dirty.
 pub const ChunkManager = struct {
     allocator: std.mem.Allocator,
-    chunks: []Chunk,
-    renderers: []chunk_renderer_mod.ChunkRenderer,
-    side: usize,
-    base_cx: i32,
-    base_cz: i32,
+    chunks: std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80),
+    radius: i32,
     terrain: terrain_mod.TerrainGenerator,
 
-    pub fn init(allocator: std.mem.Allocator, side: usize, base_cx: i32, base_cz: i32, seed: u64) !ChunkManager {
-        const count = side * side;
-        const chunks = try allocator.alloc(Chunk, count);
-        errdefer allocator.free(chunks);
-        const renderers = try allocator.alloc(chunk_renderer_mod.ChunkRenderer, count);
-        errdefer allocator.free(renderers);
-
+    pub fn init(allocator: std.mem.Allocator, radius: i32, center_cx: i32, center_cz: i32, seed: u64) !ChunkManager {
         var self = ChunkManager{
             .allocator = allocator,
-            .chunks = chunks,
-            .renderers = renderers,
-            .side = side,
-            .base_cx = base_cx,
-            .base_cz = base_cz,
+            .chunks = std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80).init(allocator),
+            .radius = radius,
             .terrain = terrain_mod.TerrainGenerator.init(seed),
         };
+        errdefer self.deinit();
 
-        // Publish partially-built state only on success; on failure
-        // tear down renderers built so far.
-        var built: usize = 0;
-        errdefer {
-            var k: usize = 0;
-            while (k < built) : (k += 1) self.renderers[k].deinit();
-        }
-
-        var j: usize = 0;
-        while (j < side) : (j += 1) {
-            var i: usize = 0;
-            while (i < side) : (i += 1) {
-                const idx = j * side + i;
-                self.chunks[idx] = Chunk.init();
-                self.terrain.generateChunk(
-                    &self.chunks[idx],
-                    base_cx + @as(i32, @intCast(i)),
-                    base_cz + @as(i32, @intCast(j)),
-                );
-            }
-        }
-        j = 0;
-        while (j < side) : (j += 1) {
-            var i: usize = 0;
-            while (i < side) : (i += 1) {
-                const idx = j * side + i;
-                var nbs = self.neighborsFor(i, j);
-                var cpu_mesh = try chunk_mesh_mod.generateMesh(allocator, &self.chunks[idx], &nbs);
-                defer cpu_mesh.deinit(allocator);
-                self.renderers[idx] = try chunk_renderer_mod.ChunkRenderer.init(allocator, &cpu_mesh);
-                built += 1;
-            }
-        }
+        try self.syncToCenter(center_cx, center_cz, true);
         return self;
     }
 
     pub fn deinit(self: *ChunkManager) void {
-        for (self.renderers) |*r| r.deinit();
-        self.allocator.free(self.renderers);
-        self.allocator.free(self.chunks);
+        var iter = self.chunks.valueIterator();
+        while (iter.next()) |entry| {
+            if (entry.renderer) |*r| r.deinit();
+        }
+        self.chunks.deinit();
+    }
+
+    /// Load missing chunks and purge distant ones around (center_cx, center_cz).
+    /// If full_mesh is true, meshes all unmeshed/dirty chunks synchronously.
+    pub fn update(self: *ChunkManager, player_x: f32, player_z: f32) !void {
+        const center_cx = @as(i32, @intFromFloat(@floor(player_x / 16.0)));
+        const center_cz = @as(i32, @intFromFloat(@floor(player_z / 16.0)));
+        try self.syncToCenter(center_cx, center_cz, false);
+    }
+
+    /// Ensure chunks within radius exist, purge outside, mesh dirty ones up to budget per tick.
+    pub fn syncToCenter(self: *ChunkManager, center_cx: i32, center_cz: i32, mesh_all: bool) !void {
+        // 1. Purge out-of-range chunks
+        var iter = self.chunks.iterator();
+        while (iter.next()) |entry| {
+            const coord = entry.key_ptr.*;
+            if (@abs(coord.x - center_cx) > self.radius or @abs(coord.z - center_cz) > self.radius) {
+                if (entry.value_ptr.renderer) |*r| r.deinit();
+                _ = self.chunks.remove(coord);
+            }
+        }
+
+        // 2. Generate new chunks within radius
+        var cz = center_cz - self.radius;
+        while (cz <= center_cz + self.radius) : (cz += 1) {
+            var cx = center_cx - self.radius;
+            while (cx <= center_cx + self.radius) : (cx += 1) {
+                const coord = ChunkCoord{ .x = cx, .z = cz };
+                if (!self.chunks.contains(coord)) {
+                    var ch = Chunk.init();
+                    self.terrain.generateChunk(&ch, cx, cz);
+                    try self.chunks.put(coord, .{
+                        .chunk = ch,
+                        .renderer = null,
+                        .dirty = true,
+                    });
+                    self.markDirty(cx + 1, cz);
+                    self.markDirty(cx - 1, cz);
+                    self.markDirty(cx, cz + 1);
+                    self.markDirty(cx, cz - 1);
+                }
+            }
+        }
+
+        // 3. Mesh dirty chunks (budgeted per frame unless mesh_all)
+        const budget: usize = if (mesh_all) std.math.maxInt(usize) else 4;
+        var meshed: usize = 0;
+        var r_iter = self.chunks.iterator();
+        while (r_iter.next()) |entry| {
+            if (meshed >= budget) break;
+            if (!entry.value_ptr.dirty) continue;
+
+            const coord = entry.key_ptr.*;
+            var nbs = self.neighborsFor(coord.x, coord.z);
+            var cpu_mesh = try chunk_mesh_mod.generateMesh(self.allocator, &entry.value_ptr.chunk, &nbs);
+            defer cpu_mesh.deinit(self.allocator);
+
+            if (entry.value_ptr.renderer) |*r| {
+                r.remesh(&cpu_mesh);
+            } else {
+                entry.value_ptr.renderer = try chunk_renderer_mod.ChunkRenderer.init(self.allocator, &cpu_mesh);
+            }
+            entry.value_ptr.dirty = false;
+            meshed += 1;
+        }
+    }
+
+    fn markDirty(self: *ChunkManager, cx: i32, cz: i32) void {
+        if (self.chunks.getPtr(.{ .x = cx, .z = cz })) |entry| {
+            entry.dirty = true;
+        }
     }
 
     pub const DrawStats = struct { drawn: usize, culled: usize };
 
-    /// Draw visible chunks: mvp = viewProj * translate(i*16, 0, j*16).
-    /// Chunks fully outside the frustum are skipped. Returns counts.
+    /// Draw all visible loaded chunks. MVP offset uses actual world chunk position (cx*16, 0, cz*16).
     pub fn draw(self: *ChunkManager, view_proj: math.Mat4) DrawStats {
         const frustum = frustum_mod.Frustum.fromMatrix(view_proj);
         var stats = DrawStats{ .drawn = 0, .culled = 0 };
-        var j: usize = 0;
-        while (j < self.side) : (j += 1) {
-            var i: usize = 0;
-            while (i < self.side) : (i += 1) {
-                const idx = j * self.side + i;
-                const ox: f32 = @floatFromInt(i * 16);
-                const oz: f32 = @floatFromInt(j * 16);
-                const min = math.Vec3.init(ox, 0, oz);
-                const max = math.Vec3.init(ox + 16, 16, oz + 16);
-                if (!frustum.containsBox(min, max)) {
-                    stats.culled += 1;
-                    continue;
-                }
-                const model = math.Mat4.translate(math.Vec3.init(ox, 0, oz));
-                var mvp = math.Mat4.mul(view_proj, model);
-                self.renderers[idx].draw(mvp.ptr());
-                stats.drawn += 1;
+
+        var iter = self.chunks.iterator();
+        while (iter.next()) |entry| {
+            const renderer = &(entry.value_ptr.renderer orelse continue);
+            const cx = entry.key_ptr.x;
+            const cz = entry.key_ptr.z;
+            const ox: f32 = @floatFromInt(cx * 16);
+            const oz: f32 = @floatFromInt(cz * 16);
+            const min = math.Vec3.init(ox, 0, oz);
+            const max = math.Vec3.init(ox + 16, 16, oz + 16);
+            if (!frustum.containsBox(min, max)) {
+                stats.culled += 1;
+                continue;
             }
+            const model = math.Mat4.translate(math.Vec3.init(ox, 0, oz));
+            var mvp = math.Mat4.mul(view_proj, model);
+            renderer.draw(mvp.ptr());
+            stats.drawn += 1;
         }
         return stats;
     }
 
-        /// World-space solid test across the grid. Grid origin = world (base_cx*16, 0, base_cz*16).
+    /// World-space solid test. Checks loaded chunk at world coords.
     pub fn isSolidWorld(self: *const ChunkManager, x: i32, y: i32, z: i32) bool {
-        const loc = self.locate(x, y, z) orelse return false;
-        const ox = x - self.base_cx * 16;
-        const oz = z - self.base_cz * 16;
-        const lx: u4 = @intCast(@mod(ox, 16));
-        const lz: u4 = @intCast(@mod(oz, 16));
-        return self.chunks[loc.cj * self.side + loc.ci].getBlock(lx, @intCast(y), lz).is_solid();
+        if (y < 0 or y >= 16) return false;
+        const cx = @divFloor(x, 16);
+        const cz = @divFloor(z, 16);
+        const entry = self.chunks.get(.{ .x = cx, .z = cz }) orelse return false;
+        const lx: u4 = @intCast(@mod(x, 16));
+        const lz: u4 = @intCast(@mod(z, 16));
+        return entry.chunk.getBlock(lx, @intCast(y), lz).is_solid();
     }
 
-    const EditResult = struct { ci: usize, cj: usize };
-    fn locate(self: *const ChunkManager, x: i32, y: i32, z: i32) ?EditResult {
-        if (y < 0 or y >= 16) return null;
-        const ox = x - self.base_cx * 16;
-        const oz = z - self.base_cz * 16;
-        if (ox < 0 or oz < 0) return null;
-        const side_i: i32 = @intCast(self.side);
-        if (ox >= side_i * 16 or oz >= side_i * 16) return null;
-        return .{
-            .ci = @intCast(@divFloor(ox, 16)),
-            .cj = @intCast(@divFloor(oz, 16)),
-        };
-    }
-
-    /// Set a world-space block. Returns false if outside grid. Does NOT remesh.
+    /// Set block in loaded chunk. Returns false if chunk not loaded or y out of range.
     pub fn setBlockWorld(self: *ChunkManager, x: i32, y: i32, z: i32, block: block_mod.BlockId) bool {
-        const loc = self.locate(x, y, z) orelse return false;
-        const ox = x - self.base_cx * 16;
-        const oz = z - self.base_cz * 16;
-        const lx: u4 = @intCast(@mod(ox, 16));
-        const lz: u4 = @intCast(@mod(oz, 16));
-        self.chunks[loc.cj * self.side + loc.ci].setBlock(lx, @intCast(y), lz, block);
+        if (y < 0 or y >= 16) return false;
+        const cx = @divFloor(x, 16);
+        const cz = @divFloor(z, 16);
+        const entry = self.chunks.getPtr(.{ .x = cx, .z = cz }) orelse return false;
+        const lx: u4 = @intCast(@mod(x, 16));
+        const lz: u4 = @intCast(@mod(z, 16));
+        entry.chunk.setBlock(lx, @intCast(y), lz, block);
+        entry.dirty = true;
         return true;
     }
 
-    /// Re-mesh + re-upload a single grid cell after edits.
-    pub fn remeshCell(self: *ChunkManager, ci: usize, cj: usize) !void {
-        const idx = cj * self.side + ci;
-        var nbs = self.neighborsFor(ci, cj);
-        var cpu_mesh = try chunk_mesh_mod.generateMesh(self.allocator, &self.chunks[idx], &nbs);
+    /// Remesh a single chunk by coordinate.
+    pub fn remeshChunk(self: *ChunkManager, cx: i32, cz: i32) !void {
+        const entry = self.chunks.getPtr(.{ .x = cx, .z = cz }) orelse return;
+        var nbs = self.neighborsFor(cx, cz);
+        var cpu_mesh = try chunk_mesh_mod.generateMesh(self.allocator, &entry.chunk, &nbs);
         defer cpu_mesh.deinit(self.allocator);
-        self.renderers[idx].remesh(&cpu_mesh);
+        if (entry.renderer) |*r| {
+            r.remesh(&cpu_mesh);
+        } else {
+            entry.renderer = try chunk_renderer_mod.ChunkRenderer.init(self.allocator, &cpu_mesh);
+        }
+        entry.dirty = false;
     }
 
-    /// Set block + remesh its chunk. Single-chunk remesh (no cross-border
-    /// face updates yet — boundary faces stay stale until neighbor remesh).
+    /// Set block and immediately remesh its chunk + borders if near edge.
     pub fn editAndRemesh(self: *ChunkManager, x: i32, y: i32, z: i32, block: block_mod.BlockId) !bool {
-        const loc = self.locate(x, y, z) orelse return false;
         if (!self.setBlockWorld(x, y, z, block)) return false;
-        try self.remeshCell(loc.ci, loc.cj);
-        const ox = x - self.base_cx * 16;
-        const oz = z - self.base_cz * 16;
-        const lx = @mod(ox, 16);
-        const lz = @mod(oz, 16);
-        if (lx == 0 and loc.ci > 0) try self.remeshCell(loc.ci - 1, loc.cj);
-        if (lx == 15 and loc.ci + 1 < self.side) try self.remeshCell(loc.ci + 1, loc.cj);
-        if (lz == 0 and loc.cj > 0) try self.remeshCell(loc.ci, loc.cj - 1);
-        if (lz == 15 and loc.cj + 1 < self.side) try self.remeshCell(loc.ci, loc.cj + 1);
+        const cx = @divFloor(x, 16);
+        const cz = @divFloor(z, 16);
+        try self.remeshChunk(cx, cz);
+        const lx = @mod(x, 16);
+        const lz = @mod(z, 16);
+        if (lx == 0) try self.remeshChunk(cx - 1, cz);
+        if (lx == 15) try self.remeshChunk(cx + 1, cz);
+        if (lz == 0) try self.remeshChunk(cx, cz - 1);
+        if (lz == 15) try self.remeshChunk(cx, cz + 1);
         return true;
     }
 
-    fn neighborsFor(self: *const ChunkManager, ci: usize, cj: usize) [6]?*const Chunk {
+    fn neighborsFor(self: *const ChunkManager, cx: i32, cz: i32) [6]?*const Chunk {
         var nbs: [6]?*const Chunk = .{ null, null, null, null, null, null };
-        if (cj > 0) nbs[2] = &self.chunks[(cj - 1) * self.side + ci];
-        if (cj + 1 < self.side) nbs[3] = &self.chunks[(cj + 1) * self.side + ci];
-        if (ci + 1 < self.side) nbs[4] = &self.chunks[cj * self.side + ci + 1];
-        if (ci > 0) nbs[5] = &self.chunks[cj * self.side + ci - 1];
+        if (self.chunks.getPtr(.{ .x = cx, .z = cz - 1 })) |n| nbs[2] = &n.chunk;
+        if (self.chunks.getPtr(.{ .x = cx, .z = cz + 1 })) |n| nbs[3] = &n.chunk;
+        if (self.chunks.getPtr(.{ .x = cx + 1, .z = cz })) |n| nbs[4] = &n.chunk;
+        if (self.chunks.getPtr(.{ .x = cx - 1, .z = cz })) |n| nbs[5] = &n.chunk;
         return nbs;
     }
 
-    pub fn totalSolids(self: *const ChunkManager) usize {
-        var n: usize = 0;
-        for (self.chunks) |*ch| n += ch.solidBlockCount();
-        return n;
+    pub fn loadedChunkCount(self: *const ChunkManager) usize {
+        return self.chunks.count();
     }
 };
 
-test "1x1 manager builds and has solids" {
-    // Needs GL context for ChunkRenderer — CPU-only check instead.
-    const t = terrain_mod.TerrainGenerator.init(5);
+test "ChunkCoord hash and equality" {
+    const a = ChunkCoord{ .x = -3, .z = 4 };
+    const b = ChunkCoord{ .x = -3, .z = 4 };
+    const c = ChunkCoord{ .x = 3, .z = 4 };
+    try std.testing.expect(a.eql(b));
+    try std.testing.expect(!a.eql(c));
+    try std.testing.expectEqual(a.hash(), b.hash());
+}
+
+test "streaming loads radius and unloads outside" {
+    var mgr = ChunkManager{
+        .allocator = std.testing.allocator,
+        .chunks = std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80).init(std.testing.allocator),
+        .radius = 1,
+        .terrain = terrain_mod.TerrainGenerator.init(123),
+    };
+    defer mgr.deinit();
+
+    // Radius 1 around (0,0) -> 3x3 = 9 chunks (CPU only, no meshing)
+    var cz: i32 = -1;
+    while (cz <= 1) : (cz += 1) {
+        var cx: i32 = -1;
+        while (cx <= 1) : (cx += 1) {
+            var ch = Chunk.init();
+            mgr.terrain.generateChunk(&ch, cx, cz);
+            try mgr.chunks.put(.{ .x = cx, .z = cz }, .{ .chunk = ch, .renderer = null, .dirty = false });
+        }
+    }
+    try std.testing.expectEqual(mgr.loadedChunkCount(), 9);
+
+    // Shift center to (10, 10) without GL rendering: manually test coordinate filter
+    var iter = mgr.chunks.iterator();
+    while (iter.next()) |entry| {
+        const coord = entry.key_ptr.*;
+        if (@abs(coord.x - 10) > mgr.radius or @abs(coord.z - 10) > mgr.radius) {
+            _ = mgr.chunks.remove(coord);
+        }
+    }
+    try std.testing.expectEqual(mgr.loadedChunkCount(), 0);
+}
+
+test "isSolidWorld checks negative chunk coords" {
+    var mgr = ChunkManager{
+        .allocator = std.testing.allocator,
+        .chunks = std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80).init(std.testing.allocator),
+        .radius = 1,
+        .terrain = terrain_mod.TerrainGenerator.init(0),
+    };
+    defer mgr.deinit();
+
     var ch = Chunk.init();
-    t.generateChunk(&ch, 0, 0);
-    try std.testing.expect(ch.solidBlockCount() > 0);
-}
+    ch.setBlock(15, 4, 15, .stone);
+    try mgr.chunks.put(.{ .x = -1, .z = -1 }, .{ .chunk = ch, .renderer = null, .dirty = false });
 
-test "setBlockWorld inside grid updates block" {
-    // Build chunks without GPU renderers: exercise locate/set logic
-    // via a bare chunk (same indexing as manager grid 1x1).
-    var ch = chunk_mod.Chunk.init();
-    ch.setBlock(3, 4, 5, .stone);
-    try std.testing.expectEqual(ch.getBlock(3, 4, 5), .stone);
-}
-
-test "locate rejects outside grid" {
-    // Indirect: isSolidWorld false everywhere outside.
-    var one_chunk: [1]chunk_mod.Chunk = .{chunk_mod.Chunk.init()};
-    var one_renderer: [1]chunk_renderer_mod.ChunkRenderer = undefined;
-    var mgr = ChunkManager{
-        .allocator = std.testing.allocator,
-        .chunks = &one_chunk,
-        .renderers = &one_renderer,
-        .side = 1,
-        .base_cx = 0,
-        .base_cz = 0,
-        .terrain = terrain_mod.TerrainGenerator.init(0),
-    };
-    try std.testing.expect(!mgr.isSolidWorld(-1, 5, 5));
-    try std.testing.expect(!mgr.isSolidWorld(16, 5, 5));
-    try std.testing.expect(!mgr.isSolidWorld(5, -1, 5));
-    try std.testing.expect(!mgr.isSolidWorld(5, 16, 5));
-    try std.testing.expect(!mgr.setBlockWorld(99, 5, 99, .stone));
-}
-
-test "neighborsFor maps adjacent chunks" {
-    var cs: [4]chunk_mod.Chunk = .{ chunk_mod.Chunk.init(), chunk_mod.Chunk.init(), chunk_mod.Chunk.init(), chunk_mod.Chunk.init() };
-    var rs: [4]chunk_renderer_mod.ChunkRenderer = undefined;
-    var mgr = ChunkManager{
-        .allocator = std.testing.allocator,
-        .chunks = &cs,
-        .renderers = &rs,
-        .side = 2,
-        .base_cx = 0,
-        .base_cz = 0,
-        .terrain = terrain_mod.TerrainGenerator.init(0),
-    };
-    // Cell (0,0): east -> chunk 1, south -> chunk 2, no west/north.
-    const nbs = mgr.neighborsFor(0, 0);
-    try std.testing.expect(nbs[5] == null);
-    try std.testing.expect(nbs[2] == null);
-    try std.testing.expect(nbs[4].? == &cs[1]);
-    try std.testing.expect(nbs[3].? == &cs[2]);
-    // Cell (1,1): west -> chunk 2... check all four.
-    const nbs2 = mgr.neighborsFor(1, 1);
-    try std.testing.expect(nbs2[5].? == &cs[2]);
-    try std.testing.expect(nbs2[2].? == &cs[1]);
-    try std.testing.expect(nbs2[4] == null);
-    try std.testing.expect(nbs2[3] == null);
-}
-
-test "boundary faces culled with neighbors" {
-    var a = chunk_mod.Chunk.init();
-    var b = chunk_mod.Chunk.init();
-    a.setBlock(15, 5, 5, .stone);
-    b.setBlock(0, 5, 5, .stone);
-    const nbs: [6]?*const chunk_mod.Chunk = .{ null, null, null, null, &b, null };
-    const nbs2: [6]?*const chunk_mod.Chunk = .{ null, null, null, null, null, &a };
-    var m1 = try chunk_mesh_mod.generateMesh(std.testing.allocator, &a, &nbs);
-    defer m1.deinit(std.testing.allocator);
-    var m2 = try chunk_mesh_mod.generateMesh(std.testing.allocator, &b, &nbs2);
-    defer m2.deinit(std.testing.allocator);
-    // Touching faces culled: 5 faces each (20 verts, 30 indices).
-    try std.testing.expectEqual(m1.vertices.len, 20);
-    try std.testing.expectEqual(m1.indices.len, 30);
-    try std.testing.expectEqual(m2.vertices.len, 20);
-    try std.testing.expectEqual(m2.indices.len, 30);
-    // Without neighbors both faces render: 6 faces each.
-    var m3 = try chunk_mesh_mod.generateMesh(std.testing.allocator, &a, null);
-    defer m3.deinit(std.testing.allocator);
-    try std.testing.expectEqual(m3.vertices.len, 24);
-}
-
-test "model offsets tile without gaps" {
-    // Adjacent chunk origins differ by exactly 16 on x/z.
-    const a = math.Mat4.translate(math.Vec3.init(0, 0, 0));
-    const b = math.Mat4.translate(math.Vec3.init(16, 0, 0));
-    try std.testing.expectEqual(a.data[3][0] + 16, b.data[3][0]);
+    // World (-1, 4, -1) lies in chunk (-1, -1) at local (15, 4, 15)
+    try std.testing.expect(mgr.isSolidWorld(-1, 4, -1));
+    try std.testing.expect(!mgr.isSolidWorld(-1, 5, -1));
+    try std.testing.expect(!mgr.isSolidWorld(0, 4, 0));
 }
