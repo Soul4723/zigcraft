@@ -62,13 +62,14 @@ pub fn main() !void {
 
     // Timing
     var last_time = c.glfwGetTime();
+    var frame_count: u64 = 0;
 
     // Mouse tracking
     var last_x: f64 = @floatFromInt(window_width / 2);
     var last_y: f64 = @floatFromInt(window_height / 2);
     var first_mouse = true;
 
-    std.debug.print("ready. 3x3 terrain demo (seed 1337). WASD to move, mouse to look, ESC to close.\n", .{});
+    std.debug.print("ready. 3x3 terrain + frustum culling. WASD to move, mouse to look, ESC to close.\n", .{});
 
     while (c.glfwWindowShouldClose(window) == c.GLFW_FALSE) {
         // Delta time
@@ -113,8 +114,11 @@ pub fn main() !void {
         // Render
         c.glClear(c.GL_COLOR_BUFFER_BIT | c.GL_DEPTH_BUFFER_BIT);
 
-        const view_proj = mvp;
-        manager.draw(view_proj);
+        const stats = manager.draw(mvp);
+        frame_count += 1;
+        if (frame_count % 300 == 0) {
+            std.debug.print("chunks drawn={d} culled={d}\n", .{ stats.drawn, stats.culled });
+        }
 
         c.glfwSwapBuffers(window);
         c.glfwPollEvents();
