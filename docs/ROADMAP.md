@@ -1,7 +1,7 @@
 # Roadmap
 
 Rough priority order. Completed milestones marked **[x]**.
-> **Milestones 1 through 29 and 31 complete!** Next focus: Multiplayer.
+> **Milestones 1 through 31 complete!** All core roadmap milestones achieved.
 
 ## Phase 1: Window and Rendering Foundation
 
@@ -49,5 +49,5 @@ Rough priority order. Completed milestones marked **[x]**.
 ## Long-term
 
 29. [x] **Mobs / Entities** — Simple wandering voxel entity with AABB physics and rendering (#41)
-30. **Multiplayer** ← next
+30. [x] **Multiplayer** — Non-blocking UDP protocol, client-server sync, remote avatars, replicated block edits (#45)
 31. [x] **Crafting & Inventory GUI** — Full inventory screen ('E'), 2x2 crafting grid, recipes, item consumption & drop collection (#42)
