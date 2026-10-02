@@ -7,6 +7,7 @@ const c = @cImport({
 const camera_mod = @import("camera.zig");
 const math = @import("math.zig");
 const chunk_mod = @import("world/chunk.zig");
+const terrain_mod = @import("world/terrain.zig");
 const chunk_mesh_mod = @import("world/chunk_mesh.zig");
 const chunk_renderer_mod = @import("chunk_renderer.zig");
 
@@ -52,11 +53,10 @@ pub fn main() !void {
     // Hide and capture cursor for first-person camera control
     c.glfwSetInputMode(window, c.GLFW_CURSOR, c.GLFW_CURSOR_DISABLED);
 
-    // Demo chunk: flat grass floor at y=0 plus a small stone pillar.
+    // Demo chunk: seeded terrain heightmap instead of flat floor.
     var chunk = chunk_mod.Chunk.init();
-    chunk.fillLayer(0, .grass);
-    chunk.setBlock(8, 1, 8, .stone);
-    chunk.setBlock(8, 2, 8, .stone);
+    const terrain = terrain_mod.TerrainGenerator.init(1337);
+    terrain.generateChunk(&chunk, 0, 0);
 
     var cpu_mesh = try chunk_mesh_mod.generateMesh(std.heap.page_allocator, &chunk, null);
     defer cpu_mesh.deinit(std.heap.page_allocator);
@@ -66,7 +66,7 @@ pub fn main() !void {
 
     // Camera setup — pulled back so the demo chunk fills the view.
     var cam = camera_mod.Camera.init();
-    cam.position = math.Vec3.init(8, 6, 20);
+    cam.position = math.Vec3.init(8, 12, 24);
     cam.yaw = -std.math.pi / 2.0 - 0.35;
     cam.pitch = -0.3;
 
@@ -78,7 +78,7 @@ pub fn main() !void {
     var last_y: f64 = @floatFromInt(window_height / 2);
     var first_mouse = true;
 
-    std.debug.print("ready. chunk demo. WASD to move, mouse to look, ESC to close.\n", .{});
+    std.debug.print("ready. terrain demo (seed 1337). WASD to move, mouse to look, ESC to close.\n", .{});
 
     while (c.glfwWindowShouldClose(window) == c.GLFW_FALSE) {
         // Delta time
