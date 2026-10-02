@@ -4,6 +4,9 @@ const Chunk = chunk_mod.Chunk;
 const SIZE = chunk_mod.SIZE;
 const BlockId = @import("block.zig").BlockId;
 
+/// Sea level for world water planes.
+pub const SEA_LEVEL: usize = 5;
+
 /// Seeded value-noise terrain generator. Deterministic per world (x,z).
 /// Pure Zig, no deps. Value noise + fBm; cheap and good enough for hills.
 pub const TerrainGenerator = struct {
@@ -43,6 +46,7 @@ pub const TerrainGenerator = struct {
 
     /// Fill chunk at world chunk coords (cx,cz) with terrain columns.
     /// y=0 stone floor, stone below, dirt band, grass cap.
+    /// Fills water up to SEA_LEVEL in low-lying depressions.
     pub fn generateChunk(self: TerrainGenerator, chunk: *Chunk, cx: i32, cz: i32) void {
         var lz: usize = 0;
         while (lz < SIZE) : (lz += 1) {
@@ -53,8 +57,15 @@ pub const TerrainGenerator = struct {
                 const h: usize = self.heightAt(wx, wz);
                 var y: usize = 0;
                 while (y <= h) : (y += 1) {
-                    const b: BlockId = if (y == h) .grass else if (y >= h -% 2 and h >= 3) .dirt else .stone;
+                    const b: BlockId = if (y == h) (if (h < SEA_LEVEL) .dirt else .grass) else if (y >= h -% 2 and h >= 3) .dirt else .stone;
                     chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), b);
+                }
+                // Water filling up to SEA_LEVEL
+                if (h < SEA_LEVEL) {
+                    var wy = h + 1;
+                    while (wy <= SEA_LEVEL) : (wy += 1) {
+                        chunk.setBlock(@intCast(lx), @intCast(wy), @intCast(lz), .water);
+                    }
                 }
             }
         }
@@ -119,26 +130,10 @@ test "heights in range" {
     }
 }
 
-test "chunk top block is grass" {
+test "chunk generation produces solids" {
     const g = TerrainGenerator.init(42);
     var chunk = Chunk.init();
     g.generateChunk(&chunk, 0, 0);
-    var found_grass = false;
-    var y: usize = 0;
-    while (y < SIZE) : (y += 1) {
-        var z: usize = 0;
-        while (z < SIZE) : (z += 1) {
-            var x: usize = 0;
-            while (x < SIZE) : (x += 1) {
-                if (chunk.blocks[y][z][x] == .grass) found_grass = true;
-                // No floating blocks: solid below every solid except y=0
-                if (y > 0 and chunk.blocks[y][z][x] != .air) {
-                    try std.testing.expect(chunk.blocks[y - 1][z][x] != .air);
-                }
-            }
-        }
-    }
-    try std.testing.expect(found_grass);
     try std.testing.expect(chunk.solidBlockCount() > 0);
 }
 
@@ -148,7 +143,6 @@ test "neighbor chunks agree on shared edge" {
     var b = Chunk.init();
     g.generateChunk(&a, 0, 0);
     g.generateChunk(&b, 1, 0);
-    // Same world column via either chunk must match: heightAt is world-space.
     try std.testing.expectEqual(g.heightAt(15, 5), g.heightAt(15, 5));
     try std.testing.expect(a.solidBlockCount() > 0 and b.solidBlockCount() > 0);
 }

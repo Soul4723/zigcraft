@@ -96,6 +96,9 @@ pub const ChunkRenderer = struct {
     }
 
     pub fn draw(self: *ChunkRenderer, mvp_ptr: [*c]const f32) void {
+        if (self.index_count == 0) return;
+        c.glEnable(c.GL_BLEND);
+        c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
         c.glUseProgram(self.program);
         c.glActiveTexture(c.GL_TEXTURE0);
         c.glBindTexture(c.GL_TEXTURE_2D, self.texture);
@@ -104,6 +107,7 @@ pub const ChunkRenderer = struct {
         shader.setUniformVec3(self.program, "u_light_dir", 0.45, 0.85, 0.28);
         c.glBindVertexArray(self.vao);
         c.glDrawElements(c.GL_TRIANGLES, @intCast(self.index_count), c.GL_UNSIGNED_INT, @ptrFromInt(0));
+        c.glDisable(c.GL_BLEND);
     }
 };
 

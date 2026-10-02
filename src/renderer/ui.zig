@@ -103,22 +103,23 @@ pub const UIRenderer = struct {
         verts[count + 5] = .{ .position = .{ -ch_th_x, ch_len_y }, .color = crosshair_color };
         count += 6;
 
-        // 2. Hotbar at bottom center (3 slots: Stone, Dirt, Grass)
-        const slot_w: f32 = 0.06 / aspect;
-        const slot_h: f32 = 0.06;
-        const spacing: f32 = 0.015 / aspect;
+        // 2. Hotbar at bottom center (4 slots: Stone, Dirt, Grass, Water)
+        const slot_w: f32 = 0.055 / aspect;
+        const slot_h: f32 = 0.055;
+        const spacing: f32 = 0.012 / aspect;
         const base_y: f32 = -0.92;
-        const total_w = 3.0 * slot_w + 2.0 * spacing;
+        const total_w = 4.0 * slot_w + 3.0 * spacing;
         const start_x = -total_w / 2.0;
 
-        const slot_colors = [3][4]f32{
+        const slot_colors = [4][4]f32{
             .{ 0.6, 0.6, 0.62, 0.9 }, // Stone
             .{ 0.55, 0.35, 0.2, 0.9 }, // Dirt
             .{ 0.25, 0.75, 0.25, 0.9 }, // Grass
+            .{ 0.2, 0.45, 0.85, 0.9 }, // Water
         };
 
         var i: usize = 0;
-        while (i < 3) : (i += 1) {
+        while (i < 4) : (i += 1) {
             const x0 = start_x + @as(f32, @floatFromInt(i)) * (slot_w + spacing);
             const x1 = x0 + slot_w;
             const y0 = base_y;

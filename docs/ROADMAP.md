@@ -1,7 +1,7 @@
 # Roadmap
 
 Rough priority order. Completed milestones marked **[x]**.
-> **Phase 1-4 Core Complete!** Milestones 1 through 20, 22, and 23 implemented. Next focus: Optimization & Fluid Simulation.
+> **Phase 1-4 Core Complete!** Milestones 1 through 20, 22, 23, and 24 implemented. Next focus: Optimization & Foliage.
 
 ## Phase 1: Window and Rendering Foundation
 
@@ -13,7 +13,7 @@ Rough priority order. Completed milestones marked **[x]**.
 
 ## Phase 2: Voxel World Basics
 
-6. [x] **Block type system** — Define block types (air, dirt, grass, stone) with properties
+6. [x] **Block type system** — Define block types (air, dirt, grass, stone, water) with properties
 7. [x] **Chunk data structure** — 16×16×16 chunk storing block IDs
 8. [x] **Chunk meshing** — Generate mesh from chunk data (greedy or per-face)
 9. [x] **Single chunk rendering** — Render one chunk with block textures (PR #14)
@@ -39,8 +39,9 @@ Rough priority order. Completed milestones marked **[x]**.
 
 21. **Greedy meshing** — Merge coplanar faces across chunk to reduce vertex buffer sizes ← next
 22. [x] **Crosshair & Screen UI** — 2D viewport quad crosshair (#34)
-23. [x] **Block inventory & selection** — Hotbar slots 1-3 to choose block type for placement (#34)
-24. **Water / fluid simulation** — Translucent water blocks and cellular flow
+23. [x] **Block inventory & selection** — Hotbar slots 1-4 to choose block type for placement (#34, #35)
+24. [x] **Water / fluid simulation** — Translucent water blocks and sea-level terrain lakes (#35)
+25. **Biomes & tree generation** — Height-dependent biomes and procedural trees/foliage
 
 ## Long-term
 
@@ -48,5 +49,4 @@ Rough priority order. Completed milestones marked **[x]**.
 - Sound
 - Mobs/entities
 - Crafting
-- Biomes & tree generation
 - Advanced lighting (ambient occlusion, shadows)

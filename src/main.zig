@@ -24,7 +24,7 @@ fn pickSolid(x: i32, y: i32, z: i32) bool {
 }
 
 pub fn main() !void {
-    std.debug.print("zigcraft v0.0.5\n", .{});
+    std.debug.print("zigcraft v0.0.6\n", .{});
 
     if (c.glfwInit() == c.GLFW_FALSE) {
         std.debug.print("failed to initialize GLFW\n", .{});
@@ -81,8 +81,8 @@ pub fn main() !void {
     var ui = try ui_mod.UIRenderer.init(std.heap.page_allocator);
     defer ui.deinit();
 
-    // Hotbar selection: 0=stone, 1=dirt, 2=grass
-    const hotbar_blocks = [3]block_mod.BlockId{ .stone, .dirt, .grass };
+    // Hotbar selection: 0=stone, 1=dirt, 2=grass, 3=water
+    const hotbar_blocks = [4]block_mod.BlockId{ .stone, .dirt, .grass, .water };
     var selected_slot: usize = 0;
 
     // Timing
@@ -98,7 +98,7 @@ pub fn main() !void {
     var last_y: f64 = @floatFromInt(window_height / 2);
     var first_mouse = true;
 
-    std.debug.print("ready. Dynamic chunk streaming (r=3, 7x7 grid) + Hotbar/Crosshair. Keys 1-3 select block.\n", .{});
+    std.debug.print("ready. Dynamic chunks + Water rendering + Hotbar (1-4). WASD move, mouse look, ESC close.\n", .{});
 
     while (c.glfwWindowShouldClose(window) == c.GLFW_FALSE) {
         // Delta time
@@ -106,10 +106,11 @@ pub fn main() !void {
         const dt: f32 = @floatCast(current_time - last_time);
         last_time = current_time;
 
-        // Hotbar selection keys 1, 2, 3
+        // Hotbar selection keys 1, 2, 3, 4
         if (c.glfwGetKey(window, c.GLFW_KEY_1) == c.GLFW_PRESS) selected_slot = 0;
         if (c.glfwGetKey(window, c.GLFW_KEY_2) == c.GLFW_PRESS) selected_slot = 1;
         if (c.glfwGetKey(window, c.GLFW_KEY_3) == c.GLFW_PRESS) selected_slot = 2;
+        if (c.glfwGetKey(window, c.GLFW_KEY_4) == c.GLFW_PRESS) selected_slot = 3;
 
         // Keyboard input: poll each movement key and forward to camera.
         const fwd = cam.front();

@@ -10,6 +10,7 @@ const c = @cImport({
 /// (1, 0) = Grass Side
 /// (2, 0) = Dirt
 /// (3, 0) = Stone
+/// (0, 1) = Water (Translucent blue)
 pub const ATLAS_TILES_PER_ROW: f32 = 4.0;
 pub const TILE_UV_SIZE: f32 = 1.0 / ATLAS_TILES_PER_ROW; // 0.25
 
@@ -27,7 +28,7 @@ pub fn getTileUV(tile_x: u32, tile_y: u32) [4][2]f32 {
     };
 }
 
-/// Procedural 64x64 texture atlas containing grass top, grass side, dirt, and stone tiles.
+/// Procedural 64x64 texture atlas containing grass top, grass side, dirt, stone, and water tiles.
 pub fn createBlockTexture() c.GLuint {
     var texture: c.GLuint = 0;
     c.glGenTextures(1, &texture);
@@ -81,6 +82,14 @@ pub fn createBlockTexture() c.GLuint {
             data[stone_idx + 1] = gray;
             data[stone_idx + 2] = gray + 3;
             data[stone_idx + 3] = 255;
+
+            // Tile (0,1): Water - animated/vibrant blue water with alpha 190
+            const w_noise = (x * 17 + y * 7) % 21;
+            const water_idx = ((16 + y) * 64 + x) * 4;
+            data[water_idx] = 35 + @as(u8, @intCast(w_noise / 2));
+            data[water_idx + 1] = 95 + @as(u8, @intCast(w_noise));
+            data[water_idx + 2] = 210 + @as(u8, @intCast(w_noise * 2));
+            data[water_idx + 3] = 185; // 72% opacity
         }
     }
 
@@ -112,9 +121,9 @@ test "tile UV coordinates within unit quad" {
     try std.testing.expectEqual(uv_gt[2][0], 0.25);
     try std.testing.expectEqual(uv_gt[2][1], 0.25);
 
-    const uv_stone = getTileUV(3, 0);
-    try std.testing.expectEqual(uv_stone[0][0], 0.75);
-    try std.testing.expectEqual(uv_stone[0][1], 0.0);
-    try std.testing.expectEqual(uv_stone[2][0], 1.0);
-    try std.testing.expectEqual(uv_stone[2][1], 0.25);
+    const uv_water = getTileUV(0, 1);
+    try std.testing.expectEqual(uv_water[0][0], 0.0);
+    try std.testing.expectEqual(uv_water[0][1], 0.25);
+    try std.testing.expectEqual(uv_water[2][0], 0.25);
+    try std.testing.expectEqual(uv_water[2][1], 0.50);
 }
