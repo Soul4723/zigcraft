@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-02 (Session 015)
+Last updated: 2026-10-02 (Session 016)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`)
@@ -13,6 +13,7 @@ Last updated: 2026-10-02 (Session 015)
 - Block type system (air, stone, dirt, grass, water) with properties and non-solid fluid collision rules
 - 4x4 procedural texture atlas (grass top, grass side, dirt, stone, translucent water)
 - 16x16x16 chunk data structure with set/get/fillLayer
+- Greedy chunk mesher (Milestone 21): 2D slice-swept quad merger delivering up to ~99% vertex count reductions on planar voxel surfaces
 - Procedural fBm value noise heightmap terrain generator with sea-level water lakes (`SEA_LEVEL = 5`)
 - Dynamic chunk streaming manager: hash-mapped chunk storage, loads and unloads around player position (radius 3 = 49 chunks)
 - Frustum culling using 6 extracted view-projection planes against chunk AABBs
@@ -24,14 +25,14 @@ Last updated: 2026-10-02 (Session 015)
 - Real-time debug HUD reporting FPS, coordinates, chunk indices, loaded/drawn/culled chunk counts, and aim target
 - 20 unit test suites across all subsystem modules passing
 
-## Active Branch: feat/water-system
+## Active Branch: feat/greedy-meshing
 
-Implements Milestone 24 (Water fluid blocks, translucent rendering, and sea-level terrain lakes).
+Implements Milestone 21 (Greedy meshing).
 
 ## What's Next
 
-1. **Greedy meshing**: merge coplanar adjacent block faces to slash vertex buffer sizes and overdraw.
-2. **Biomes & tree generation**: procedural wood logs, oak leaves, and biome temperature/moisture maps.
+1. **Biomes & tree generation** (Milestone 25): wood logs, leaves, natural tree canopy generation, sand/snow biomes.
+2. **Ambient occlusion**: per-vertex voxel ambient occlusion in chunk shader.
 
 ## Environment
 
