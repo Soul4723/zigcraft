@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-01 (Session 002)
+Last updated: 2026-10-02 (Session 003)
 
 ## What Works
 - Zig 0.16.0 build system (zig build, zig build run, zig build test)
@@ -13,6 +13,7 @@ Last updated: 2026-10-01 (Session 002)
 - GLFW window creation with OpenGL 3.3 context
 - Sky-blue clear color, escape-to-close, depth testing
 - Colored triangle rendering with shader pipeline (VAO/VBO/EBO)
+- Single chunk rendering: ChunkRenderer uploads meshed chunk to GPU, procedural 16x16 texture, demo scene in main loop (PR #14)
 - MVP (Model-View-Projection) uniform matrix support
 - First-person camera with mouse look and WASD movement
 - Block type system (air, stone, dirt, grass) with properties
@@ -21,7 +22,7 @@ Last updated: 2026-10-01 (Session 002)
 - 33 unit tests across 7 test targets, all passing
 - Full documentation and AI workflow infrastructure (skills, CONTRIBUTING, ROADMAP)
 
-## Branch: feat/camera
+## Branch: feat/chunk-rendering
 
 All milestone work from session 001 plus the camera feature is merged on the
 `feat/camera` branch (local → pushed to origin). Individual PRs are open but
@@ -34,13 +35,14 @@ not yet merged into main:
 - PR #10: Triangle rendering shader pipeline (`feat/triangle-rendering`)
 - PR #11: GitHub Actions CI (`docs/ci-setup`)
 - PR #12: Session 001 log + session-end skill (`docs/session-001-log`)
-- PR #13: First-person camera (`feat/camera`) ← just created
+- PR #13: First-person camera (`feat/camera`)
+- PR #14: Single chunk rendering (`feat/chunk-rendering`) ← just created
 
 ## What's Next
 
 After PRs merge into main:
-1. **Issue #5/6**: Single chunk rendering — integration point for camera + meshing.
-   Needs texture support and a proper rendering loop with chunk data.
+1. **Terrain generation** (Issue needed): value/simplex noise heightmap, fill chunk by column (research doc exists)
+2. **Multiple chunks**: chunk manager, grid render with per-chunk model offset
 2. **Terrain generation** (Research doc exists, implementation pending)
 3. **Greedy meshing** upgrade (research doc exists, profiling needed first)
 

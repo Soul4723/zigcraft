@@ -1,7 +1,7 @@
 # Roadmap
 
 Rough priority order. Completed milestones marked **[x]**.
-> **Current milestone: 4 (Camera) — implemented on `feat/camera` branch, PR #13.**
+> **Current milestone: 11 (Terrain generation).** Milestone 9 done on `feat/chunk-rendering` (PR #14).
 All Phase 1 milestones except #5 (textured quad) are done on the `feat/camera` branch. Each milestone is a meaningful increment — the project should
 be buildable and runnable after each one.
 
@@ -18,7 +18,7 @@ be buildable and runnable after each one.
 6. [x] **Block type system** — Define block types (air, dirt, grass, stone) with properties
 7. [x] **Chunk data structure** — 16×16×16 chunk storing block IDs
 8. [x] **Chunk meshing** — Generate mesh from chunk data (greedy or per-face)
-9. **Single chunk rendering** — Render one chunk with block textures
+9. [x] **Single chunk rendering** — Render one chunk with block textures (PR #14)
 10. **Multiple chunks** — Chunk manager, render a grid of chunks
 
 ## Phase 3: World and Interaction
