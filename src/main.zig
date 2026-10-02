@@ -8,6 +8,7 @@ const camera_mod = @import("camera.zig");
 const math = @import("math.zig");
 const chunk_manager_mod = @import("chunk_manager.zig");
 const pick_mod = @import("pick.zig");
+const sky_mod = @import("sky.zig");
 
 const window_width = 1280;
 const window_height = 720;
@@ -61,6 +62,8 @@ pub fn main() !void {
     var manager = try chunk_manager_mod.ChunkManager.init(std.heap.page_allocator, 3, 0, 0, 1337);
     defer manager.deinit();
     pick_manager = &manager;
+    var sky = try sky_mod.SkyRenderer.init(std.heap.page_allocator);
+    defer sky.deinit();
 
     // Camera setup — pulled back so the chunk grid fills the view.
     var cam = camera_mod.Camera.init();
@@ -124,6 +127,7 @@ pub fn main() !void {
         // Render
         c.glClear(c.GL_COLOR_BUFFER_BIT | c.GL_DEPTH_BUFFER_BIT);
 
+        sky.draw(mvp, cam.position);
         const stats = manager.draw(mvp);
         frame_count += 1;
         if (frame_count % 60 == 0) {
