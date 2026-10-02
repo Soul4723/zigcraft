@@ -12,6 +12,7 @@ const sky_mod = @import("sky.zig");
 const player_mod = @import("player.zig");
 const block_mod = @import("world/block.zig");
 const ui_mod = @import("renderer/ui.zig");
+const audio_mod = @import("audio/audio.zig");
 
 const window_width = 1280;
 const window_height = 720;
@@ -21,6 +22,16 @@ var pick_manager: ?*chunk_manager_mod.ChunkManager = null;
 
 fn pickSolid(x: i32, y: i32, z: i32) bool {
     return pick_manager.?.isSolidWorld(x, y, z);
+}
+
+fn getFootstepSound(block: block_mod.BlockId) audio_mod.synth.SoundType {
+    return switch (block) {
+        .grass => .step_grass,
+        .stone => .step_stone,
+        .wood => .step_wood,
+        .dirt => .step_dirt,
+        else => .step_grass,
+    };
 }
 
 pub fn main() !void {
@@ -81,6 +92,9 @@ pub fn main() !void {
     var ui = try ui_mod.UIRenderer.init(std.heap.page_allocator);
     defer ui.deinit();
 
+    var audio = audio_mod.AudioSystem.init();
+    defer audio.deinit();
+
     // Hotbar selection: 0=stone, 1=dirt, 2=grass, 3=water, 4=wood, 5=leaves
     const hotbar_blocks = [6]block_mod.BlockId{ .stone, .dirt, .grass, .water, .wood, .leaves };
     var selected_slot: usize = 0;
@@ -93,13 +107,14 @@ pub fn main() !void {
     var left_down = false;
     var right_down = false;
     var world_time: f32 = 45.0; // Start at morning daylight
+    var last_step_dist: f32 = 0.0;
 
     // Mouse tracking
     var last_x: f64 = @floatFromInt(window_width / 2);
     var last_y: f64 = @floatFromInt(window_height / 2);
     var first_mouse = true;
 
-    std.debug.print("ready. Dynamic chunks + AO + Day/Night Cycle + Hotbar (1-6). WASD move, mouse look, ESC close.\n", .{});
+    std.debug.print("ready. Dynamic chunks + AO + Day/Night Cycle + Audio. WASD move, mouse look, ESC close.\n", .{});
 
     while (c.glfwWindowShouldClose(window) == c.GLFW_FALSE) {
         // Delta time
@@ -135,6 +150,16 @@ pub fn main() !void {
         const jump = c.glfwGetKey(window, c.GLFW_KEY_SPACE) == c.GLFW_PRESS;
         player.tick(&pickSolid, norm_wish.x * walk_speed * dt, norm_wish.z * walk_speed * dt, jump, dt);
         cam.position = player.eyePos();
+
+        // Footstep audio triggered periodically while walking on ground
+        if (player.on_ground and player.distance_walked - last_step_dist >= 1.7) {
+            last_step_dist = player.distance_walked;
+            const ground_x: i32 = @intFromFloat(@floor(player.pos.x));
+            const ground_y: i32 = @intFromFloat(@floor(player.pos.y - 0.1));
+            const ground_z: i32 = @intFromFloat(@floor(player.pos.z));
+            const ground_block = manager.getBlockWorld(ground_x, ground_y, ground_z);
+            audio.play(getFootstepSound(ground_block), 0.5);
+        }
 
         // Stream chunks dynamically around player
         try manager.update(player.pos.x, player.pos.z);
@@ -196,6 +221,9 @@ pub fn main() !void {
         // Render 2D UI overlay (crosshair + hotbar)
         ui.draw(aspect, selected_slot);
 
+        // Update audio device buffer
+        audio.update();
+
         frame_count += 1;
         hud_frames += 1;
         hud_time += dt;
@@ -228,6 +256,7 @@ pub fn main() !void {
             if (pick_mod.raycast(&pickSolid, cam.position, dir, 8)) |hit| {
                 if (left) {
                     if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .air)) {
+                        audio.play(.break_block, 0.7);
                         std.debug.print("destroyed ({d},{d},{d})\n", .{ hit.x, hit.y, hit.z });
                     }
                 } else {
@@ -237,6 +266,7 @@ pub fn main() !void {
                     if (!pickSolid(px, py, pz)) {
                         const place_type = hotbar_blocks[selected_slot];
                         if (try manager.editAndRemesh(px, py, pz, place_type)) {
+                            audio.play(.place_block, 0.7);
                             std.debug.print("placed {s} ({d},{d},{d})\n", .{ @tagName(place_type), px, py, pz });
                         }
                     }

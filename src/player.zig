@@ -7,9 +7,17 @@ pub const Player = struct {
     on_ground: bool,
     height: f32,
     radius: f32,
+    distance_walked: f32,
 
     pub fn init(x: f32, y: f32, z: f32) Player {
-        return .{ .pos = math.Vec3.init(x, y, z), .vel_y = 0, .on_ground = false, .height = 1.8, .radius = 0.3 };
+        return .{
+            .pos = math.Vec3.init(x, y, z),
+            .vel_y = 0,
+            .on_ground = false,
+            .height = 1.8,
+            .radius = 0.3,
+            .distance_walked = 0,
+        };
     }
 
     pub fn eyePos(self: Player) math.Vec3 {
@@ -21,8 +29,18 @@ pub const Player = struct {
     /// lands on block tops and bonks on ceilings.
     pub fn tick(self: *Player, solid: *const fn (x: i32, y: i32, z: i32) bool, move_x: f32, move_z: f32, jump: bool, dt: f32) void {
         const clamped_dt = @min(dt, 0.05);
+        const old_x = self.pos.x;
+        const old_z = self.pos.z;
+
         self.pos.x = moveAxis(self.pos, self.radius, self.height, solid, move_x, .x);
         self.pos.z = moveAxis(self.pos, self.radius, self.height, solid, move_z, .z);
+
+        if (self.on_ground) {
+            const dx = self.pos.x - old_x;
+            const dz = self.pos.z - old_z;
+            self.distance_walked += @sqrt(dx * dx + dz * dz);
+        }
+
         if (jump and self.on_ground) {
             self.vel_y = 8.0;
             self.on_ground = false;
@@ -164,4 +182,11 @@ test "player blocked by wall" {
     var i: usize = 0;
     while (i < 120) : (i += 1) p.tick(&wallSolid, 10.0 * 1.0 / 60.0, 0, false, 1.0 / 60.0);
     try std.testing.expect(p.pos.x < 2.0 - p.radius);
+}
+
+test "player walking updates distance_walked" {
+    var p = Player.init(0.5, 1.0, 0.5);
+    p.on_ground = true;
+    p.tick(&testSolid, 1.0, 0, false, 0.016);
+    try std.testing.expect(p.distance_walked > 0.0);
 }
