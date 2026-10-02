@@ -7,10 +7,17 @@ const c = @cImport({
 const camera_mod = @import("camera.zig");
 const math = @import("math.zig");
 const chunk_manager_mod = @import("chunk_manager.zig");
+const pick_mod = @import("pick.zig");
 
 const window_width = 1280;
 const window_height = 720;
 const window_title = "Zigcraft";
+
+var pick_manager: ?*chunk_manager_mod.ChunkManager = null;
+
+fn pickSolid(x: i32, y: i32, z: i32) bool {
+    return pick_manager.?.isSolidWorld(x, y, z);
+}
 
 pub fn main() !void {
     std.debug.print("zigcraft v0.0.3\n", .{});
@@ -53,6 +60,7 @@ pub fn main() !void {
     // Demo world: 3x3 terrain chunks (seed 1337) via chunk manager.
     var manager = try chunk_manager_mod.ChunkManager.init(std.heap.page_allocator, 3, 0, 0, 1337);
     defer manager.deinit();
+    pick_manager = &manager;
 
     // Camera setup — pulled back so the chunk grid fills the view.
     var cam = camera_mod.Camera.init();
@@ -69,7 +77,7 @@ pub fn main() !void {
     var last_y: f64 = @floatFromInt(window_height / 2);
     var first_mouse = true;
 
-    std.debug.print("ready. 3x3 terrain + frustum culling. WASD to move, mouse to look, ESC to close.\n", .{});
+    std.debug.print("ready. 3x3 terrain + picking. Aim prints 1x/sec. WASD move, mouse look, ESC close.\n", .{});
 
     while (c.glfwWindowShouldClose(window) == c.GLFW_FALSE) {
         // Delta time
@@ -116,8 +124,13 @@ pub fn main() !void {
 
         const stats = manager.draw(mvp);
         frame_count += 1;
-        if (frame_count % 300 == 0) {
-            std.debug.print("chunks drawn={d} culled={d}\n", .{ stats.drawn, stats.culled });
+        if (frame_count % 60 == 0) {
+            const dir = cam.front();
+            if (pick_mod.raycast(&pickSolid, cam.position, dir, 8)) |hit| {
+                std.debug.print("drawn={d} culled={d} aim=({d},{d},{d}) face=({d},{d},{d})\n", .{ stats.drawn, stats.culled, hit.x, hit.y, hit.z, hit.nx, hit.ny, hit.nz });
+            } else {
+                std.debug.print("drawn={d} culled={d} aim=none\n", .{ stats.drawn, stats.culled });
+            }
         }
 
         c.glfwSwapBuffers(window);

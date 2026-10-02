@@ -99,6 +99,22 @@ pub const ChunkManager = struct {
         return stats;
     }
 
+        /// World-space solid test across the grid. Grid origin = world (base_cx*16, 0, base_cz*16).
+    pub fn isSolidWorld(self: *const ChunkManager, x: i32, y: i32, z: i32) bool {
+        if (y < 0 or y >= 16) return false;
+        const ox = x - self.base_cx * 16;
+        const oz = z - self.base_cz * 16;
+        if (ox < 0 or oz < 0) return false;
+        const side_i: i32 = @intCast(self.side);
+        if (ox >= side_i * 16 or oz >= side_i * 16) return false;
+        const ci: usize = @intCast(@divFloor(ox, 16));
+        const cj: usize = @intCast(@divFloor(oz, 16));
+        const lx: u4 = @intCast(@mod(ox, 16));
+        const lz: usize = @intCast(@mod(oz, 16));
+        const ly: u4 = @intCast(y);
+        return self.chunks[cj * self.side + ci].getBlock(lx, ly, @intCast(lz)).is_solid();
+    }
+
     pub fn totalSolids(self: *const ChunkManager) usize {
         var n: usize = 0;
         for (self.chunks) |*ch| n += ch.solidBlockCount();
