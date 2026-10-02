@@ -8,7 +8,7 @@ const chunk_mesh = @import("world/chunk_mesh.zig");
 const shader = @import("renderer/shader.zig");
 const texture = @import("renderer/texture.zig");
 
-/// Render a chunk mesh using a simple textured shader.
+/// Render a chunk mesh using a simple textured shader with ambient occlusion.
 pub const ChunkRenderer = struct {
     vao: c.GLuint,
     vbo: c.GLuint,
@@ -36,17 +36,21 @@ pub const ChunkRenderer = struct {
         const index_byte_size = mesh.indices.len * @sizeOf(u32);
         c.glBufferData(c.GL_ELEMENT_ARRAY_BUFFER, @intCast(index_byte_size), mesh.indices.ptr, c.GL_STATIC_DRAW);
 
-        // position
+        // position (loc 0)
         c.glEnableVertexAttribArray(0);
         c.glVertexAttribPointer(0, 3, c.GL_FLOAT, c.GL_FALSE, @sizeOf(chunk_mesh.Vertex), @ptrFromInt(0));
 
-        // normal
+        // normal (loc 1)
         c.glEnableVertexAttribArray(1);
         c.glVertexAttribPointer(1, 3, c.GL_FLOAT, c.GL_FALSE, @sizeOf(chunk_mesh.Vertex), @ptrFromInt(@sizeOf([3]f32)));
 
-        // tex_coord
+        // tex_coord (loc 2)
         c.glEnableVertexAttribArray(2);
         c.glVertexAttribPointer(2, 2, c.GL_FLOAT, c.GL_FALSE, @sizeOf(chunk_mesh.Vertex), @ptrFromInt(@sizeOf([3]f32) + @sizeOf([3]f32)));
+
+        // ao (loc 3)
+        c.glEnableVertexAttribArray(3);
+        c.glVertexAttribPointer(3, 1, c.GL_FLOAT, c.GL_FALSE, @sizeOf(chunk_mesh.Vertex), @ptrFromInt(@sizeOf([3]f32) + @sizeOf([3]f32) + @sizeOf([2]f32)));
 
         c.glBindVertexArray(0);
 

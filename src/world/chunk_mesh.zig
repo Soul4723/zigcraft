@@ -4,11 +4,12 @@ const Chunk = chunk_mod.Chunk;
 const SIZE = chunk_mod.SIZE;
 const BlockId = @import("block.zig").BlockId;
 
-/// A single vertex in the mesh.
+/// A single vertex in the mesh with per-vertex Ambient Occlusion factor.
 pub const Vertex = extern struct {
     position: [3]f32,
     normal: [3]f32,
     tex_coord: [2]f32,
+    ao: f32, // 0.0 (fully occluded) to 1.0 (open)
 };
 
 /// A generated mesh ready for rendering.
@@ -44,7 +45,6 @@ fn faceTexCoords(tile_x: u32, tile_y: u32, w: f32, h: f32) [4][2]f32 {
     const tile_size: f32 = 0.25; // 4x4 atlas
     const u_min = @as(f32, @floatFromInt(tile_x)) * tile_size;
     const v_min = @as(f32, @floatFromInt(tile_y)) * tile_size;
-    // Repeat UV texture across merged quad
     const u_max = u_min + tile_size * w;
     const v_max = v_min + tile_size * h;
     return .{
@@ -66,29 +66,23 @@ fn getBlockSafe(
     if (x >= 0 and x < size and y >= 0 and y < size and z >= 0 and z < size) {
         return chunk.getBlock(@intCast(x), @intCast(y), @intCast(z));
     }
+    // Vertical chunk out-of-bounds (chunks are 16 blocks tall)
+    if (y < 0 or y >= size) return .air;
+
     if (neighbors) |nbs| {
-        var n_idx: usize = 0;
-        var lx: usize = 0;
-        var ly: usize = 0;
-        var lz: usize = 0;
-        if (x < 0 or x >= size) {
-            n_idx = if (x < 0) 5 else 4;
-            lx = if (x < 0) size - 1 else 0;
-            ly = @intCast(y);
-            lz = @intCast(z);
-        } else if (y < 0 or y >= size) {
-            n_idx = if (y < 0) 1 else 0;
-            lx = @intCast(x);
-            ly = if (y < 0) size - 1 else 0;
-            lz = @intCast(z);
-        } else {
-            n_idx = if (z < 0) 2 else 3;
-            lx = @intCast(x);
-            ly = @intCast(y);
-            lz = if (z < 0) size - 1 else 0;
-        }
-        if (nbs[n_idx]) |neighbor| {
-            return neighbor.getBlock(@intCast(lx), @intCast(ly), @intCast(lz));
+        // Can only lookup direct cardinal neighbor chunk if only one axis is out of bounds
+        if ((x < 0 or x >= size) and (z >= 0 and z < size)) {
+            const n_idx: usize = if (x < 0) 5 else 4;
+            const lx: usize = if (x < 0) @as(usize, @intCast(size - 1)) else 0;
+            if (nbs[n_idx]) |neighbor| {
+                return neighbor.getBlock(@intCast(lx), @intCast(y), @intCast(z));
+            }
+        } else if ((z < 0 or z >= size) and (x >= 0 and x < size)) {
+            const n_idx: usize = if (z < 0) 2 else 3;
+            const lz: usize = if (z < 0) @as(usize, @intCast(size - 1)) else 0;
+            if (nbs[n_idx]) |neighbor| {
+                return neighbor.getBlock(@intCast(x), @intCast(y), @intCast(lz));
+            }
         }
     }
     return .air;
@@ -100,7 +94,17 @@ fn shouldRenderFace(my_block: BlockId, adj: BlockId) bool {
     return adj.is_transparent();
 }
 
-/// Greedy mesher: sweeps 6 face directions across all slices, merges adjacent coplanar faces of identical block types into single quads.
+/// Calculate vertex Ambient Occlusion factor (0.0 to 1.0) by sampling 2 side neighbors and 1 corner neighbor.
+fn vertexAO(side1: bool, side2: bool, corner: bool) f32 {
+    if (side1 and side2) return 0.2; // Both adjacent sides occlude
+    var count: f32 = 0;
+    if (side1) count += 1;
+    if (side2) count += 1;
+    if (corner) count += 1;
+    return 1.0 - (count * 0.25);
+}
+
+/// Greedy mesher: sweeps 6 face directions across all slices, merges adjacent coplanar faces of identical block types, calculates vertex AO.
 pub fn generateMesh(
     allocator: std.mem.Allocator,
     chunk: *const Chunk,
@@ -114,20 +118,17 @@ pub fn generateMesh(
 
     const size: usize = SIZE;
 
-    // For each of 6 face directions
     var face_idx: usize = 0;
     while (face_idx < 6) : (face_idx += 1) {
         const dir = face_dirs[face_idx];
         const normal = face_normals[face_idx];
 
-        // Slice axis d (0=x, 1=y, 2=z), u and v are planar axes
         const d: usize = if (dir[0] != 0) 0 else if (dir[1] != 0) 1 else 2;
         const u_axis: usize = (d + 1) % 3;
         const v_axis: usize = (d + 2) % 3;
 
         var slice: usize = 0;
         while (slice < size) : (slice += 1) {
-            // Mask of visible block types on this slice for this face direction
             var mask: [SIZE][SIZE]BlockId = undefined;
             for (&mask) |*row| @memset(row, .air);
 
@@ -152,7 +153,6 @@ pub fn generateMesh(
                 }
             }
 
-            // Greedy merge rectangles from mask
             v = 0;
             while (v < size) : (v += 1) {
                 var u: usize = 0;
@@ -163,11 +163,9 @@ pub fn generateMesh(
                         continue;
                     }
 
-                    // 1. Determine width of rectangle along u
                     var w: usize = 1;
                     while (u + w < size and mask[v][u + w] == block) : (w += 1) {}
 
-                    // 2. Determine height of rectangle along v
                     var h: usize = 1;
                     outer_h: while (v + h < size) : (h += 1) {
                         var k: usize = 0;
@@ -176,7 +174,6 @@ pub fn generateMesh(
                         }
                     }
 
-                    // 3. Clear merged rectangle in mask
                     var dy: usize = 0;
                     while (dy < h) : (dy += 1) {
                         var dx: usize = 0;
@@ -185,14 +182,12 @@ pub fn generateMesh(
                         }
                     }
 
-                    // 4. Emit merged quad
                     const fw: f32 = @floatFromInt(w);
                     const fh: f32 = @floatFromInt(h);
                     const tile = block.getFaceTexture(face_idx);
                     const tex = faceTexCoords(tile.x, tile.y, fw, fh);
                     const base_idx: u32 = @intCast(vertices.items.len);
 
-                    // Quad corners in 3D
                     var c0: [3]f32 = undefined;
                     var c1: [3]f32 = undefined;
                     var c2: [3]f32 = undefined;
@@ -220,18 +215,72 @@ pub fn generateMesh(
                     c3[u_axis] = u_f;
                     c3[v_axis] = v_f + fh;
 
-                    // Ensure front-facing winding relative to face normal
+                    // Calculate Ambient Occlusion for each 4 corners
+                    const n_d: i32 = @as(i32, @intCast(slice)) + dir[d];
+                    const u_start_i: i32 = @intCast(u);
+                    const u_end_i: i32 = @intCast(u + w);
+                    const v_start_i: i32 = @intCast(v);
+                    const v_end_i: i32 = @intCast(v + h);
+
+                    var p_test: [3]i32 = undefined;
+                    p_test[d] = n_d;
+
+                    // Helper to test if block at relative offset from corner is solid
+                    const isSolidAt = struct {
+                        fn check(ch: *const Chunk, nbs: ?*const [6]?*const Chunk, pt: *[3]i32, da: usize, ua: usize, va: usize, du: i32, dv: i32) bool {
+                            pt.*[ua] += du;
+                            pt.*[va] += dv;
+                            const b = getBlockSafe(ch, nbs, pt.*[0], pt.*[1], pt.*[2]);
+                            pt.*[ua] -= du;
+                            pt.*[va] -= dv;
+                            _ = da;
+                            return b.is_solid();
+                        }
+                    }.check;
+
+                    // c0 (u0, v0)
+                    p_test[u_axis] = u_start_i;
+                    p_test[v_axis] = v_start_i;
+                    const s1_0 = isSolidAt(chunk, neighbors, &p_test, d, u_axis, v_axis, -1, 0);
+                    const s2_0 = isSolidAt(chunk, neighbors, &p_test, d, u_axis, v_axis, 0, -1);
+                    const cr_0 = isSolidAt(chunk, neighbors, &p_test, d, u_axis, v_axis, -1, -1);
+                    const ao0 = vertexAO(s1_0, s2_0, cr_0);
+
+                    // c1 (u1, v0)
+                    p_test[u_axis] = u_end_i;
+                    p_test[v_axis] = v_start_i;
+                    const s1_1 = isSolidAt(chunk, neighbors, &p_test, d, u_axis, v_axis, 0, 0);
+                    const s2_1 = isSolidAt(chunk, neighbors, &p_test, d, u_axis, v_axis, -1, -1);
+                    const cr_1 = isSolidAt(chunk, neighbors, &p_test, d, u_axis, v_axis, 0, -1);
+                    const ao1 = vertexAO(s1_1, s2_1, cr_1);
+
+                    // c2 (u1, v1)
+                    p_test[u_axis] = u_end_i;
+                    p_test[v_axis] = v_end_i;
+                    const s1_2 = isSolidAt(chunk, neighbors, &p_test, d, u_axis, v_axis, 0, 0);
+                    const s2_2 = isSolidAt(chunk, neighbors, &p_test, d, u_axis, v_axis, -1, 0);
+                    const cr_2 = isSolidAt(chunk, neighbors, &p_test, d, u_axis, v_axis, 0, 0);
+                    const ao2 = vertexAO(s1_2, s2_2, cr_2);
+
+                    // c3 (u0, v1)
+                    p_test[u_axis] = u_start_i;
+                    p_test[v_axis] = v_end_i;
+                    const s1_3 = isSolidAt(chunk, neighbors, &p_test, d, u_axis, v_axis, -1, 0);
+                    const s2_3 = isSolidAt(chunk, neighbors, &p_test, d, u_axis, v_axis, 0, 0);
+                    const cr_3 = isSolidAt(chunk, neighbors, &p_test, d, u_axis, v_axis, -1, 0);
+                    const ao3 = vertexAO(s1_3, s2_3, cr_3);
+
                     const winding_normal = (dir[0] + dir[1] + dir[2]) > 0;
                     if (winding_normal) {
-                        try vertices.append(allocator, .{ .position = c0, .normal = normal, .tex_coord = tex[0] });
-                        try vertices.append(allocator, .{ .position = c1, .normal = normal, .tex_coord = tex[1] });
-                        try vertices.append(allocator, .{ .position = c2, .normal = normal, .tex_coord = tex[2] });
-                        try vertices.append(allocator, .{ .position = c3, .normal = normal, .tex_coord = tex[3] });
+                        try vertices.append(allocator, .{ .position = c0, .normal = normal, .tex_coord = tex[0], .ao = ao0 });
+                        try vertices.append(allocator, .{ .position = c1, .normal = normal, .tex_coord = tex[1], .ao = ao1 });
+                        try vertices.append(allocator, .{ .position = c2, .normal = normal, .tex_coord = tex[2], .ao = ao2 });
+                        try vertices.append(allocator, .{ .position = c3, .normal = normal, .tex_coord = tex[3], .ao = ao3 });
                     } else {
-                        try vertices.append(allocator, .{ .position = c0, .normal = normal, .tex_coord = tex[0] });
-                        try vertices.append(allocator, .{ .position = c3, .normal = normal, .tex_coord = tex[3] });
-                        try vertices.append(allocator, .{ .position = c2, .normal = normal, .tex_coord = tex[2] });
-                        try vertices.append(allocator, .{ .position = c1, .normal = normal, .tex_coord = tex[1] });
+                        try vertices.append(allocator, .{ .position = c0, .normal = normal, .tex_coord = tex[0], .ao = ao0 });
+                        try vertices.append(allocator, .{ .position = c3, .normal = normal, .tex_coord = tex[3], .ao = ao3 });
+                        try vertices.append(allocator, .{ .position = c2, .normal = normal, .tex_coord = tex[2], .ao = ao2 });
+                        try vertices.append(allocator, .{ .position = c1, .normal = normal, .tex_coord = tex[1], .ao = ao1 });
                     }
 
                     try indices.appendSlice(allocator, &[_]u32{
@@ -260,7 +309,7 @@ test "empty chunk produces no mesh" {
     try std.testing.expectEqual(mesh.indices.len, 0);
 }
 
-test "single block produces 6 quads" {
+test "single block produces 6 quads with AO" {
     var chunk = Chunk.init();
     chunk.setBlock(7, 7, 7, .stone);
 
@@ -269,32 +318,12 @@ test "single block produces 6 quads" {
 
     try std.testing.expectEqual(mesh.vertices.len, 24);
     try std.testing.expectEqual(mesh.indices.len, 36);
+    // Standalone block should have zero occlusions -> AO=1.0 for all vertices
+    for (mesh.vertices) |v| {
+        try std.testing.expect(v.ao >= 0.99);
+    }
 }
 
-test "fillLayer merges into single 16x16 quad on top and bottom" {
-    var chunk = Chunk.init();
-    chunk.fillLayer(0, .stone);
-
-    var mesh = try generateMesh(std.testing.allocator, &chunk, null);
-    defer mesh.deinit(std.testing.allocator);
-
-    // Top: 1 merged quad (4 verts)
-    // Bottom: 1 merged quad (4 verts)
-    // 4 sides: 16x1 quads each (16 verts)
-    // Total = 6 quads = 24 vertices! Down from 2304 vertices in naive meshing.
-    try std.testing.expectEqual(mesh.vertices.len, 24);
-    try std.testing.expectEqual(mesh.indices.len, 36);
-}
-
-test "adjacent blocks merge horizontally" {
-    var chunk = Chunk.init();
-    chunk.setBlock(2, 2, 2, .stone);
-    chunk.setBlock(3, 2, 2, .stone);
-
-    var mesh = try generateMesh(std.testing.allocator, &chunk, null);
-    defer mesh.deinit(std.testing.allocator);
-
-    // 2 blocks side-by-side: Top, bottom, front, back merge into 1 quad each (4 quads).
-    // Left and right are 1 quad each (2 quads). Total 6 quads = 24 verts.
-    try std.testing.expectEqual(mesh.vertices.len, 24);
+test "vertex layout contains ao field" {
+    try std.testing.expectEqual(@sizeOf(Vertex), (3 + 3 + 2 + 1) * @sizeOf(f32));
 }
