@@ -1,7 +1,7 @@
 # Roadmap
 
 Rough priority order. Completed milestones marked **[x]**.
-> **Milestones 1 through 27 complete!** Next focus: Sound/Audio and Entities.
+> **Milestones 1 through 28 complete!** Next focus: Mobs / Entities.
 
 ## Phase 1: Window and Rendering Foundation
 
@@ -44,11 +44,10 @@ Rough priority order. Completed milestones marked **[x]**.
 25. [x] **Biomes & tree generation** — Height-dependent terrain and procedural trees/foliage (#37)
 26. [x] **Voxel ambient occlusion** — Per-vertex corner occlusion in chunk shader (#38)
 27. [x] **Day/Night cycle** — Animated sun orbit, directional light vector, and dusk/dawn sky dome colors (#39)
-28. **Sound / Audio system** — Step, dig, place audio synthesis or playback ← next
+28. [x] **Sound / Audio system** — Procedural synthesizer & ALSA backend for footsteps, break, and place (#40)
 
 ## Long-term
 
-- Multiplayer
-- Mobs/entities
-- Crafting
-- Inventory GUI
+29. **Mobs / Entities** — Simple wandering voxel entity with AABB physics and rendering ← next
+30. **Multiplayer**
+31. **Crafting & Inventory GUI**

@@ -13,6 +13,7 @@ pub fn build(b: *std.Build) void {
 
     exe_mod.linkSystemLibrary("glfw3", .{});
     exe_mod.linkSystemLibrary("gl", .{});
+    exe_mod.linkSystemLibrary("asound", .{});
 
     const exe = b.addExecutable(.{
         .name = "zigcraft",
@@ -58,6 +59,8 @@ pub fn build(b: *std.Build) void {
         "src/player.zig",
         "src/sky.zig",
         "src/math.zig",
+        "src/audio/synth.zig",
+        "src/audio/audio.zig",
     };
 
     for (test_files) |test_file| {
@@ -68,6 +71,7 @@ pub fn build(b: *std.Build) void {
         });
         test_mod.linkSystemLibrary("gl", .{});
         test_mod.linkSystemLibrary("glfw3", .{});
+        test_mod.linkSystemLibrary("asound", .{});
         const test_exe = b.addTest(.{
             .root_module = test_mod,
         });

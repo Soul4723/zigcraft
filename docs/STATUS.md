@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-02 (Session 019)
+Last updated: 2026-10-02 (Session 020)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`)
@@ -22,22 +22,23 @@ Last updated: 2026-10-02 (Session 019)
 - Interactive block editing (left-click break, right-click place) with cross-chunk border re-meshing
 - Hotbar block selection (1=stone, 2=dirt, 3=grass, 4=water, 5=wood, 6=leaves) with dynamic HUD highlighting and selected-type block placement
 - 2D UI overlay renderer: alpha-blended crosshair reticle and on-screen hotbar slots
+- Procedural audio system (Milestone 28): multi-channel software synthesizer with ALSA backend for surface footsteps (grass, stone, wood, dirt), block destruction crunch, and block placement snap
 - Chunk persistence (Milestone 18): binary serialization to disk (`c_{cx}_{cz}.bin`), auto-load on chunk spawn, auto-save modified chunks on purge/exit
 - Real-time debug HUD reporting FPS, coordinates, chunk indices, day/night state, loaded/drawn/culled chunk counts, and aim target
-- 20 unit test suites across all subsystem modules passing
+- 157 unit tests across 19 subsystem modules passing
 
-## Active Branch: feat/day-night-cycle
+## Active Branch: feat/audio-system
 
-Implements Milestone 27 (Day/Night cycle).
+Implements Milestone 28 (Procedural Audio System).
 
 ## What's Next
 
-1. **Sound / Audio system** (Milestone 28): step, dig, place sound effects.
-2. **Mobs / Entities** (Milestone 29): simple wandering voxel entity with AABB physics.
+1. **Mobs / Entities** (Milestone 29): simple wandering voxel entity with AABB physics and rendering.
 
 ## Environment
 
 - OS: CachyOS (Arch-based) on Wayland
 - GPU: NVIDIA (OpenGL 3.3.0 NVIDIA 615.71.09)
+- Audio: ALSA (44100Hz mono non-blocking)
 - Zig: 0.16.0
 - GLFW: 3.5.1
