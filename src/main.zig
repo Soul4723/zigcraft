@@ -69,7 +69,7 @@ pub fn main() !void {
     // World chunk manager: radius 3 (7x7 = 49 chunks streaming around player)
     const init_cx = @as(i32, @intFromFloat(@floor(player.pos.x / 16.0)));
     const init_cz = @as(i32, @intFromFloat(@floor(player.pos.z / 16.0)));
-    var manager = try chunk_manager_mod.ChunkManager.init(std.heap.page_allocator, 3, init_cx, init_cz, 1337);
+    var manager = try chunk_manager_mod.ChunkManager.init(std.heap.page_allocator, 3, init_cx, init_cz, 1337, "saves");
     defer manager.deinit();
     pick_manager = &manager;
 
