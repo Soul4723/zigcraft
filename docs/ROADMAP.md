@@ -1,7 +1,7 @@
 # Roadmap
 
 Rough priority order. Completed milestones marked **[x]**.
-> **Milestones 1 through 24 complete!** Next focus: Biomes, Trees, and Gameplay.
+> **Milestones 1 through 25 complete!** Next focus: Ambient Occlusion & Lighting Polish.
 
 ## Phase 1: Window and Rendering Foundation
 
@@ -13,7 +13,7 @@ Rough priority order. Completed milestones marked **[x]**.
 
 ## Phase 2: Voxel World Basics
 
-6. [x] **Block type system** — Define block types (air, dirt, grass, stone, water) with properties
+6. [x] **Block type system** — Define block types (air, dirt, grass, stone, water, wood, leaves)
 7. [x] **Chunk data structure** — 16×16×16 chunk storing block IDs
 8. [x] **Chunk meshing** — Generate mesh from chunk data (greedy or per-face)
 9. [x] **Single chunk rendering** — Render one chunk with block textures (PR #14)
@@ -35,13 +35,14 @@ Rough priority order. Completed milestones marked **[x]**.
 19. [x] **Player physics** — Gravity, AABB collision, jumping (#28)
 20. [x] **UI overlay** — Debug HUD in log + title; on-screen text TBD (#29)
 
-## Phase 5: Optimization & Gameplay (Upcoming)
+## Phase 5: Optimization & Gameplay
 
 21. [x] **Greedy meshing** — Merge coplanar faces across chunk to reduce vertex buffer sizes (#36)
 22. [x] **Crosshair & Screen UI** — 2D viewport quad crosshair (#34)
-23. [x] **Block inventory & selection** — Hotbar slots 1-4 to choose block type for placement (#34, #35)
+23. [x] **Block inventory & selection** — Hotbar slots 1-6 to choose block type for placement (#34, #35, #37)
 24. [x] **Water / fluid simulation** — Translucent water blocks and sea-level terrain lakes (#35)
-25. **Biomes & tree generation** — Height-dependent biomes and procedural trees/foliage ← next
+25. [x] **Biomes & tree generation** — Height-dependent terrain and procedural trees/foliage (#37)
+26. **Voxel ambient occlusion** — Per-vertex corner occlusion to add depth to block crevices ← next
 
 ## Long-term
 
@@ -49,4 +50,4 @@ Rough priority order. Completed milestones marked **[x]**.
 - Sound
 - Mobs/entities
 - Crafting
-- Advanced lighting (ambient occlusion, shadows)
+- Day/Night cycle

@@ -7,8 +7,7 @@ const BlockId = @import("block.zig").BlockId;
 /// Sea level for world water planes.
 pub const SEA_LEVEL: usize = 5;
 
-/// Seeded value-noise terrain generator. Deterministic per world (x,z).
-/// Pure Zig, no deps. Value noise + fBm; cheap and good enough for hills.
+/// Seeded value-noise terrain generator with procedural tree placement.
 pub const TerrainGenerator = struct {
     seed: u64,
     base_height: i32,
@@ -20,7 +19,7 @@ pub const TerrainGenerator = struct {
         return .{
             .seed = seed,
             .base_height = 6,
-            .amplitude = 6.0,
+            .amplitude = 5.0,
             .frequency = 0.08,
             .octaves = 4,
         };
@@ -40,14 +39,25 @@ pub const TerrainGenerator = struct {
             amp *= 0.5;
         }
         const h = @as(f32, @floatFromInt(self.base_height)) + total / norm * self.amplitude;
-        const clamped = @max(1, @min(14, @as(i32, @intFromFloat(@round(h)))));
+        const clamped = @max(1, @min(11, @as(i32, @intFromFloat(@round(h)))));
         return @intCast(clamped);
     }
 
-    /// Fill chunk at world chunk coords (cx,cz) with terrain columns.
-    /// y=0 stone floor, stone below, dirt band, grass cap.
-    /// Fills water up to SEA_LEVEL in low-lying depressions.
+    /// Pseudo-random check if a tree trunk should spawn at world column (wx, wz).
+    fn hasTree(self: TerrainGenerator, wx: i32, wz: i32) bool {
+        // Pseudo-random hash
+        var h = self.seed ^ (@as(u64, @bitCast(@as(i64, wx))) *% 0x27d4eb2d);
+        h ^= (@as(u64, @bitCast(@as(i64, wz))) *% 0x165667b1);
+        h ^= h >> 15;
+        h *%= 0x27d4eb2d;
+        h ^= h >> 15;
+        // ~3% tree density
+        return (h % 33) == 0;
+    }
+
+    /// Fill chunk at world chunk coords (cx,cz) with terrain columns, water bodies, and trees.
     pub fn generateChunk(self: TerrainGenerator, chunk: *Chunk, cx: i32, cz: i32) void {
+        // 1. Terrain base columns & water
         var lz: usize = 0;
         while (lz < SIZE) : (lz += 1) {
             var lx: usize = 0;
@@ -65,6 +75,46 @@ pub const TerrainGenerator = struct {
                     var wy = h + 1;
                     while (wy <= SEA_LEVEL) : (wy += 1) {
                         chunk.setBlock(@intCast(lx), @intCast(wy), @intCast(lz), .water);
+                    }
+                }
+            }
+        }
+
+        // 2. Spawn trees in grassy land (trunk 3-4 blocks high, 3x3 leaf canopy)
+        lz = 2;
+        while (lz < SIZE - 2) : (lz += 1) {
+            var lx: usize = 2;
+            while (lx < SIZE - 2) : (lx += 1) {
+                const wx = cx * 16 + @as(i32, @intCast(lx));
+                const wz = cz * 16 + @as(i32, @intCast(lz));
+                const h: usize = self.heightAt(wx, wz);
+
+                // Trees only spawn on grass above water
+                if (h >= SEA_LEVEL and self.hasTree(wx, wz) and h + 5 < SIZE) {
+                    // Wood trunk
+                    var ty: usize = h + 1;
+                    while (ty <= h + 3) : (ty += 1) {
+                        chunk.setBlock(@intCast(lx), @intCast(ty), @intCast(lz), .wood);
+                    }
+
+                    // Leaf canopy 3x3 on top
+                    var cy: usize = h + 3;
+                    while (cy <= h + 4) : (cy += 1) {
+                        var ox: i32 = -1;
+                        while (ox <= 1) : (ox += 1) {
+                            var oz: i32 = -1;
+                            while (oz <= 1) : (oz += 1) {
+                                const bx: usize = @intCast(@as(i32, @intCast(lx)) + ox);
+                                const bz: usize = @intCast(@as(i32, @intCast(lz)) + oz);
+                                if (chunk.getBlock(@intCast(bx), @intCast(cy), @intCast(bz)) == .air) {
+                                    chunk.setBlock(@intCast(bx), @intCast(cy), @intCast(bz), .leaves);
+                                }
+                            }
+                        }
+                    }
+                    // Crown top leaf
+                    if (h + 5 < SIZE) {
+                        chunk.setBlock(@intCast(lx), @intCast(h + 5), @intCast(lz), .leaves);
                     }
                 }
             }

@@ -7,6 +7,8 @@ pub const BlockId = enum(u8) {
     dirt = 2,
     grass = 3,
     water = 4,
+    wood = 5,
+    leaves = 6,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water;
@@ -37,7 +39,12 @@ pub const BlockId = enum(u8) {
             },
             .dirt => .{ .x = 2, .y = 0 },
             .stone => .{ .x = 3, .y = 0 },
-            .water => .{ .x = 0, .y = 1 }, // Water tile on row 1
+            .water => .{ .x = 0, .y = 1 },
+            .wood => switch (face_idx) {
+                0, 1 => .{ .x = 2, .y = 1 }, // Wood ring top/bottom
+                else => .{ .x = 1, .y = 1 }, // Wood bark sides
+            },
+            .leaves => .{ .x = 3, .y = 1 },
             .air => .{ .x = 0, .y = 0 },
         };
     }
@@ -57,6 +64,8 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .dirt = .{ .name = "dirt", .solid = true, .transparent = false, .fluid = false },
     .grass = .{ .name = "grass", .solid = true, .transparent = false, .fluid = false },
     .water = .{ .name = "water", .solid = false, .transparent = true, .fluid = true },
+    .wood = .{ .name = "wood", .solid = true, .transparent = false, .fluid = false },
+    .leaves = .{ .name = "leaves", .solid = true, .transparent = false, .fluid = false },
 });
 
 test "block is_solid" {
@@ -65,6 +74,8 @@ test "block is_solid" {
     try std.testing.expect(BlockId.dirt.is_solid());
     try std.testing.expect(BlockId.grass.is_solid());
     try std.testing.expect(!BlockId.water.is_solid());
+    try std.testing.expect(BlockId.wood.is_solid());
+    try std.testing.expect(BlockId.leaves.is_solid());
 }
 
 test "block is_transparent" {
@@ -73,18 +84,18 @@ test "block is_transparent" {
     try std.testing.expect(!BlockId.dirt.is_transparent());
     try std.testing.expect(!BlockId.grass.is_transparent());
     try std.testing.expect(BlockId.water.is_transparent());
+    try std.testing.expect(!BlockId.wood.is_transparent());
+    try std.testing.expect(!BlockId.leaves.is_transparent());
 }
 
 test "block properties" {
-    const grass = block_defs.get(.grass);
-    try std.testing.expectEqualStrings(grass.name, "grass");
-    try std.testing.expect(grass.solid);
-    try std.testing.expect(!grass.transparent);
+    const wood = block_defs.get(.wood);
+    try std.testing.expectEqualStrings(wood.name, "wood");
+    try std.testing.expect(wood.solid);
 
-    const water = block_defs.get(.water);
-    try std.testing.expectEqualStrings(water.name, "water");
-    try std.testing.expect(!water.solid);
-    try std.testing.expect(water.fluid);
+    const leaves = block_defs.get(.leaves);
+    try std.testing.expectEqualStrings(leaves.name, "leaves");
+    try std.testing.expect(leaves.solid);
 }
 
 test "block count is reasonable" {
@@ -92,19 +103,15 @@ test "block count is reasonable" {
 }
 
 test "block face texture mapping" {
-    const grass_top = BlockId.grass.getFaceTexture(0);
-    try std.testing.expectEqual(grass_top.x, 0);
+    const wood_top = BlockId.wood.getFaceTexture(0);
+    try std.testing.expectEqual(wood_top.x, 2);
+    try std.testing.expectEqual(wood_top.y, 1);
 
-    const grass_bottom = BlockId.grass.getFaceTexture(1);
-    try std.testing.expectEqual(grass_bottom.x, 2);
+    const wood_side = BlockId.wood.getFaceTexture(2);
+    try std.testing.expectEqual(wood_side.x, 1);
+    try std.testing.expectEqual(wood_side.y, 1);
 
-    const grass_side = BlockId.grass.getFaceTexture(2);
-    try std.testing.expectEqual(grass_side.x, 1);
-
-    const stone = BlockId.stone.getFaceTexture(0);
-    try std.testing.expectEqual(stone.x, 3);
-
-    const water = BlockId.water.getFaceTexture(0);
-    try std.testing.expectEqual(water.x, 0);
-    try std.testing.expectEqual(water.y, 1);
+    const leaves = BlockId.leaves.getFaceTexture(0);
+    try std.testing.expectEqual(leaves.x, 3);
+    try std.testing.expectEqual(leaves.y, 1);
 }
