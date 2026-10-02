@@ -83,6 +83,11 @@ pub fn setUniformInt(program: c.GLuint, name: [:0]const u8, value: c.GLint) void
     c.glUniform1i(loc, value);
 }
 
+pub fn setUniformVec3(program: c.GLuint, name: [:0]const u8, x: f32, y: f32, z: f32) void {
+    const loc = getUniformLocation(program, name);
+    c.glUniform3f(loc, x, y, z);
+}
+
 /// Default shader sources for a colored triangle with MVP transform.
 pub const default_vert: [:0]const u8 =
 \\#version 330 core
@@ -114,25 +119,26 @@ pub const chunk_vert: [:0]const u8 =
 \\layout (location = 2) in vec2 aTexCoord;
 \\uniform mat4 u_mvp;
 \\out vec2 FragTexCoord;
+\\out vec3 FragNormal;
 \\void main() {
 \\    gl_Position = u_mvp * vec4(aPos, 1.0);
 \\    FragTexCoord = aTexCoord;
+\\    FragNormal = aNormal;
 \\}
 ;
 
 pub const chunk_frag: [:0]const u8 =
 \\#version 330 core
 \\in vec2 FragTexCoord;
+\\in vec3 FragNormal;
 \\out vec4 FragColor;
 \\uniform sampler2D u_texture;
+\\uniform vec3 u_light_dir;
 \\void main() {
-\\    FragColor = texture(u_texture, FragTexCoord);
+\\    float diff = max(dot(normalize(FragNormal), normalize(u_light_dir)), 0.0);
+\\    float ambient = 0.35;
+\\    float light = ambient + 0.65 * diff;
+\\    vec4 tex = texture(u_texture, FragTexCoord);
+\\    FragColor = vec4(tex.rgb * light, tex.a);
 \\}
 ;
-
-
-test "getUniformLocation with valid program" {
-    // We can't test OpenGL without a context, skip
-    // This test exists as a placeholder for future expansion
-    try std.testing.expect(true);
-}
