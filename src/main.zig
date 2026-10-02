@@ -71,6 +71,8 @@ pub fn main() !void {
     // Timing
     var last_time = c.glfwGetTime();
     var frame_count: u64 = 0;
+    var left_down = false;
+    var right_down = false;
 
     // Mouse tracking
     var last_x: f64 = @floatFromInt(window_width / 2);
@@ -132,6 +134,31 @@ pub fn main() !void {
                 std.debug.print("drawn={d} culled={d} aim=none\n", .{ stats.drawn, stats.culled });
             }
         }
+
+        // Block edit: left-click destroy, right-click place (edge-triggered).
+        const left = c.glfwGetMouseButton(window, c.GLFW_MOUSE_BUTTON_LEFT) == c.GLFW_PRESS;
+        const right = c.glfwGetMouseButton(window, c.GLFW_MOUSE_BUTTON_RIGHT) == c.GLFW_PRESS;
+        if ((left and !left_down) or (right and !right_down)) {
+            const dir = cam.front();
+            if (pick_mod.raycast(&pickSolid, cam.position, dir, 8)) |hit| {
+                if (left) {
+                    if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .air)) {
+                        std.debug.print("destroyed ({d},{d},{d})\n", .{ hit.x, hit.y, hit.z });
+                    }
+                } else {
+                    const px = hit.x + hit.nx;
+                    const py = hit.y + hit.ny;
+                    const pz = hit.z + hit.nz;
+                    if (!pickSolid(px, py, pz)) {
+                        if (try manager.editAndRemesh(px, py, pz, .stone)) {
+                            std.debug.print("placed stone ({d},{d},{d})\n", .{ px, py, pz });
+                        }
+                    }
+                }
+            }
+        }
+        left_down = left;
+        right_down = right;
 
         c.glfwSwapBuffers(window);
         c.glfwPollEvents();
