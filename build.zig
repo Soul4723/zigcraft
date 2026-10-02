@@ -59,7 +59,10 @@ pub fn build(b: *std.Build) void {
         const test_mod = b.createModule(.{
             .root_source_file = b.path(test_file),
             .target = target,
+            .link_libc = true,
         });
+        test_mod.linkSystemLibrary("gl", .{});
+        test_mod.linkSystemLibrary("glfw3", .{});
         const test_exe = b.addTest(.{
             .root_module = test_mod,
         });

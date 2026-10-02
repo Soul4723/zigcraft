@@ -68,6 +68,25 @@ pub const ChunkRenderer = struct {
         };
     }
 
+    /// Replace GPU buffers with a new mesh. Keeps VAO/program/texture.
+    pub fn remesh(self: *ChunkRenderer, mesh: *const chunk_mesh.Mesh) void {
+        c.glBindBuffer(c.GL_ARRAY_BUFFER, self.vbo);
+        const vertex_byte_size = mesh.vertices.len * @sizeOf(chunk_mesh.Vertex);
+        if (vertex_byte_size > 0) {
+            c.glBufferData(c.GL_ARRAY_BUFFER, @intCast(vertex_byte_size), mesh.vertices.ptr, c.GL_STATIC_DRAW);
+        } else {
+            c.glBufferData(c.GL_ARRAY_BUFFER, 0, null, c.GL_STATIC_DRAW);
+        }
+        c.glBindBuffer(c.GL_ELEMENT_ARRAY_BUFFER, self.ebo);
+        const index_byte_size = mesh.indices.len * @sizeOf(u32);
+        if (index_byte_size > 0) {
+            c.glBufferData(c.GL_ELEMENT_ARRAY_BUFFER, @intCast(index_byte_size), mesh.indices.ptr, c.GL_STATIC_DRAW);
+        } else {
+            c.glBufferData(c.GL_ELEMENT_ARRAY_BUFFER, 0, null, c.GL_STATIC_DRAW);
+        }
+        self.index_count = mesh.indices.len;
+    }
+
     pub fn deinit(self: *ChunkRenderer) void {
         c.glDeleteVertexArrays(1, &self.vao);
         c.glDeleteBuffers(1, &self.vbo);
