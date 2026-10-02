@@ -1,7 +1,7 @@
 # Roadmap
 
 Rough priority order. Completed milestones marked **[x]**.
-> **Milestones 1 through 26 complete!** Next focus: Day/Night Cycle & Sound.
+> **Milestones 1 through 27 complete!** Next focus: Sound/Audio and Entities.
 
 ## Phase 1: Window and Rendering Foundation
 
@@ -43,11 +43,12 @@ Rough priority order. Completed milestones marked **[x]**.
 24. [x] **Water / fluid simulation** — Translucent water blocks and sea-level terrain lakes (#35)
 25. [x] **Biomes & tree generation** — Height-dependent terrain and procedural trees/foliage (#37)
 26. [x] **Voxel ambient occlusion** — Per-vertex corner occlusion in chunk shader (#38)
-27. **Day/Night cycle** — Animated sun orbit, directional light vector, and dusk/dawn sky dome colors ← next
+27. [x] **Day/Night cycle** — Animated sun orbit, directional light vector, and dusk/dawn sky dome colors (#39)
+28. **Sound / Audio system** — Step, dig, place audio synthesis or playback ← next
 
 ## Long-term
 
 - Multiplayer
-- Sound
 - Mobs/entities
 - Crafting
+- Inventory GUI

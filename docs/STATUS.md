@@ -1,12 +1,13 @@
 # Project Status
 
-Last updated: 2026-10-02 (Session 018)
+Last updated: 2026-10-02 (Session 019)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`)
 - GLFW window creation with OpenGL 3.3 core profile context
 - Sky-blue clear color, escape-to-close, depth testing
-- Procedural gradient sky dome rendered behind world with far-plane depth clamping
+- Procedural gradient sky dome with dynamic day/dusk/night color shifts
+- Dynamic celestial sun orbit with shifting directional sunlight
 - Diffuse + ambient directional lighting with per-vertex Voxel Ambient Occlusion (`FragAO`)
 - First-person camera with mouse look and WASD movement
 - Player physics with gravity, jump mechanics, and axis-separated AABB voxel collision snapping
@@ -22,17 +23,17 @@ Last updated: 2026-10-02 (Session 018)
 - Hotbar block selection (1=stone, 2=dirt, 3=grass, 4=water, 5=wood, 6=leaves) with dynamic HUD highlighting and selected-type block placement
 - 2D UI overlay renderer: alpha-blended crosshair reticle and on-screen hotbar slots
 - Chunk persistence (Milestone 18): binary serialization to disk (`c_{cx}_{cz}.bin`), auto-load on chunk spawn, auto-save modified chunks on purge/exit
-- Real-time debug HUD reporting FPS, coordinates, chunk indices, loaded/drawn/culled chunk counts, and aim target
+- Real-time debug HUD reporting FPS, coordinates, chunk indices, day/night state, loaded/drawn/culled chunk counts, and aim target
 - 20 unit test suites across all subsystem modules passing
 
-## Active Branch: feat/voxel-ambient-occlusion
+## Active Branch: feat/day-night-cycle
 
-Implements Milestone 26 (Voxel Ambient Occlusion).
+Implements Milestone 27 (Day/Night cycle).
 
 ## What's Next
 
-1. **Day / Night cycle** (Milestone 27): animate directional sun vector and sky dome colors over game time.
-2. **Audio / Sound effects**: footstep and block break/place audio via miniaudio or ALSA.
+1. **Sound / Audio system** (Milestone 28): step, dig, place sound effects.
+2. **Mobs / Entities** (Milestone 29): simple wandering voxel entity with AABB physics.
 
 ## Environment
 
