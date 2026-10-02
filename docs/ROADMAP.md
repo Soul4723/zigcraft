@@ -1,8 +1,7 @@
 # Roadmap
 
 Rough priority order. Completed milestones marked **[x]**.
-> **Current milestone: 5 (Textured quad / texture atlas).** Milestones 1–4, 6–20 merged or implemented. Each milestone is a meaningful increment — the project should
-be buildable and runnable after each one.
+> **Phase 1-4 Core Complete!** All initial milestones 1 through 20 implemented and merged. Next focus: Optimization & Gameplay Systems.
 
 ## Phase 1: Window and Rendering Foundation
 
@@ -10,7 +9,7 @@ be buildable and runnable after each one.
 2. [x] **OpenGL context** — Initialize OpenGL, clear to a sky-blue color
 3. [x] **Triangle on screen** — Shader pipeline, VAO/VBO, draw a colored triangle
 4. [x] **Camera** — First-person camera with mouse look and WASD movement
-5. **Textured quad / atlas** — Texture atlas with distinct block face textures ← next
+5. [x] **Textured quad / atlas** — Texture atlas with distinct block face textures (#33)
 
 ## Phase 2: Voxel World Basics
 
@@ -36,15 +35,18 @@ be buildable and runnable after each one.
 19. [x] **Player physics** — Gravity, AABB collision, jumping (#28)
 20. [x] **UI overlay** — Debug HUD in log + title; on-screen text TBD (#29)
 
-## Not Yet Planned
+## Phase 5: Optimization & Gameplay (Upcoming)
+
+21. **Greedy meshing** — Merge coplanar faces across chunk to reduce vertex buffer sizes ← next
+22. **Crosshair & Screen UI** — 2D viewport quad crosshair and onscreen text rendering
+23. **Block inventory & selection** — Number keys 1-9 to choose block type for placement
+24. **Water / fluid simulation** — Finite water flow and translucent mesh rendering
+25. **Biomes & tree generation** — Height-dependent biomes and procedural trees/foliage
+
+## Long-term
 
 - Multiplayer
 - Sound
 - Mobs/entities
-- Inventory
 - Crafting
-- Biomes
-- Water/fluid simulation
-- Advanced lighting (shadows, AO)
-
-These are all in scope for the project long-term but not scheduled yet.
+- Advanced lighting (ambient occlusion, shadows)
