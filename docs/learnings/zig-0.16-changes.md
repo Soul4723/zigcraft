@@ -261,3 +261,12 @@ c.glBufferData(c.GL_ARRAY_BUFFER, @intCast(vertices.len), vertices.ptr, c.GL_STA
 
 C functions expecting `isize`/`c_long` parameters need `@intCast` from `usize`.
 The compiler doesn't auto-convert these.
+```zig
+test "block type air is transparent" {
+    const air = BlockType.air;
+    try std.testing.expect(air.is_transparent);
+}
+```
+
+Run with `zig build test`. Test blocks in any source file are discovered
+automatically.

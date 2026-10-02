@@ -71,25 +71,32 @@ pub fn getUniformLocation(program: c.GLuint, name: [:0]const u8) c.GLint {
     return c.glGetUniformLocation(program, name.ptr);
 }
 
-/// Default shader sources for a basic colored triangle.
+/// Set a 4x4 matrix uniform (column-major, as produced by Mat4.ptr()).
+pub fn setUniformMat4(program: c.GLuint, name: [:0]const u8, matrix_ptr: [*c]const f32) void {
+    const loc = getUniformLocation(program, name);
+    c.glUniformMatrix4fv(loc, 1, c.GL_FALSE, matrix_ptr);
+}
+
+/// Default shader sources for a colored triangle with MVP transform.
 pub const default_vert: [:0]const u8 =
-    \\#version 330 core
-    \\layout (location = 0) in vec3 aPos;
-    \\layout (location = 1) in vec3 aColor;
-    \\out vec3 vertexColor;
-    \\void main() {
-    \\    gl_Position = vec4(aPos, 1.0);
-    \\    vertexColor = aColor;
-    \\}
+\\#version 330 core
+\\layout (location = 0) in vec3 aPos;
+\\layout (location = 1) in vec3 aColor;
+\\uniform mat4 u_mvp;
+\\out vec3 vertexColor;
+\\void main() {
+\\    gl_Position = u_mvp * vec4(aPos, 1.0);
+\\    vertexColor = aColor;
+\\}
 ;
 
 pub const default_frag: [:0]const u8 =
-    \\#version 330 core
-    \\in vec3 vertexColor;
-    \\out vec4 FragColor;
-    \\void main() {
-    \\    FragColor = vec4(vertexColor, 1.0);
-    \\}
+\\#version 330 core
+\\in vec3 vertexColor;
+\\out vec4 FragColor;
+\\void main() {
+\\    FragColor = vec4(vertexColor, 1.0);
+\\}
 ;
 
 test "getUniformLocation with valid program" {

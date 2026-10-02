@@ -1,21 +1,23 @@
 # Roadmap
 
-Rough priority order. Each milestone is a meaningful increment — the project should
+Rough priority order. Completed milestones marked **[x]**.
+> **Current milestone: 4 (Camera) — implemented on `feat/camera` branch, PR #13.**
+All Phase 1 milestones except #5 (textured quad) are done on the `feat/camera` branch. Each milestone is a meaningful increment — the project should
 be buildable and runnable after each one.
 
 ## Phase 1: Window and Rendering Foundation
 
-1. **Window creation** — Open a window with a title using GLFW via Zig's C interop
-2. **OpenGL context** — Initialize OpenGL, clear to a sky-blue color
-3. **Triangle on screen** — Shader pipeline, VAO/VBO, draw a colored triangle
-4. **Camera** — First-person camera with mouse look and WASD movement
+1. [x] **Window creation** — Open a window with a title using GLFW via Zig's C interop
+2. [x] **OpenGL context** — Initialize OpenGL, clear to a sky-blue color
+3. [x] **Triangle on screen** — Shader pipeline, VAO/VBO, draw a colored triangle
+4. [x] **Camera** — First-person camera with mouse look and WASD movement
 5. **Textured quad** — Load a PNG texture, render a textured quad
 
 ## Phase 2: Voxel World Basics
 
-6. **Block type system** — Define block types (air, dirt, grass, stone) with properties
-7. **Chunk data structure** — 16×16×16 chunk storing block IDs
-8. **Chunk meshing** — Generate mesh from chunk data (greedy or per-face)
+6. [x] **Block type system** — Define block types (air, dirt, grass, stone) with properties
+7. [x] **Chunk data structure** — 16×16×16 chunk storing block IDs
+8. [x] **Chunk meshing** — Generate mesh from chunk data (greedy or per-face)
 9. **Single chunk rendering** — Render one chunk with block textures
 10. **Multiple chunks** — Chunk manager, render a grid of chunks
 
