@@ -47,7 +47,7 @@ pub const UIRenderer = struct {
         c.glBindBuffer(c.GL_ARRAY_BUFFER, vbo);
 
         // Max 128 UI vertices
-        c.glBufferData(c.GL_ARRAY_BUFFER, 128 * @sizeOf(UIVertex), null, c.GL_DYNAMIC_DRAW);
+        c.glBufferData(c.GL_ARRAY_BUFFER, 4096 * @sizeOf(UIVertex), null, c.GL_DYNAMIC_DRAW);
 
         c.glEnableVertexAttribArray(0);
         c.glVertexAttribPointer(0, 2, c.GL_FLOAT, c.GL_FALSE, @sizeOf(UIVertex), @ptrFromInt(0));
@@ -72,10 +72,30 @@ pub const UIRenderer = struct {
         c.glDeleteProgram(self.program);
     }
 
+    /// Append quad as 2 triangles (6 vertices) to buffer
+    fn addQuad(verts: []UIVertex, count: *usize, x0: f32, y0: f32, x1: f32, y1: f32, col: [4]f32) void {
+        if (count.* + 6 > verts.len) return;
+        const i = count.*;
+        verts[i] = .{ .position = .{ x0, y0 }, .color = col };
+        verts[i + 1] = .{ .position = .{ x1, y0 }, .color = col };
+        verts[i + 2] = .{ .position = .{ x1, y1 }, .color = col };
+        verts[i + 3] = .{ .position = .{ x0, y0 }, .color = col };
+        verts[i + 4] = .{ .position = .{ x1, y1 }, .color = col };
+        verts[i + 5] = .{ .position = .{ x0, y1 }, .color = col };
+        count.* += 6;
+    }
+
+    /// Append bordered rectangle (outer frame + inner fill)
+    fn addBorderedRect(verts: []UIVertex, count: *usize, x0: f32, y0: f32, x1: f32, y1: f32, border_w: f32, border_col: [4]f32, fill_col: [4]f32) void {
+        addQuad(verts, count, x0, y0, x1, y1, border_col);
+        addQuad(verts, count, x0 + border_w, y0 + border_w, x1 - border_w, y1 - border_w, fill_col);
+    }
+
+
     /// Render crosshair and hotbar block indicators.
     /// screen aspect = width / height.
     pub fn draw(self: *UIRenderer, aspect: f32, selected_slot: usize) void {
-        var verts: [96]UIVertex = undefined;
+        var verts: [512]UIVertex = undefined;
         var count: usize = 0;
 
         // 1. Crosshair in screen center: two quads (horizontal and vertical bars)
@@ -85,25 +105,10 @@ pub const UIRenderer = struct {
         const ch_th_x: f32 = ch_thickness / aspect;
         const crosshair_color = [4]f32{ 1.0, 1.0, 1.0, 0.85 };
 
-        // Horizontal bar (2 triangles = 6 verts)
-        verts[count] = .{ .position = .{ -ch_len_x, -ch_thickness }, .color = crosshair_color };
-        verts[count + 1] = .{ .position = .{ ch_len_x, -ch_thickness }, .color = crosshair_color };
-        verts[count + 2] = .{ .position = .{ ch_len_x, ch_thickness }, .color = crosshair_color };
-        verts[count + 3] = .{ .position = .{ -ch_len_x, -ch_thickness }, .color = crosshair_color };
-        verts[count + 4] = .{ .position = .{ ch_len_x, ch_thickness }, .color = crosshair_color };
-        verts[count + 5] = .{ .position = .{ -ch_len_x, ch_thickness }, .color = crosshair_color };
-        count += 6;
+        addQuad(&verts, &count, -ch_len_x, -ch_thickness, ch_len_x, ch_thickness, crosshair_color);
+        addQuad(&verts, &count, -ch_th_x, -ch_len_y, ch_th_x, ch_len_y, crosshair_color);
 
-        // Vertical bar (2 triangles = 6 verts)
-        verts[count] = .{ .position = .{ -ch_th_x, -ch_len_y }, .color = crosshair_color };
-        verts[count + 1] = .{ .position = .{ ch_th_x, -ch_len_y }, .color = crosshair_color };
-        verts[count + 2] = .{ .position = .{ ch_th_x, ch_len_y }, .color = crosshair_color };
-        verts[count + 3] = .{ .position = .{ -ch_th_x, -ch_len_y }, .color = crosshair_color };
-        verts[count + 4] = .{ .position = .{ ch_th_x, ch_len_y }, .color = crosshair_color };
-        verts[count + 5] = .{ .position = .{ -ch_th_x, ch_len_y }, .color = crosshair_color };
-        count += 6;
-
-        // 2. Hotbar at bottom center (6 slots: Stone, Dirt, Grass, Water, Wood, Leaves)
+        // 2. Hotbar at bottom center (6 slots)
         const slot_w: f32 = 0.045 / aspect;
         const slot_h: f32 = 0.045;
         const spacing: f32 = 0.010 / aspect;
@@ -130,15 +135,199 @@ pub const UIRenderer = struct {
             const is_sel = (i == selected_slot);
             const color = if (is_sel) [4]f32{ 1.0, 1.0, 1.0, 1.0 } else slot_colors[i];
 
-            verts[count] = .{ .position = .{ x0, y0 }, .color = color };
-            verts[count + 1] = .{ .position = .{ x1, y0 }, .color = color };
-            verts[count + 2] = .{ .position = .{ x1, y1 }, .color = color };
-            verts[count + 3] = .{ .position = .{ x0, y0 }, .color = color };
-            verts[count + 4] = .{ .position = .{ x1, y1 }, .color = color };
-            verts[count + 5] = .{ .position = .{ x0, y1 }, .color = color };
-            count += 6;
+            addQuad(&verts, &count, x0, y0, x1, y1, color);
         }
 
+        self.flush(&verts, count);
+    }
+
+    /// Render in-game HUD with inventory item stacks and selected slot border
+    pub fn drawHUD(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8) void {
+        var verts: [1024]UIVertex = undefined;
+        var count: usize = 0;
+
+        // Crosshair
+        const ch_thickness: f32 = 0.003;
+        const ch_len_y: f32 = 0.025;
+        const ch_len_x: f32 = ch_len_y / aspect;
+        const ch_th_x: f32 = ch_thickness / aspect;
+        const crosshair_color = [4]f32{ 1.0, 1.0, 1.0, 0.85 };
+        addQuad(&verts, &count, -ch_len_x, -ch_thickness, ch_len_x, ch_thickness, crosshair_color);
+        addQuad(&verts, &count, -ch_th_x, -ch_len_y, ch_th_x, ch_len_y, crosshair_color);
+
+        // Hotbar container background
+        const slot_w: f32 = 0.052 / aspect;
+        const slot_h: f32 = 0.052;
+        const spacing: f32 = 0.008 / aspect;
+        const base_y: f32 = -0.92;
+        const total_w = 6.0 * slot_w + 5.0 * spacing;
+        const start_x = -total_w / 2.0;
+
+        // Hotbar backing frame
+        addBorderedRect(&verts, &count, start_x - 0.01 / aspect, base_y - 0.01, start_x + total_w + 0.01 / aspect, base_y + slot_h + 0.01, 0.003, .{ 0.1, 0.1, 0.1, 0.8 }, .{ 0.2, 0.2, 0.22, 0.85 });
+
+        var i: usize = 0;
+        while (i < 6) : (i += 1) {
+            const x0 = start_x + @as(f32, @floatFromInt(i)) * (slot_w + spacing);
+            const x1 = x0 + slot_w;
+            const y0 = base_y;
+            const y1 = base_y + slot_h;
+
+            const is_sel = (i == selected_slot);
+            const border_col: [4]f32 = if (is_sel) .{ 1.0, 0.95, 0.4, 1.0 } else .{ 0.35, 0.35, 0.38, 0.9 };
+            const slot_bg: [4]f32 = .{ 0.15, 0.15, 0.17, 0.9 };
+
+            addBorderedRect(&verts, &count, x0, y0, x1, y1, if (is_sel) 0.004 else 0.002, border_col, slot_bg);
+
+            // Item interior icon
+            if (i < hotbar_items.len and hotbar_counts[i] > 0) {
+                const icon_inset_x = 0.008 / aspect;
+                const icon_inset_y = 0.008;
+                addQuad(&verts, &count, x0 + icon_inset_x, y0 + icon_inset_y, x1 - icon_inset_x, y1 - icon_inset_y, hotbar_items[i]);
+
+                // Stack count bar indicator (width proportional to count / 64)
+                const bar_h: f32 = 0.004;
+                const frac = @as(f32, @floatFromInt(hotbar_counts[i])) / 64.0;
+                const bar_w = (slot_w - 2.0 * icon_inset_x) * @min(1.0, frac);
+                addQuad(&verts, &count, x0 + icon_inset_x, y0 + 0.003, x0 + icon_inset_x + bar_w, y0 + 0.003 + bar_h, .{ 0.3, 0.9, 0.3, 0.9 });
+            }
+        }
+
+        self.flush(&verts, count);
+    }
+
+    /// Full screen Inventory & Crafting GUI
+    pub fn drawInventory(
+        self: *UIRenderer,
+        aspect: f32,
+        main_colors: []const [4]f32,
+        main_counts: []const u8,
+        hotbar_colors: []const [4]f32,
+        hotbar_counts: []const u8,
+        craft_grid_colors: []const [4]f32,
+        craft_grid_counts: []const u8,
+        craft_output_col: [4]f32,
+        craft_output_count: u8,
+        cursor_col: [4]f32,
+        cursor_count: u8,
+        mouse_norm_x: f32,
+        mouse_norm_y: f32,
+    ) void {
+        var verts: [4096]UIVertex = undefined;
+        var count: usize = 0;
+
+        // 1. Semi-transparent dark background backdrop
+        addQuad(&verts, &count, -1.0, -1.0, 1.0, 1.0, .{ 0.0, 0.0, 0.0, 0.65 });
+
+        // 2. Main inventory window panel
+        const panel_w: f32 = 0.85;
+        const panel_h: f32 = 0.88;
+        const px0 = -panel_w / 2.0;
+        const px1 = panel_w / 2.0;
+        const py0 = -panel_h / 2.0;
+        const py1 = panel_h / 2.0;
+
+        // Metallic / stone inventory window frame
+        addBorderedRect(&verts, &count, px0, py0, px1, py1, 0.006, .{ 0.25, 0.25, 0.28, 0.98 }, .{ 0.72, 0.72, 0.75, 0.96 });
+
+        const slot_w: f32 = 0.055 / aspect;
+        const slot_h: f32 = 0.055;
+        const gap: f32 = 0.012 / aspect;
+
+        // Crafting Section Header & 2x2 grid (upper right)
+        const craft_start_x = 0.02;
+        const craft_start_y = 0.16;
+
+        var r: usize = 0;
+        while (r < 2) : (r += 1) {
+            var c_idx: usize = 0;
+            while (c_idx < 2) : (c_idx += 1) {
+                const idx = r * 2 + c_idx;
+                const sx0 = craft_start_x + @as(f32, @floatFromInt(c_idx)) * (slot_w + gap);
+                const sx1 = sx0 + slot_w;
+                const sy1 = craft_start_y - @as(f32, @floatFromInt(r)) * (slot_h + gap * aspect);
+                const sy0 = sy1 - slot_h;
+
+                addBorderedRect(&verts, &count, sx0, sy0, sx1, sy1, 0.003, .{ 0.35, 0.35, 0.38, 1.0 }, .{ 0.55, 0.55, 0.58, 1.0 });
+
+                if (idx < craft_grid_colors.len and craft_grid_counts[idx] > 0) {
+                    addQuad(&verts, &count, sx0 + 0.006 / aspect, sy0 + 0.006, sx1 - 0.006 / aspect, sy1 - 0.006, craft_grid_colors[idx]);
+                }
+            }
+        }
+
+        // Crafting arrow -> Output Slot
+        const arrow_x = craft_start_x + 2.0 * (slot_w + gap) + 0.02 / aspect;
+        const arrow_y = craft_start_y - slot_h * 0.8;
+        addQuad(&verts, &count, arrow_x, arrow_y - 0.005, arrow_x + 0.03 / aspect, arrow_y + 0.005, .{ 0.3, 0.3, 0.35, 1.0 });
+
+        const out_x0 = arrow_x + 0.045 / aspect;
+        const out_x1 = out_x0 + slot_w * 1.25;
+        const out_y0 = arrow_y - slot_h * 0.625;
+        const out_y1 = arrow_y + slot_h * 0.625;
+        addBorderedRect(&verts, &count, out_x0, out_y0, out_x1, out_y1, 0.004, .{ 0.9, 0.8, 0.3, 1.0 }, .{ 0.55, 0.55, 0.58, 1.0 });
+
+        if (craft_output_count > 0) {
+            addQuad(&verts, &count, out_x0 + 0.008 / aspect, out_y0 + 0.008, out_x1 - 0.008 / aspect, out_y1 - 0.008, craft_output_col);
+        }
+
+        // Main Inventory 3 rows x 6 columns
+        const main_start_x = -0.32;
+        const main_start_y = 0.02;
+
+        var mr: usize = 0;
+        while (mr < 3) : (mr += 1) {
+            var mc: usize = 0;
+            while (mc < 6) : (mc += 1) {
+                const idx = mr * 6 + mc;
+                const sx0 = main_start_x + @as(f32, @floatFromInt(mc)) * (slot_w + gap);
+                const sx1 = sx0 + slot_w;
+                const sy1 = main_start_y - @as(f32, @floatFromInt(mr)) * (slot_h + gap * aspect);
+                const sy0 = sy1 - slot_h;
+
+                addBorderedRect(&verts, &count, sx0, sy0, sx1, sy1, 0.003, .{ 0.35, 0.35, 0.38, 1.0 }, .{ 0.55, 0.55, 0.58, 1.0 });
+
+                if (idx < main_colors.len and main_counts[idx] > 0) {
+                    addQuad(&verts, &count, sx0 + 0.006 / aspect, sy0 + 0.006, sx1 - 0.006 / aspect, sy1 - 0.006, main_colors[idx]);
+                }
+            }
+        }
+
+        // Bottom Hotbar Row (6 slots)
+        const hot_y = -0.32;
+        var hc: usize = 0;
+        while (hc < 6) : (hc += 1) {
+            const sx0 = main_start_x + @as(f32, @floatFromInt(hc)) * (slot_w + gap);
+            const sx1 = sx0 + slot_w;
+            const sy0 = hot_y;
+            const sy1 = hot_y + slot_h;
+
+            addBorderedRect(&verts, &count, sx0, sy0, sx1, sy1, 0.003, .{ 0.35, 0.35, 0.38, 1.0 }, .{ 0.55, 0.55, 0.58, 1.0 });
+
+            if (hc < hotbar_colors.len and hotbar_counts[hc] > 0) {
+                addQuad(&verts, &count, sx0 + 0.006 / aspect, sy0 + 0.006, sx1 - 0.006 / aspect, sy1 - 0.006, hotbar_colors[hc]);
+            }
+        }
+
+        // Cursor held item
+        if (cursor_count > 0) {
+            const cw = 0.04 / aspect;
+            const ch = 0.04;
+            addQuad(&verts, &count, mouse_norm_x, mouse_norm_y - ch, mouse_norm_x + cw, mouse_norm_y, cursor_col);
+        }
+
+        // Mouse pointer arrow icon
+        const mx = mouse_norm_x;
+        const my = mouse_norm_y;
+        const mw = 0.015 / aspect;
+        const mh = 0.025;
+        addQuad(&verts, &count, mx, my - mh, mx + mw, my, .{ 1.0, 1.0, 1.0, 0.95 });
+
+        self.flush(&verts, count);
+    }
+
+    fn flush(self: *UIRenderer, verts: []const UIVertex, count: usize) void {
+        if (count == 0) return;
         c.glDisable(c.GL_DEPTH_TEST);
         c.glEnable(c.GL_BLEND);
         c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
@@ -146,7 +335,7 @@ pub const UIRenderer = struct {
         c.glUseProgram(self.program);
         c.glBindVertexArray(self.vao);
         c.glBindBuffer(c.GL_ARRAY_BUFFER, self.vbo);
-        c.glBufferSubData(c.GL_ARRAY_BUFFER, 0, @intCast(count * @sizeOf(UIVertex)), &verts);
+        c.glBufferSubData(c.GL_ARRAY_BUFFER, 0, @intCast(count * @sizeOf(UIVertex)), verts.ptr);
         c.glDrawArrays(c.GL_TRIANGLES, 0, @intCast(count));
 
         c.glEnable(c.GL_DEPTH_TEST);
