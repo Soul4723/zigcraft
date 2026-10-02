@@ -14,6 +14,8 @@ const c = @cImport({
 /// (1, 1) = Wood Log Side (Brown bark)
 /// (2, 1) = Wood Log Top (Ring pattern)
 /// (3, 1) = Leaves (Lush dark green foliage)
+/// (0, 2) = Mob Body (Fluffy wool/skin texture)
+/// (1, 2) = Mob Face (Pig / Sheep / Creature face with eyes)
 pub const ATLAS_TILES_PER_ROW: f32 = 4.0;
 pub const TILE_UV_SIZE: f32 = 1.0 / ATLAS_TILES_PER_ROW; // 0.25
 
@@ -31,7 +33,7 @@ pub fn getTileUV(tile_x: u32, tile_y: u32) [4][2]f32 {
     };
 }
 
-/// Procedural 64x64 texture atlas containing grass, dirt, stone, water, wood logs, and leaves.
+/// Procedural 64x64 texture atlas containing blocks and mob textures.
 pub fn createBlockTexture() c.GLuint {
     var texture: c.GLuint = 0;
     c.glGenTextures(1, &texture);
@@ -120,6 +122,44 @@ pub fn createBlockTexture() c.GLuint {
             data[leaf_idx + 1] = 100 + @as(u8, @intCast(l_noise));
             data[leaf_idx + 2] = 25;
             data[leaf_idx + 3] = 255;
+
+            // Tile (0,2): Mob Wool Body - off-white soft fleece texture
+            const wool_idx = ((32 + y) * 64 + x) * 4;
+            const wool_n = (x * 9 + y * 11) % 15;
+            const wool_c: u8 = 225 + @as(u8, @intCast(wool_n));
+            data[wool_idx] = wool_c;
+            data[wool_idx + 1] = wool_c;
+            data[wool_idx + 2] = wool_c - 5;
+            data[wool_idx + 3] = 255;
+
+            // Tile (1,2): Mob Face - sheep face with eyes and pinkish muzzle
+            const face_idx = ((32 + y) * 64 + (16 + x)) * 4;
+            // Eyes at y in [6..8], x in [3..4] and [11..12]
+            const is_eye_white = (y >= 6 and y <= 8) and ((x >= 2 and x <= 5) or (x >= 10 and x <= 13));
+            const is_pupil = (y >= 7 and y <= 8) and ((x >= 4 and x <= 5) or (x >= 10 and x <= 11));
+            // Muzzle at y in [9..13], x in [5..10]
+            const is_muzzle = (y >= 9 and y <= 13) and (x >= 5 and x <= 10);
+
+            if (is_pupil) {
+                data[face_idx] = 35;
+                data[face_idx + 1] = 30;
+                data[face_idx + 2] = 30;
+            } else if (is_eye_white) {
+                data[face_idx] = 245;
+                data[face_idx + 1] = 245;
+                data[face_idx + 2] = 245;
+            } else if (is_muzzle) {
+                data[face_idx] = 220;
+                data[face_idx + 1] = 180;
+                data[face_idx + 2] = 170;
+            } else {
+                // Tan face skin
+                const face_n = (x * 7 + y * 5) % 11;
+                data[face_idx] = 205 + @as(u8, @intCast(face_n));
+                data[face_idx + 1] = 190 + @as(u8, @intCast(face_n));
+                data[face_idx + 2] = 175;
+            }
+            data[face_idx + 3] = 255;
         }
     }
 
@@ -154,4 +194,8 @@ test "tile UV coordinates within unit quad" {
     const uv_wood = getTileUV(1, 1);
     try std.testing.expectEqual(uv_wood[0][0], 0.25);
     try std.testing.expectEqual(uv_wood[0][1], 0.25);
+
+    const uv_mob_face = getTileUV(1, 2);
+    try std.testing.expectEqual(uv_mob_face[0][0], 0.25);
+    try std.testing.expectEqual(uv_mob_face[0][1], 0.50);
 }

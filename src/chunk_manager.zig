@@ -182,13 +182,18 @@ pub const ChunkManager = struct {
 
     /// World-space solid test. Checks loaded chunk at world coords.
     pub fn isSolidWorld(self: *const ChunkManager, x: i32, y: i32, z: i32) bool {
-        if (y < 0 or y >= 16) return false;
+        return self.getBlockWorld(x, y, z).is_solid();
+    }
+
+    /// World-space block lookup. Returns .air if outside loaded chunks or y out of range.
+    pub fn getBlockWorld(self: *const ChunkManager, x: i32, y: i32, z: i32) block_mod.BlockId {
+        if (y < 0 or y >= 16) return .air;
         const cx = @divFloor(x, 16);
         const cz = @divFloor(z, 16);
-        const entry = self.chunks.get(.{ .x = cx, .z = cz }) orelse return false;
+        const entry = self.chunks.get(.{ .x = cx, .z = cz }) orelse return .air;
         const lx: u4 = @intCast(@mod(x, 16));
         const lz: u4 = @intCast(@mod(z, 16));
-        return entry.chunk.getBlock(lx, @intCast(y), lz).is_solid();
+        return entry.chunk.getBlock(lx, @intCast(y), lz);
     }
 
     /// Set block in loaded chunk. Returns false if chunk not loaded or y out of range.
@@ -308,4 +313,24 @@ test "isSolidWorld checks negative chunk coords" {
     try std.testing.expect(mgr.isSolidWorld(-1, 4, -1));
     try std.testing.expect(!mgr.isSolidWorld(-1, 5, -1));
     try std.testing.expect(!mgr.isSolidWorld(0, 4, 0));
+}
+
+test "getBlockWorld returns block id or air" {
+    var mgr = ChunkManager{
+        .allocator = std.testing.allocator,
+        .chunks = std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80).init(std.testing.allocator),
+        .radius = 1,
+        .terrain = terrain_mod.TerrainGenerator.init(0),
+        .persistence = persistence_mod.Persistence.init("zig-cache/test_mgr_block"),
+    };
+    defer mgr.deinit();
+
+    var ch = Chunk.init();
+    ch.setBlock(2, 5, 2, .wood);
+    try mgr.chunks.put(.{ .x = 0, .z = 0 }, .{ .chunk = ch, .renderer = null, .dirty = false, .modified = false });
+
+    try std.testing.expectEqual(block_mod.BlockId.wood, mgr.getBlockWorld(2, 5, 2));
+    try std.testing.expectEqual(block_mod.BlockId.air, mgr.getBlockWorld(2, 6, 2));
+    try std.testing.expectEqual(block_mod.BlockId.air, mgr.getBlockWorld(2, -1, 2));
+    try std.testing.expectEqual(block_mod.BlockId.air, mgr.getBlockWorld(100, 5, 100));
 }

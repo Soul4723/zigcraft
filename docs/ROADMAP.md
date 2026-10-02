@@ -1,7 +1,7 @@
 # Roadmap
 
 Rough priority order. Completed milestones marked **[x]**.
-> **Milestones 1 through 28 complete!** Next focus: Mobs / Entities.
+> **Milestones 1 through 29 complete!** Next focus: Multiplayer / Crafting.
 
 ## Phase 1: Window and Rendering Foundation
 
@@ -48,6 +48,6 @@ Rough priority order. Completed milestones marked **[x]**.
 
 ## Long-term
 
-29. **Mobs / Entities** — Simple wandering voxel entity with AABB physics and rendering ← next
-30. **Multiplayer**
+29. [x] **Mobs / Entities** — Simple wandering voxel entity with AABB physics and rendering (#41)
+30. **Multiplayer** ← next
 31. **Crafting & Inventory GUI**

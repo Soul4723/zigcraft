@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-02 (Session 020)
+Last updated: 2026-10-02 (Session 021)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`)
@@ -12,7 +12,7 @@ Last updated: 2026-10-02 (Session 020)
 - First-person camera with mouse look and WASD movement
 - Player physics with gravity, jump mechanics, and axis-separated AABB voxel collision snapping
 - Block type system (air, stone, dirt, grass, water, wood, leaves) with distinct properties
-- 4x4 procedural texture atlas (grass top/side, dirt, stone, translucent water, wood bark/rings, leaves)
+- 4x4 procedural texture atlas (grass top/side, dirt, stone, translucent water, wood bark/rings, leaves, mob wool, mob face)
 - 16x16x16 chunk data structure with set/get/fillLayer
 - Greedy chunk mesher (Milestone 21) with corner & edge Ambient Occlusion calculation (Milestone 26)
 - Procedural fBm value noise heightmap terrain generator with sea-level water lakes (`SEA_LEVEL = 5`) and natural tree generation (wood trunk + leaf canopy)
@@ -24,16 +24,18 @@ Last updated: 2026-10-02 (Session 020)
 - 2D UI overlay renderer: alpha-blended crosshair reticle and on-screen hotbar slots
 - Procedural audio system (Milestone 28): multi-channel software synthesizer with ALSA backend for surface footsteps (grass, stone, wood, dirt), block destruction crunch, and block placement snap
 - Chunk persistence (Milestone 18): binary serialization to disk (`c_{cx}_{cz}.bin`), auto-load on chunk spawn, auto-save modified chunks on purge/exit
-- Real-time debug HUD reporting FPS, coordinates, chunk indices, day/night state, loaded/drawn/culled chunk counts, and aim target
-- 157 unit tests across 19 subsystem modules passing
+- Mob & Entity system (Milestone 29): wandering voxel sheep with AABB physics, obstacle jumping, animated limb swing walking cycles, and textured multi-box rendering
+- Real-time debug HUD reporting FPS, coordinates, chunk indices, mob count, day/night state, loaded/drawn/culled chunk counts, and aim target
+- 174 unit tests across 20 subsystem modules passing
 
-## Active Branch: feat/audio-system
+## Active Branch: feat/mobs-and-entities
 
-Implements Milestone 28 (Procedural Audio System).
+Implements Milestone 29 (Mobs & Entities).
 
 ## What's Next
 
-1. **Mobs / Entities** (Milestone 29): simple wandering voxel entity with AABB physics and rendering.
+1. **Multiplayer** (Milestone 30): client-server networking or local loopback sync.
+2. **Crafting & Inventory GUI** (Milestone 31): item slots, recipes, and UI interaction.
 
 ## Environment
 
