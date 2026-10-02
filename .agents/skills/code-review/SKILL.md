@@ -1,34 +1,46 @@
 ---
 name: code-review
 description: >-
-  Review changes on the current branch against main. Check for correctness,
-  style, and whether the code matches its intended goal.
+  Review changes on the current branch before opening a PR.
 ---
 
-## Process
+## Run this before opening any PR
 
-1. **Get the diff.** `git diff main...HEAD` for the full change.
-   `git log main..HEAD --oneline` for the commit list.
+### 1. Get the diff
 
-2. **Check correctness.**
-   - Does it compile? (`zig build`)
-   - Do tests pass? (`zig build test`)
-   - Does it run without crashing? (`zig build run`)
-   - Are error paths handled?
+```bash
+git diff main...HEAD
+git log main..HEAD --oneline
+```
 
-3. **Check style.**
-   - Follows Zig naming conventions (camelCase functions, PascalCase types)
-   - No dead code or commented-out blocks
-   - Functions under ~50 lines
-   - Files under ~300 lines
-   - C interop isolated in dedicated files
+### 2. Automated checks (all must pass)
 
-4. **Check intent.**
-   - Does the change do what the commit messages / issue say it does?
-   - Any scope creep?
-   - Anything missing?
+```bash
+zig build          # compiles?
+zig build test     # tests pass?
+```
 
-5. **Report findings.** List issues by severity:
-   - **Must fix** — bugs, crashes, missing error handling
-   - **Should fix** — style violations, unclear naming
-   - **Consider** — suggestions, future improvements
+### 3. Manual checklist
+
+Go through each changed file:
+
+- [ ] No commented-out code
+- [ ] No `@panic` calls (use `return error.*` instead)
+- [ ] No hardcoded paths
+- [ ] No TODO/FIXME without a matching GitHub issue
+- [ ] Error messages are descriptive
+- [ ] Functions under 50 lines
+- [ ] File under 300 lines
+- [ ] C interop follows project pattern (`const c = @cImport(...)`)
+- [ ] New public APIs have doc comments
+
+### 4. Check scope
+
+- Does the change match the branch name / issue?
+- Did you accidentally change files unrelated to your task?
+- Did you accidentally break an existing feature?
+
+### 5. Report
+
+List any issues found. Fix must-fix items before opening the PR.
+Note should-fix items in the PR description.
