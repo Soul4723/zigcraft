@@ -7,6 +7,7 @@ const terrain_mod = @import("world/terrain.zig");
 const chunk_renderer_mod = @import("chunk_renderer.zig");
 const frustum_mod = @import("frustum.zig");
 const math = @import("math.zig");
+const persistence_mod = @import("world/persistence.zig");
 
 pub const ChunkCoord = struct {
     x: i32,
@@ -36,22 +37,26 @@ pub const LoadedChunk = struct {
     chunk: Chunk,
     renderer: ?chunk_renderer_mod.ChunkRenderer,
     dirty: bool,
+    modified: bool,
 };
 
 /// Dynamic chunk manager: streams chunks in a view radius (square diameter = 2*radius+1)
-/// centered on player position. Loads new chunks, unloads distant ones, remeshes dirty.
+/// centered on player position. Loads new chunks, unloads distant ones, remeshes dirty,
+/// persists modified chunks to disk.
 pub const ChunkManager = struct {
     allocator: std.mem.Allocator,
     chunks: std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80),
     radius: i32,
     terrain: terrain_mod.TerrainGenerator,
+    persistence: persistence_mod.Persistence,
 
-    pub fn init(allocator: std.mem.Allocator, radius: i32, center_cx: i32, center_cz: i32, seed: u64) !ChunkManager {
+    pub fn init(allocator: std.mem.Allocator, radius: i32, center_cx: i32, center_cz: i32, seed: u64, save_dir: [:0]const u8) !ChunkManager {
         var self = ChunkManager{
             .allocator = allocator,
             .chunks = std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80).init(allocator),
             .radius = radius,
             .terrain = terrain_mod.TerrainGenerator.init(seed),
+            .persistence = persistence_mod.Persistence.init(save_dir),
         };
         errdefer self.deinit();
 
@@ -60,15 +65,17 @@ pub const ChunkManager = struct {
     }
 
     pub fn deinit(self: *ChunkManager) void {
-        var iter = self.chunks.valueIterator();
+        var iter = self.chunks.iterator();
         while (iter.next()) |entry| {
-            if (entry.renderer) |*r| r.deinit();
+            if (entry.value_ptr.modified) {
+                _ = self.persistence.saveChunk(entry.key_ptr.x, entry.key_ptr.z, &entry.value_ptr.chunk);
+            }
+            if (entry.value_ptr.renderer) |*r| r.deinit();
         }
         self.chunks.deinit();
     }
 
     /// Load missing chunks and purge distant ones around (center_cx, center_cz).
-    /// If full_mesh is true, meshes all unmeshed/dirty chunks synchronously.
     pub fn update(self: *ChunkManager, player_x: f32, player_z: f32) !void {
         const center_cx = @as(i32, @intFromFloat(@floor(player_x / 16.0)));
         const center_cz = @as(i32, @intFromFloat(@floor(player_z / 16.0)));
@@ -77,17 +84,20 @@ pub const ChunkManager = struct {
 
     /// Ensure chunks within radius exist, purge outside, mesh dirty ones up to budget per tick.
     pub fn syncToCenter(self: *ChunkManager, center_cx: i32, center_cz: i32, mesh_all: bool) !void {
-        // 1. Purge out-of-range chunks
+        // 1. Purge out-of-range chunks (save if modified)
         var iter = self.chunks.iterator();
         while (iter.next()) |entry| {
             const coord = entry.key_ptr.*;
             if (@abs(coord.x - center_cx) > self.radius or @abs(coord.z - center_cz) > self.radius) {
+                if (entry.value_ptr.modified) {
+                    _ = self.persistence.saveChunk(coord.x, coord.z, &entry.value_ptr.chunk);
+                }
                 if (entry.value_ptr.renderer) |*r| r.deinit();
                 _ = self.chunks.remove(coord);
             }
         }
 
-        // 2. Generate new chunks within radius
+        // 2. Load from disk or generate new chunks within radius
         var cz = center_cz - self.radius;
         while (cz <= center_cz + self.radius) : (cz += 1) {
             var cx = center_cx - self.radius;
@@ -95,11 +105,15 @@ pub const ChunkManager = struct {
                 const coord = ChunkCoord{ .x = cx, .z = cz };
                 if (!self.chunks.contains(coord)) {
                     var ch = Chunk.init();
-                    self.terrain.generateChunk(&ch, cx, cz);
+                    const from_disk = self.persistence.loadChunk(cx, cz, &ch);
+                    if (!from_disk) {
+                        self.terrain.generateChunk(&ch, cx, cz);
+                    }
                     try self.chunks.put(coord, .{
                         .chunk = ch,
                         .renderer = null,
                         .dirty = true,
+                        .modified = false,
                     });
                     self.markDirty(cx + 1, cz);
                     self.markDirty(cx - 1, cz);
@@ -187,6 +201,7 @@ pub const ChunkManager = struct {
         const lz: u4 = @intCast(@mod(z, 16));
         entry.chunk.setBlock(lx, @intCast(y), lz, block);
         entry.dirty = true;
+        entry.modified = true;
         return true;
     }
 
@@ -248,6 +263,7 @@ test "streaming loads radius and unloads outside" {
         .chunks = std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80).init(std.testing.allocator),
         .radius = 1,
         .terrain = terrain_mod.TerrainGenerator.init(123),
+        .persistence = persistence_mod.Persistence.init("zig-cache/test_mgr_stream"),
     };
     defer mgr.deinit();
 
@@ -258,7 +274,7 @@ test "streaming loads radius and unloads outside" {
         while (cx <= 1) : (cx += 1) {
             var ch = Chunk.init();
             mgr.terrain.generateChunk(&ch, cx, cz);
-            try mgr.chunks.put(.{ .x = cx, .z = cz }, .{ .chunk = ch, .renderer = null, .dirty = false });
+            try mgr.chunks.put(.{ .x = cx, .z = cz }, .{ .chunk = ch, .renderer = null, .dirty = false, .modified = false });
         }
     }
     try std.testing.expectEqual(mgr.loadedChunkCount(), 9);
@@ -280,12 +296,13 @@ test "isSolidWorld checks negative chunk coords" {
         .chunks = std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80).init(std.testing.allocator),
         .radius = 1,
         .terrain = terrain_mod.TerrainGenerator.init(0),
+        .persistence = persistence_mod.Persistence.init("zig-cache/test_mgr_solid"),
     };
     defer mgr.deinit();
 
     var ch = Chunk.init();
     ch.setBlock(15, 4, 15, .stone);
-    try mgr.chunks.put(.{ .x = -1, .z = -1 }, .{ .chunk = ch, .renderer = null, .dirty = false });
+    try mgr.chunks.put(.{ .x = -1, .z = -1 }, .{ .chunk = ch, .renderer = null, .dirty = false, .modified = false });
 
     // World (-1, 4, -1) lies in chunk (-1, -1) at local (15, 4, 15)
     try std.testing.expect(mgr.isSolidWorld(-1, 4, -1));
