@@ -22,7 +22,7 @@ fn pickSolid(x: i32, y: i32, z: i32) bool {
 }
 
 pub fn main() !void {
-    std.debug.print("zigcraft v0.0.3\n", .{});
+    std.debug.print("zigcraft v0.0.4\n", .{});
 
     if (c.glfwInit() == c.GLFW_FALSE) {
         std.debug.print("failed to initialize GLFW\n", .{});
@@ -59,19 +59,22 @@ pub fn main() !void {
     // Hide and capture cursor for first-person camera control
     c.glfwSetInputMode(window, c.GLFW_CURSOR, c.GLFW_CURSOR_DISABLED);
 
-    // Demo world: 3x3 terrain chunks (seed 1337) via chunk manager.
-    var manager = try chunk_manager_mod.ChunkManager.init(std.heap.page_allocator, 3, 0, 0, 1337);
-    defer manager.deinit();
-    pick_manager = &manager;
-    var sky = try sky_mod.SkyRenderer.init(std.heap.page_allocator);
-    defer sky.deinit();
-
-    // Camera setup — pulled back so the chunk grid fills the view.
-    var player = player_mod.Player.init(24, 20, 48);
+    // Initial player position: center of world
+    var player = player_mod.Player.init(24, 20, 24);
     var cam = camera_mod.Camera.init();
     cam.yaw = -std.math.pi / 2.0 - 0.35;
     cam.pitch = -0.3;
     cam.position = player.eyePos();
+
+    // World chunk manager: radius 3 (7x7 = 49 chunks streaming around player)
+    const init_cx = @as(i32, @intFromFloat(@floor(player.pos.x / 16.0)));
+    const init_cz = @as(i32, @intFromFloat(@floor(player.pos.z / 16.0)));
+    var manager = try chunk_manager_mod.ChunkManager.init(std.heap.page_allocator, 3, init_cx, init_cz, 1337);
+    defer manager.deinit();
+    pick_manager = &manager;
+
+    var sky = try sky_mod.SkyRenderer.init(std.heap.page_allocator);
+    defer sky.deinit();
 
     // Timing
     var last_time = c.glfwGetTime();
@@ -86,7 +89,7 @@ pub fn main() !void {
     var last_y: f64 = @floatFromInt(window_height / 2);
     var first_mouse = true;
 
-    std.debug.print("ready. 3x3 terrain + picking. Aim prints 1x/sec. WASD move, mouse look, ESC close.\n", .{});
+    std.debug.print("ready. Dynamic chunk streaming (r=3, 7x7 grid). WASD move, mouse look, ESC close.\n", .{});
 
     while (c.glfwWindowShouldClose(window) == c.GLFW_FALSE) {
         // Delta time
@@ -95,8 +98,6 @@ pub fn main() !void {
         last_time = current_time;
 
         // Keyboard input: poll each movement key and forward to camera.
-        // processKey ignores non-press actions, so this is safe to call
-        // unconditionally for every key each frame.
         const fwd = cam.front();
         const flat_f = math.Vec3.init(fwd.x, 0, fwd.z);
         const flat_len = math.Vec3.len(flat_f);
@@ -113,6 +114,9 @@ pub fn main() !void {
         const jump = c.glfwGetKey(window, c.GLFW_KEY_SPACE) == c.GLFW_PRESS;
         player.tick(&pickSolid, norm_wish.x * walk_speed * dt, norm_wish.z * walk_speed * dt, jump, dt);
         cam.position = player.eyePos();
+
+        // Stream chunks dynamically around player
+        try manager.update(player.pos.x, player.pos.z);
 
         // Mouse look
         var xpos: f64 = 0;
@@ -132,7 +136,7 @@ pub fn main() !void {
 
         cam.processMouse(x_offset, y_offset);
 
-        // Build MVP: projection * view (model is identity — mesh is in world coords)
+        // Build MVP: projection * view
         const aspect: f32 = 1280.0 / 720.0;
         const proj = cam.projectionMatrix(aspect);
         const view = cam.viewMatrix();
@@ -154,13 +158,14 @@ pub fn main() !void {
             const py = @as(i32, @intFromFloat(@floor(player.pos.y)));
             const pz = @as(i32, @intFromFloat(@floor(player.pos.z)));
             const dir = cam.front();
+            const loaded = manager.loadedChunkCount();
             if (pick_mod.raycast(&pickSolid, cam.position, dir, 8)) |hit| {
-                std.debug.print("fps={d} xyz=({d},{d},{d}) chunk=({d},{d}) drawn={d} culled={d} aim=({d},{d},{d})\n", .{ fps, px, py, pz, @divFloor(px, 16), @divFloor(pz, 16), stats.drawn, stats.culled, hit.x, hit.y, hit.z });
+                std.debug.print("fps={d} xyz=({d},{d},{d}) chunk=({d},{d}) loaded={d} drawn={d} culled={d} aim=({d},{d},{d})\n", .{ fps, px, py, pz, @divFloor(px, 16), @divFloor(pz, 16), loaded, stats.drawn, stats.culled, hit.x, hit.y, hit.z });
             } else {
-                std.debug.print("fps={d} xyz=({d},{d},{d}) chunk=({d},{d}) drawn={d} culled={d} aim=none\n", .{ fps, px, py, pz, @divFloor(px, 16), @divFloor(pz, 16), stats.drawn, stats.culled });
+                std.debug.print("fps={d} xyz=({d},{d},{d}) chunk=({d},{d}) loaded={d} drawn={d} culled={d} aim=none\n", .{ fps, px, py, pz, @divFloor(px, 16), @divFloor(pz, 16), loaded, stats.drawn, stats.culled });
             }
             var title_buf: [128]u8 = undefined;
-            const title = std.fmt.bufPrintZ(&title_buf, "Zigcraft  fps={d} +", .{fps}) catch "Zigcraft";
+            const title = std.fmt.bufPrintZ(&title_buf, "Zigcraft  fps={d}  chunks={d} +", .{ fps, loaded }) catch "Zigcraft";
             c.glfwSetWindowTitle(window, title.ptr);
         }
 
