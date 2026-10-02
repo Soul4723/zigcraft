@@ -39,9 +39,7 @@ pub fn build(b: *std.Build) void {
     const run_exe_tests = b.addRunArtifact(exe_tests);
     test_step.dependOn(&run_exe_tests.step);
 
-    // Each module gets its own test target. Modules that import from
-    // within their own directory (or only std) can be tested in isolation.
-    // The main module (src/main.zig) test is handled by exe_tests above.
+    // Modules that can be tested in isolation (root at src/ or self-contained)
     const test_files = [_][]const u8{
         "src/world/block.zig",
         "src/world/chunk.zig",
@@ -61,6 +59,7 @@ pub fn build(b: *std.Build) void {
         "src/math.zig",
         "src/audio/synth.zig",
         "src/audio/audio.zig",
+        "src/entity.zig",
     };
 
     for (test_files) |test_file| {

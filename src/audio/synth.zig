@@ -7,6 +7,7 @@ pub const SoundType = enum {
     step_dirt,
     break_block,
     place_block,
+    mob_baa,
 };
 
 pub const SAMPLE_RATE: u32 = 44100;
@@ -57,6 +58,7 @@ pub const AudioMixer = struct {
             .step_wood => SAMPLE_RATE / 9, // ~110ms
             .break_block => SAMPLE_RATE / 6, // ~166ms
             .place_block => SAMPLE_RATE / 10, // ~100ms
+            .mob_baa => SAMPLE_RATE / 3, // ~333ms
         };
 
         slot.?.* = .{
@@ -147,6 +149,19 @@ pub const AudioMixer = struct {
                 const noise = (rng.random().float(f32) * 2.0 - 1.0) * 0.3;
                 return (tone + noise) * envelope * 0.6;
             },
+            .mob_baa => {
+                // Sheep bleat: warm harmonic vocalization (~180-220Hz) with gentle vibrato and formant envelope
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const vibrato = 1.0 + 0.04 * @sin(t * 35.0);
+                const freq: f32 = (200.0 + 20.0 * (1.0 - progress)) * vibrato;
+                const phase = t * freq * 2.0 * std.math.pi;
+                const h1 = @sin(phase);
+                const h2 = 0.5 * @sin(phase * 2.0);
+                const h3 = 0.25 * @sin(phase * 3.0);
+                const breath = (rng.random().float(f32) * 2.0 - 1.0) * 0.12;
+                const env = @sin(progress * std.math.pi);
+                return (h1 + h2 + h3 + breath) * env * 0.45;
+            },
         }
     }
 };
@@ -178,7 +193,7 @@ test "AudioMixer play voice produces non-zero samples" {
 
 test "AudioMixer all sound types render without overflow or crash" {
     var mixer = AudioMixer.init();
-    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .break_block, .place_block };
+    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .break_block, .place_block, .mob_baa };
     for (sounds) |snd| {
         mixer.play(snd, 1.0);
     }

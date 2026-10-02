@@ -13,6 +13,8 @@ const player_mod = @import("player.zig");
 const block_mod = @import("world/block.zig");
 const ui_mod = @import("renderer/ui.zig");
 const audio_mod = @import("audio/audio.zig");
+const texture_mod = @import("renderer/texture.zig");
+const entity_mod = @import("entity.zig");
 
 const window_width = 1280;
 const window_height = 720;
@@ -95,6 +97,11 @@ pub fn main() !void {
     var audio = audio_mod.AudioSystem.init();
     defer audio.deinit();
 
+    const atlas_texture = texture_mod.createBlockTexture();
+    defer c.glDeleteTextures(1, &atlas_texture);
+    var mob_manager = try entity_mod.mob_manager.MobManager.init(std.heap.page_allocator, atlas_texture);
+    defer mob_manager.deinit();
+
     // Hotbar selection: 0=stone, 1=dirt, 2=grass, 3=water, 4=wood, 5=leaves
     const hotbar_blocks = [6]block_mod.BlockId{ .stone, .dirt, .grass, .water, .wood, .leaves };
     var selected_slot: usize = 0;
@@ -164,6 +171,10 @@ pub fn main() !void {
         // Stream chunks dynamically around player
         try manager.update(player.pos.x, player.pos.z);
 
+        // Mob spawning and physics AI tick
+        try mob_manager.ensureSpawnPopulation(&manager, player.pos.x, player.pos.z);
+        mob_manager.tick(&pickSolid, player.pos, player.radius, &audio, dt);
+
         // Mouse look
         var xpos: f64 = 0;
         var ypos: f64 = 0;
@@ -217,6 +228,7 @@ pub fn main() !void {
 
         sky.draw(mvp, cam.position, sky_top, sky_horizon);
         const stats = manager.draw(mvp, sun_dir);
+        try mob_manager.draw(mvp, sun_dir);
 
         // Render 2D UI overlay (crosshair + hotbar)
         ui.draw(aspect, selected_slot);
@@ -236,15 +248,16 @@ pub fn main() !void {
             const pz = @as(i32, @intFromFloat(@floor(player.pos.z)));
             const dir = cam.front();
             const loaded = manager.loadedChunkCount();
+            const mob_count = mob_manager.mobs.items.len;
             const current_block = hotbar_blocks[selected_slot];
             const time_state = if (sun_y > 0.1) "day" else if (sun_y > -0.1) "dusk" else "night";
             if (pick_mod.raycast(&pickSolid, cam.position, dir, 8)) |hit| {
-                std.debug.print("fps={d} xyz=({d},{d},{d}) time={s} slot={s} chunk=({d},{d}) loaded={d} drawn={d} culled={d} aim=({d},{d},{d})\n", .{ fps, px, py, pz, time_state, @tagName(current_block), @divFloor(px, 16), @divFloor(pz, 16), loaded, stats.drawn, stats.culled, hit.x, hit.y, hit.z });
+                std.debug.print("fps={d} xyz=({d},{d},{d}) time={s} slot={s} chunk=({d},{d}) loaded={d} mobs={d} drawn={d} culled={d} aim=({d},{d},{d})\n", .{ fps, px, py, pz, time_state, @tagName(current_block), @divFloor(px, 16), @divFloor(pz, 16), loaded, mob_count, stats.drawn, stats.culled, hit.x, hit.y, hit.z });
             } else {
-                std.debug.print("fps={d} xyz=({d},{d},{d}) time={s} slot={s} chunk=({d},{d}) loaded={d} drawn={d} culled={d} aim=none\n", .{ fps, px, py, pz, time_state, @tagName(current_block), @divFloor(px, 16), @divFloor(pz, 16), loaded, stats.drawn, stats.culled });
+                std.debug.print("fps={d} xyz=({d},{d},{d}) time={s} slot={s} chunk=({d},{d}) loaded={d} mobs={d} drawn={d} culled={d} aim=none\n", .{ fps, px, py, pz, time_state, @tagName(current_block), @divFloor(px, 16), @divFloor(pz, 16), loaded, mob_count, stats.drawn, stats.culled });
             }
             var title_buf: [128]u8 = undefined;
-            const title = std.fmt.bufPrintZ(&title_buf, "Zigcraft  fps={d}  time={s}  chunks={d}  block={s}", .{ fps, time_state, loaded, @tagName(current_block) }) catch "Zigcraft";
+            const title = std.fmt.bufPrintZ(&title_buf, "Zigcraft  fps={d}  time={s}  chunks={d}  mobs={d}  block={s}", .{ fps, time_state, loaded, mob_count, @tagName(current_block) }) catch "Zigcraft";
             c.glfwSetWindowTitle(window, title.ptr);
         }
 
@@ -253,7 +266,9 @@ pub fn main() !void {
         const right = c.glfwGetMouseButton(window, c.GLFW_MOUSE_BUTTON_RIGHT) == c.GLFW_PRESS;
         if ((left and !left_down) or (right and !right_down)) {
             const dir = cam.front();
-            if (pick_mod.raycast(&pickSolid, cam.position, dir, 8)) |hit| {
+            if (left and mob_manager.tryHitMob(cam.position, dir, 4.0)) {
+                audio.play(.mob_baa, 0.8);
+            } else if (pick_mod.raycast(&pickSolid, cam.position, dir, 8)) |hit| {
                 if (left) {
                     if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .air)) {
                         audio.play(.break_block, 0.7);
