@@ -127,6 +127,31 @@ pub const chunk_vert: [:0]const u8 =
 \\}
 ;
 
+pub const sky_vert: [:0]const u8 =
+\\#version 330 core
+\\layout (location = 0) in vec3 aPos;
+\\out vec3 FragDir;
+\\uniform mat4 u_view_proj;
+\\void main() {
+\\    FragDir = aPos;
+\\    vec4 pos = u_view_proj * vec4(aPos * 500.0 + vec3(0.0, 0.0, 0.0), 1.0);
+\\    gl_Position = pos.xyww;
+\\}
+;
+
+pub const sky_frag: [:0]const u8 =
+\\#version 330 core
+\\in vec3 FragDir;
+\\out vec4 FragColor;
+\\uniform vec3 u_top;
+\\uniform vec3 u_horizon;
+\\void main() {
+\\    float t = clamp(normalize(FragDir).y * 0.5 + 0.5, 0.0, 1.0);
+\\    vec3 col = mix(u_horizon, u_top, pow(t, 0.8));
+\\    FragColor = vec4(col, 1.0);
+\\}
+;
+
 pub const chunk_frag: [:0]const u8 =
 \\#version 330 core
 \\in vec2 FragTexCoord;
