@@ -101,6 +101,7 @@ pub const ChunkRenderer = struct {
         c.glBindTexture(c.GL_TEXTURE_2D, self.texture);
         shader.setUniformInt(self.program, "u_texture", 0);
         shader.setUniformMat4(self.program, "u_mvp", mvp_ptr);
+        shader.setUniformVec3(self.program, "u_light_dir", 0.45, 0.85, 0.28);
         c.glBindVertexArray(self.vao);
         c.glDrawElements(c.GL_TRIANGLES, @intCast(self.index_count), c.GL_UNSIGNED_INT, @ptrFromInt(0));
     }
