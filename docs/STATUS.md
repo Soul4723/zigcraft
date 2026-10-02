@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-02 (Session 011)
+Last updated: 2026-10-02 (Session 012)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`)
@@ -17,18 +17,18 @@ Last updated: 2026-10-02 (Session 011)
 - Frustum culling using 6 extracted view-projection planes against chunk AABBs
 - Block picking via fast voxel DDA raycast (aim debug reporting)
 - Interactive block editing (left-click break, right-click place) with cross-chunk border re-meshing
+- Chunk persistence (Milestone 18): binary serialization to disk (`c_{cx}_{cz}.bin`), auto-load on chunk spawn, auto-save modified chunks on purge/exit
 - Real-time debug HUD reporting FPS, coordinates, chunk indices, loaded/drawn/culled chunk counts, and aim target
-- Unit tests across all subsystem modules passing
+- 18 unit test suites across all subsystem modules passing
 
-## Active Branch: feat/chunk-streaming
+## Active Branch: feat/chunk-persistence
 
-Implements Milestone 12 (Dynamic chunk loading/unloading).
+Implements Milestone 18 (Chunk persistence).
 
 ## What's Next
 
-1. **Chunk persistence** (Milestone 18): Save edited chunk data to disk, load stored chunks before generating fresh terrain.
-2. **Texture atlas & block materials**: Load texture atlas or UV mapping per block face type.
-3. **Greedy meshing**: Merge coplanar adjacent block faces to reduce vertex and draw call pressure.
+1. **Texture Atlas / Multi-texture blocks** (Milestone 5): texture atlas layout with distinct textures for grass top, grass side, dirt, and stone.
+2. **Greedy meshing**: merge coplanar adjacent block faces to reduce vertex count.
 
 ## Environment
 

@@ -1,7 +1,7 @@
 # Roadmap
 
 Rough priority order. Completed milestones marked **[x]**.
-> **Current milestone: 18 (Chunk persistence).** Milestones 10–17, 19, 20 merged or implemented. Each milestone is a meaningful increment — the project should
+> **Current milestone: 5 (Textured quad / texture atlas).** Milestones 1–4, 6–20 merged or implemented. Each milestone is a meaningful increment — the project should
 be buildable and runnable after each one.
 
 ## Phase 1: Window and Rendering Foundation
@@ -10,7 +10,7 @@ be buildable and runnable after each one.
 2. [x] **OpenGL context** — Initialize OpenGL, clear to a sky-blue color
 3. [x] **Triangle on screen** — Shader pipeline, VAO/VBO, draw a colored triangle
 4. [x] **Camera** — First-person camera with mouse look and WASD movement
-5. **Textured quad** — Load a PNG texture, render a textured quad
+5. **Textured quad / atlas** — Texture atlas with distinct block face textures ← next
 
 ## Phase 2: Voxel World Basics
 
@@ -32,7 +32,7 @@ be buildable and runnable after each one.
 
 16. [x] **Lighting** — Diffuse + ambient in chunk shader (#26)
 17. [x] **Sky rendering** — Gradient dome, sun TBD (#27)
-18. **Chunk persistence** — Save/load chunks to disk ← next
+18. [x] **Chunk persistence** — Save/load chunks to disk (#32)
 19. [x] **Player physics** — Gravity, AABB collision, jumping (#28)
 20. [x] **UI overlay** — Debug HUD in log + title; on-screen text TBD (#29)
 
