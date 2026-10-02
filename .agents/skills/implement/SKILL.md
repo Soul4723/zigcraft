@@ -1,37 +1,65 @@
 ---
 name: implement
 description: >-
-  Implement a feature or fix. Build, test, verify before committing.
+  Implement a feature or fix. Follow this procedure exactly.
 ---
 
-## Process
+## Before coding
 
-1. **Understand the goal.** Read the relevant roadmap item, issue, or
-   decision doc. If the approach isn't clear, do research first.
+1. Read `CONTRIBUTING.md` for code patterns and rules
+2. Read `docs/architecture/OVERVIEW.md` to understand where your code fits
+3. Check `docs/decisions/` for relevant ADRs
+4. Check `docs/research/` for relevant research notes
+5. Check `docs/learnings/zig-0.16-changes.md` for API gotchas
 
-2. **Write the code.** Follow existing patterns in the codebase.
-   Keep changes focused — one feature or fix per branch.
+## While coding
 
-3. **Build frequently.** Run `zig build` after meaningful changes.
-   Zig's compiler errors are precise — read them carefully.
+### Build after every meaningful change
 
-4. **Test.** Run `zig build test` for unit tests. For visual/runtime
-   features, run `zig build run` and verify behavior.
+```bash
+zig build
+```
 
-5. **Commit.** Small, meaningful commits. Message format:
-   `<type>: <description>` where type is feat, fix, refactor, docs, build.
+Not "when you're done". After every function, every struct, every file.
+Zig's compiler errors are precise — catching them early saves time.
 
-## Zig Conventions for This Project
+### Follow existing patterns
 
-- Use `std.debug.print` for debug output
-- Error handling: use `try` and return errors, don't silently swallow
-- Naming: camelCase for functions/variables, PascalCase for types
-- Keep files under ~300 lines; split into modules when they grow
-- C interop: isolate C bindings in dedicated files (e.g., `gl.zig`)
+Look at existing code first. Match the style. If `main.zig` uses
+`const c = @cImport(...)`, your new file does too. If errors are returned
+with `return error.SomethingFailed`, do that, don't use `@panic`.
 
-## Build Commands
+### Keep files focused
 
-- `zig build` — compile
-- `zig build run` — compile and run
-- `zig build test` — run tests
-- `zig build -Doptimize=ReleaseFast` — optimized build
+One module per file. If a file is getting past 200 lines, consider
+splitting. But don't split preemptively — split when there's a clear
+seam.
+
+### Test what you can
+
+```bash
+zig build test          # unit tests
+zig build run           # manual verification for visual features
+```
+
+For visual/runtime features that can't be unit tested, describe what
+you verified in the commit message.
+
+## Commit pattern
+
+```bash
+git add -A
+zig build               # must pass
+git commit -m "<type>: <description>"
+```
+
+Small commits. One logical change each. Don't batch an entire feature
+into one commit if it has separable parts.
+
+## If something doesn't compile
+
+1. Read the error message carefully — Zig errors are usually precise
+2. Search the actual standard library: `rg <symbol> /usr/lib/zig/std/`
+3. Check `docs/learnings/zig-0.16-changes.md`
+4. If you can't fix it in 10 minutes, write down what you tried in the
+   session log and move on to something else
