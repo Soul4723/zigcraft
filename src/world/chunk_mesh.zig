@@ -86,12 +86,19 @@ fn faceVertices(face_index: usize) [4][3]f32 {
     };
 }
 
-const face_tex_coords: [4][2]f32 = .{
-    .{0.0, 0.0},
-    .{1.0, 0.0},
-    .{1.0, 1.0},
-    .{0.0, 1.0},
-};
+fn faceTexCoords(tile_x: u32, tile_y: u32) [4][2]f32 {
+    const tile_size: f32 = 0.25; // 4x4 atlas
+    const u_min = @as(f32, @floatFromInt(tile_x)) * tile_size;
+    const v_min = @as(f32, @floatFromInt(tile_y)) * tile_size;
+    const u_max = u_min + tile_size;
+    const v_max = v_min + tile_size;
+    return .{
+        .{ u_min, v_min },
+        .{ u_max, v_min },
+        .{ u_max, v_max },
+        .{ u_min, v_max },
+    };
+}
 
 /// Check if a block position in the chunk grid is air.
 fn isAir(
@@ -173,6 +180,8 @@ pub fn generateMesh(
                         const normal = face_normals[face_idx];
                         const base_index: u32 = @intCast(vertices.items.len);
 
+                        const tile = block.getFaceTexture(face_idx);
+                        const tex_coords = faceTexCoords(tile.x, tile.y);
                         var i: usize = 0;
                         while (i < 4) : (i += 1) {
                             const v = corners[i];
@@ -183,7 +192,7 @@ pub fn generateMesh(
                                     @as(f32, @floatFromInt(z)) + v[2],
                                 },
                                 .normal = normal,
-                                .tex_coord = face_tex_coords[i],
+                                .tex_coord = tex_coords[i],
                             });
                         }
 

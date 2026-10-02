@@ -51,6 +51,7 @@ pub fn build(b: *std.Build) void {
         "src/frustum.zig",
         "src/pick.zig",
         "src/renderer/shader.zig",
+        "src/renderer/texture.zig",
         "src/renderer/mesh.zig",
         "src/camera.zig",
         "src/player.zig",
