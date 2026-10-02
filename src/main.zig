@@ -16,6 +16,9 @@ const audio_mod = @import("audio/audio.zig");
 const texture_mod = @import("renderer/texture.zig");
 const entity_mod = @import("entity.zig");
 const inventory_mod = @import("inventory.zig");
+const net_server = @import("net/server.zig");
+const net_client = @import("net/client.zig");
+const player_renderer = @import("player_renderer.zig");
 
 const window_width = 1280;
 const window_height = 720;
@@ -37,7 +40,7 @@ fn getFootstepSound(block: block_mod.BlockId) audio_mod.synth.SoundType {
     };
 }
 
-pub fn main() !void {
+pub fn main(init: std.process.Init) !void {
     std.debug.print("zigcraft v0.0.8\n", .{});
 
     if (c.glfwInit() == c.GLFW_FALSE) {
@@ -100,6 +103,40 @@ pub fn main() !void {
 
     const atlas_texture = texture_mod.createBlockTexture();
     defer c.glDeleteTextures(1, &atlas_texture);
+
+    var other_player_renderer = try player_renderer.PlayerRenderer.init(std.heap.page_allocator, atlas_texture);
+    defer other_player_renderer.deinit();
+
+    // Parse CLI arguments for multiplayer: default is embedded host server + local client
+    var is_dedicated_server = false;
+    var remote_connect_ip: ?[]const u8 = null;
+
+    var args_iter = init.minimal.args.iterate();
+    _ = args_iter.next(); // skip exe name
+    while (args_iter.next()) |arg| {
+        if (std.mem.eql(u8, arg, "--server")) {
+            is_dedicated_server = true;
+        } else if (std.mem.eql(u8, arg, "--connect")) {
+            remote_connect_ip = args_iter.next();
+        }
+    }
+
+    // Initialize local host server (if not connecting to external IP)
+    var host_server: ?net_server.Server = null;
+    if (remote_connect_ip == null) {
+        host_server = net_server.Server.init(net_server.protocol_mod.DEFAULT_PORT) catch |err| blk: {
+            std.debug.print("Host server init skipped: {s}\n", .{@errorName(err)});
+            break :blk null;
+        };
+    }
+    defer if (host_server) |*s| s.deinit();
+
+    const connect_ip = remote_connect_ip orelse "127.0.0.1";
+    var client = net_client.Client.init(std.heap.page_allocator, connect_ip, net_server.protocol_mod.DEFAULT_PORT) catch |err| blk: {
+        std.debug.print("Network client init skipped: {s}\n", .{@errorName(err)});
+        break :blk null;
+    };
+    defer if (client) |*cl| cl.deinit();
     var mob_manager = try entity_mod.mob_manager.MobManager.init(std.heap.page_allocator, atlas_texture);
     defer mob_manager.deinit();
 
@@ -132,6 +169,28 @@ pub fn main() !void {
         const current_time = c.glfwGetTime();
         const dt: f32 = @floatCast(current_time - last_time);
         last_time = current_time;
+
+        // Network tick: server and client packet exchange
+        if (host_server) |*hs| {
+            hs.tick(dt);
+        }
+
+        if (client) |*cl| {
+            cl.pollIncoming(@floatCast(current_time));
+
+            // Apply incoming remote block edits to local chunk manager
+            while (cl.pending_edits.pop()) |edit| {
+                const b_id: block_mod.BlockId = @enumFromInt(edit.block_id);
+                _ = try manager.editAndRemesh(edit.x, edit.y, edit.z, b_id);
+            }
+
+            // Transmit position update 20 times per second (every 0.05s)
+            cl.send_timer += dt;
+            if (cl.send_timer >= 0.05) {
+                cl.send_timer = 0.0;
+                cl.sendPosition(player.pos.x, player.pos.y, player.pos.z, cam.yaw, cam.pitch);
+            }
+        }
 
         // Advance 2-minute day/night cycle
         world_time += dt * 0.05;
@@ -260,6 +319,9 @@ pub fn main() !void {
         sky.draw(mvp, cam.position, sky_top, sky_horizon);
         const stats = manager.draw(mvp, sun_dir);
         try mob_manager.draw(mvp, sun_dir);
+        if (client) |*cl| {
+            try other_player_renderer.drawPlayers(&cl.remote_players, mvp, sun_dir);
+        }
 
         // Extract inventory slot colors and counts for rendering
         var hotbar_colors: [6][4]f32 = undefined;
@@ -326,8 +388,9 @@ pub fn main() !void {
             } else {
                 std.debug.print("fps={d} xyz=({d},{d},{d}) time={s} slot={s} chunk=({d},{d}) loaded={d} mobs={d} drawn={d} culled={d} aim=none\n", .{ fps, px, py, pz, time_state, current_item.name(), @divFloor(px, 16), @divFloor(pz, 16), loaded, mob_count, stats.drawn, stats.culled });
             }
+            const net_status = if (client) |cl| (if (cl.connected) "online" else "connecting") else "offline";
             var title_buf: [128]u8 = undefined;
-            const title = std.fmt.bufPrintZ(&title_buf, "Zigcraft  fps={d}  time={s}  chunks={d}  mobs={d}  block={s}", .{ fps, time_state, loaded, mob_count, current_item.name() }) catch "Zigcraft";
+            const title = std.fmt.bufPrintZ(&title_buf, "Zigcraft  fps={d}  net={s}  chunks={d}  mobs={d}  block={s}", .{ fps, net_status, loaded, mob_count, current_item.name() }) catch "Zigcraft";
             c.glfwSetWindowTitle(window, title.ptr);
         }
 
@@ -434,6 +497,9 @@ pub fn main() !void {
                             // Add harvested block item to player inventory
                             const drop_item = inventory_mod.ItemType.fromBlockId(broken_block);
                             _ = inventory.addItem(drop_item, 1);
+                            if (client) |*cl| {
+                                cl.sendBlockEdit(hit.x, hit.y, hit.z, 0); // 0 = air
+                            }
                             std.debug.print("destroyed {s} ({d},{d},{d})\n", .{ @tagName(broken_block), hit.x, hit.y, hit.z });
                         }
                     } else {
@@ -447,6 +513,9 @@ pub fn main() !void {
                                     if (try manager.editAndRemesh(px, py, pz, place_type)) {
                                         audio.play(.place_block, 0.7);
                                         hotbar_slot.decrement(1);
+                                        if (client) |*cl| {
+                                            cl.sendBlockEdit(px, py, pz, @intFromEnum(place_type));
+                                        }
                                         std.debug.print("placed {s} ({d},{d},{d})\n", .{ @tagName(place_type), px, py, pz });
                                     }
                                 }

@@ -61,6 +61,11 @@ pub fn build(b: *std.Build) void {
         "src/audio/audio.zig",
         "src/entity.zig",
         "src/inventory.zig",
+        "src/net/protocol.zig",
+        "src/net/socket.zig",
+        "src/net/server.zig",
+        "src/net/client.zig",
+        "src/player_renderer.zig",
     };
 
     for (test_files) |test_file| {
