@@ -4,10 +4,11 @@ const c = @cImport({
     @cInclude("GL/glcorearb.h");
     @cInclude("GLFW/glfw3.h");
 });
-const shader = @import("renderer/shader.zig");
-const mesh_mod = @import("renderer/mesh.zig");
 const camera_mod = @import("camera.zig");
 const math = @import("math.zig");
+const chunk_mod = @import("world/chunk.zig");
+const chunk_mesh_mod = @import("world/chunk_mesh.zig");
+const chunk_renderer_mod = @import("chunk_renderer.zig");
 
 const window_width = 1280;
 const window_height = 720;
@@ -51,21 +52,23 @@ pub fn main() !void {
     // Hide and capture cursor for first-person camera control
     c.glfwSetInputMode(window, c.GLFW_CURSOR, c.GLFW_CURSOR_DISABLED);
 
-    // Shader program (triangle + MVP uniform)
-    const program = try shader.createProgram(
-        std.heap.page_allocator,
-        shader.default_vert,
-        shader.default_frag,
-    );
-    defer c.glDeleteProgram(program);
+    // Demo chunk: flat grass floor at y=0 plus a small stone pillar.
+    var chunk = chunk_mod.Chunk.init();
+    chunk.fillLayer(0, .grass);
+    chunk.setBlock(8, 1, 8, .stone);
+    chunk.setBlock(8, 2, 8, .stone);
 
-    // Test triangle mesh
-    var triangle = try mesh_mod.createTriangle(std.heap.page_allocator);
-    defer triangle.deinit();
+    var cpu_mesh = try chunk_mesh_mod.generateMesh(std.heap.page_allocator, &chunk, null);
+    defer cpu_mesh.deinit(std.heap.page_allocator);
 
-    // Camera setup
+    var renderer = try chunk_renderer_mod.ChunkRenderer.init(std.heap.page_allocator, &cpu_mesh);
+    defer renderer.deinit();
+
+    // Camera setup — pulled back so the demo chunk fills the view.
     var cam = camera_mod.Camera.init();
-    cam.position = math.Vec3.init(0, 0, 3);
+    cam.position = math.Vec3.init(8, 6, 20);
+    cam.yaw = -std.math.pi / 2.0 - 0.35;
+    cam.pitch = -0.3;
 
     // Timing
     var last_time = c.glfwGetTime();
@@ -75,7 +78,7 @@ pub fn main() !void {
     var last_y: f64 = @floatFromInt(window_height / 2);
     var first_mouse = true;
 
-    std.debug.print("ready. WASD to move, mouse to look, ESC to close.\n", .{});
+    std.debug.print("ready. chunk demo. WASD to move, mouse to look, ESC to close.\n", .{});
 
     while (c.glfwWindowShouldClose(window) == c.GLFW_FALSE) {
         // Delta time
@@ -111,7 +114,7 @@ pub fn main() !void {
 
         cam.processMouse(x_offset, y_offset);
 
-        // Build MVP: projection * view (model is identity — triangle is pre-transformed)
+        // Build MVP: projection * view (model is identity — mesh is in world coords)
         const aspect: f32 = 1280.0 / 720.0;
         const proj = cam.projectionMatrix(aspect);
         const view = cam.viewMatrix();
@@ -120,9 +123,7 @@ pub fn main() !void {
         // Render
         c.glClear(c.GL_COLOR_BUFFER_BIT | c.GL_DEPTH_BUFFER_BIT);
 
-        c.glUseProgram(program);
-        shader.setUniformMat4(program, "u_mvp", mvp.ptr());
-        triangle.draw();
+        renderer.draw(mvp.ptr());
 
         c.glfwSwapBuffers(window);
         c.glfwPollEvents();

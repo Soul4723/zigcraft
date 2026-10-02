@@ -77,6 +77,12 @@ pub fn setUniformMat4(program: c.GLuint, name: [:0]const u8, matrix_ptr: [*c]con
     c.glUniformMatrix4fv(loc, 1, c.GL_FALSE, matrix_ptr);
 }
 
+/// Set an integer uniform (used for sampler2D texture units).
+pub fn setUniformInt(program: c.GLuint, name: [:0]const u8, value: c.GLint) void {
+    const loc = getUniformLocation(program, name);
+    c.glUniform1i(loc, value);
+}
+
 /// Default shader sources for a colored triangle with MVP transform.
 pub const default_vert: [:0]const u8 =
 \\#version 330 core
@@ -98,6 +104,32 @@ pub const default_frag: [:0]const u8 =
 \\    FragColor = vec4(vertexColor, 1.0);
 \\}
 ;
+
+/// Chunk shader sources for textured rendering with MVP transform.
+/// Vertex layout: position (loc 0), normal (loc 1), tex_coord (loc 2).
+pub const chunk_vert: [:0]const u8 =
+\\#version 330 core
+\\layout (location = 0) in vec3 aPos;
+\\layout (location = 1) in vec3 aNormal;
+\\layout (location = 2) in vec2 aTexCoord;
+\\uniform mat4 u_mvp;
+\\out vec2 FragTexCoord;
+\\void main() {
+\\    gl_Position = u_mvp * vec4(aPos, 1.0);
+\\    FragTexCoord = aTexCoord;
+\\}
+;
+
+pub const chunk_frag: [:0]const u8 =
+\\#version 330 core
+\\in vec2 FragTexCoord;
+\\out vec4 FragColor;
+\\uniform sampler2D u_texture;
+\\void main() {
+\\    FragColor = texture(u_texture, FragTexCoord);
+\\}
+;
+
 
 test "getUniformLocation with valid program" {
     // We can't test OpenGL without a context, skip
