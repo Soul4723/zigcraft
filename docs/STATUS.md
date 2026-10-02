@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-02 (Session 012)
+Last updated: 2026-10-02 (Session 013)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`)
@@ -11,6 +11,7 @@ Last updated: 2026-10-02 (Session 012)
 - First-person camera with mouse look and WASD movement
 - Player physics with gravity, jump mechanics, and axis-separated AABB voxel collision snapping
 - Block type system (air, stone, dirt, grass) with properties
+- 4x4 procedural texture atlas (grass top, grass side, dirt, stone) with per-face UV assignment
 - 16x16x16 chunk data structure with set/get/fillLayer
 - Procedural fBm value noise heightmap terrain generator
 - Dynamic chunk streaming manager: hash-mapped chunk storage, loads and unloads around player position (radius 3 = 49 chunks)
@@ -19,16 +20,16 @@ Last updated: 2026-10-02 (Session 012)
 - Interactive block editing (left-click break, right-click place) with cross-chunk border re-meshing
 - Chunk persistence (Milestone 18): binary serialization to disk (`c_{cx}_{cz}.bin`), auto-load on chunk spawn, auto-save modified chunks on purge/exit
 - Real-time debug HUD reporting FPS, coordinates, chunk indices, loaded/drawn/culled chunk counts, and aim target
-- 18 unit test suites across all subsystem modules passing
+- 19 unit test suites across all subsystem modules passing
 
-## Active Branch: feat/chunk-persistence
+## Active Branch: feat/texture-atlas
 
-Implements Milestone 18 (Chunk persistence).
+Implements Milestone 5 (Texture atlas and multi-face block textures).
 
 ## What's Next
 
-1. **Texture Atlas / Multi-texture blocks** (Milestone 5): texture atlas layout with distinct textures for grass top, grass side, dirt, and stone.
-2. **Greedy meshing**: merge coplanar adjacent block faces to reduce vertex count.
+1. **Greedy meshing**: merge coplanar adjacent block faces to slash vertex buffer sizes and overdraw.
+2. **Onscreen crosshair & block selection**: draw center crosshair and hotbar selection.
 
 ## Environment
 
