@@ -1,7 +1,7 @@
 # Roadmap
 
 Rough priority order. Completed milestones marked **[x]**.
-> **Milestones 1 through 25 complete!** Next focus: Ambient Occlusion & Lighting Polish.
+> **Milestones 1 through 26 complete!** Next focus: Day/Night Cycle & Sound.
 
 ## Phase 1: Window and Rendering Foundation
 
@@ -42,7 +42,8 @@ Rough priority order. Completed milestones marked **[x]**.
 23. [x] **Block inventory & selection** — Hotbar slots 1-6 to choose block type for placement (#34, #35, #37)
 24. [x] **Water / fluid simulation** — Translucent water blocks and sea-level terrain lakes (#35)
 25. [x] **Biomes & tree generation** — Height-dependent terrain and procedural trees/foliage (#37)
-26. **Voxel ambient occlusion** — Per-vertex corner occlusion to add depth to block crevices ← next
+26. [x] **Voxel ambient occlusion** — Per-vertex corner occlusion in chunk shader (#38)
+27. **Day/Night cycle** — Animated sun orbit, directional light vector, and dusk/dawn sky dome colors ← next
 
 ## Long-term
 
@@ -50,4 +51,3 @@ Rough priority order. Completed milestones marked **[x]**.
 - Sound
 - Mobs/entities
 - Crafting
-- Day/Night cycle
