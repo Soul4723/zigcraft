@@ -6,10 +6,7 @@ const c = @cImport({
 });
 const camera_mod = @import("camera.zig");
 const math = @import("math.zig");
-const chunk_mod = @import("world/chunk.zig");
-const terrain_mod = @import("world/terrain.zig");
-const chunk_mesh_mod = @import("world/chunk_mesh.zig");
-const chunk_renderer_mod = @import("chunk_renderer.zig");
+const chunk_manager_mod = @import("chunk_manager.zig");
 
 const window_width = 1280;
 const window_height = 720;
@@ -53,20 +50,13 @@ pub fn main() !void {
     // Hide and capture cursor for first-person camera control
     c.glfwSetInputMode(window, c.GLFW_CURSOR, c.GLFW_CURSOR_DISABLED);
 
-    // Demo chunk: seeded terrain heightmap instead of flat floor.
-    var chunk = chunk_mod.Chunk.init();
-    const terrain = terrain_mod.TerrainGenerator.init(1337);
-    terrain.generateChunk(&chunk, 0, 0);
+    // Demo world: 3x3 terrain chunks (seed 1337) via chunk manager.
+    var manager = try chunk_manager_mod.ChunkManager.init(std.heap.page_allocator, 3, 0, 0, 1337);
+    defer manager.deinit();
 
-    var cpu_mesh = try chunk_mesh_mod.generateMesh(std.heap.page_allocator, &chunk, null);
-    defer cpu_mesh.deinit(std.heap.page_allocator);
-
-    var renderer = try chunk_renderer_mod.ChunkRenderer.init(std.heap.page_allocator, &cpu_mesh);
-    defer renderer.deinit();
-
-    // Camera setup — pulled back so the demo chunk fills the view.
+    // Camera setup — pulled back so the chunk grid fills the view.
     var cam = camera_mod.Camera.init();
-    cam.position = math.Vec3.init(8, 12, 24);
+    cam.position = math.Vec3.init(24, 20, 48);
     cam.yaw = -std.math.pi / 2.0 - 0.35;
     cam.pitch = -0.3;
 
@@ -78,7 +68,7 @@ pub fn main() !void {
     var last_y: f64 = @floatFromInt(window_height / 2);
     var first_mouse = true;
 
-    std.debug.print("ready. terrain demo (seed 1337). WASD to move, mouse to look, ESC to close.\n", .{});
+    std.debug.print("ready. 3x3 terrain demo (seed 1337). WASD to move, mouse to look, ESC to close.\n", .{});
 
     while (c.glfwWindowShouldClose(window) == c.GLFW_FALSE) {
         // Delta time
@@ -123,7 +113,8 @@ pub fn main() !void {
         // Render
         c.glClear(c.GL_COLOR_BUFFER_BIT | c.GL_DEPTH_BUFFER_BIT);
 
-        renderer.draw(mvp.ptr());
+        const view_proj = mvp;
+        manager.draw(view_proj);
 
         c.glfwSwapBuffers(window);
         c.glfwPollEvents();
