@@ -1,37 +1,69 @@
 ---
 name: research
 description: >-
-  Investigate a technical question and write findings to docs/research/.
-  Use for Zig API questions, graphics programming patterns, voxel engine
-  techniques, or anything that needs reading before coding.
+  Investigate a technical question using primary sources. Write findings
+  to docs/research/. Use before implementing anything you're uncertain about.
 ---
 
-Investigate the question against primary sources: official Zig docs,
-OpenGL/Vulkan specs, library source code, reference implementations.
+## When to use this
+
+- Before implementing a feature that involves unfamiliar APIs
+- When the Zig 0.16 API doesn't match what you expect
+- When choosing between algorithms or approaches
+- When you need to understand how a C library works with Zig
 
 ## Process
 
-1. **Search primary sources.** Zig standard library source is at
-   `/usr/lib/zig/std/`. GLFW and OpenGL headers are in system include paths.
-   Use `rg` to search them. For broader questions, use web search.
+### 1. Define the question
 
-2. **Write findings** to `docs/research/<topic>.md`. Include:
-   - The question being answered
-   - Key findings with source citations
-   - Code examples if relevant (tested against Zig 0.16.0)
-   - Open questions or uncertainties
-   - Date of research
+Write it down explicitly. "How does X work?" or "Which approach is better
+for Y?" Not "research rendering".
 
-3. **Report** the key finding and file location. If the question is
-   unanswered, say what's missing.
+### 2. Search primary sources
 
-## Zig 0.16.0 Notes
+In this order:
+1. **Zig standard library source**: `rg <term> /usr/lib/zig/std/ -l`
+2. **System headers**: `rg <term> /usr/include/ -l`
+3. **Existing project code**: `rg <term> src/`
+4. **docs/learnings/**: check if someone already figured this out
+5. **Web search**: last resort, and verify against source code
 
-Zig 0.16.0 has significant API changes from earlier versions. Always verify
-against the actual installed standard library, not online examples which
-may target older versions. Key known changes:
+**Critical**: Your training data for Zig is almost certainly outdated.
+Zig 0.16.0 has breaking changes from every prior version. Always verify
+against `/usr/lib/zig/std/`.
 
-- `std.io` is now `std.Io` (capital I, different API)
-- `std.debug.print` still works for stderr output
-- Build API uses `b.createModule` for executables
-- Package manifest uses `.name = .identifier` syntax
+### 3. Write findings
+
+Create `docs/research/<topic>.md` with:
+
+```markdown
+# <Topic>
+
+Date: YYYY-MM-DD
+Question: <the specific question>
+
+## Findings
+
+<what you found, with source citations>
+
+## Code Examples
+
+<working examples tested against Zig 0.16.0>
+
+## Decision / Recommendation
+
+<what to do based on findings>
+
+## Open Questions
+
+<anything still uncertain>
+```
+
+### 4. Test code examples
+
+If the research includes code, compile it. Don't write untested examples.
+
+```bash
+# Quick test: add a test block to an existing file or create a scratch file
+zig build test
+```
