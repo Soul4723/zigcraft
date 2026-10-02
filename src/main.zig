@@ -97,7 +97,9 @@ pub fn main() !void {
     var audio = audio_mod.AudioSystem.init();
     defer audio.deinit();
 
-    var mob_manager = try entity_mod.mob_manager.MobManager.init(std.heap.page_allocator);
+    const atlas_texture = texture_mod.createBlockTexture();
+    defer c.glDeleteTextures(1, &atlas_texture);
+    var mob_manager = try entity_mod.mob_manager.MobManager.init(std.heap.page_allocator, atlas_texture);
     defer mob_manager.deinit();
 
     // Hotbar selection: 0=stone, 1=dirt, 2=grass, 3=water, 4=wood, 5=leaves
@@ -264,8 +266,8 @@ pub fn main() !void {
         const right = c.glfwGetMouseButton(window, c.GLFW_MOUSE_BUTTON_RIGHT) == c.GLFW_PRESS;
         if ((left and !left_down) or (right and !right_down)) {
             const dir = cam.front();
-            if (left and mob_manager.tryHitMob(cam.position, dir, 4.0, &audio)) {
-                // Mob took hit and knockback
+            if (left and mob_manager.tryHitMob(cam.position, dir, 4.0)) {
+                audio.play(.mob_baa, 0.8);
             } else if (pick_mod.raycast(&pickSolid, cam.position, dir, 8)) |hit| {
                 if (left) {
                     if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .air)) {

@@ -7,12 +7,14 @@ const math = @import("../math.zig");
 const mob_mod = @import("mob.zig");
 const mob_renderer_mod = @import("mob_renderer.zig");
 const chunk_manager_mod = @import("../chunk_manager.zig");
+const audio_mod = @import("../audio/audio.zig");
 
 pub const MobManager = struct {
     allocator: std.mem.Allocator,
     mobs: std.ArrayList(mob_mod.Mob),
     renderer: mob_renderer_mod.MobRenderer,
     rng: std.Random.DefaultPrng,
+    ambient_timer: f32,
 
     pub fn init(allocator: std.mem.Allocator, atlas_texture: c.GLuint) !MobManager {
         const r = try mob_renderer_mod.MobRenderer.init(allocator, atlas_texture);
@@ -21,6 +23,7 @@ pub const MobManager = struct {
             .mobs = std.ArrayList(mob_mod.Mob).empty,
             .renderer = r,
             .rng = std.Random.DefaultPrng.init(0xCAFEFEED),
+            .ambient_timer = 5.0,
         };
     }
 
@@ -57,7 +60,7 @@ pub const MobManager = struct {
         }
     }
 
-    pub fn tick(self: *MobManager, solid: *const fn (x: i32, y: i32, z: i32) bool, dt: f32) void {
+    pub fn tick(self: *MobManager, solid: *const fn (x: i32, y: i32, z: i32) bool, player_pos: math.Vec3, player_radius: f32, audio: ?*audio_mod.AudioSystem, dt: f32) void {
         var idx: usize = 0;
         while (idx < self.mobs.items.len) {
             var mob = &self.mobs.items[idx];
@@ -68,7 +71,36 @@ pub const MobManager = struct {
                 continue;
             }
 
+            // Soft push separation between player and mob
+            const dx = mob.pos.x - player_pos.x;
+            const dz = mob.pos.z - player_pos.z;
+            const dist_sq = dx * dx + dz * dz;
+            const min_dist = player_radius + mob.width * 0.5;
+            if (dist_sq < min_dist * min_dist and dist_sq > 0.0001) {
+                const dist = @sqrt(dist_sq);
+                const push = (min_dist - dist) * 0.5;
+                mob.pos.x += (dx / dist) * push;
+                mob.pos.z += (dz / dist) * push;
+            }
+
             idx += 1;
+        }
+
+        // Ambient sound bleat trigger
+        self.ambient_timer -= dt;
+        if (self.ambient_timer <= 0.0) {
+            self.ambient_timer = 7.0 + self.rng.random().float(f32) * 8.0;
+            if (audio) |a| {
+                for (self.mobs.items) |mob| {
+                    const dx = mob.pos.x - player_pos.x;
+                    const dy = mob.pos.y - player_pos.y;
+                    const dz = mob.pos.z - player_pos.z;
+                    if (dx * dx + dy * dy + dz * dz < 25.0 * 25.0) {
+                        a.play(.mob_baa, 0.45);
+                        break;
+                    }
+                }
+            }
         }
     }
 
