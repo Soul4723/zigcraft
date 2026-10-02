@@ -60,6 +60,7 @@ pub fn build(b: *std.Build) void {
         "src/audio/synth.zig",
         "src/audio/audio.zig",
         "src/entity.zig",
+        "src/net.zig",
     };
 
     for (test_files) |test_file| {

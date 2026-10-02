@@ -3,6 +3,7 @@ const c = @cImport({
     @cDefine("GL_GLEXT_PROTOTYPES", "1");
     @cInclude("GL/glcorearb.h");
     @cInclude("GLFW/glfw3.h");
+    @cInclude("unistd.h");
 });
 const camera_mod = @import("camera.zig");
 const math = @import("math.zig");
@@ -15,6 +16,7 @@ const ui_mod = @import("renderer/ui.zig");
 const audio_mod = @import("audio/audio.zig");
 const texture_mod = @import("renderer/texture.zig");
 const entity_mod = @import("entity.zig");
+const net_mod = @import("net.zig");
 
 const window_width = 1280;
 const window_height = 720;
@@ -36,9 +38,56 @@ fn getFootstepSound(block: block_mod.BlockId) audio_mod.synth.SoundType {
     };
 }
 
-pub fn main() !void {
-    std.debug.print("zigcraft v0.0.8\n", .{});
+fn runDedicatedServer(port: u16) !void {
+    std.debug.print("Starting Zigcraft Dedicated Server on port {d}...\n", .{port});
+    var server = try net_mod.server.Server.init(port);
+    defer server.deinit();
 
+    std.debug.print("Server running. Press Ctrl+C to terminate.\n", .{});
+    var last_print: u64 = 0;
+    var tick_count: u64 = 0;
+
+    while (true) {
+        server.tick();
+        tick_count += 1;
+        if (tick_count - last_print >= 1000) {
+            last_print = tick_count;
+            std.debug.print("[Server] Active clients: {d}/{d}\n", .{ server.activeClientCount(), net_mod.server.MAX_CLIENTS });
+        }
+        _ = c.usleep(5000); // 5ms sleep (~200 ticks/sec)
+    }
+}
+
+pub fn main(process_init: std.process.Init.Minimal) !void {
+    std.debug.print("zigcraft v0.0.9\n", .{});
+
+    // Parse CLI arguments for multiplayer modes
+    var args_iter = process_init.args.iterate();
+    _ = args_iter.skip(); // skip binary name
+
+    var is_dedicated_server = false;
+    var connect_host: ?[:0]const u8 = null;
+    var net_port: u16 = 25565;
+
+    while (args_iter.next()) |arg| {
+        if (std.mem.eql(u8, arg, "--server")) {
+            is_dedicated_server = true;
+        } else if (std.mem.eql(u8, arg, "--connect")) {
+            if (args_iter.next()) |host| {
+                connect_host = host;
+            }
+        } else if (std.mem.eql(u8, arg, "--port")) {
+            if (args_iter.next()) |p_str| {
+                net_port = std.fmt.parseInt(u16, p_str, 10) catch 25565;
+            }
+        }
+    }
+
+    if (is_dedicated_server) {
+        return runDedicatedServer(net_port);
+    }
+
+    // Graphical Client
     if (c.glfwInit() == c.GLFW_FALSE) {
         std.debug.print("failed to initialize GLFW\n", .{});
         return error.GlfwInitFailed;
@@ -102,6 +151,20 @@ pub fn main() !void {
     var mob_manager = try entity_mod.mob_manager.MobManager.init(std.heap.page_allocator, atlas_texture);
     defer mob_manager.deinit();
 
+    var player_renderer = try net_mod.player_renderer.PlayerRenderer.init(std.heap.page_allocator, atlas_texture);
+    defer player_renderer.deinit();
+
+    // Multiplayer client
+    var net_client = net_mod.client.Client.init(std.heap.page_allocator);
+    defer net_client.deinit();
+
+    if (connect_host) |host| {
+        std.debug.print("Connecting to server at {s}:{d}...\n", .{ host, net_port });
+        net_client.connect(host, net_port) catch |err| {
+            std.debug.print("Failed to connect to server: {any}. Playing offline.\n", .{err});
+        };
+    }
+
     // Hotbar selection: 0=stone, 1=dirt, 2=grass, 3=water, 4=wood, 5=leaves
     const hotbar_blocks = [6]block_mod.BlockId{ .stone, .dirt, .grass, .water, .wood, .leaves };
     var selected_slot: usize = 0;
@@ -111,6 +174,7 @@ pub fn main() !void {
     var frame_count: u64 = 0;
     var hud_frames: u64 = 0;
     var hud_time: f32 = 0;
+    var net_send_timer: f32 = 0;
     var left_down = false;
     var right_down = false;
     var world_time: f32 = 45.0; // Start at morning daylight
@@ -121,7 +185,7 @@ pub fn main() !void {
     var last_y: f64 = @floatFromInt(window_height / 2);
     var first_mouse = true;
 
-    std.debug.print("ready. Dynamic chunks + AO + Day/Night Cycle + Audio. WASD move, mouse look, ESC close.\n", .{});
+    std.debug.print("ready. Dynamic chunks + AO + Day/Night Cycle + Audio + Multiplayer. WASD move, mouse look, ESC close.\n", .{});
 
     while (c.glfwWindowShouldClose(window) == c.GLFW_FALSE) {
         // Delta time
@@ -131,6 +195,15 @@ pub fn main() !void {
 
         // Advance 2-minute day/night cycle
         world_time += dt * 0.05;
+
+        // Network tick: receive packets from server
+        net_client.tick(dt);
+
+        // Apply incoming block edits from server/remote players
+        while (net_client.pending_edits.pop()) |edit| {
+            const block_type = @as(block_mod.BlockId, @enumFromInt(edit.block_id));
+            _ = manager.editAndRemesh(edit.x, edit.y, edit.z, block_type) catch false;
+        }
 
         // Hotbar selection keys 1 through 6
         if (c.glfwGetKey(window, c.GLFW_KEY_1) == c.GLFW_PRESS) selected_slot = 0;
@@ -166,6 +239,13 @@ pub fn main() !void {
             const ground_z: i32 = @intFromFloat(@floor(player.pos.z));
             const ground_block = manager.getBlockWorld(ground_x, ground_y, ground_z);
             audio.play(getFootstepSound(ground_block), 0.5);
+        }
+
+        // Send local player position to server at ~20Hz
+        net_send_timer += dt;
+        if (net_send_timer >= 0.05 and net_client.connected) {
+            net_send_timer = 0;
+            net_client.sendPosition(player.pos.x, player.pos.y, player.pos.z, cam.yaw, cam.pitch) catch {};
         }
 
         // Stream chunks dynamically around player
@@ -230,6 +310,9 @@ pub fn main() !void {
         const stats = manager.draw(mvp, sun_dir);
         try mob_manager.draw(mvp, sun_dir);
 
+        // Render remote players
+        try player_renderer.drawPlayers(&net_client.remote_players, mvp, sun_dir);
+
         // Render 2D UI overlay (crosshair + hotbar)
         ui.draw(aspect, selected_slot);
 
@@ -249,15 +332,16 @@ pub fn main() !void {
             const dir = cam.front();
             const loaded = manager.loadedChunkCount();
             const mob_count = mob_manager.mobs.items.len;
+            const remote_count = net_client.activeRemoteCount();
             const current_block = hotbar_blocks[selected_slot];
             const time_state = if (sun_y > 0.1) "day" else if (sun_y > -0.1) "dusk" else "night";
             if (pick_mod.raycast(&pickSolid, cam.position, dir, 8)) |hit| {
-                std.debug.print("fps={d} xyz=({d},{d},{d}) time={s} slot={s} chunk=({d},{d}) loaded={d} mobs={d} drawn={d} culled={d} aim=({d},{d},{d})\n", .{ fps, px, py, pz, time_state, @tagName(current_block), @divFloor(px, 16), @divFloor(pz, 16), loaded, mob_count, stats.drawn, stats.culled, hit.x, hit.y, hit.z });
+                std.debug.print("fps={d} xyz=({d},{d},{d}) time={s} slot={s} chunk=({d},{d}) loaded={d} mobs={d} peers={d} drawn={d} culled={d} aim=({d},{d},{d})\n", .{ fps, px, py, pz, time_state, @tagName(current_block), @divFloor(px, 16), @divFloor(pz, 16), loaded, mob_count, remote_count, stats.drawn, stats.culled, hit.x, hit.y, hit.z });
             } else {
-                std.debug.print("fps={d} xyz=({d},{d},{d}) time={s} slot={s} chunk=({d},{d}) loaded={d} mobs={d} drawn={d} culled={d} aim=none\n", .{ fps, px, py, pz, time_state, @tagName(current_block), @divFloor(px, 16), @divFloor(pz, 16), loaded, mob_count, stats.drawn, stats.culled });
+                std.debug.print("fps={d} xyz=({d},{d},{d}) time={s} slot={s} chunk=({d},{d}) loaded={d} mobs={d} peers={d} drawn={d} culled={d} aim=none\n", .{ fps, px, py, pz, time_state, @tagName(current_block), @divFloor(px, 16), @divFloor(pz, 16), loaded, mob_count, remote_count, stats.drawn, stats.culled });
             }
             var title_buf: [128]u8 = undefined;
-            const title = std.fmt.bufPrintZ(&title_buf, "Zigcraft  fps={d}  time={s}  chunks={d}  mobs={d}  block={s}", .{ fps, time_state, loaded, mob_count, @tagName(current_block) }) catch "Zigcraft";
+            const title = std.fmt.bufPrintZ(&title_buf, "Zigcraft  fps={d}  time={s}  peers={d}  chunks={d}  mobs={d}  block={s}", .{ fps, time_state, remote_count, loaded, mob_count, @tagName(current_block) }) catch "Zigcraft";
             c.glfwSetWindowTitle(window, title.ptr);
         }
 
@@ -272,6 +356,7 @@ pub fn main() !void {
                 if (left) {
                     if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .air)) {
                         audio.play(.break_block, 0.7);
+                        net_client.sendBlockEdit(hit.x, hit.y, hit.z, @intFromEnum(block_mod.BlockId.air)) catch {};
                         std.debug.print("destroyed ({d},{d},{d})\n", .{ hit.x, hit.y, hit.z });
                     }
                 } else {
@@ -282,6 +367,7 @@ pub fn main() !void {
                         const place_type = hotbar_blocks[selected_slot];
                         if (try manager.editAndRemesh(px, py, pz, place_type)) {
                             audio.play(.place_block, 0.7);
+                            net_client.sendBlockEdit(px, py, pz, @intFromEnum(place_type)) catch {};
                             std.debug.print("placed {s} ({d},{d},{d})\n", .{ @tagName(place_type), px, py, pz });
                         }
                     }
