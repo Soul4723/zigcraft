@@ -48,6 +48,7 @@ pub fn build(b: *std.Build) void {
         "src/world/terrain.zig",
         "src/chunk_manager.zig",
         "src/frustum.zig",
+        "src/pick.zig",
         "src/renderer/shader.zig",
         "src/renderer/mesh.zig",
         "src/camera.zig",
