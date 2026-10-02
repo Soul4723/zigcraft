@@ -52,14 +52,15 @@ pub const SkyRenderer = struct {
         c.glDeleteProgram(self.program);
     }
 
-    pub fn draw(self: *SkyRenderer, view_proj: math.Mat4, cam_pos: math.Vec3) void {
+    /// Render sky dome with interpolated zenith/horizon colors based on sun angle.
+    pub fn draw(self: *SkyRenderer, view_proj: math.Mat4, cam_pos: math.Vec3, top_color: math.Vec3, horizon_color: math.Vec3) void {
         const model = math.Mat4.translate(cam_pos);
         var mvp = math.Mat4.mul(view_proj, model);
         c.glDepthMask(c.GL_FALSE);
         c.glUseProgram(self.program);
         shader.setUniformMat4(self.program, "u_view_proj", mvp.ptr());
-        shader.setUniformVec3(self.program, "u_top", 0.25, 0.5, 0.95);
-        shader.setUniformVec3(self.program, "u_horizon", 0.75, 0.87, 0.95);
+        shader.setUniformVec3(self.program, "u_top", top_color.x, top_color.y, top_color.z);
+        shader.setUniformVec3(self.program, "u_horizon", horizon_color.x, horizon_color.y, horizon_color.z);
         c.glBindVertexArray(self.vao);
         c.glDrawElements(c.GL_TRIANGLES, 36, c.GL_UNSIGNED_INT, @ptrFromInt(0));
         c.glDepthMask(c.GL_TRUE);

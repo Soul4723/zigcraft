@@ -155,7 +155,7 @@ pub const ChunkManager = struct {
     pub const DrawStats = struct { drawn: usize, culled: usize };
 
     /// Draw all visible loaded chunks. MVP offset uses actual world chunk position (cx*16, 0, cz*16).
-    pub fn draw(self: *ChunkManager, view_proj: math.Mat4) DrawStats {
+    pub fn draw(self: *ChunkManager, view_proj: math.Mat4, sun_dir: math.Vec3) DrawStats {
         const frustum = frustum_mod.Frustum.fromMatrix(view_proj);
         var stats = DrawStats{ .drawn = 0, .culled = 0 };
 
@@ -174,7 +174,7 @@ pub const ChunkManager = struct {
             }
             const model = math.Mat4.translate(math.Vec3.init(ox, 0, oz));
             var mvp = math.Mat4.mul(view_proj, model);
-            renderer.draw(mvp.ptr());
+            renderer.draw(mvp.ptr(), sun_dir);
             stats.drawn += 1;
         }
         return stats;
