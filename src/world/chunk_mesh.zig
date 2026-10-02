@@ -100,54 +100,60 @@ fn faceTexCoords(tile_x: u32, tile_y: u32) [4][2]f32 {
     };
 }
 
-/// Check if a block position in the chunk grid is air.
-fn isAir(
+/// Check if block face should be rendered against adjacent block.
+/// Opaque solid against air/water renders.
+/// Water against air or non-water renders (water against water culls).
+fn shouldRenderFace(
+    my_block: BlockId,
     chunk: *const Chunk,
     neighbors: ?*const [6]?*const Chunk,
-    x: i32,
-    y: i32,
-    z: i32,
+    nx: i32,
+    ny: i32,
+    nz: i32,
 ) bool {
     const size: i32 = @intCast(SIZE);
 
-    if (x >= 0 and x < size and y >= 0 and y < size and z >= 0 and z < size) {
-        return !chunk.getBlock(@intCast(x), @intCast(y), @intCast(z)).is_solid();
-    }
-
-    if (neighbors) |neighbors_arr| {
-        // Only one axis is out of bounds per face check; the other two
-        // carry the in-bounds local coordinate.
+    var adj: BlockId = .air;
+    if (nx >= 0 and nx < size and ny >= 0 and ny < size and nz >= 0 and nz < size) {
+        adj = chunk.getBlock(@intCast(nx), @intCast(ny), @intCast(nz));
+    } else if (neighbors) |neighbors_arr| {
         var neighbor_idx: usize = 0;
-        var nx: usize = 0;
-        var ny: usize = 0;
-        var nz: usize = 0;
+        var lx: usize = 0;
+        var ly: usize = 0;
+        var lz: usize = 0;
 
-        if (x < 0 or x >= size) {
-            neighbor_idx = if (x < 0) 5 else 4;
-            nx = if (x < 0) size - 1 else 0;
-            ny = @intCast(y);
-            nz = @intCast(z);
-        } else if (y < 0 or y >= size) {
-            neighbor_idx = if (y < 0) 1 else 0;
-            nx = @intCast(x);
-            ny = if (y < 0) size - 1 else 0;
-            nz = @intCast(z);
+        if (nx < 0 or nx >= size) {
+            neighbor_idx = if (nx < 0) 5 else 4;
+            lx = if (nx < 0) size - 1 else 0;
+            ly = @intCast(ny);
+            lz = @intCast(nz);
+        } else if (ny < 0 or ny >= size) {
+            neighbor_idx = if (ny < 0) 1 else 0;
+            lx = @intCast(nx);
+            ly = if (ny < 0) size - 1 else 0;
+            lz = @intCast(nz);
         } else {
-            neighbor_idx = if (z < 0) 2 else 3;
-            nx = @intCast(x);
-            ny = @intCast(y);
-            nz = if (z < 0) size - 1 else 0;
+            neighbor_idx = if (nz < 0) 2 else 3;
+            lx = @intCast(nx);
+            ly = @intCast(ny);
+            lz = if (nz < 0) size - 1 else 0;
         }
 
         if (neighbors_arr[neighbor_idx]) |neighbor| {
-            return !neighbor.getBlock(@intCast(nx), @intCast(ny), @intCast(nz)).is_solid();
+            adj = neighbor.getBlock(@intCast(lx), @intCast(ly), @intCast(lz));
         }
     }
 
-    return true;
+    if (my_block == .water) {
+        // Water face rendered if adjacent is air or solid
+        return adj != .water;
+    } else {
+        // Solid block face rendered if adjacent is transparent (air or water)
+        return adj.is_transparent();
+    }
 }
 
-/// Generate a mesh from chunk data using naive per-face meshing.
+/// Generate a mesh from chunk data using per-face meshing.
 pub fn generateMesh(
     allocator: std.mem.Allocator,
     chunk: *const Chunk,
@@ -166,7 +172,7 @@ pub fn generateMesh(
             var x: usize = 0;
             while (x < SIZE) : (x += 1) {
                 const block = chunk.getBlock(@intCast(x), @intCast(y), @intCast(z));
-                if (!block.is_solid()) continue;
+                if (block == .air) continue;
 
                 var face_idx: usize = 0;
                 while (face_idx < 6) : (face_idx += 1) {
@@ -175,7 +181,7 @@ pub fn generateMesh(
                     const ny = @as(i32, @intCast(y)) + dir[1];
                     const nz = @as(i32, @intCast(z)) + dir[2];
 
-                    if (isAir(chunk, neighbors, nx, ny, nz)) {
+                    if (shouldRenderFace(block, chunk, neighbors, nx, ny, nz)) {
                         const corners = faceVertices(face_idx);
                         const normal = face_normals[face_idx];
                         const base_index: u32 = @intCast(vertices.items.len);
@@ -276,20 +282,18 @@ test "fillLayer produces correct face count" {
     var mesh = try generateMesh(std.testing.allocator, &chunk, null);
     defer mesh.deinit(std.testing.allocator);
 
-    // 256 blocks at y=0:
-    // 256 top faces + 256 bottom faces + 1024 side faces = 1536
-    // 1536 * 4 vertices = 6144, 1536 * 6 indices = 9216
     try std.testing.expectEqual(mesh.vertices.len, 2304);
     try std.testing.expectEqual(mesh.indices.len, 3456);
 }
 
-test "air blocks produce no mesh" {
+test "water culls against adjacent water" {
     var chunk = Chunk.init();
-    chunk.setBlock(8, 8, 8, .air);
-    chunk.setBlock(0, 0, 0, .air);
+    chunk.setBlock(2, 2, 2, .water);
+    chunk.setBlock(2, 2, 3, .water);
 
     var mesh = try generateMesh(std.testing.allocator, &chunk, null);
     defer mesh.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(mesh.vertices.len, 0);
+    // 2 cubes = 12 faces, but shared internal face culled -> 10 faces = 40 verts
+    try std.testing.expectEqual(mesh.vertices.len, 40);
 }
