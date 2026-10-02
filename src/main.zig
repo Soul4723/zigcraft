@@ -76,6 +76,8 @@ pub fn main() !void {
     // Timing
     var last_time = c.glfwGetTime();
     var frame_count: u64 = 0;
+    var hud_frames: u64 = 0;
+    var hud_time: f32 = 0;
     var left_down = false;
     var right_down = false;
 
@@ -142,13 +144,24 @@ pub fn main() !void {
         sky.draw(mvp, cam.position);
         const stats = manager.draw(mvp);
         frame_count += 1;
-        if (frame_count % 60 == 0) {
+        hud_frames += 1;
+        hud_time += dt;
+        if (hud_time >= 0.5) {
+            const fps: u64 = @intFromFloat(@as(f32, @floatFromInt(hud_frames)) / hud_time);
+            hud_frames = 0;
+            hud_time = 0;
+            const px = @as(i32, @intFromFloat(@floor(player.pos.x)));
+            const py = @as(i32, @intFromFloat(@floor(player.pos.y)));
+            const pz = @as(i32, @intFromFloat(@floor(player.pos.z)));
             const dir = cam.front();
             if (pick_mod.raycast(&pickSolid, cam.position, dir, 8)) |hit| {
-                std.debug.print("drawn={d} culled={d} aim=({d},{d},{d}) face=({d},{d},{d})\n", .{ stats.drawn, stats.culled, hit.x, hit.y, hit.z, hit.nx, hit.ny, hit.nz });
+                std.debug.print("fps={d} xyz=({d},{d},{d}) chunk=({d},{d}) drawn={d} culled={d} aim=({d},{d},{d})\n", .{ fps, px, py, pz, @divFloor(px, 16), @divFloor(pz, 16), stats.drawn, stats.culled, hit.x, hit.y, hit.z });
             } else {
-                std.debug.print("drawn={d} culled={d} aim=none\n", .{ stats.drawn, stats.culled });
+                std.debug.print("fps={d} xyz=({d},{d},{d}) chunk=({d},{d}) drawn={d} culled={d} aim=none\n", .{ fps, px, py, pz, @divFloor(px, 16), @divFloor(pz, 16), stats.drawn, stats.culled });
             }
+            var title_buf: [128]u8 = undefined;
+            const title = std.fmt.bufPrintZ(&title_buf, "Zigcraft  fps={d} +", .{fps}) catch "Zigcraft";
+            c.glfwSetWindowTitle(window, title.ptr);
         }
 
         // Block edit: left-click destroy, right-click place (edge-triggered).
