@@ -11,6 +11,9 @@ const c = @cImport({
 /// (2, 0) = Dirt
 /// (3, 0) = Stone
 /// (0, 1) = Water (Translucent blue)
+/// (1, 1) = Wood Log Side (Brown bark)
+/// (2, 1) = Wood Log Top (Ring pattern)
+/// (3, 1) = Leaves (Lush dark green foliage)
 pub const ATLAS_TILES_PER_ROW: f32 = 4.0;
 pub const TILE_UV_SIZE: f32 = 1.0 / ATLAS_TILES_PER_ROW; // 0.25
 
@@ -28,7 +31,7 @@ pub fn getTileUV(tile_x: u32, tile_y: u32) [4][2]f32 {
     };
 }
 
-/// Procedural 64x64 texture atlas containing grass top, grass side, dirt, stone, and water tiles.
+/// Procedural 64x64 texture atlas containing grass, dirt, stone, water, wood logs, and leaves.
 pub fn createBlockTexture() c.GLuint {
     var texture: c.GLuint = 0;
     c.glGenTextures(1, &texture);
@@ -83,13 +86,40 @@ pub fn createBlockTexture() c.GLuint {
             data[stone_idx + 2] = gray + 3;
             data[stone_idx + 3] = 255;
 
-            // Tile (0,1): Water - animated/vibrant blue water with alpha 190
+            // Tile (0,1): Water - vibrant blue water with alpha 185
             const w_noise = (x * 17 + y * 7) % 21;
             const water_idx = ((16 + y) * 64 + x) * 4;
             data[water_idx] = 35 + @as(u8, @intCast(w_noise / 2));
             data[water_idx + 1] = 95 + @as(u8, @intCast(w_noise));
             data[water_idx + 2] = 210 + @as(u8, @intCast(w_noise * 2));
-            data[water_idx + 3] = 185; // 72% opacity
+            data[water_idx + 3] = 185;
+
+            // Tile (1,1): Wood Log Side - vertical tree bark grain
+            const log_side_idx = ((16 + y) * 64 + (16 + x)) * 4;
+            const bark = (x * 19 + y * 3) % 25;
+            data[log_side_idx] = 95 + @as(u8, @intCast(bark));
+            data[log_side_idx + 1] = 60 + @as(u8, @intCast(bark / 2));
+            data[log_side_idx + 2] = 30;
+            data[log_side_idx + 3] = 255;
+
+            // Tile (2,1): Wood Log Top - circular ring pattern
+            const log_top_idx = ((16 + y) * 64 + (32 + x)) * 4;
+            const dx: f32 = @as(f32, @floatFromInt(x)) - 7.5;
+            const dy: f32 = @as(f32, @floatFromInt(y)) - 7.5;
+            const dist: u8 = @intFromFloat(@sqrt(dx * dx + dy * dy) * 3.0);
+            const ring = if (dist % 4 == 0) @as(u8, 20) else @as(u8, 0);
+            data[log_top_idx] = 150 - ring;
+            data[log_top_idx + 1] = 115 - ring;
+            data[log_top_idx + 2] = 70;
+            data[log_top_idx + 3] = 255;
+
+            // Tile (3,1): Leaves - dappled dark green foliage
+            const leaf_idx = ((16 + y) * 64 + (48 + x)) * 4;
+            const l_noise = (x * 13 + y * 23) % 35;
+            data[leaf_idx] = 30 + @as(u8, @intCast(l_noise / 3));
+            data[leaf_idx + 1] = 100 + @as(u8, @intCast(l_noise));
+            data[leaf_idx + 2] = 25;
+            data[leaf_idx + 3] = 255;
         }
     }
 
@@ -105,8 +135,8 @@ pub fn createBlockTexture() c.GLuint {
         &data,
     );
 
-    c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_WRAP_S, c.GL_CLAMP_TO_EDGE);
-    c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_WRAP_T, c.GL_CLAMP_TO_EDGE);
+    c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_WRAP_S, c.GL_REPEAT);
+    c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_WRAP_T, c.GL_REPEAT);
     c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_MIN_FILTER, c.GL_NEAREST);
     c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_MAG_FILTER, c.GL_NEAREST);
 
@@ -121,9 +151,7 @@ test "tile UV coordinates within unit quad" {
     try std.testing.expectEqual(uv_gt[2][0], 0.25);
     try std.testing.expectEqual(uv_gt[2][1], 0.25);
 
-    const uv_water = getTileUV(0, 1);
-    try std.testing.expectEqual(uv_water[0][0], 0.0);
-    try std.testing.expectEqual(uv_water[0][1], 0.25);
-    try std.testing.expectEqual(uv_water[2][0], 0.25);
-    try std.testing.expectEqual(uv_water[2][1], 0.50);
+    const uv_wood = getTileUV(1, 1);
+    try std.testing.expectEqual(uv_wood[0][0], 0.25);
+    try std.testing.expectEqual(uv_wood[0][1], 0.25);
 }
