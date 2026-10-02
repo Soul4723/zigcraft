@@ -15,6 +15,7 @@ const ui_mod = @import("renderer/ui.zig");
 const audio_mod = @import("audio/audio.zig");
 const texture_mod = @import("renderer/texture.zig");
 const entity_mod = @import("entity.zig");
+const inventory_mod = @import("inventory.zig");
 
 const window_width = 1280;
 const window_height = 720;
@@ -102,8 +103,11 @@ pub fn main() !void {
     var mob_manager = try entity_mod.mob_manager.MobManager.init(std.heap.page_allocator, atlas_texture);
     defer mob_manager.deinit();
 
-    // Hotbar selection: 0=stone, 1=dirt, 2=grass, 3=water, 4=wood, 5=leaves
-    const hotbar_blocks = [6]block_mod.BlockId{ .stone, .dirt, .grass, .water, .wood, .leaves };
+    // Player Inventory & Crafting state
+    var inventory = inventory_mod.Inventory.init();
+    var cursor_stack = inventory_mod.ItemStack{};
+    var inventory_open = false;
+    var e_key_down = false;
     var selected_slot: usize = 0;
 
     // Timing & Day/Night cycle
@@ -132,6 +136,24 @@ pub fn main() !void {
         // Advance 2-minute day/night cycle
         world_time += dt * 0.05;
 
+        // Toggle inventory screen with 'E' key (edge triggered)
+        const e_key = c.glfwGetKey(window, c.GLFW_KEY_E) == c.GLFW_PRESS;
+        if (e_key and !e_key_down) {
+            inventory_open = !inventory_open;
+            if (inventory_open) {
+                c.glfwSetInputMode(window, c.GLFW_CURSOR, c.GLFW_CURSOR_NORMAL);
+            } else {
+                c.glfwSetInputMode(window, c.GLFW_CURSOR, c.GLFW_CURSOR_DISABLED);
+                first_mouse = true;
+                // If cursor item was held when closing, return to inventory
+                if (!cursor_stack.isEmpty()) {
+                    _ = inventory.addItem(cursor_stack.item, cursor_stack.count);
+                    cursor_stack.clear();
+                }
+            }
+        }
+        e_key_down = e_key;
+
         // Hotbar selection keys 1 through 6
         if (c.glfwGetKey(window, c.GLFW_KEY_1) == c.GLFW_PRESS) selected_slot = 0;
         if (c.glfwGetKey(window, c.GLFW_KEY_2) == c.GLFW_PRESS) selected_slot = 1;
@@ -153,8 +175,8 @@ pub fn main() !void {
         if (c.glfwGetKey(window, c.GLFW_KEY_D) == c.GLFW_PRESS) wish = math.Vec3.add(wish, walk_r);
         if (c.glfwGetKey(window, c.GLFW_KEY_A) == c.GLFW_PRESS) wish = math.Vec3.sub(wish, walk_r);
         const wish_len = math.Vec3.len(wish);
-        const norm_wish = if (wish_len > 0.001) wish.scale(1.0 / wish_len) else wish;
-        const jump = c.glfwGetKey(window, c.GLFW_KEY_SPACE) == c.GLFW_PRESS;
+        const norm_wish = if (!inventory_open and wish_len > 0.001) wish.scale(1.0 / wish_len) else math.Vec3.init(0, 0, 0);
+        const jump = !inventory_open and (c.glfwGetKey(window, c.GLFW_KEY_SPACE) == c.GLFW_PRESS);
         player.tick(&pickSolid, norm_wish.x * walk_speed * dt, norm_wish.z * walk_speed * dt, jump, dt);
         cam.position = player.eyePos();
 
@@ -180,18 +202,27 @@ pub fn main() !void {
         var ypos: f64 = 0;
         c.glfwGetCursorPos(window, &xpos, &ypos);
 
-        if (first_mouse) {
+        if (!inventory_open) {
+            if (first_mouse) {
+                last_x = xpos;
+                last_y = ypos;
+                first_mouse = false;
+            }
+
+            const x_offset: f32 = @floatCast(xpos - last_x);
+            const y_offset: f32 = @floatCast(ypos - last_y);
             last_x = xpos;
             last_y = ypos;
-            first_mouse = false;
+
+            cam.processMouse(x_offset, y_offset);
         }
 
-        const x_offset: f32 = @floatCast(xpos - last_x);
-        const y_offset: f32 = @floatCast(ypos - last_y);
-        last_x = xpos;
-        last_y = ypos;
-
-        cam.processMouse(x_offset, y_offset);
+        // Normalized mouse coordinates in [-1, 1] for GUI
+        var win_w: c_int = 1280;
+        var win_h: c_int = 720;
+        c.glfwGetFramebufferSize(window, &win_w, &win_h);
+        const mouse_norm_x: f32 = @as(f32, @floatCast(xpos / @as(f64, @floatFromInt(win_w)))) * 2.0 - 1.0;
+        const mouse_norm_y: f32 = 1.0 - @as(f32, @floatCast(ypos / @as(f64, @floatFromInt(win_h)))) * 2.0;
 
         // Build MVP: projection * view
         const aspect: f32 = 1280.0 / 720.0;
@@ -230,8 +261,47 @@ pub fn main() !void {
         const stats = manager.draw(mvp, sun_dir);
         try mob_manager.draw(mvp, sun_dir);
 
-        // Render 2D UI overlay (crosshair + hotbar)
-        ui.draw(aspect, selected_slot);
+        // Extract inventory slot colors and counts for rendering
+        var hotbar_colors: [6][4]f32 = undefined;
+        var hotbar_counts: [6]u8 = undefined;
+        for (0..6) |i| {
+            hotbar_colors[i] = inventory.slots[i].item.getColor();
+            hotbar_counts[i] = inventory.slots[i].count;
+        }
+
+        if (!inventory_open) {
+            ui.drawHUD(aspect, selected_slot, &hotbar_colors, &hotbar_counts);
+        } else {
+            var main_colors: [18][4]f32 = undefined;
+            var main_counts: [18]u8 = undefined;
+            for (0..18) |i| {
+                main_colors[i] = inventory.slots[6 + i].item.getColor();
+                main_counts[i] = inventory.slots[6 + i].count;
+            }
+
+            var craft_colors: [4][4]f32 = undefined;
+            var craft_counts: [4]u8 = undefined;
+            for (0..4) |i| {
+                craft_colors[i] = inventory.craft_grid[i].item.getColor();
+                craft_counts[i] = inventory.craft_grid[i].count;
+            }
+
+            ui.drawInventory(
+                aspect,
+                &main_colors,
+                &main_counts,
+                &hotbar_colors,
+                &hotbar_counts,
+                &craft_colors,
+                &craft_counts,
+                inventory.craft_output.item.getColor(),
+                inventory.craft_output.count,
+                cursor_stack.item.getColor(),
+                cursor_stack.count,
+                mouse_norm_x,
+                mouse_norm_y,
+            );
+        }
 
         // Update audio device buffer
         audio.update();
@@ -249,40 +319,138 @@ pub fn main() !void {
             const dir = cam.front();
             const loaded = manager.loadedChunkCount();
             const mob_count = mob_manager.mobs.items.len;
-            const current_block = hotbar_blocks[selected_slot];
+            const current_item = inventory.slots[selected_slot].item;
             const time_state = if (sun_y > 0.1) "day" else if (sun_y > -0.1) "dusk" else "night";
             if (pick_mod.raycast(&pickSolid, cam.position, dir, 8)) |hit| {
-                std.debug.print("fps={d} xyz=({d},{d},{d}) time={s} slot={s} chunk=({d},{d}) loaded={d} mobs={d} drawn={d} culled={d} aim=({d},{d},{d})\n", .{ fps, px, py, pz, time_state, @tagName(current_block), @divFloor(px, 16), @divFloor(pz, 16), loaded, mob_count, stats.drawn, stats.culled, hit.x, hit.y, hit.z });
+                std.debug.print("fps={d} xyz=({d},{d},{d}) time={s} slot={s} chunk=({d},{d}) loaded={d} mobs={d} drawn={d} culled={d} aim=({d},{d},{d})\n", .{ fps, px, py, pz, time_state, current_item.name(), @divFloor(px, 16), @divFloor(pz, 16), loaded, mob_count, stats.drawn, stats.culled, hit.x, hit.y, hit.z });
             } else {
-                std.debug.print("fps={d} xyz=({d},{d},{d}) time={s} slot={s} chunk=({d},{d}) loaded={d} mobs={d} drawn={d} culled={d} aim=none\n", .{ fps, px, py, pz, time_state, @tagName(current_block), @divFloor(px, 16), @divFloor(pz, 16), loaded, mob_count, stats.drawn, stats.culled });
+                std.debug.print("fps={d} xyz=({d},{d},{d}) time={s} slot={s} chunk=({d},{d}) loaded={d} mobs={d} drawn={d} culled={d} aim=none\n", .{ fps, px, py, pz, time_state, current_item.name(), @divFloor(px, 16), @divFloor(pz, 16), loaded, mob_count, stats.drawn, stats.culled });
             }
             var title_buf: [128]u8 = undefined;
-            const title = std.fmt.bufPrintZ(&title_buf, "Zigcraft  fps={d}  time={s}  chunks={d}  mobs={d}  block={s}", .{ fps, time_state, loaded, mob_count, @tagName(current_block) }) catch "Zigcraft";
+            const title = std.fmt.bufPrintZ(&title_buf, "Zigcraft  fps={d}  time={s}  chunks={d}  mobs={d}  block={s}", .{ fps, time_state, loaded, mob_count, current_item.name() }) catch "Zigcraft";
             c.glfwSetWindowTitle(window, title.ptr);
         }
 
-        // Block edit: left-click destroy, right-click place (edge-triggered).
+        // Mouse click handling: In-game block editing or Inventory slot clicking
         const left = c.glfwGetMouseButton(window, c.GLFW_MOUSE_BUTTON_LEFT) == c.GLFW_PRESS;
         const right = c.glfwGetMouseButton(window, c.GLFW_MOUSE_BUTTON_RIGHT) == c.GLFW_PRESS;
         if ((left and !left_down) or (right and !right_down)) {
-            const dir = cam.front();
-            if (left and mob_manager.tryHitMob(cam.position, dir, 4.0)) {
-                audio.play(.mob_baa, 0.8);
-            } else if (pick_mod.raycast(&pickSolid, cam.position, dir, 8)) |hit| {
-                if (left) {
-                    if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .air)) {
-                        audio.play(.break_block, 0.7);
-                        std.debug.print("destroyed ({d},{d},{d})\n", .{ hit.x, hit.y, hit.z });
+            if (inventory_open) {
+                // Handle slot interaction in inventory GUI
+                const slot_w: f32 = 0.055 / aspect;
+                const slot_h: f32 = 0.055;
+                const gap: f32 = 0.012 / aspect;
+
+                // Check 2x2 Crafting Grid slots
+                const craft_start_x = 0.02;
+                const craft_start_y = 0.16;
+                var handled = false;
+                for (0..2) |r| {
+                    for (0..2) |c_idx| {
+                        const idx = r * 2 + c_idx;
+                        const sx0 = craft_start_x + @as(f32, @floatFromInt(c_idx)) * (slot_w + gap);
+                        const sx1 = sx0 + slot_w;
+                        const sy1 = craft_start_y - @as(f32, @floatFromInt(r)) * (slot_h + gap * aspect);
+                        const sy0 = sy1 - slot_h;
+                        if (mouse_norm_x >= sx0 and mouse_norm_x <= sx1 and mouse_norm_y >= sy0 and mouse_norm_y <= sy1) {
+                            // Swap or transfer item with cursor
+                            const temp = inventory.craft_grid[idx];
+                            inventory.craft_grid[idx] = cursor_stack;
+                            cursor_stack = temp;
+                            inventory.updateCrafting();
+                            handled = true;
+                            break;
+                        }
                     }
-                } else {
-                    const px = hit.x + hit.nx;
-                    const py = hit.y + hit.ny;
-                    const pz = hit.z + hit.nz;
-                    if (!pickSolid(px, py, pz)) {
-                        const place_type = hotbar_blocks[selected_slot];
-                        if (try manager.editAndRemesh(px, py, pz, place_type)) {
-                            audio.play(.place_block, 0.7);
-                            std.debug.print("placed {s} ({d},{d},{d})\n", .{ @tagName(place_type), px, py, pz });
+                    if (handled) break;
+                }
+
+                // Check Crafting Output Slot
+                if (!handled) {
+                    const arrow_x = craft_start_x + 2.0 * (slot_w + gap) + 0.02 / aspect;
+                    const arrow_y = craft_start_y - slot_h * 0.8;
+                    const out_x0 = arrow_x + 0.045 / aspect;
+                    const out_x1 = out_x0 + slot_w * 1.25;
+                    const out_y0 = arrow_y - slot_h * 0.625;
+                    const out_y1 = arrow_y + slot_h * 0.625;
+                    if (mouse_norm_x >= out_x0 and mouse_norm_x <= out_x1 and mouse_norm_y >= out_y0 and mouse_norm_y <= out_y1) {
+                        if (inventory.takeCraftResult(&cursor_stack)) {
+                            audio.play(.craft_item, 0.8);
+                        }
+                        handled = true;
+                    }
+                }
+
+                // Check Main Inventory (18 slots)
+                if (!handled) {
+                    const main_start_x = -0.32;
+                    const main_start_y = 0.02;
+                    for (0..3) |mr| {
+                        for (0..6) |mc| {
+                            const idx = 6 + mr * 6 + mc;
+                            const sx0 = main_start_x + @as(f32, @floatFromInt(mc)) * (slot_w + gap);
+                            const sx1 = sx0 + slot_w;
+                            const sy1 = main_start_y - @as(f32, @floatFromInt(mr)) * (slot_h + gap * aspect);
+                            const sy0 = sy1 - slot_h;
+                            if (mouse_norm_x >= sx0 and mouse_norm_x <= sx1 and mouse_norm_y >= sy0 and mouse_norm_y <= sy1) {
+                                const temp = inventory.slots[idx];
+                                inventory.slots[idx] = cursor_stack;
+                                cursor_stack = temp;
+                                handled = true;
+                                break;
+                            }
+                        }
+                        if (handled) break;
+                    }
+                }
+
+                // Check Bottom Hotbar (6 slots)
+                if (!handled) {
+                    const main_start_x = -0.32;
+                    const hot_y = -0.32;
+                    for (0..6) |hc| {
+                        const sx0 = main_start_x + @as(f32, @floatFromInt(hc)) * (slot_w + gap);
+                        const sx1 = sx0 + slot_w;
+                        const sy0 = hot_y;
+                        const sy1 = hot_y + slot_h;
+                        if (mouse_norm_x >= sx0 and mouse_norm_x <= sx1 and mouse_norm_y >= sy0 and mouse_norm_y <= sy1) {
+                            const temp = inventory.slots[hc];
+                            inventory.slots[hc] = cursor_stack;
+                            cursor_stack = temp;
+                            break;
+                        }
+                    }
+                }
+            } else {
+                // In-game: left click hit mob or break block, right click place block
+                const dir = cam.front();
+                if (left and mob_manager.tryHitMob(cam.position, dir, 4.0)) {
+                    audio.play(.mob_baa, 0.8);
+                } else if (pick_mod.raycast(&pickSolid, cam.position, dir, 8)) |hit| {
+                    if (left) {
+                        const broken_block = manager.getBlockWorld(hit.x, hit.y, hit.z);
+                        if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .air)) {
+                            audio.play(.break_block, 0.7);
+                            // Add harvested block item to player inventory
+                            const drop_item = inventory_mod.ItemType.fromBlockId(broken_block);
+                            _ = inventory.addItem(drop_item, 1);
+                            std.debug.print("destroyed {s} ({d},{d},{d})\n", .{ @tagName(broken_block), hit.x, hit.y, hit.z });
+                        }
+                    } else {
+                        const px = hit.x + hit.nx;
+                        const py = hit.y + hit.ny;
+                        const pz = hit.z + hit.nz;
+                        if (!pickSolid(px, py, pz)) {
+                            var hotbar_slot = &inventory.slots[selected_slot];
+                            if (!hotbar_slot.isEmpty()) {
+                                if (hotbar_slot.item.toBlockId()) |place_type| {
+                                    if (try manager.editAndRemesh(px, py, pz, place_type)) {
+                                        audio.play(.place_block, 0.7);
+                                        hotbar_slot.decrement(1);
+                                        std.debug.print("placed {s} ({d},{d},{d})\n", .{ @tagName(place_type), px, py, pz });
+                                    }
+                                }
+                            }
                         }
                     }
                 }

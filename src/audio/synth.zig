@@ -8,6 +8,7 @@ pub const SoundType = enum {
     break_block,
     place_block,
     mob_baa,
+    craft_item,
 };
 
 pub const SAMPLE_RATE: u32 = 44100;
@@ -59,6 +60,7 @@ pub const AudioMixer = struct {
             .break_block => SAMPLE_RATE / 6, // ~166ms
             .place_block => SAMPLE_RATE / 10, // ~100ms
             .mob_baa => SAMPLE_RATE / 3, // ~333ms
+            .craft_item => SAMPLE_RATE / 6, // ~166ms
         };
 
         slot.?.* = .{
@@ -161,6 +163,15 @@ pub const AudioMixer = struct {
                 const breath = (rng.random().float(f32) * 2.0 - 1.0) * 0.12;
                 const env = @sin(progress * std.math.pi);
                 return (h1 + h2 + h3 + breath) * env * 0.45;
+            },
+            .craft_item => {
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const freq: f32 = if (progress < 0.5) 880.0 else 1320.0;
+                const phase = t * freq * 2.0 * std.math.pi;
+                const wave = @sin(phase) + 0.3 * @sin(phase * 2.0);
+                const sub_progress = if (progress < 0.5) progress * 2.0 else (progress - 0.5) * 2.0;
+                const amp = (1.0 - sub_progress) * (1.0 - @exp(-t * 80.0));
+                return wave * amp * 0.5;
             },
         }
     }

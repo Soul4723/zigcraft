@@ -16,6 +16,8 @@ const c = @cImport({
 /// (3, 1) = Leaves (Lush dark green foliage)
 /// (0, 2) = Mob Body (Fluffy wool/skin texture)
 /// (1, 2) = Mob Face (Pig / Sheep / Creature face with eyes)
+/// (2, 2) = Wood Planks (Clean horizontal lumber boards)
+/// (3, 2) = Crafting Table Top/Side (Grid pattern & crafting tools)
 pub const ATLAS_TILES_PER_ROW: f32 = 4.0;
 pub const TILE_UV_SIZE: f32 = 1.0 / ATLAS_TILES_PER_ROW; // 0.25
 
@@ -160,6 +162,41 @@ pub fn createBlockTexture() c.GLuint {
                 data[face_idx + 2] = 175;
             }
             data[face_idx + 3] = 255;
+
+            // Tile (2,2): Wood Planks - horizontal lumber planks with seams
+            const plank_idx = ((32 + y) * 64 + (32 + x)) * 4;
+            const is_seam_y = (y % 4 == 0);
+            const is_seam_x = (y < 4 and x == 8) or (y >= 4 and y < 8 and x == 14) or (y >= 8 and y < 12 and x == 4) or (y >= 12 and x == 10);
+            const plank_n = (x * 13 + y * 7) % 15;
+            if (is_seam_y or is_seam_x) {
+                data[plank_idx] = 95;
+                data[plank_idx + 1] = 65;
+                data[plank_idx + 2] = 32;
+            } else {
+                data[plank_idx] = 170 + @as(u8, @intCast(plank_n));
+                data[plank_idx + 1] = 125 + @as(u8, @intCast(plank_n / 2));
+                data[plank_idx + 2] = 72;
+            }
+            data[plank_idx + 3] = 255;
+
+            // Tile (3,2): Crafting Table - wooden borders with 3x3 checkered grid top
+            const craft_idx = ((32 + y) * 64 + (48 + x)) * 4;
+            const is_border = (x == 0 or x == 15 or y == 0 or y == 15);
+            const grid_cell = ((x / 5) + (y / 5)) % 2 == 0;
+            if (is_border) {
+                data[craft_idx] = 110;
+                data[craft_idx + 1] = 70;
+                data[craft_idx + 2] = 35;
+            } else if (grid_cell) {
+                data[craft_idx] = 190;
+                data[craft_idx + 1] = 145;
+                data[craft_idx + 2] = 85;
+            } else {
+                data[craft_idx] = 160;
+                data[craft_idx + 1] = 115;
+                data[craft_idx + 2] = 65;
+            }
+            data[craft_idx + 3] = 255;
         }
     }
 

@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-02 (Session 021)
+Last updated: 2026-10-02 (Session 022)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`)
@@ -24,13 +24,14 @@ Last updated: 2026-10-02 (Session 021)
 - 2D UI overlay renderer: alpha-blended crosshair reticle and on-screen hotbar slots
 - Procedural audio system (Milestone 28): multi-channel software synthesizer with ALSA backend for surface footsteps (grass, stone, wood, dirt), block destruction crunch, and block placement snap
 - Chunk persistence (Milestone 18): binary serialization to disk (`c_{cx}_{cz}.bin`), auto-load on chunk spawn, auto-save modified chunks on purge/exit
+- Inventory & Crafting GUI (Milestone 31): 24-slot inventory (6 hotbar, 18 main), 2x2 crafting grid with real-time recipe resolution (planks, sticks, crafting table, wooden pickaxe), full-screen 'E' UI with cursor item manipulation, block mining drops, and placement consumption
 - Mob & Entity system (Milestone 29): wandering voxel sheep with AABB physics, obstacle jumping, animated limb swing walking cycles, and textured multi-box rendering
 - Real-time debug HUD reporting FPS, coordinates, chunk indices, mob count, day/night state, loaded/drawn/culled chunk counts, and aim target
-- 174 unit tests across 20 subsystem modules passing
+- 180 unit tests across 21 subsystem modules passing
 
-## Active Branch: feat/mobs-and-entities
+## Active Branch: feat/inventory-and-crafting
 
-Implements Milestone 29 (Mobs & Entities).
+Implements Milestone 31 (Crafting & Inventory GUI).
 
 ## What's Next
 

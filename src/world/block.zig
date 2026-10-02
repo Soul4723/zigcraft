@@ -9,6 +9,8 @@ pub const BlockId = enum(u8) {
     water = 4,
     wood = 5,
     leaves = 6,
+    wood_planks = 7,
+    crafting_table = 8,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water;
@@ -45,6 +47,12 @@ pub const BlockId = enum(u8) {
                 else => .{ .x = 1, .y = 1 }, // Wood bark sides
             },
             .leaves => .{ .x = 3, .y = 1 },
+            .wood_planks => .{ .x = 2, .y = 2 },
+            .crafting_table => switch (face_idx) {
+                0 => .{ .x = 3, .y = 2 }, // Table top with tools
+                1 => .{ .x = 2, .y = 2 }, // Planks bottom
+                else => .{ .x = 3, .y = 2 }, // Table sides
+            },
             .air => .{ .x = 0, .y = 0 },
         };
     }
@@ -66,6 +74,8 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .water = .{ .name = "water", .solid = false, .transparent = true, .fluid = true },
     .wood = .{ .name = "wood", .solid = true, .transparent = false, .fluid = false },
     .leaves = .{ .name = "leaves", .solid = true, .transparent = false, .fluid = false },
+    .wood_planks = .{ .name = "wood_planks", .solid = true, .transparent = false, .fluid = false },
+    .crafting_table = .{ .name = "crafting_table", .solid = true, .transparent = false, .fluid = false },
 });
 
 test "block is_solid" {
