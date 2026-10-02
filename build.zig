@@ -52,6 +52,7 @@ pub fn build(b: *std.Build) void {
         "src/renderer/shader.zig",
         "src/renderer/mesh.zig",
         "src/camera.zig",
+        "src/player.zig",
         "src/sky.zig",
         "src/math.zig",
     };
