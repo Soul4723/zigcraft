@@ -56,7 +56,15 @@ pub const ChunkManager = struct {
                     base_cx + @as(i32, @intCast(i)),
                     base_cz + @as(i32, @intCast(j)),
                 );
-                var cpu_mesh = try chunk_mesh_mod.generateMesh(allocator, &self.chunks[idx], null);
+            }
+        }
+        j = 0;
+        while (j < side) : (j += 1) {
+            var i: usize = 0;
+            while (i < side) : (i += 1) {
+                const idx = j * side + i;
+                var nbs = self.neighborsFor(i, j);
+                var cpu_mesh = try chunk_mesh_mod.generateMesh(allocator, &self.chunks[idx], &nbs);
                 defer cpu_mesh.deinit(allocator);
                 self.renderers[idx] = try chunk_renderer_mod.ChunkRenderer.init(allocator, &cpu_mesh);
                 built += 1;
@@ -138,7 +146,8 @@ pub const ChunkManager = struct {
     /// Re-mesh + re-upload a single grid cell after edits.
     pub fn remeshCell(self: *ChunkManager, ci: usize, cj: usize) !void {
         const idx = cj * self.side + ci;
-        var cpu_mesh = try chunk_mesh_mod.generateMesh(self.allocator, &self.chunks[idx], null);
+        var nbs = self.neighborsFor(ci, cj);
+        var cpu_mesh = try chunk_mesh_mod.generateMesh(self.allocator, &self.chunks[idx], &nbs);
         defer cpu_mesh.deinit(self.allocator);
         self.renderers[idx].remesh(&cpu_mesh);
     }
@@ -149,7 +158,24 @@ pub const ChunkManager = struct {
         const loc = self.locate(x, y, z) orelse return false;
         if (!self.setBlockWorld(x, y, z, block)) return false;
         try self.remeshCell(loc.ci, loc.cj);
+        const ox = x - self.base_cx * 16;
+        const oz = z - self.base_cz * 16;
+        const lx = @mod(ox, 16);
+        const lz = @mod(oz, 16);
+        if (lx == 0 and loc.ci > 0) try self.remeshCell(loc.ci - 1, loc.cj);
+        if (lx == 15 and loc.ci + 1 < self.side) try self.remeshCell(loc.ci + 1, loc.cj);
+        if (lz == 0 and loc.cj > 0) try self.remeshCell(loc.ci, loc.cj - 1);
+        if (lz == 15 and loc.cj + 1 < self.side) try self.remeshCell(loc.ci, loc.cj + 1);
         return true;
+    }
+
+    fn neighborsFor(self: *const ChunkManager, ci: usize, cj: usize) [6]?*const Chunk {
+        var nbs: [6]?*const Chunk = .{ null, null, null, null, null, null };
+        if (cj > 0) nbs[2] = &self.chunks[(cj - 1) * self.side + ci];
+        if (cj + 1 < self.side) nbs[3] = &self.chunks[(cj + 1) * self.side + ci];
+        if (ci + 1 < self.side) nbs[4] = &self.chunks[cj * self.side + ci + 1];
+        if (ci > 0) nbs[5] = &self.chunks[cj * self.side + ci - 1];
+        return nbs;
     }
 
     pub fn totalSolids(self: *const ChunkManager) usize {
@@ -193,6 +219,54 @@ test "locate rejects outside grid" {
     try std.testing.expect(!mgr.isSolidWorld(5, -1, 5));
     try std.testing.expect(!mgr.isSolidWorld(5, 16, 5));
     try std.testing.expect(!mgr.setBlockWorld(99, 5, 99, .stone));
+}
+
+test "neighborsFor maps adjacent chunks" {
+    var cs: [4]chunk_mod.Chunk = .{ chunk_mod.Chunk.init(), chunk_mod.Chunk.init(), chunk_mod.Chunk.init(), chunk_mod.Chunk.init() };
+    var rs: [4]chunk_renderer_mod.ChunkRenderer = undefined;
+    var mgr = ChunkManager{
+        .allocator = std.testing.allocator,
+        .chunks = &cs,
+        .renderers = &rs,
+        .side = 2,
+        .base_cx = 0,
+        .base_cz = 0,
+        .terrain = terrain_mod.TerrainGenerator.init(0),
+    };
+    // Cell (0,0): east -> chunk 1, south -> chunk 2, no west/north.
+    const nbs = mgr.neighborsFor(0, 0);
+    try std.testing.expect(nbs[5] == null);
+    try std.testing.expect(nbs[2] == null);
+    try std.testing.expect(nbs[4].? == &cs[1]);
+    try std.testing.expect(nbs[3].? == &cs[2]);
+    // Cell (1,1): west -> chunk 2... check all four.
+    const nbs2 = mgr.neighborsFor(1, 1);
+    try std.testing.expect(nbs2[5].? == &cs[2]);
+    try std.testing.expect(nbs2[2].? == &cs[1]);
+    try std.testing.expect(nbs2[4] == null);
+    try std.testing.expect(nbs2[3] == null);
+}
+
+test "boundary faces culled with neighbors" {
+    var a = chunk_mod.Chunk.init();
+    var b = chunk_mod.Chunk.init();
+    a.setBlock(15, 5, 5, .stone);
+    b.setBlock(0, 5, 5, .stone);
+    const nbs: [6]?*const chunk_mod.Chunk = .{ null, null, null, null, &b, null };
+    const nbs2: [6]?*const chunk_mod.Chunk = .{ null, null, null, null, null, &a };
+    var m1 = try chunk_mesh_mod.generateMesh(std.testing.allocator, &a, &nbs);
+    defer m1.deinit(std.testing.allocator);
+    var m2 = try chunk_mesh_mod.generateMesh(std.testing.allocator, &b, &nbs2);
+    defer m2.deinit(std.testing.allocator);
+    // Touching faces culled: 5 faces each (20 verts, 30 indices).
+    try std.testing.expectEqual(m1.vertices.len, 20);
+    try std.testing.expectEqual(m1.indices.len, 30);
+    try std.testing.expectEqual(m2.vertices.len, 20);
+    try std.testing.expectEqual(m2.indices.len, 30);
+    // Without neighbors both faces render: 6 faces each.
+    var m3 = try chunk_mesh_mod.generateMesh(std.testing.allocator, &a, null);
+    defer m3.deinit(std.testing.allocator);
+    try std.testing.expectEqual(m3.vertices.len, 24);
 }
 
 test "model offsets tile without gaps" {

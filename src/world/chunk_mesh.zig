@@ -108,23 +108,28 @@ fn isAir(
     }
 
     if (neighbors) |neighbors_arr| {
-        var nx: usize = @intCast(x);
-        var ny: usize = @intCast(y);
-        var nz: usize = @intCast(z);
+        // Only one axis is out of bounds per face check; the other two
+        // carry the in-bounds local coordinate.
         var neighbor_idx: usize = 0;
+        var nx: usize = 0;
+        var ny: usize = 0;
+        var nz: usize = 0;
 
-        if (x < 0) {
-            neighbor_idx = 5; nx = size - 1;
-        } else if (x >= size) {
-            neighbor_idx = 4; nx = 0;
-        } else if (y < 0) {
-            neighbor_idx = 1; ny = size - 1;
-        } else if (y >= size) {
-            neighbor_idx = 0; ny = 0;
-        } else if (z < 0) {
-            neighbor_idx = 2; nz = size - 1;
-        } else if (z >= size) {
-            neighbor_idx = 3; nz = 0;
+        if (x < 0 or x >= size) {
+            neighbor_idx = if (x < 0) 5 else 4;
+            nx = if (x < 0) size - 1 else 0;
+            ny = @intCast(y);
+            nz = @intCast(z);
+        } else if (y < 0 or y >= size) {
+            neighbor_idx = if (y < 0) 1 else 0;
+            nx = @intCast(x);
+            ny = if (y < 0) size - 1 else 0;
+            nz = @intCast(z);
+        } else {
+            neighbor_idx = if (z < 0) 2 else 3;
+            nx = @intCast(x);
+            ny = @intCast(y);
+            nz = if (z < 0) size - 1 else 0;
         }
 
         if (neighbors_arr[neighbor_idx]) |neighbor| {

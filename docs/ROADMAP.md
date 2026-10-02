@@ -1,8 +1,7 @@
 # Roadmap
 
 Rough priority order. Completed milestones marked **[x]**.
-> **Current milestone: 11 (Terrain generation).** Milestone 9 done on `feat/chunk-rendering` (PR #14).
-All Phase 1 milestones except #5 (textured quad) are done on the `feat/camera` branch. Each milestone is a meaningful increment — the project should
+> **Current milestone: 16 (Lighting).** Milestones 10–15 merged to main (#16, #18, #20, #22, #24). Each milestone is a meaningful increment — the project should
 be buildable and runnable after each one.
 
 ## Phase 1: Window and Rendering Foundation
@@ -19,15 +18,15 @@ be buildable and runnable after each one.
 7. [x] **Chunk data structure** — 16×16×16 chunk storing block IDs
 8. [x] **Chunk meshing** — Generate mesh from chunk data (greedy or per-face)
 9. [x] **Single chunk rendering** — Render one chunk with block textures (PR #14)
-10. **Multiple chunks** — Chunk manager, render a grid of chunks
+10. [x] **Multiple chunks** — Chunk manager, render a grid of chunks (#18)
 
 ## Phase 3: World and Interaction
 
-11. **Terrain generation** — Simplex/Perlin noise for terrain heightmap
+11. [x] **Terrain generation** — Value-noise fBm heightmap (#16)
 12. **Chunk loading/unloading** — Load chunks around the player, unload distant ones
-13. **Block picking** — Raycast to highlight the block the player is looking at
-14. **Block placement/destruction** — Add and remove blocks, remesh affected chunk
-15. **Frustum culling** — Don't render chunks outside the camera frustum
+13. [x] **Block picking** — DDA raycast aimed block, aim log (#22)
+14. [x] **Block placement/destruction** — Click edit + remesh, cross-border fix (#24, #25)
+15. [x] **Frustum culling** — Plane extraction + AABB test, draw stats (#20)
 
 ## Phase 4: Polish and Systems
 
