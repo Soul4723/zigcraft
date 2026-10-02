@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-02 (Session 021)
+Last updated: 2026-10-02 (Session 022)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`)
@@ -25,17 +25,17 @@ Last updated: 2026-10-02 (Session 021)
 - Procedural audio system (Milestone 28): multi-channel software synthesizer with ALSA backend for surface footsteps (grass, stone, wood, dirt), block destruction crunch, and block placement snap
 - Chunk persistence (Milestone 18): binary serialization to disk (`c_{cx}_{cz}.bin`), auto-load on chunk spawn, auto-save modified chunks on purge/exit
 - Mob & Entity system (Milestone 29): wandering voxel sheep with AABB physics, obstacle jumping, animated limb swing walking cycles, and textured multi-box rendering
-- Real-time debug HUD reporting FPS, coordinates, chunk indices, mob count, day/night state, loaded/drawn/culled chunk counts, and aim target
-- 174 unit tests across 20 subsystem modules passing
+- Multiplayer & Networking (Milestone 30): client-server TCP binary protocol, dedicated server mode (`--server`), client connection mode (`--connect <ip>`), real-time player position sync, remote humanoid player rendering with animated walking legs, and network-synced block breaking and placement
+- Real-time debug HUD reporting FPS, coordinates, chunk indices, mob count, peer count, day/night state, loaded/drawn/culled chunk counts, and aim target
+- 197 unit tests across 21 subsystem modules passing
 
-## Active Branch: feat/mobs-and-entities
+## Active Branch: feat/multiplayer
 
-Implements Milestone 29 (Mobs & Entities).
+Implements Milestone 30 (Multiplayer).
 
 ## What's Next
 
-1. **Multiplayer** (Milestone 30): client-server networking or local loopback sync.
-2. **Crafting & Inventory GUI** (Milestone 31): item slots, recipes, and UI interaction.
+1. **Crafting & Inventory GUI** (Milestone 31): item slots, recipes, and UI interaction.
 
 ## Environment
 

@@ -1,7 +1,7 @@
 # Roadmap
 
 Rough priority order. Completed milestones marked **[x]**.
-> **Milestones 1 through 29 complete!** Next focus: Multiplayer / Crafting.
+> **Milestones 1 through 30 complete!** Next focus: Crafting & Inventory GUI.
 
 ## Phase 1: Window and Rendering Foundation
 
@@ -49,5 +49,5 @@ Rough priority order. Completed milestones marked **[x]**.
 ## Long-term
 
 29. [x] **Mobs / Entities** — Simple wandering voxel entity with AABB physics and rendering (#41)
-30. **Multiplayer** ← next
-31. **Crafting & Inventory GUI**
+30. [x] **Multiplayer** — Client-server networking, player sync, remote player rendering, and block replication (#42)
+31. **Crafting & Inventory GUI** ← next
