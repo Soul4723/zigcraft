@@ -1,7 +1,7 @@
 # Roadmap
 
 Rough priority order. Completed milestones marked **[x]**.
-> **Current milestone: 16 (Lighting).** Milestones 10–15 merged to main (#16, #18, #20, #22, #24). Each milestone is a meaningful increment — the project should
+> **Current milestone: 12 (Chunk loading/unloading).** Milestones 10–15 merged to main (#16, #18, #20, #22, #24). Each milestone is a meaningful increment — the project should
 be buildable and runnable after each one.
 
 ## Phase 1: Window and Rendering Foundation
@@ -23,18 +23,18 @@ be buildable and runnable after each one.
 ## Phase 3: World and Interaction
 
 11. [x] **Terrain generation** — Value-noise fBm heightmap (#16)
-12. **Chunk loading/unloading** — Load chunks around the player, unload distant ones
+12. **Chunk loading/unloading** — Load chunks around the player, unload distant ones ← next
 13. [x] **Block picking** — DDA raycast aimed block, aim log (#22)
 14. [x] **Block placement/destruction** — Click edit + remesh, cross-border fix (#24, #25)
 15. [x] **Frustum culling** — Plane extraction + AABB test, draw stats (#20)
 
 ## Phase 4: Polish and Systems
 
-16. **Lighting** — Basic ambient + directional lighting
-17. **Sky rendering** — Gradient sky, sun position
+16. [x] **Lighting** — Diffuse + ambient in chunk shader (#26)
+17. [x] **Sky rendering** — Gradient dome, sun TBD (#27)
 18. **Chunk persistence** — Save/load chunks to disk
-19. **Player physics** — Gravity, collision with blocks, jumping
-20. **UI overlay** — Crosshair, debug info (FPS, position, chunk coords)
+19. [x] **Player physics** — Gravity, AABB collision, jumping (#28)
+20. [x] **UI overlay** — Debug HUD in log + title; on-screen text TBD (#29)
 
 ## Not Yet Planned
 
