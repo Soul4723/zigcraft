@@ -9,6 +9,7 @@ const math = @import("math.zig");
 const chunk_manager_mod = @import("chunk_manager.zig");
 const pick_mod = @import("pick.zig");
 const sky_mod = @import("sky.zig");
+const player_mod = @import("player.zig");
 
 const window_width = 1280;
 const window_height = 720;
@@ -66,10 +67,11 @@ pub fn main() !void {
     defer sky.deinit();
 
     // Camera setup — pulled back so the chunk grid fills the view.
+    var player = player_mod.Player.init(24, 20, 48);
     var cam = camera_mod.Camera.init();
-    cam.position = math.Vec3.init(24, 20, 48);
     cam.yaw = -std.math.pi / 2.0 - 0.35;
     cam.pitch = -0.3;
+    cam.position = player.eyePos();
 
     // Timing
     var last_time = c.glfwGetTime();
@@ -93,12 +95,22 @@ pub fn main() !void {
         // Keyboard input: poll each movement key and forward to camera.
         // processKey ignores non-press actions, so this is safe to call
         // unconditionally for every key each frame.
-        cam.processKey(c.GLFW_KEY_W, c.glfwGetKey(window, c.GLFW_KEY_W), dt);
-        cam.processKey(c.GLFW_KEY_S, c.glfwGetKey(window, c.GLFW_KEY_S), dt);
-        cam.processKey(c.GLFW_KEY_A, c.glfwGetKey(window, c.GLFW_KEY_A), dt);
-        cam.processKey(c.GLFW_KEY_D, c.glfwGetKey(window, c.GLFW_KEY_D), dt);
-        cam.processKey(c.GLFW_KEY_SPACE, c.glfwGetKey(window, c.GLFW_KEY_SPACE), dt);
-        cam.processKey(c.GLFW_KEY_LEFT_SHIFT, c.glfwGetKey(window, c.GLFW_KEY_LEFT_SHIFT), dt);
+        const fwd = cam.front();
+        const flat_f = math.Vec3.init(fwd.x, 0, fwd.z);
+        const flat_len = math.Vec3.len(flat_f);
+        const walk_f = if (flat_len > 0.001) flat_f.scale(1.0 / flat_len) else math.Vec3.init(0, 0, -1);
+        const walk_r = math.Vec3.normalize(math.Vec3.cross(walk_f, math.Vec3.init(0, 1, 0)));
+        const walk_speed = 6.0;
+        var wish = math.Vec3.init(0, 0, 0);
+        if (c.glfwGetKey(window, c.GLFW_KEY_W) == c.GLFW_PRESS) wish = math.Vec3.add(wish, walk_f);
+        if (c.glfwGetKey(window, c.GLFW_KEY_S) == c.GLFW_PRESS) wish = math.Vec3.sub(wish, walk_f);
+        if (c.glfwGetKey(window, c.GLFW_KEY_D) == c.GLFW_PRESS) wish = math.Vec3.add(wish, walk_r);
+        if (c.glfwGetKey(window, c.GLFW_KEY_A) == c.GLFW_PRESS) wish = math.Vec3.sub(wish, walk_r);
+        const wish_len = math.Vec3.len(wish);
+        const norm_wish = if (wish_len > 0.001) wish.scale(1.0 / wish_len) else wish;
+        const jump = c.glfwGetKey(window, c.GLFW_KEY_SPACE) == c.GLFW_PRESS;
+        player.tick(&pickSolid, norm_wish.x * walk_speed * dt, norm_wish.z * walk_speed * dt, jump, dt);
+        cam.position = player.eyePos();
 
         // Mouse look
         var xpos: f64 = 0;
