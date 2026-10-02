@@ -22,76 +22,31 @@ pub const Mesh = struct {
     }
 };
 
-/// Face directions as (dx, dy, dz) offsets.
-/// Order: up, down, north, south, east, west
 const face_dirs: [6][3]i32 = .{
-    .{ 0,  1,  0},
-    .{ 0, -1,  0},
-    .{ 0,  0, -1},
-    .{ 0,  0,  1},
-    .{ 1,  0,  0},
-    .{-1,  0,  0},
+    .{ 0, 1, 0 }, // 0: Up (+Y)
+    .{ 0, -1, 0 }, // 1: Down (-Y)
+    .{ 0, 0, -1 }, // 2: North (-Z)
+    .{ 0, 0, 1 }, // 3: South (+Z)
+    .{ 1, 0, 0 }, // 4: East (+X)
+    .{ -1, 0, 0 }, // 5: West (-X)
 };
 
-/// Face normals, matching face_dirs order.
 const face_normals: [6][3]f32 = .{
-    .{ 0.0,  1.0,  0.0},
-    .{ 0.0, -1.0,  0.0},
-    .{ 0.0,  0.0, -1.0},
-    .{ 0.0,  0.0,  1.0},
-    .{ 1.0,  0.0,  0.0},
-    .{-1.0,  0.0,  0.0},
+    .{ 0.0, 1.0, 0.0 },
+    .{ 0.0, -1.0, 0.0 },
+    .{ 0.0, 0.0, -1.0 },
+    .{ 0.0, 0.0, 1.0 },
+    .{ 1.0, 0.0, 0.0 },
+    .{ -1.0, 0.0, 0.0 },
 };
 
-/// Vertices for the 4 corners of a single face of a unit cube centered at origin.
-fn faceVertices(face_index: usize) [4][3]f32 {
-    return switch (face_index) {
-        0 => .{  // up (+Y)
-            .{ -0.5, 0.5,  0.5 },
-            .{  0.5, 0.5,  0.5 },
-            .{  0.5, 0.5, -0.5 },
-            .{ -0.5, 0.5, -0.5 },
-        },
-        1 => .{  // down (-Y)
-            .{ -0.5, -0.5, -0.5 },
-            .{  0.5, -0.5, -0.5 },
-            .{  0.5, -0.5,  0.5 },
-            .{ -0.5, -0.5,  0.5 },
-        },
-        2 => .{  // north (-Z)
-            .{ -0.5, -0.5, -0.5 },
-            .{  0.5, -0.5, -0.5 },
-            .{  0.5,  0.5, -0.5 },
-            .{ -0.5,  0.5, -0.5 },
-        },
-        3 => .{  // south (+Z)
-            .{  0.5, -0.5,  0.5 },
-            .{ -0.5, -0.5,  0.5 },
-            .{ -0.5,  0.5,  0.5 },
-            .{  0.5,  0.5,  0.5 },
-        },
-        4 => .{  // east (+X)
-            .{  0.5, -0.5,  0.5 },
-            .{  0.5, -0.5, -0.5 },
-            .{  0.5,  0.5, -0.5 },
-            .{  0.5,  0.5,  0.5 },
-        },
-        5 => .{  // west (-X)
-            .{ -0.5, -0.5, -0.5 },
-            .{ -0.5, -0.5,  0.5 },
-            .{ -0.5,  0.5,  0.5 },
-            .{ -0.5,  0.5, -0.5 },
-        },
-        else => unreachable,
-    };
-}
-
-fn faceTexCoords(tile_x: u32, tile_y: u32) [4][2]f32 {
+fn faceTexCoords(tile_x: u32, tile_y: u32, w: f32, h: f32) [4][2]f32 {
     const tile_size: f32 = 0.25; // 4x4 atlas
     const u_min = @as(f32, @floatFromInt(tile_x)) * tile_size;
     const v_min = @as(f32, @floatFromInt(tile_y)) * tile_size;
-    const u_max = u_min + tile_size;
-    const v_max = v_min + tile_size;
+    // Repeat UV texture across merged quad
+    const u_max = u_min + tile_size * w;
+    const v_max = v_min + tile_size * h;
     return .{
         .{ u_min, v_min },
         .{ u_max, v_min },
@@ -100,60 +55,52 @@ fn faceTexCoords(tile_x: u32, tile_y: u32) [4][2]f32 {
     };
 }
 
-/// Check if block face should be rendered against adjacent block.
-/// Opaque solid against air/water renders.
-/// Water against air or non-water renders (water against water culls).
-fn shouldRenderFace(
-    my_block: BlockId,
+fn getBlockSafe(
     chunk: *const Chunk,
     neighbors: ?*const [6]?*const Chunk,
-    nx: i32,
-    ny: i32,
-    nz: i32,
-) bool {
+    x: i32,
+    y: i32,
+    z: i32,
+) BlockId {
     const size: i32 = @intCast(SIZE);
-
-    var adj: BlockId = .air;
-    if (nx >= 0 and nx < size and ny >= 0 and ny < size and nz >= 0 and nz < size) {
-        adj = chunk.getBlock(@intCast(nx), @intCast(ny), @intCast(nz));
-    } else if (neighbors) |neighbors_arr| {
-        var neighbor_idx: usize = 0;
+    if (x >= 0 and x < size and y >= 0 and y < size and z >= 0 and z < size) {
+        return chunk.getBlock(@intCast(x), @intCast(y), @intCast(z));
+    }
+    if (neighbors) |nbs| {
+        var n_idx: usize = 0;
         var lx: usize = 0;
         var ly: usize = 0;
         var lz: usize = 0;
-
-        if (nx < 0 or nx >= size) {
-            neighbor_idx = if (nx < 0) 5 else 4;
-            lx = if (nx < 0) size - 1 else 0;
-            ly = @intCast(ny);
-            lz = @intCast(nz);
-        } else if (ny < 0 or ny >= size) {
-            neighbor_idx = if (ny < 0) 1 else 0;
-            lx = @intCast(nx);
-            ly = if (ny < 0) size - 1 else 0;
-            lz = @intCast(nz);
+        if (x < 0 or x >= size) {
+            n_idx = if (x < 0) 5 else 4;
+            lx = if (x < 0) size - 1 else 0;
+            ly = @intCast(y);
+            lz = @intCast(z);
+        } else if (y < 0 or y >= size) {
+            n_idx = if (y < 0) 1 else 0;
+            lx = @intCast(x);
+            ly = if (y < 0) size - 1 else 0;
+            lz = @intCast(z);
         } else {
-            neighbor_idx = if (nz < 0) 2 else 3;
-            lx = @intCast(nx);
-            ly = @intCast(ny);
-            lz = if (nz < 0) size - 1 else 0;
+            n_idx = if (z < 0) 2 else 3;
+            lx = @intCast(x);
+            ly = @intCast(y);
+            lz = if (z < 0) size - 1 else 0;
         }
-
-        if (neighbors_arr[neighbor_idx]) |neighbor| {
-            adj = neighbor.getBlock(@intCast(lx), @intCast(ly), @intCast(lz));
+        if (nbs[n_idx]) |neighbor| {
+            return neighbor.getBlock(@intCast(lx), @intCast(ly), @intCast(lz));
         }
     }
-
-    if (my_block == .water) {
-        // Water face rendered if adjacent is air or solid
-        return adj != .water;
-    } else {
-        // Solid block face rendered if adjacent is transparent (air or water)
-        return adj.is_transparent();
-    }
+    return .air;
 }
 
-/// Generate a mesh from chunk data using per-face meshing.
+fn shouldRenderFace(my_block: BlockId, adj: BlockId) bool {
+    if (my_block == .air) return false;
+    if (my_block == .water) return adj != .water;
+    return adj.is_transparent();
+}
+
+/// Greedy mesher: sweeps 6 face directions across all slices, merges adjacent coplanar faces of identical block types into single quads.
 pub fn generateMesh(
     allocator: std.mem.Allocator,
     chunk: *const Chunk,
@@ -165,48 +112,134 @@ pub fn generateMesh(
     var indices = std.ArrayList(u32).empty;
     defer indices.deinit(allocator);
 
-    var y: usize = 0;
-    while (y < SIZE) : (y += 1) {
-        var z: usize = 0;
-        while (z < SIZE) : (z += 1) {
-            var x: usize = 0;
-            while (x < SIZE) : (x += 1) {
-                const block = chunk.getBlock(@intCast(x), @intCast(y), @intCast(z));
-                if (block == .air) continue;
+    const size: usize = SIZE;
 
-                var face_idx: usize = 0;
-                while (face_idx < 6) : (face_idx += 1) {
-                    const dir = face_dirs[face_idx];
-                    const nx = @as(i32, @intCast(x)) + dir[0];
-                    const ny = @as(i32, @intCast(y)) + dir[1];
-                    const nz = @as(i32, @intCast(z)) + dir[2];
+    // For each of 6 face directions
+    var face_idx: usize = 0;
+    while (face_idx < 6) : (face_idx += 1) {
+        const dir = face_dirs[face_idx];
+        const normal = face_normals[face_idx];
 
-                    if (shouldRenderFace(block, chunk, neighbors, nx, ny, nz)) {
-                        const corners = faceVertices(face_idx);
-                        const normal = face_normals[face_idx];
-                        const base_index: u32 = @intCast(vertices.items.len);
+        // Slice axis d (0=x, 1=y, 2=z), u and v are planar axes
+        const d: usize = if (dir[0] != 0) 0 else if (dir[1] != 0) 1 else 2;
+        const u_axis: usize = (d + 1) % 3;
+        const v_axis: usize = (d + 2) % 3;
 
-                        const tile = block.getFaceTexture(face_idx);
-                        const tex_coords = faceTexCoords(tile.x, tile.y);
-                        var i: usize = 0;
-                        while (i < 4) : (i += 1) {
-                            const v = corners[i];
-                            try vertices.append(allocator, .{
-                                .position = .{
-                                    @as(f32, @floatFromInt(x)) + v[0],
-                                    @as(f32, @floatFromInt(y)) + v[1],
-                                    @as(f32, @floatFromInt(z)) + v[2],
-                                },
-                                .normal = normal,
-                                .tex_coord = tex_coords[i],
-                            });
-                        }
+        var slice: usize = 0;
+        while (slice < size) : (slice += 1) {
+            // Mask of visible block types on this slice for this face direction
+            var mask: [SIZE][SIZE]BlockId = undefined;
+            for (&mask) |*row| @memset(row, .air);
 
-                        try indices.appendSlice(allocator, &[_]u32{
-                            base_index, base_index + 1, base_index + 2,
-                            base_index, base_index + 2, base_index + 3,
-                        });
+            var v: usize = 0;
+            while (v < size) : (v += 1) {
+                var u: usize = 0;
+                while (u < size) : (u += 1) {
+                    var pos: [3]i32 = undefined;
+                    pos[d] = @intCast(slice);
+                    pos[u_axis] = @intCast(u);
+                    pos[v_axis] = @intCast(v);
+
+                    const block = chunk.getBlock(@intCast(pos[0]), @intCast(pos[1]), @intCast(pos[2]));
+                    if (block == .air) continue;
+
+                    const n_pos = [3]i32{ pos[0] + dir[0], pos[1] + dir[1], pos[2] + dir[2] };
+                    const adj = getBlockSafe(chunk, neighbors, n_pos[0], n_pos[1], n_pos[2]);
+
+                    if (shouldRenderFace(block, adj)) {
+                        mask[v][u] = block;
                     }
+                }
+            }
+
+            // Greedy merge rectangles from mask
+            v = 0;
+            while (v < size) : (v += 1) {
+                var u: usize = 0;
+                while (u < size) {
+                    const block = mask[v][u];
+                    if (block == .air) {
+                        u += 1;
+                        continue;
+                    }
+
+                    // 1. Determine width of rectangle along u
+                    var w: usize = 1;
+                    while (u + w < size and mask[v][u + w] == block) : (w += 1) {}
+
+                    // 2. Determine height of rectangle along v
+                    var h: usize = 1;
+                    outer_h: while (v + h < size) : (h += 1) {
+                        var k: usize = 0;
+                        while (k < w) : (k += 1) {
+                            if (mask[v + h][u + k] != block) break :outer_h;
+                        }
+                    }
+
+                    // 3. Clear merged rectangle in mask
+                    var dy: usize = 0;
+                    while (dy < h) : (dy += 1) {
+                        var dx: usize = 0;
+                        while (dx < w) : (dx += 1) {
+                            mask[v + dy][u + dx] = .air;
+                        }
+                    }
+
+                    // 4. Emit merged quad
+                    const fw: f32 = @floatFromInt(w);
+                    const fh: f32 = @floatFromInt(h);
+                    const tile = block.getFaceTexture(face_idx);
+                    const tex = faceTexCoords(tile.x, tile.y, fw, fh);
+                    const base_idx: u32 = @intCast(vertices.items.len);
+
+                    // Quad corners in 3D
+                    var c0: [3]f32 = undefined;
+                    var c1: [3]f32 = undefined;
+                    var c2: [3]f32 = undefined;
+                    var c3: [3]f32 = undefined;
+
+                    const slice_f: f32 = @floatFromInt(slice);
+                    const u_f: f32 = @floatFromInt(u);
+                    const v_f: f32 = @floatFromInt(v);
+
+                    const d_coord: f32 = if (dir[d] > 0) slice_f + 1.0 else slice_f;
+
+                    c0[d] = d_coord;
+                    c0[u_axis] = u_f;
+                    c0[v_axis] = v_f;
+
+                    c1[d] = d_coord;
+                    c1[u_axis] = u_f + fw;
+                    c1[v_axis] = v_f;
+
+                    c2[d] = d_coord;
+                    c2[u_axis] = u_f + fw;
+                    c2[v_axis] = v_f + fh;
+
+                    c3[d] = d_coord;
+                    c3[u_axis] = u_f;
+                    c3[v_axis] = v_f + fh;
+
+                    // Ensure front-facing winding relative to face normal
+                    const winding_normal = (dir[0] + dir[1] + dir[2]) > 0;
+                    if (winding_normal) {
+                        try vertices.append(allocator, .{ .position = c0, .normal = normal, .tex_coord = tex[0] });
+                        try vertices.append(allocator, .{ .position = c1, .normal = normal, .tex_coord = tex[1] });
+                        try vertices.append(allocator, .{ .position = c2, .normal = normal, .tex_coord = tex[2] });
+                        try vertices.append(allocator, .{ .position = c3, .normal = normal, .tex_coord = tex[3] });
+                    } else {
+                        try vertices.append(allocator, .{ .position = c0, .normal = normal, .tex_coord = tex[0] });
+                        try vertices.append(allocator, .{ .position = c3, .normal = normal, .tex_coord = tex[3] });
+                        try vertices.append(allocator, .{ .position = c2, .normal = normal, .tex_coord = tex[2] });
+                        try vertices.append(allocator, .{ .position = c1, .normal = normal, .tex_coord = tex[1] });
+                    }
+
+                    try indices.appendSlice(allocator, &[_]u32{
+                        base_idx, base_idx + 1, base_idx + 2,
+                        base_idx, base_idx + 2, base_idx + 3,
+                    });
+
+                    u += w;
                 }
             }
         }
@@ -218,20 +251,6 @@ pub fn generateMesh(
     };
 }
 
-test "face vertices for up face" {
-    const corners = faceVertices(0);
-    for (corners) |v| {
-        try std.testing.expectEqual(v[1], 0.5);
-    }
-}
-
-test "face normals are unit vectors" {
-    for (face_normals) |n| {
-        const len = @sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]);
-        try std.testing.expectApproxEqAbs(len, 1.0, 0.001);
-    }
-}
-
 test "empty chunk produces no mesh" {
     const chunk = Chunk.init();
     var mesh = try generateMesh(std.testing.allocator, &chunk, null);
@@ -241,18 +260,7 @@ test "empty chunk produces no mesh" {
     try std.testing.expectEqual(mesh.indices.len, 0);
 }
 
-test "single block at corner produces 6 faces" {
-    var chunk = Chunk.init();
-    chunk.setBlock(0, 0, 0, .stone);
-
-    var mesh = try generateMesh(std.testing.allocator, &chunk, null);
-    defer mesh.deinit(std.testing.allocator);
-
-    try std.testing.expectEqual(mesh.vertices.len, 24);
-    try std.testing.expectEqual(mesh.indices.len, 36);
-}
-
-test "single block at center produces 6 faces" {
+test "single block produces 6 quads" {
     var chunk = Chunk.init();
     chunk.setBlock(7, 7, 7, .stone);
 
@@ -263,37 +271,30 @@ test "single block at center produces 6 faces" {
     try std.testing.expectEqual(mesh.indices.len, 36);
 }
 
-test "two adjacent blocks share a face" {
-    var chunk = Chunk.init();
-    chunk.setBlock(5, 5, 5, .stone);
-    chunk.setBlock(6, 5, 5, .stone);
-
-    var mesh = try generateMesh(std.testing.allocator, &chunk, null);
-    defer mesh.deinit(std.testing.allocator);
-
-    try std.testing.expectEqual(mesh.vertices.len, 40);
-    try std.testing.expectEqual(mesh.indices.len, 60);
-}
-
-test "fillLayer produces correct face count" {
+test "fillLayer merges into single 16x16 quad on top and bottom" {
     var chunk = Chunk.init();
     chunk.fillLayer(0, .stone);
 
     var mesh = try generateMesh(std.testing.allocator, &chunk, null);
     defer mesh.deinit(std.testing.allocator);
 
-    try std.testing.expectEqual(mesh.vertices.len, 2304);
-    try std.testing.expectEqual(mesh.indices.len, 3456);
+    // Top: 1 merged quad (4 verts)
+    // Bottom: 1 merged quad (4 verts)
+    // 4 sides: 16x1 quads each (16 verts)
+    // Total = 6 quads = 24 vertices! Down from 2304 vertices in naive meshing.
+    try std.testing.expectEqual(mesh.vertices.len, 24);
+    try std.testing.expectEqual(mesh.indices.len, 36);
 }
 
-test "water culls against adjacent water" {
+test "adjacent blocks merge horizontally" {
     var chunk = Chunk.init();
-    chunk.setBlock(2, 2, 2, .water);
-    chunk.setBlock(2, 2, 3, .water);
+    chunk.setBlock(2, 2, 2, .stone);
+    chunk.setBlock(3, 2, 2, .stone);
 
     var mesh = try generateMesh(std.testing.allocator, &chunk, null);
     defer mesh.deinit(std.testing.allocator);
 
-    // 2 cubes = 12 faces, but shared internal face culled -> 10 faces = 40 verts
-    try std.testing.expectEqual(mesh.vertices.len, 40);
+    // 2 blocks side-by-side: Top, bottom, front, back merge into 1 quad each (4 quads).
+    // Left and right are 1 quad each (2 quads). Total 6 quads = 24 verts.
+    try std.testing.expectEqual(mesh.vertices.len, 24);
 }

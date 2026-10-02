@@ -1,7 +1,7 @@
 # Roadmap
 
 Rough priority order. Completed milestones marked **[x]**.
-> **Phase 1-4 Core Complete!** Milestones 1 through 20, 22, 23, and 24 implemented. Next focus: Optimization & Foliage.
+> **Milestones 1 through 24 complete!** Next focus: Biomes, Trees, and Gameplay.
 
 ## Phase 1: Window and Rendering Foundation
 
@@ -37,11 +37,11 @@ Rough priority order. Completed milestones marked **[x]**.
 
 ## Phase 5: Optimization & Gameplay (Upcoming)
 
-21. **Greedy meshing** — Merge coplanar faces across chunk to reduce vertex buffer sizes ← next
+21. [x] **Greedy meshing** — Merge coplanar faces across chunk to reduce vertex buffer sizes (#36)
 22. [x] **Crosshair & Screen UI** — 2D viewport quad crosshair (#34)
 23. [x] **Block inventory & selection** — Hotbar slots 1-4 to choose block type for placement (#34, #35)
 24. [x] **Water / fluid simulation** — Translucent water blocks and sea-level terrain lakes (#35)
-25. **Biomes & tree generation** — Height-dependent biomes and procedural trees/foliage
+25. **Biomes & tree generation** — Height-dependent biomes and procedural trees/foliage ← next
 
 ## Long-term
 
