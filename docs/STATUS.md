@@ -35,8 +35,9 @@ Implements Milestone 31 (Crafting & Inventory GUI).
 
 ## What's Next
 
-1. **Multiplayer** (Milestone 30): client-server networking or local loopback sync.
-2. **Crafting & Inventory GUI** (Milestone 31): item slots, recipes, and UI interaction.
+1. **Voxel Texture Overhaul & New Blocks**: Replace crude procedural math noise with authentic, high-quality Minecraft-style pixel-art textures (stone, cobblestone, coal ore, dirt, side grass overhangs, oak bark, oak planks, leaves, crafting table).
+2. **Block Mining Speed & Tool Utility**: Bare hands mine slowly; wooden pickaxe mines stone faster. Block hardness and tool durability.
+3. **Block Selection Highlight**: Render 3D wireframe outline on aimed block face.
 
 ## Environment
 

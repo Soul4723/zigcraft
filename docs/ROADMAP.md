@@ -1,7 +1,7 @@
 # Roadmap
 
 Rough priority order. Completed milestones marked **[x]**.
-> **Milestones 1 through 29 and 31 complete!** Next focus: Multiplayer.
+> **Core engine in place.** Next focus: Textures, Visual Polish & Gameplay Depth.
 
 ## Phase 1: Window and Rendering Foundation
 
@@ -46,8 +46,12 @@ Rough priority order. Completed milestones marked **[x]**.
 27. [x] **Day/Night cycle** — Animated sun orbit, directional light vector, and dusk/dawn sky dome colors (#39)
 28. [x] **Sound / Audio system** — Procedural synthesizer & ALSA backend for footsteps, break, and place (#40)
 
-## Long-term
+## Phase 6: Gameplay Depth, Visual Polish & Content
 
 29. [x] **Mobs / Entities** — Simple wandering voxel entity with AABB physics and rendering (#41)
-30. **Multiplayer** ← next
-31. [x] **Crafting & Inventory GUI** — Full inventory screen ('E'), 2x2 crafting grid, recipes, item consumption & drop collection (#42)
+30. [x] **Crafting & Inventory GUI** — Full inventory screen ('E'), 2x2 crafting grid, recipes, item consumption & drop collection (#42)
+31. **High-Resolution / Handcrafted Voxel Textures** — Upgrade from flat procedural noise to authentic, detailed pixel-art textures (stone, cobblestone, ores, dirt, grass, wood, planks, leaves, crafting table).
+32. **Tool System & Block Hardness** — Mining speed tiers (bare hand vs pickaxe), tool durability, block hardness tables, and tool-dependent drops (stone requires pickaxe).
+33. **More Blocks, Ores & Underground Caves** — Coal, iron, 3D cave tunnels cutting through heightmap terrain.
+34. **Block Highlight Outline** — Wireframe bounding box rendering around the aimed voxel face.
+35. **Particle Effects** — Block break and placement voxel debris particles.
