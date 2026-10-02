@@ -10,6 +10,8 @@ const chunk_manager_mod = @import("chunk_manager.zig");
 const pick_mod = @import("pick.zig");
 const sky_mod = @import("sky.zig");
 const player_mod = @import("player.zig");
+const block_mod = @import("world/block.zig");
+const ui_mod = @import("renderer/ui.zig");
 
 const window_width = 1280;
 const window_height = 720;
@@ -22,7 +24,7 @@ fn pickSolid(x: i32, y: i32, z: i32) bool {
 }
 
 pub fn main() !void {
-    std.debug.print("zigcraft v0.0.4\n", .{});
+    std.debug.print("zigcraft v0.0.5\n", .{});
 
     if (c.glfwInit() == c.GLFW_FALSE) {
         std.debug.print("failed to initialize GLFW\n", .{});
@@ -76,6 +78,13 @@ pub fn main() !void {
     var sky = try sky_mod.SkyRenderer.init(std.heap.page_allocator);
     defer sky.deinit();
 
+    var ui = try ui_mod.UIRenderer.init(std.heap.page_allocator);
+    defer ui.deinit();
+
+    // Hotbar selection: 0=stone, 1=dirt, 2=grass
+    const hotbar_blocks = [3]block_mod.BlockId{ .stone, .dirt, .grass };
+    var selected_slot: usize = 0;
+
     // Timing
     var last_time = c.glfwGetTime();
     var frame_count: u64 = 0;
@@ -89,13 +98,18 @@ pub fn main() !void {
     var last_y: f64 = @floatFromInt(window_height / 2);
     var first_mouse = true;
 
-    std.debug.print("ready. Dynamic chunk streaming (r=3, 7x7 grid). WASD move, mouse look, ESC close.\n", .{});
+    std.debug.print("ready. Dynamic chunk streaming (r=3, 7x7 grid) + Hotbar/Crosshair. Keys 1-3 select block.\n", .{});
 
     while (c.glfwWindowShouldClose(window) == c.GLFW_FALSE) {
         // Delta time
         const current_time = c.glfwGetTime();
         const dt: f32 = @floatCast(current_time - last_time);
         last_time = current_time;
+
+        // Hotbar selection keys 1, 2, 3
+        if (c.glfwGetKey(window, c.GLFW_KEY_1) == c.GLFW_PRESS) selected_slot = 0;
+        if (c.glfwGetKey(window, c.GLFW_KEY_2) == c.GLFW_PRESS) selected_slot = 1;
+        if (c.glfwGetKey(window, c.GLFW_KEY_3) == c.GLFW_PRESS) selected_slot = 2;
 
         // Keyboard input: poll each movement key and forward to camera.
         const fwd = cam.front();
@@ -142,11 +156,15 @@ pub fn main() !void {
         const view = cam.viewMatrix();
         const mvp = math.Mat4.mul(proj, view);
 
-        // Render
+        // Render world
         c.glClear(c.GL_COLOR_BUFFER_BIT | c.GL_DEPTH_BUFFER_BIT);
 
         sky.draw(mvp, cam.position);
         const stats = manager.draw(mvp);
+
+        // Render 2D UI overlay (crosshair + hotbar)
+        ui.draw(aspect, selected_slot);
+
         frame_count += 1;
         hud_frames += 1;
         hud_time += dt;
@@ -159,13 +177,14 @@ pub fn main() !void {
             const pz = @as(i32, @intFromFloat(@floor(player.pos.z)));
             const dir = cam.front();
             const loaded = manager.loadedChunkCount();
+            const current_block = hotbar_blocks[selected_slot];
             if (pick_mod.raycast(&pickSolid, cam.position, dir, 8)) |hit| {
-                std.debug.print("fps={d} xyz=({d},{d},{d}) chunk=({d},{d}) loaded={d} drawn={d} culled={d} aim=({d},{d},{d})\n", .{ fps, px, py, pz, @divFloor(px, 16), @divFloor(pz, 16), loaded, stats.drawn, stats.culled, hit.x, hit.y, hit.z });
+                std.debug.print("fps={d} xyz=({d},{d},{d}) slot={s} chunk=({d},{d}) loaded={d} drawn={d} culled={d} aim=({d},{d},{d})\n", .{ fps, px, py, pz, @tagName(current_block), @divFloor(px, 16), @divFloor(pz, 16), loaded, stats.drawn, stats.culled, hit.x, hit.y, hit.z });
             } else {
-                std.debug.print("fps={d} xyz=({d},{d},{d}) chunk=({d},{d}) loaded={d} drawn={d} culled={d} aim=none\n", .{ fps, px, py, pz, @divFloor(px, 16), @divFloor(pz, 16), loaded, stats.drawn, stats.culled });
+                std.debug.print("fps={d} xyz=({d},{d},{d}) slot={s} chunk=({d},{d}) loaded={d} drawn={d} culled={d} aim=none\n", .{ fps, px, py, pz, @tagName(current_block), @divFloor(px, 16), @divFloor(pz, 16), loaded, stats.drawn, stats.culled });
             }
             var title_buf: [128]u8 = undefined;
-            const title = std.fmt.bufPrintZ(&title_buf, "Zigcraft  fps={d}  chunks={d} +", .{ fps, loaded }) catch "Zigcraft";
+            const title = std.fmt.bufPrintZ(&title_buf, "Zigcraft  fps={d}  chunks={d}  block={s}", .{ fps, loaded, @tagName(current_block) }) catch "Zigcraft";
             c.glfwSetWindowTitle(window, title.ptr);
         }
 
@@ -184,8 +203,9 @@ pub fn main() !void {
                     const py = hit.y + hit.ny;
                     const pz = hit.z + hit.nz;
                     if (!pickSolid(px, py, pz)) {
-                        if (try manager.editAndRemesh(px, py, pz, .stone)) {
-                            std.debug.print("placed stone ({d},{d},{d})\n", .{ px, py, pz });
+                        const place_type = hotbar_blocks[selected_slot];
+                        if (try manager.editAndRemesh(px, py, pz, place_type)) {
+                            std.debug.print("placed {s} ({d},{d},{d})\n", .{ @tagName(place_type), px, py, pz });
                         }
                     }
                 }
