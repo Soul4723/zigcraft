@@ -4,6 +4,7 @@ const Chunk = chunk_mod.Chunk;
 const chunk_mesh_mod = @import("world/chunk_mesh.zig");
 const terrain_mod = @import("world/terrain.zig");
 const chunk_renderer_mod = @import("chunk_renderer.zig");
+const frustum_mod = @import("frustum.zig");
 const math = @import("math.zig");
 
 /// Owns an NxN grid of chunks: CPU data + GPU renderers.
@@ -69,22 +70,33 @@ pub const ChunkManager = struct {
         self.allocator.free(self.chunks);
     }
 
-    /// Draw every chunk: mvp = viewProj * translate(i*16, 0, j*16).
-    pub fn draw(self: *ChunkManager, view_proj: math.Mat4) void {
+    pub const DrawStats = struct { drawn: usize, culled: usize };
+
+    /// Draw visible chunks: mvp = viewProj * translate(i*16, 0, j*16).
+    /// Chunks fully outside the frustum are skipped. Returns counts.
+    pub fn draw(self: *ChunkManager, view_proj: math.Mat4) DrawStats {
+        const frustum = frustum_mod.Frustum.fromMatrix(view_proj);
+        var stats = DrawStats{ .drawn = 0, .culled = 0 };
         var j: usize = 0;
         while (j < self.side) : (j += 1) {
             var i: usize = 0;
             while (i < self.side) : (i += 1) {
                 const idx = j * self.side + i;
-                const model = math.Mat4.translate(math.Vec3.init(
-                    @floatFromInt(i * 16),
-                    0,
-                    @floatFromInt(j * 16),
-                ));
+                const ox: f32 = @floatFromInt(i * 16);
+                const oz: f32 = @floatFromInt(j * 16);
+                const min = math.Vec3.init(ox, 0, oz);
+                const max = math.Vec3.init(ox + 16, 16, oz + 16);
+                if (!frustum.containsBox(min, max)) {
+                    stats.culled += 1;
+                    continue;
+                }
+                const model = math.Mat4.translate(math.Vec3.init(ox, 0, oz));
                 var mvp = math.Mat4.mul(view_proj, model);
                 self.renderers[idx].draw(mvp.ptr());
+                stats.drawn += 1;
             }
         }
+        return stats;
     }
 
     pub fn totalSolids(self: *const ChunkManager) usize {
