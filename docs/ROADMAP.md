@@ -1,7 +1,7 @@
 # Roadmap
 
 Rough priority order. Completed milestones marked **[x]**.
-> **Phase 1-4 Core Complete!** All initial milestones 1 through 20 implemented and merged. Next focus: Optimization & Gameplay Systems.
+> **Phase 1-4 Core Complete!** Milestones 1 through 20, 22, and 23 implemented. Next focus: Optimization & Fluid Simulation.
 
 ## Phase 1: Window and Rendering Foundation
 
@@ -38,10 +38,9 @@ Rough priority order. Completed milestones marked **[x]**.
 ## Phase 5: Optimization & Gameplay (Upcoming)
 
 21. **Greedy meshing** — Merge coplanar faces across chunk to reduce vertex buffer sizes ← next
-22. **Crosshair & Screen UI** — 2D viewport quad crosshair and onscreen text rendering
-23. **Block inventory & selection** — Number keys 1-9 to choose block type for placement
-24. **Water / fluid simulation** — Finite water flow and translucent mesh rendering
-25. **Biomes & tree generation** — Height-dependent biomes and procedural trees/foliage
+22. [x] **Crosshair & Screen UI** — 2D viewport quad crosshair (#34)
+23. [x] **Block inventory & selection** — Hotbar slots 1-3 to choose block type for placement (#34)
+24. **Water / fluid simulation** — Translucent water blocks and cellular flow
 
 ## Long-term
 
@@ -49,4 +48,5 @@ Rough priority order. Completed milestones marked **[x]**.
 - Sound
 - Mobs/entities
 - Crafting
+- Biomes & tree generation
 - Advanced lighting (ambient occlusion, shadows)
