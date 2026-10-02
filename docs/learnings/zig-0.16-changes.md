@@ -146,12 +146,52 @@ relatively stable but check the exact method signatures.
 
 ## Testing
 
+- `zig build test` works as expected
+- Test blocks: `test "name" { ... }` in any source file
+- The build.zig template uses `b.addTest(.{ .root_module = ... })`
+
+## Gotchas Discovered
+
+### Fixed-width integer overflow in loops
+
 ```zig
-test "block type air is transparent" {
-    const air = BlockType.air;
-    try std.testing.expect(air.is_transparent);
-}
+pub const SIZE: u5 = 16;
+
+// BAD — u4 max is 15, loop counter overflows when incrementing past 15
+var x: u4 = 0;
+while (x < SIZE) : (x += 1) { ... }  // crashes: integer overflow at 16
 ```
 
-Run with `zig build test`. Test blocks in any source file are discovered
-automatically.
+Use `usize` for loop counters, even when the values being indexed are `u4`:
+
+```zig
+// GOOD — usize is platform pointer width, never overflows
+var x: usize = 0;
+while (x < SIZE) : (x += 1) { ... }
+```
+
+### Multi-dimensional array initialization
+
+The `.{} ` shorthand does not work for multi-dimensional arrays of enums
+in test mode. Use a helper function:
+
+```zig
+fn fillBlocks(comptime block: BlockId) [SIZE][SIZE][SIZE]BlockId {
+    var result: [SIZE][SIZE][SIZE]BlockId = undefined;
+    var y: usize = 0;
+    while (y < SIZE) : (y += 1) {
+        var z: usize = 0;
+        while (z < SIZE) : (z += 1) {
+            var x: usize = 0;
+            while (x < SIZE) : (x += 1) {
+                result[y][z][x] = block;
+            }
+        }
+    }
+    return result;
+}
+
+pub fn init() Chunk {
+    return .{ .blocks = fillBlocks(.air) };
+}
+```
