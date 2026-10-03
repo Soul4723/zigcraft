@@ -137,7 +137,19 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         if (blob == 1) return .{ 185, 138, 105, 255 }; // rusty peach core
         return stonePixel(x, y, 97);
     }
+    // Sand tile: warm speckled golden beach sand
+    if (tile_x == 3 and tile_y == 3) {
+        return sandPixel(x, y);
+    }
     return .{ 0, 0, 0, 0 };
+}
+
+fn sandPixel(x: usize, y: usize) [4]u8 {
+    const n = hash2(x, y, 101) % 100;
+    if (n < 8) return .{ 245, 230, 175, 255 };
+    if (n < 22) return .{ 205, 185, 130, 255 };
+    if (n < 50) return .{ 220, 202, 148, 255 };
+    return .{ 232, 215, 160, 255 };
 }
 
 fn isIronBlob(x: usize, y: usize) u8 {
@@ -242,8 +254,8 @@ test "tile UV coordinates within unit quad" {
     try std.testing.expectEqual(uv[2][1], 0.5);
 }
 
-test "all block tiles opaque, reserved transparent" {
-    const tiles = [_][2]u32{ .{ 0, 0 }, .{ 1, 0 }, .{ 2, 0 }, .{ 3, 0 }, .{ 1, 1 }, .{ 2, 1 }, .{ 3, 1 }, .{ 2, 2 }, .{ 3, 2 }, .{ 0, 3 }, .{ 1, 3 }, .{ 2, 3 } };
+test "all block tiles opaque, sand tile verified" {
+    const tiles = [_][2]u32{ .{ 0, 0 }, .{ 1, 0 }, .{ 2, 0 }, .{ 3, 0 }, .{ 1, 1 }, .{ 2, 1 }, .{ 3, 1 }, .{ 2, 2 }, .{ 3, 2 }, .{ 0, 3 }, .{ 1, 3 }, .{ 2, 3 }, .{ 3, 3 } };
     for (tiles) |t| {
         var yy: usize = 0;
         while (yy < 16) : (yy += 1) {
@@ -253,7 +265,9 @@ test "all block tiles opaque, reserved transparent" {
             }
         }
     }
-    try std.testing.expectEqual(tilePixel(3, 3, 4, 4)[3], 0);
+    // Sand tile golden tone check
+    try std.testing.expect(tilePixel(3, 3, 0, 0)[0] > 200);
+    try std.testing.expect(tilePixel(3, 3, 0, 0)[1] > 180);
     // Iron ore blob center check
     try std.testing.expectEqual(tilePixel(2, 3, 5, 4)[0], 185);
     try std.testing.expectEqual(tilePixel(0, 0, 3, 3)[1] > tilePixel(0, 0, 3, 3)[0], true);

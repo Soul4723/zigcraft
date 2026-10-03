@@ -33,7 +33,8 @@ Last updated: 2026-10-03 (Session 023)
 - 3D voxel block break and placement particle bursts with physics and gravity
 - 3D underground cave tunnels carved via dual 3D noise isosurfaces
 - Iron ore block + veins + inventory item
-- 206 unit tests passing
+- Sand block, handcrafted golden beach texture, and coastline generation
+- 208 unit tests passing
 
 ## Active Branch: feat/voxel-texture-overhaul
 

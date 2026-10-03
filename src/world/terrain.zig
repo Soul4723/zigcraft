@@ -141,7 +141,13 @@ pub const TerrainGenerator = struct {
                 var y: usize = 0;
                 while (y <= h) : (y += 1) {
                     const is_surface = (y == h);
-                    const b: BlockId = if (is_surface) (if (h < SEA_LEVEL) .dirt else .grass) else if (y >= h -% 2 and h >= 3) .dirt else self.stoneAt(wx, @intCast(y), wz);
+                    const is_beach = (h == SEA_LEVEL or h == SEA_LEVEL + 1);
+                    const b: BlockId = if (is_surface)
+                        (if (h < SEA_LEVEL) .dirt else if (is_beach) .sand else .grass)
+                    else if (y >= h -% 2 and h >= 3)
+                        (if (is_beach) .sand else .dirt)
+                    else
+                        self.stoneAt(wx, @intCast(y), wz);
                     // Caves carve subterranean stone/dirt (keep surface & bottom floor intact)
                     if (!is_surface and y > 0 and self.isCave(wx, @intCast(y), wz)) {
                         chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .air);
@@ -168,8 +174,8 @@ pub const TerrainGenerator = struct {
                 const wz = cz * 16 + @as(i32, @intCast(lz));
                 const h: usize = self.heightAt(wx, wz);
 
-                // Trees only spawn on grass above water
-                if (h >= SEA_LEVEL and self.hasTree(wx, wz)) {
+                // Trees only spawn on inland grassy ground (above beach line)
+                if (h > SEA_LEVEL + 1 and self.hasTree(wx, wz)) {
                     const trunk_h: usize = if (h + 6 < SIZE) 4 else 3;
                     if (h + trunk_h + 2 < SIZE) {
                         // Wood trunk
@@ -343,4 +349,24 @@ test "neighbor chunks agree on shared edge" {
     g.generateChunk(&b, 1, 0);
     try std.testing.expectEqual(g.heightAt(15, 5), g.heightAt(15, 5));
     try std.testing.expect(a.solidBlockCount() > 0 and b.solidBlockCount() > 0);
+}
+
+test "beaches spawn sand near sea level" {
+    const tg = TerrainGenerator.init(42);
+    var chunk = Chunk.init();
+    tg.generateChunk(&chunk, 0, 0);
+    var has_sand = false;
+    var y: usize = 0;
+    while (y < 16) : (y += 1) {
+        var x: usize = 0;
+        while (x < 16) : (x += 1) {
+            var z: usize = 0;
+            while (z < 16) : (z += 1) {
+                if (chunk.getBlock(@intCast(x), @intCast(y), @intCast(z)) == .sand) {
+                    has_sand = true;
+                }
+            }
+        }
+    }
+    try std.testing.expect(has_sand);
 }
