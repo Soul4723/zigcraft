@@ -18,6 +18,9 @@ pub const ItemType = enum(u8) {
     coal = 12,
     iron_ore = 13,
     sand = 14,
+    glass = 15,
+    sandstone = 16,
+    brick = 17,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -33,6 +36,9 @@ pub const ItemType = enum(u8) {
             .coal => .coal_ore,
             .iron_ore => .iron_ore,
             .sand => .sand,
+            .glass => .glass,
+            .sandstone => .sandstone,
+            .brick => .brick,
             else => null,
         };
     }
@@ -52,6 +58,9 @@ pub const ItemType = enum(u8) {
             .coal_ore => .coal,
             .iron_ore => .iron_ore,
             .sand => .sand,
+            .glass => .glass,
+            .sandstone => .sandstone,
+            .brick => .brick,
         };
     }
 
@@ -91,6 +100,9 @@ pub const ItemType = enum(u8) {
             .coal => "Coal",
             .iron_ore => "Iron Ore",
             .sand => "Sand",
+            .glass => "Glass",
+            .sandstone => "Sandstone",
+            .brick => "Bricks",
         };
     }
 
@@ -111,6 +123,9 @@ pub const ItemType = enum(u8) {
             .coal => .{ 0.12, 0.12, 0.14, 0.95 },
             .iron_ore => .{ 0.72, 0.55, 0.42, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
+            .glass => .{ 0.85, 0.95, 1.0, 0.65 },
+            .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
+            .brick => .{ 0.72, 0.32, 0.25, 0.95 },
         };
     }
 };
@@ -262,6 +277,32 @@ pub const Inventory = struct {
             }
         }
 
+        // Recipe 5: 4 Sand (2x2 filled) -> 1 Sandstone
+        if (non_empty == 4) {
+            if (g0 == .sand and g1 == .sand and g2 == .sand and g3 == .sand) {
+                self.craft_output = .{ .item = .sandstone, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 6: 4 Cobblestone (2x2 filled) -> 4 Bricks
+        if (non_empty == 4) {
+            if (g0 == .cobblestone and g1 == .cobblestone and g2 == .cobblestone and g3 == .cobblestone) {
+                self.craft_output = .{ .item = .brick, .count = 4 };
+                return;
+            }
+        }
+
+        // Recipe 7: Smelting simulation in 2x2: 1 Sand + 1 Coal -> 2 Glass
+        if (non_empty == 2) {
+            if ((g0 == .sand and g2 == .coal) or (g1 == .sand and g3 == .coal) or
+                (g0 == .coal and g2 == .sand) or (g1 == .coal and g3 == .sand))
+            {
+                self.craft_output = .{ .item = .glass, .count = 2 };
+                return;
+            }
+        }
+
         self.craft_output.clear();
     }
 
@@ -364,4 +405,34 @@ test "inventory full test: transfer between slots, boundary checks" {
     try std.testing.expect(!ItemType.stone.isTool());
     const planks = ItemType.wood_planks;
     try std.testing.expectEqual(planks.maxStackSize(), 64);
+}
+
+test "crafting recipes: sandstone, bricks, glass" {
+    var inv = Inventory.init();
+    // 4 Sand -> 1 Sandstone
+    inv.craft_grid[0] = .{ .item = .sand, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .sand, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .sand, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .sand, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .sandstone);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // 4 Cobblestone -> 4 Bricks
+    inv.craft_grid[0] = .{ .item = .cobblestone, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .cobblestone, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .cobblestone, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .cobblestone, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .brick);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    // Sand + Coal -> 2 Glass
+    inv.craft_grid[0] = .{ .item = .sand, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{ .item = .coal, .count = 1 };
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .glass);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
 }
