@@ -54,4 +54,4 @@ Rough priority order. Completed milestones marked **[x]**.
 32. [x] **Tool System & Block Hardness** — Mining speed tiers (bare hand vs pickaxe), tool durability, block hardness tables, and tool-dependent drops (stone requires pickaxe).
 33. **More Blocks, Ores & Underground Caves** — Coal, iron, 3D cave tunnels cutting through heightmap terrain.
 34. [x] **Block Highlight Outline** — Wireframe bounding box rendering around the aimed voxel face.
-35. **Particle Effects** — Block break and placement voxel debris particles.
+35. [x] **Particle Effects** — Block break and placement voxel debris particles.
