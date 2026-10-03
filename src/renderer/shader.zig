@@ -129,6 +129,25 @@ pub const chunk_vert: [:0]const u8 =
 \\    FragAO = aAO;
 \\}
 ;
+/// Wireframe box shader: position (loc 0), MVP + solid color.
+pub const line_vert: [:0]const u8 =
+\\#version 330 core
+\\layout (location = 0) in vec3 aPos;
+\\uniform mat4 u_mvp;
+\\void main() {
+\\    gl_Position = u_mvp * vec4(aPos, 1.0);
+\\}
+;
+
+pub const line_frag: [:0]const u8 =
+\\#version 330 core
+\\out vec4 FragColor;
+\\uniform vec3 u_color;
+\\void main() {
+\\    FragColor = vec4(u_color, 1.0);
+\\}
+;
+
 
 pub const sky_vert: [:0]const u8 =
 \\#version 330 core

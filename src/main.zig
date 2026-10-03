@@ -16,6 +16,7 @@ const audio_mod = @import("audio/audio.zig");
 const texture_mod = @import("renderer/texture.zig");
 const entity_mod = @import("entity.zig");
 const inventory_mod = @import("inventory.zig");
+const highlight_mod = @import("renderer/highlight.zig");
 
 const window_width = 1280;
 const window_height = 720;
@@ -108,6 +109,9 @@ pub fn main() !void {
 
     var ui = try ui_mod.UIRenderer.init(std.heap.page_allocator);
     defer ui.deinit();
+
+    var highlight = try highlight_mod.HighlightRenderer.init(std.heap.page_allocator);
+    defer highlight.deinit();
 
     var audio = audio_mod.AudioSystem.init();
     defer audio.deinit();
@@ -279,6 +283,15 @@ pub fn main() !void {
         sky.draw(mvp, cam.position, sky_top, sky_horizon);
         const stats = manager.draw(mvp, sun_dir);
         try mob_manager.draw(mvp, sun_dir);
+
+        // Block highlight outline on aimed voxel (skip while mining-gui open)
+        if (!inventory_open) {
+            const dir_h = cam.front();
+            if (pick_mod.raycast(&pickSolid, cam.position, dir_h, 8)) |hit_h| {
+                const pulse = 0.5 + 0.5 * @sin(@as(f32, @floatCast(current_time)) * 4.0);
+                highlight.draw(mvp.ptr(), hit_h.x, hit_h.y, hit_h.z, pulse);
+            }
+        }
 
         // Extract inventory slot colors and counts for rendering
         var hotbar_colors: [6][4]f32 = undefined;
