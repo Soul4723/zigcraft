@@ -55,6 +55,26 @@ pub const TerrainGenerator = struct {
         return (h % 33) == 0;
     }
 
+    fn oreHash(self: TerrainGenerator, wx: i32, wy: i32, wz: i32, salt: u64) u64 {
+        var h = self.seed ^ (@as(u64, @bitCast(@as(i64, wx))) *% 0x27d4eb2d);
+        h ^= (@as(u64, @bitCast(@as(i64, wy))) *% 0x165667b1);
+        h ^= (@as(u64, @bitCast(@as(i64, wz))) *% 0x1b873593);
+        h ^= salt;
+        h ^= h >> 15;
+        h *%= 0x27d4eb2d;
+        h ^= h >> 15;
+        return h;
+    }
+
+    fn stoneAt(self: TerrainGenerator, wx: i32, wy: i32, wz: i32) BlockId {
+        if (wy >= 1 and wy <= 3) {
+            if (self.oreHash(wx, wy, wz, 0xC0A1) % 14 == 0) return .coal_ore;
+            if (self.oreHash(wx, wy, wz, 0xC0BB1E) % 11 == 0) return .cobblestone;
+        }
+        if (wy == 4 and self.oreHash(wx, wy, wz, 0xC0BB1E) % 23 == 0) return .cobblestone;
+        return .stone;
+    }
+
     /// Fill chunk at world chunk coords (cx,cz) with terrain columns, water bodies, and trees.
     pub fn generateChunk(self: TerrainGenerator, chunk: *Chunk, cx: i32, cz: i32) void {
         // 1. Terrain base columns & water
@@ -67,7 +87,7 @@ pub const TerrainGenerator = struct {
                 const h: usize = self.heightAt(wx, wz);
                 var y: usize = 0;
                 while (y <= h) : (y += 1) {
-                    const b: BlockId = if (y == h) (if (h < SEA_LEVEL) .dirt else .grass) else if (y >= h -% 2 and h >= 3) .dirt else .stone;
+                    const b: BlockId = if (y == h) (if (h < SEA_LEVEL) .dirt else .grass) else if (y >= h -% 2 and h >= 3) .dirt else self.stoneAt(wx, @intCast(y), wz);
                     chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), b);
                 }
                 // Water filling up to SEA_LEVEL
@@ -121,6 +141,27 @@ pub const TerrainGenerator = struct {
         }
     }
 };
+
+test "stone veins: coal ore and cobblestone only at low layers" {
+    const tg = TerrainGenerator.init(1234);
+    var coal: usize = 0;
+    var cob: usize = 0;
+    var y: i32 = 1;
+    while (y <= 3) : (y += 1) {
+        var x: i32 = 0;
+        while (x < 64) : (x += 1) {
+            var z: i32 = 0;
+            while (z < 64) : (z += 1) {
+                const b = tg.stoneAt(x, y, z);
+                if (b == .coal_ore) coal += 1;
+                if (b == .cobblestone) cob += 1;
+            }
+        }
+    }
+    try std.testing.expect(coal > 50 and coal < 2000);
+    try std.testing.expect(cob > 50 and cob < 3000);
+    try std.testing.expectEqual(tg.stoneAt(0, 8, 0), .stone);
+}
 
 /// Hash world coords + seed to [0,1). Integer lattice value noise with
 /// smoothstep interpolation.

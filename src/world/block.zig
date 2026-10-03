@@ -11,6 +11,8 @@ pub const BlockId = enum(u8) {
     leaves = 6,
     wood_planks = 7,
     crafting_table = 8,
+    cobblestone = 9,
+    coal_ore = 10,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water;
@@ -48,6 +50,8 @@ pub const BlockId = enum(u8) {
             },
             .leaves => .{ .x = 3, .y = 1 },
             .wood_planks => .{ .x = 2, .y = 2 },
+            .cobblestone => .{ .x = 0, .y = 3 },
+            .coal_ore => .{ .x = 1, .y = 3 },
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -76,6 +80,8 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .leaves = .{ .name = "leaves", .solid = true, .transparent = false, .fluid = false },
     .wood_planks = .{ .name = "wood_planks", .solid = true, .transparent = false, .fluid = false },
     .crafting_table = .{ .name = "crafting_table", .solid = true, .transparent = false, .fluid = false },
+    .cobblestone = .{ .name = "cobblestone", .solid = true, .transparent = false, .fluid = false },
+    .coal_ore = .{ .name = "coal_ore", .solid = true, .transparent = false, .fluid = false },
 });
 
 test "block is_solid" {
@@ -86,6 +92,17 @@ test "block is_solid" {
     try std.testing.expect(!BlockId.water.is_solid());
     try std.testing.expect(BlockId.wood.is_solid());
     try std.testing.expect(BlockId.leaves.is_solid());
+    try std.testing.expect(BlockId.cobblestone.is_solid());
+    try std.testing.expect(BlockId.coal_ore.is_solid());
+}
+
+test "new block face texture mapping" {
+    const cob = BlockId.cobblestone.getFaceTexture(2);
+    try std.testing.expectEqual(cob.x, 0);
+    try std.testing.expectEqual(cob.y, 3);
+    const ore = BlockId.coal_ore.getFaceTexture(0);
+    try std.testing.expectEqual(ore.x, 1);
+    try std.testing.expectEqual(ore.y, 3);
 }
 
 test "block is_transparent" {

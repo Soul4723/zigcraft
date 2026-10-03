@@ -4,235 +4,240 @@ const c = @cImport({
     @cInclude("GL/glcorearb.h");
 });
 
-/// Atlas layout: 4 columns x 4 rows of 16x16 tiles (total 64x64 RGBA).
-/// Tile indices:
-/// (0, 0) = Grass Top
-/// (1, 0) = Grass Side
-/// (2, 0) = Dirt
-/// (3, 0) = Stone
-/// (0, 1) = Water (Translucent blue)
-/// (1, 1) = Wood Log Side (Brown bark)
-/// (2, 1) = Wood Log Top (Ring pattern)
-/// (3, 1) = Leaves (Lush dark green foliage)
-/// (0, 2) = Mob Body (Fluffy wool/skin texture)
-/// (1, 2) = Mob Face (Pig / Sheep / Creature face with eyes)
-/// (2, 2) = Wood Planks (Clean horizontal lumber boards)
-/// (3, 2) = Crafting Table Top/Side (Grid pattern & crafting tools)
 pub const ATLAS_TILES_PER_ROW: f32 = 4.0;
-pub const TILE_UV_SIZE: f32 = 1.0 / ATLAS_TILES_PER_ROW; // 0.25
+pub const TILE_UV_SIZE: f32 = 1.0 / ATLAS_TILES_PER_ROW;
 
 pub fn getTileUV(tile_x: u32, tile_y: u32) [4][2]f32 {
     const u_min = @as(f32, @floatFromInt(tile_x)) * TILE_UV_SIZE;
     const v_min = @as(f32, @floatFromInt(tile_y)) * TILE_UV_SIZE;
-    const u_max = u_min + TILE_UV_SIZE;
-    const v_max = v_min + TILE_UV_SIZE;
-
     return .{
         .{ u_min, v_min },
-        .{ u_max, v_min },
-        .{ u_max, v_max },
-        .{ u_min, v_max },
+        .{ u_min + TILE_UV_SIZE, v_min },
+        .{ u_min + TILE_UV_SIZE, v_min + TILE_UV_SIZE },
+        .{ u_min, v_min + TILE_UV_SIZE },
     };
 }
 
-/// Procedural 64x64 texture atlas containing blocks and mob textures.
+fn hash2(x: usize, y: usize, seed: u32) u32 {
+    var h: u32 = seed +% @as(u32, @intCast(x)) *% 374761393 +% @as(u32, @intCast(y)) *% 668265263;
+    h ^= h >> 13;
+    h *%= 1274126177;
+    h ^= h >> 16;
+    return h;
+}
+
+pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
+    if (tile_x == 0 and tile_y == 0) {
+        const n = hash2(x, y, 11) % 100;
+        if (hash2(x / 2, y, 77) % 8 == 0) return .{ 38, 118, 32, 255 };
+        if (hash2(x, y / 3, 55) % 11 == 0) return .{ 105, 200, 70, 255 };
+        if (n < 12) return .{ 52, 140, 44, 255 };
+        if (n < 30) return .{ 70, 168, 52, 255 };
+        return .{ 82, 178, 58, 255 };
+    }
+    if (tile_x == 1 and tile_y == 0) {
+        const fringe: usize = 2 + hash2(x, 0, 21) % 3;
+        if (y < fringe) {
+            if (hash2(x, y, 22) % 100 < 20) return .{ 52, 140, 44, 255 };
+            return .{ 80, 172, 55, 255 };
+        }
+        if (y == fringe) return .{ 62, 120, 40, 255 };
+        return dirtPixel(x, y);
+    }
+    if (tile_x == 2 and tile_y == 0) return dirtPixel(x, y);
+    if (tile_x == 3 and tile_y == 0) return stonePixel(x, y, 31);
+    if (tile_x == 0 and tile_y == 1) {
+        const band = (x + y * 2) % 16 < 3;
+        const n = hash2(x, y, 41) % 21;
+        if (band) return .{ 55, 130, 225, 185 };
+        return .{ 35 + @as(u8, @intCast(n / 2)), 95 + @as(u8, @intCast(n)), 210, 185 };
+    }
+    if (tile_x == 1 and tile_y == 1) {
+        const ridge = x % 4 == 0;
+        const knot = (x == 5 or x == 12) and (y == 4 or y == 11);
+        const n = hash2(x, y, 51) % 20;
+        if (knot) return .{ 55, 35, 18, 255 };
+        if (ridge) return .{ 62 + @as(u8, @intCast(n / 2)), 40, 22, 255 };
+        if (n < 4) return .{ 130, 92, 50, 255 };
+        return .{ 98 + @as(u8, @intCast(n)), 64 + @as(u8, @intCast(n / 2)), 34, 255 };
+    }
+    if (tile_x == 2 and tile_y == 1) {
+        const dx: i32 = @as(i32, @intCast(x)) - 7;
+        const dy: i32 = @as(i32, @intCast(y)) - 7;
+        const ax: usize = @intCast(@max(dx, -dx) + @max(dy, -dy));
+        const ring = ax % 3 == 0;
+        if (ax > 13) return .{ 95, 62, 32, 255 };
+        if (ring) return .{ 128, 92, 52, 255 };
+        const n = hash2(x, y, 52) % 10;
+        return .{ 178 + @as(u8, @intCast(n)), 140 + @as(u8, @intCast(n)), 88, 255 };
+    }
+    if (tile_x == 3 and tile_y == 1) {
+        const n = hash2(x, y, 61) % 100;
+        if (hash2(x / 2, y / 2, 62) % 13 == 0) return .{ 12, 40, 12, 255 };
+        if (n < 15) return .{ 96, 170, 50, 255 };
+        if (n < 45) return .{ 52, 130, 34, 255 };
+        return .{ 34, 105, 26, 255 };
+    }
+    if (tile_x == 0 and tile_y == 2) {
+        const n = hash2(x, y, 71) % 15;
+        const wc: u8 = 225 + @as(u8, @intCast(n));
+        return .{ wc, wc, wc - 5, 255 };
+    }
+    if (tile_x == 1 and tile_y == 2) {
+        const eye = (y >= 6 and y <= 8) and ((x >= 2 and x <= 5) or (x >= 10 and x <= 13));
+        const pupil = (y >= 7 and y <= 8) and ((x >= 4 and x <= 5) or (x >= 10 and x <= 11));
+        const muzzle = (y >= 9 and y <= 13) and (x >= 5 and x <= 10);
+        if (pupil) return .{ 35, 30, 30, 255 };
+        if (eye) return .{ 245, 245, 245, 255 };
+        if (muzzle) return .{ 220, 180, 170, 255 };
+        const n = hash2(x, y, 72) % 11;
+        return .{ 205 + @as(u8, @intCast(n)), 190 + @as(u8, @intCast(n)), 175, 255 };
+    }
+    if (tile_x == 2 and tile_y == 2) {
+        const seam_y = y % 4 == 0;
+        const seam_x = (x + (y / 4) * 5 + 3) % 16 == 0;
+        const knot = (x == 4 and y == 6) or (x == 11 and y == 13);
+        if (knot) return .{ 88, 58, 28, 255 };
+        if (seam_y or seam_x) return .{ 92, 62, 30, 255 };
+        if (hash2(x, y / 2, 81) % 16 == 0) return .{ 148, 104, 55, 255 };
+        const n = hash2(x, y, 82) % 14;
+        return .{ 172 + @as(u8, @intCast(n)), 126 + @as(u8, @intCast(n / 2)), 70, 255 };
+    }
+    if (tile_x == 3 and tile_y == 2) {
+        if (x < 2 or x > 13 or y < 2 or y > 13) return .{ 96, 62, 30, 255 };
+        if ((x - 2) % 4 == 0 or (y - 2) % 4 == 0) return .{ 122, 84, 42, 255 };
+        if ((x >= 6 and x <= 9 and y == 7) or (x == 8 and y >= 5 and y <= 9)) return .{ 70, 70, 74, 255 };
+        const n = hash2(x, y, 83) % 12;
+        return .{ 182 + @as(u8, @intCast(n)), 138 + @as(u8, @intCast(n / 2)), 80, 255 };
+    }
+    if (tile_x == 0 and tile_y == 3) {
+        const cx = x / 4;
+        const cy = y / 4;
+        const lx: i32 = @as(i32, @intCast(x % 4)) - 1;
+        const ly: i32 = @as(i32, @intCast(y % 4)) - 1;
+        const corner = @max(lx, -lx) + @max(ly, -ly) >= 3;
+        const shift = cy % 2;
+        const mortar = corner or ((x + shift) % 4 == 0 and hash2(cx, cy, 91) % 3 == 0);
+        if (mortar) return .{ 48, 48, 52, 255 };
+        const n = hash2(x, y, 92) % 26;
+        const shade: u8 = 118 + @as(u8, @intCast(n)) + @as(u8, @intCast((cx + cy) % 2 * 12));
+        if ((lx == 0 and ly == -1) or (lx == -1 and ly == 0)) return .{ shade + 22, shade + 22, shade + 24, 255 };
+        return .{ shade, shade, shade + 3, 255 };
+    }
+    if (tile_x == 1 and tile_y == 3) {
+        const blob = isCoalBlob(x, y);
+        if (blob == 2) return .{ 72, 72, 76, 255 };
+        if (blob == 1) return .{ 18, 18, 20, 255 };
+        return stonePixel(x, y, 93);
+    }
+    return .{ 0, 0, 0, 0 };
+}
+
+fn dirtPixel(x: usize, y: usize) [4]u8 {
+    const n = hash2(x, y, 23) % 100;
+    if (n < 10) return .{ 78, 46, 24, 255 };
+    if (n < 18) return .{ 150, 105, 62, 255 };
+    if (n < 30) return .{ 108, 66, 34, 255 };
+    return .{ 124, 76, 40, 255 };
+}
+
+fn stonePixel(x: usize, y: usize, seed: u32) [4]u8 {
+    const n = hash2(x, y, seed) % 100;
+    const crack = (x + 3 * y) % 16 == 0;
+    if (crack) return .{ 70, 70, 73, 255 };
+    if (n < 12) return .{ 88, 88, 92, 255 };
+    if (n < 22) return .{ 152, 152, 156, 255 };
+    return .{ 122, 122, 126, 255 };
+}
+
+fn isCoalBlob(x: usize, y: usize) u8 {
+    if (x >= 2 and x <= 4 and y >= 2 and y <= 4) {
+        if (x == 3 and y == 3) return 1;
+        if (x == 3 and (y == 2 or y == 4)) return 1;
+        if ((x == 2 or x == 4) and y == 3) return 1;
+        return 2;
+    }
+    if (x >= 9 and x <= 11 and y >= 4 and y <= 6) {
+        if (x == 10 and y == 5) return 1;
+        if (x == 10 and (y == 4 or y == 6)) return 1;
+        if ((x == 9 or x == 11) and y == 5) return 1;
+        return 2;
+    }
+    if (x >= 5 and x <= 7 and y >= 10 and y <= 12) {
+        if (x == 6 and y == 11) return 1;
+        if (x == 6 and (y == 10 or y == 12)) return 1;
+        if ((x == 5 or x == 7) and y == 11) return 1;
+        return 2;
+    }
+    return 0;
+}
+
 pub fn createBlockTexture() c.GLuint {
     var texture: c.GLuint = 0;
     c.glGenTextures(1, &texture);
     c.glBindTexture(c.GL_TEXTURE_2D, texture);
-
     const atlas_size: usize = 64;
     var data: [64 * 64 * 4]u8 = undefined;
-
-    // Fill all with default black/transparent
     @memset(&data, 0);
-
-    var y: usize = 0;
-    while (y < 16) : (y += 1) {
-        var x: usize = 0;
-        while (x < 16) : (x += 1) {
-            // Tile (0,0): Grass Top - lush green noise
-            const noise1 = (x * 7 + y * 13) % 17;
-            const gt_idx = (y * 64 + x) * 4;
-            data[gt_idx] = 45 + @as(u8, @intCast(noise1));
-            data[gt_idx + 1] = 160 + @as(u8, @intCast(noise1 * 2));
-            data[gt_idx + 2] = 40;
-            data[gt_idx + 3] = 255;
-
-            // Tile (1,0): Grass Side - green top 4px, dirt below
-            const gs_idx = (y * 64 + (16 + x)) * 4;
-            if (y < 4) {
-                data[gs_idx] = 45 + @as(u8, @intCast(noise1));
-                data[gs_idx + 1] = 160 + @as(u8, @intCast(noise1 * 2));
-                data[gs_idx + 2] = 40;
-            } else {
-                const dirt_noise = (x * 11 + y * 5) % 19;
-                data[gs_idx] = 120 + @as(u8, @intCast(dirt_noise));
-                data[gs_idx + 1] = 72 + @as(u8, @intCast(dirt_noise / 2));
-                data[gs_idx + 2] = 38;
+    var ty: usize = 0;
+    while (ty < 4) : (ty += 1) {
+        var tx: usize = 0;
+        while (tx < 4) : (tx += 1) {
+            var yy: usize = 0;
+            while (yy < 16) : (yy += 1) {
+                var xx: usize = 0;
+                while (xx < 16) : (xx += 1) {
+                    const px = tilePixel(@intCast(tx), @intCast(ty), xx, yy);
+                    const idx = ((ty * 16 + yy) * 64 + (tx * 16 + xx)) * 4;
+                    data[idx] = px[0];
+                    data[idx + 1] = px[1];
+                    data[idx + 2] = px[2];
+                    data[idx + 3] = px[3];
+                }
             }
-            data[gs_idx + 3] = 255;
-
-            // Tile (2,0): Dirt - rich brown soil texture
-            const dirt_idx = (y * 64 + (32 + x)) * 4;
-            const d_noise = (x * 11 + y * 5) % 23;
-            data[dirt_idx] = 120 + @as(u8, @intCast(d_noise));
-            data[dirt_idx + 1] = 72 + @as(u8, @intCast(d_noise / 2));
-            data[dirt_idx + 2] = 38;
-            data[dirt_idx + 3] = 255;
-
-            // Tile (3,0): Stone - mottled gray rock texture
-            const stone_idx = (y * 64 + (48 + x)) * 4;
-            const s_noise = (x * 13 + y * 17) % 29;
-            const gray = 115 + @as(u8, @intCast(s_noise));
-            data[stone_idx] = gray;
-            data[stone_idx + 1] = gray;
-            data[stone_idx + 2] = gray + 3;
-            data[stone_idx + 3] = 255;
-
-            // Tile (0,1): Water - vibrant blue water with alpha 185
-            const w_noise = (x * 17 + y * 7) % 21;
-            const water_idx = ((16 + y) * 64 + x) * 4;
-            data[water_idx] = 35 + @as(u8, @intCast(w_noise / 2));
-            data[water_idx + 1] = 95 + @as(u8, @intCast(w_noise));
-            data[water_idx + 2] = 210 + @as(u8, @intCast(w_noise * 2));
-            data[water_idx + 3] = 185;
-
-            // Tile (1,1): Wood Log Side - vertical tree bark grain
-            const log_side_idx = ((16 + y) * 64 + (16 + x)) * 4;
-            const bark = (x * 19 + y * 3) % 25;
-            data[log_side_idx] = 95 + @as(u8, @intCast(bark));
-            data[log_side_idx + 1] = 60 + @as(u8, @intCast(bark / 2));
-            data[log_side_idx + 2] = 30;
-            data[log_side_idx + 3] = 255;
-
-            // Tile (2,1): Wood Log Top - circular ring pattern
-            const log_top_idx = ((16 + y) * 64 + (32 + x)) * 4;
-            const dx: f32 = @as(f32, @floatFromInt(x)) - 7.5;
-            const dy: f32 = @as(f32, @floatFromInt(y)) - 7.5;
-            const dist: u8 = @intFromFloat(@sqrt(dx * dx + dy * dy) * 3.0);
-            const ring = if (dist % 4 == 0) @as(u8, 20) else @as(u8, 0);
-            data[log_top_idx] = 150 - ring;
-            data[log_top_idx + 1] = 115 - ring;
-            data[log_top_idx + 2] = 70;
-            data[log_top_idx + 3] = 255;
-
-            // Tile (3,1): Leaves - dappled dark green foliage
-            const leaf_idx = ((16 + y) * 64 + (48 + x)) * 4;
-            const l_noise = (x * 13 + y * 23) % 35;
-            data[leaf_idx] = 30 + @as(u8, @intCast(l_noise / 3));
-            data[leaf_idx + 1] = 100 + @as(u8, @intCast(l_noise));
-            data[leaf_idx + 2] = 25;
-            data[leaf_idx + 3] = 255;
-
-            // Tile (0,2): Mob Wool Body - off-white soft fleece texture
-            const wool_idx = ((32 + y) * 64 + x) * 4;
-            const wool_n = (x * 9 + y * 11) % 15;
-            const wool_c: u8 = 225 + @as(u8, @intCast(wool_n));
-            data[wool_idx] = wool_c;
-            data[wool_idx + 1] = wool_c;
-            data[wool_idx + 2] = wool_c - 5;
-            data[wool_idx + 3] = 255;
-
-            // Tile (1,2): Mob Face - sheep face with eyes and pinkish muzzle
-            const face_idx = ((32 + y) * 64 + (16 + x)) * 4;
-            // Eyes at y in [6..8], x in [3..4] and [11..12]
-            const is_eye_white = (y >= 6 and y <= 8) and ((x >= 2 and x <= 5) or (x >= 10 and x <= 13));
-            const is_pupil = (y >= 7 and y <= 8) and ((x >= 4 and x <= 5) or (x >= 10 and x <= 11));
-            // Muzzle at y in [9..13], x in [5..10]
-            const is_muzzle = (y >= 9 and y <= 13) and (x >= 5 and x <= 10);
-
-            if (is_pupil) {
-                data[face_idx] = 35;
-                data[face_idx + 1] = 30;
-                data[face_idx + 2] = 30;
-            } else if (is_eye_white) {
-                data[face_idx] = 245;
-                data[face_idx + 1] = 245;
-                data[face_idx + 2] = 245;
-            } else if (is_muzzle) {
-                data[face_idx] = 220;
-                data[face_idx + 1] = 180;
-                data[face_idx + 2] = 170;
-            } else {
-                // Tan face skin
-                const face_n = (x * 7 + y * 5) % 11;
-                data[face_idx] = 205 + @as(u8, @intCast(face_n));
-                data[face_idx + 1] = 190 + @as(u8, @intCast(face_n));
-                data[face_idx + 2] = 175;
-            }
-            data[face_idx + 3] = 255;
-
-            // Tile (2,2): Wood Planks - horizontal lumber planks with seams
-            const plank_idx = ((32 + y) * 64 + (32 + x)) * 4;
-            const is_seam_y = (y % 4 == 0);
-            const is_seam_x = (y < 4 and x == 8) or (y >= 4 and y < 8 and x == 14) or (y >= 8 and y < 12 and x == 4) or (y >= 12 and x == 10);
-            const plank_n = (x * 13 + y * 7) % 15;
-            if (is_seam_y or is_seam_x) {
-                data[plank_idx] = 95;
-                data[plank_idx + 1] = 65;
-                data[plank_idx + 2] = 32;
-            } else {
-                data[plank_idx] = 170 + @as(u8, @intCast(plank_n));
-                data[plank_idx + 1] = 125 + @as(u8, @intCast(plank_n / 2));
-                data[plank_idx + 2] = 72;
-            }
-            data[plank_idx + 3] = 255;
-
-            // Tile (3,2): Crafting Table - wooden borders with 3x3 checkered grid top
-            const craft_idx = ((32 + y) * 64 + (48 + x)) * 4;
-            const is_border = (x == 0 or x == 15 or y == 0 or y == 15);
-            const grid_cell = ((x / 5) + (y / 5)) % 2 == 0;
-            if (is_border) {
-                data[craft_idx] = 110;
-                data[craft_idx + 1] = 70;
-                data[craft_idx + 2] = 35;
-            } else if (grid_cell) {
-                data[craft_idx] = 190;
-                data[craft_idx + 1] = 145;
-                data[craft_idx + 2] = 85;
-            } else {
-                data[craft_idx] = 160;
-                data[craft_idx + 1] = 115;
-                data[craft_idx + 2] = 65;
-            }
-            data[craft_idx + 3] = 255;
         }
     }
-
-    c.glTexImage2D(
-        c.GL_TEXTURE_2D,
-        0,
-        c.GL_RGBA,
-        @intCast(atlas_size),
-        @intCast(atlas_size),
-        0,
-        c.GL_RGBA,
-        c.GL_UNSIGNED_BYTE,
-        &data,
-    );
-
+    c.glTexImage2D(c.GL_TEXTURE_2D, 0, c.GL_RGBA, @intCast(atlas_size), @intCast(atlas_size), 0, c.GL_RGBA, c.GL_UNSIGNED_BYTE, &data);
     c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_WRAP_S, c.GL_REPEAT);
     c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_WRAP_T, c.GL_REPEAT);
     c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_MIN_FILTER, c.GL_NEAREST);
     c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_MAG_FILTER, c.GL_NEAREST);
-
     c.glBindTexture(c.GL_TEXTURE_2D, 0);
     return texture;
 }
 
 test "tile UV coordinates within unit quad" {
-    const uv_gt = getTileUV(0, 0);
-    try std.testing.expectEqual(uv_gt[0][0], 0.0);
-    try std.testing.expectEqual(uv_gt[0][1], 0.0);
-    try std.testing.expectEqual(uv_gt[2][0], 0.25);
-    try std.testing.expectEqual(uv_gt[2][1], 0.25);
+    const uv = getTileUV(1, 1);
+    try std.testing.expectEqual(uv[0][0], 0.25);
+    try std.testing.expectEqual(uv[0][1], 0.25);
+    try std.testing.expectEqual(uv[2][0], 0.5);
+    try std.testing.expectEqual(uv[2][1], 0.5);
+}
 
-    const uv_wood = getTileUV(1, 1);
-    try std.testing.expectEqual(uv_wood[0][0], 0.25);
-    try std.testing.expectEqual(uv_wood[0][1], 0.25);
+test "all block tiles opaque, reserved transparent" {
+    const tiles = [_][2]u32{ .{ 0, 0 }, .{ 1, 0 }, .{ 2, 0 }, .{ 3, 0 }, .{ 1, 1 }, .{ 2, 1 }, .{ 3, 1 }, .{ 2, 2 }, .{ 3, 2 }, .{ 0, 3 }, .{ 1, 3 } };
+    for (tiles) |t| {
+        var yy: usize = 0;
+        while (yy < 16) : (yy += 1) {
+            var xx: usize = 0;
+            while (xx < 16) : (xx += 1) {
+                try std.testing.expectEqual(tilePixel(t[0], t[1], xx, yy)[3], 255);
+            }
+        }
+    }
+    try std.testing.expectEqual(tilePixel(2, 3, 4, 4)[3], 0);
+    try std.testing.expectEqual(tilePixel(0, 0, 3, 3)[1] > tilePixel(0, 0, 3, 3)[0], true);
+    try std.testing.expectEqual(tilePixel(1, 3, 3, 3)[0], 18);
+    try std.testing.expectEqual(tilePixel(1, 3, 10, 5)[0], 18);
+    try std.testing.expectEqual(tilePixel(1, 3, 6, 11)[0], 18);
+}
 
-    const uv_mob_face = getTileUV(1, 2);
-    try std.testing.expectEqual(uv_mob_face[0][0], 0.25);
-    try std.testing.expectEqual(uv_mob_face[0][1], 0.50);
+test "grass side fringe green on top, dirt at bottom" {
+    var xx: usize = 0;
+    while (xx < 16) : (xx += 1) {
+        const top = tilePixel(1, 0, xx, 0);
+        try std.testing.expect(top[1] > top[0]);
+        const bot = tilePixel(1, 0, xx, 15);
+        try std.testing.expect(bot[0] > bot[1]);
+    }
 }
