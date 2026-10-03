@@ -16,6 +16,7 @@ pub const ItemType = enum(u8) {
     crafting_bench = 10,
     cobblestone = 11,
     coal = 12,
+    iron_ore = 13,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -29,6 +30,7 @@ pub const ItemType = enum(u8) {
             .crafting_bench => .crafting_table,
             .cobblestone => .cobblestone,
             .coal => .coal_ore,
+            .iron_ore => .iron_ore,
             else => null,
         };
     }
@@ -46,6 +48,7 @@ pub const ItemType = enum(u8) {
             .crafting_table => .crafting_bench,
             .cobblestone => .cobblestone,
             .coal_ore => .coal,
+            .iron_ore => .iron_ore,
         };
     }
 
@@ -83,6 +86,7 @@ pub const ItemType = enum(u8) {
             .crafting_bench => "Crafting Table",
             .cobblestone => "Cobblestone",
             .coal => "Coal",
+            .iron_ore => "Iron Ore",
         };
     }
 
@@ -101,6 +105,7 @@ pub const ItemType = enum(u8) {
             .crafting_bench => .{ 0.75, 0.50, 0.25, 0.95 },
             .cobblestone => .{ 0.5, 0.5, 0.53, 0.95 },
             .coal => .{ 0.12, 0.12, 0.14, 0.95 },
+            .iron_ore => .{ 0.72, 0.55, 0.42, 0.95 },
         };
     }
 };
