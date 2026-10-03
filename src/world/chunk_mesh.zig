@@ -42,11 +42,13 @@ const face_normals: [6][3]f32 = .{
 };
 
 fn faceTexCoords(tile_x: u32, tile_y: u32, w: f32, h: f32) [4][2]f32 {
+    _ = w;
+    _ = h;
     const tile_size: f32 = 0.25; // 4x4 atlas
     const u_min = @as(f32, @floatFromInt(tile_x)) * tile_size;
     const v_min = @as(f32, @floatFromInt(tile_y)) * tile_size;
-    const u_max = u_min + tile_size * w;
-    const v_max = v_min + tile_size * h;
+    const u_max = u_min + tile_size;
+    const v_max = v_min + tile_size;
     return .{
         .{ u_min, v_min },
         .{ u_max, v_min },
@@ -163,16 +165,10 @@ pub fn generateMesh(
                         continue;
                     }
 
-                    var w: usize = 1;
-                    while (u + w < size and mask[v][u + w] == block) : (w += 1) {}
-
-                    var h: usize = 1;
-                    outer_h: while (v + h < size) : (h += 1) {
-                        var k: usize = 0;
-                        while (k < w) : (k += 1) {
-                            if (mask[v + h][u + k] != block) break :outer_h;
-                        }
-                    }
+                    // Render individual 1x1 block faces so texture atlas coordinates
+                    // never stretch or sample neighbor tiles in the 4x4 atlas.
+                    const w: usize = 1;
+                    const h: usize = 1;
 
                     var dy: usize = 0;
                     while (dy < h) : (dy += 1) {

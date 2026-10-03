@@ -130,7 +130,35 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         if (blob == 1) return .{ 18, 18, 20, 255 };
         return stonePixel(x, y, 93);
     }
+    // Iron ore: stone base with rusty tan/peach metallic blobs
+    if (tile_x == 2 and tile_y == 3) {
+        const blob = isIronBlob(x, y);
+        if (blob == 2) return .{ 225, 195, 170, 255 }; // light metallic specular
+        if (blob == 1) return .{ 185, 138, 105, 255 }; // rusty peach core
+        return stonePixel(x, y, 97);
+    }
     return .{ 0, 0, 0, 0 };
+}
+
+fn isIronBlob(x: usize, y: usize) u8 {
+    // 3 distinct clusters offset from coal
+    if (x >= 4 and x <= 6 and y >= 3 and y <= 5) {
+        if (x == 5 and y == 4) return 1;
+        if ((x == 4 or x == 6) and y == 4) return 2;
+        if (x == 5 and (y == 3 or y == 5)) return 2;
+        return 1;
+    }
+    if (x >= 11 and x <= 13 and y >= 8 and y <= 10) {
+        if (x == 12 and y == 9) return 1;
+        if ((x == 11 or x == 13) and y == 9) return 2;
+        if (x == 12 and (y == 8 or y == 10)) return 2;
+        return 1;
+    }
+    if (x >= 2 and x <= 4 and y >= 11 and y <= 13) {
+        if (x == 3 and y == 12) return 1;
+        return 2;
+    }
+    return 0;
 }
 
 fn dirtPixel(x: usize, y: usize) [4]u8 {
@@ -215,7 +243,7 @@ test "tile UV coordinates within unit quad" {
 }
 
 test "all block tiles opaque, reserved transparent" {
-    const tiles = [_][2]u32{ .{ 0, 0 }, .{ 1, 0 }, .{ 2, 0 }, .{ 3, 0 }, .{ 1, 1 }, .{ 2, 1 }, .{ 3, 1 }, .{ 2, 2 }, .{ 3, 2 }, .{ 0, 3 }, .{ 1, 3 } };
+    const tiles = [_][2]u32{ .{ 0, 0 }, .{ 1, 0 }, .{ 2, 0 }, .{ 3, 0 }, .{ 1, 1 }, .{ 2, 1 }, .{ 3, 1 }, .{ 2, 2 }, .{ 3, 2 }, .{ 0, 3 }, .{ 1, 3 }, .{ 2, 3 } };
     for (tiles) |t| {
         var yy: usize = 0;
         while (yy < 16) : (yy += 1) {
@@ -225,7 +253,9 @@ test "all block tiles opaque, reserved transparent" {
             }
         }
     }
-    try std.testing.expectEqual(tilePixel(2, 3, 4, 4)[3], 0);
+    try std.testing.expectEqual(tilePixel(3, 3, 4, 4)[3], 0);
+    // Iron ore blob center check
+    try std.testing.expectEqual(tilePixel(2, 3, 5, 4)[0], 185);
     try std.testing.expectEqual(tilePixel(0, 0, 3, 3)[1] > tilePixel(0, 0, 3, 3)[0], true);
     try std.testing.expectEqual(tilePixel(1, 3, 3, 3)[0], 18);
     try std.testing.expectEqual(tilePixel(1, 3, 10, 5)[0], 18);

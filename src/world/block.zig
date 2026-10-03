@@ -13,6 +13,7 @@ pub const BlockId = enum(u8) {
     crafting_table = 8,
     cobblestone = 9,
     coal_ore = 10,
+    iron_ore = 11,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water;
@@ -52,6 +53,7 @@ pub const BlockId = enum(u8) {
             .wood_planks => .{ .x = 2, .y = 2 },
             .cobblestone => .{ .x = 0, .y = 3 },
             .coal_ore => .{ .x = 1, .y = 3 },
+            .iron_ore => .{ .x = 2, .y = 3 },
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -88,6 +90,7 @@ pub fn hardness(block: BlockId) f32 {
         .cobblestone => 2.2,
         .stone => 2.5,
         .coal_ore => 3.0,
+        .iron_ore => 3.5,
     };
 }
 
@@ -99,7 +102,7 @@ pub const ToolTier = enum(u8) {
 
 pub fn requiredTier(block: BlockId) ToolTier {
     return switch (block) {
-        .stone, .cobblestone, .coal_ore => .wooden,
+        .stone, .cobblestone, .coal_ore, .iron_ore => .wooden,
         else => .hand,
     };
 }
@@ -109,7 +112,7 @@ pub fn requiredTier(block: BlockId) ToolTier {
 pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
     if (held_tool_id == TOOL_WOODEN_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore => 3.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore => 3.0,
             else => 1.5,
         };
     }
@@ -134,6 +137,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .crafting_table = .{ .name = "crafting_table", .solid = true, .transparent = false, .fluid = false },
     .cobblestone = .{ .name = "cobblestone", .solid = true, .transparent = false, .fluid = false },
     .coal_ore = .{ .name = "coal_ore", .solid = true, .transparent = false, .fluid = false },
+    .iron_ore = .{ .name = "iron_ore", .solid = true, .transparent = false, .fluid = false },
 });
 
 test "block is_solid" {
@@ -146,6 +150,7 @@ test "block is_solid" {
     try std.testing.expect(BlockId.leaves.is_solid());
     try std.testing.expect(BlockId.cobblestone.is_solid());
     try std.testing.expect(BlockId.coal_ore.is_solid());
+    try std.testing.expect(BlockId.iron_ore.is_solid());
 }
 
 test "new block face texture mapping" {
@@ -155,6 +160,9 @@ test "new block face texture mapping" {
     const ore = BlockId.coal_ore.getFaceTexture(0);
     try std.testing.expectEqual(ore.x, 1);
     try std.testing.expectEqual(ore.y, 3);
+    const iron = BlockId.iron_ore.getFaceTexture(0);
+    try std.testing.expectEqual(iron.x, 2);
+    try std.testing.expectEqual(iron.y, 3);
 }
 
 test "block is_transparent" {

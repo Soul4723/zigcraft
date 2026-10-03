@@ -27,6 +27,11 @@ pub const TerrainGenerator = struct {
 
     /// Height (0..SIZE-1, clamped) for a world-space (x,z) column.
     pub fn heightAt(self: TerrainGenerator, wx: i32, wz: i32) u4 {
+        // Macro continentalness noise (low-frequency rolling hills/valleys)
+        const macro_val = valueNoise2D(self.seed +% 0x11223344, wx, wz, 0.02);
+        // Ridge noise creating river cuts/depressions
+        const ridge_val = @abs(valueNoise2D(self.seed +% 0x55667788, wx, wz, 0.035));
+
         var freq = self.frequency;
         var amp = self.amplitude;
         var total: f32 = 0;
@@ -38,7 +43,8 @@ pub const TerrainGenerator = struct {
             freq *= 2.0;
             amp *= 0.5;
         }
-        const h = @as(f32, @floatFromInt(self.base_height)) + total / norm * self.amplitude;
+        const detail = (total / norm) * self.amplitude;
+        const h = @as(f32, @floatFromInt(self.base_height)) + 0.2 + macro_val * 3.5 + detail - (0.5 - ridge_val) * 1.5;
         const clamped = @max(1, @min(11, @as(i32, @intFromFloat(@round(h)))));
         return @intCast(clamped);
     }
@@ -66,12 +72,59 @@ pub const TerrainGenerator = struct {
         return h;
     }
 
+    /// 3D value-noise sample at (wx, wy, wz).
+    fn noise3D(self: TerrainGenerator, wx: i32, wy: i32, wz: i32, freq: f32, seed_offset: u64) f32 {
+        const fx = @as(f32, @floatFromInt(wx)) * freq;
+        const fy = @as(f32, @floatFromInt(wy)) * freq;
+        const fz = @as(f32, @floatFromInt(wz)) * freq;
+        const x0 = @as(i32, @intFromFloat(@floor(fx)));
+        const y0 = @as(i32, @intFromFloat(@floor(fy)));
+        const z0 = @as(i32, @intFromFloat(@floor(fz)));
+        const tx = fx - @floor(fx);
+        const ty = fy - @floor(fy);
+        const tz = fz - @floor(fz);
+        const sx = tx * tx * (3.0 - 2.0 * tx);
+        const sy = ty * ty * (3.0 - 2.0 * ty);
+        const sz = tz * tz * (3.0 - 2.0 * tz);
+        const s = self.seed +% seed_offset;
+        const c000 = lattice3(s, x0, y0, z0);
+        const c100 = lattice3(s, x0 + 1, y0, z0);
+        const c010 = lattice3(s, x0, y0 + 1, z0);
+        const c110 = lattice3(s, x0 + 1, y0 + 1, z0);
+        const c001 = lattice3(s, x0, y0, z0 + 1);
+        const c101 = lattice3(s, x0 + 1, y0, z0 + 1);
+        const c011 = lattice3(s, x0, y0 + 1, z0 + 1);
+        const c111 = lattice3(s, x0 + 1, y0 + 1, z0 + 1);
+        const x00 = c000 * (1.0 - sx) + c100 * sx;
+        const x10 = c010 * (1.0 - sx) + c110 * sx;
+        const x01 = c001 * (1.0 - sx) + c101 * sx;
+        const x11 = c011 * (1.0 - sx) + c111 * sx;
+        const y0_val = x00 * (1.0 - sy) + x10 * sy;
+        const y1_val = x01 * (1.0 - sy) + x11 * sy;
+        return y0_val * (1.0 - sz) + y1_val * sz;
+    }
+
+    /// True if subterranean coordinates (wx,wy,wz) fall inside a 3D cave tunnel.
+    /// Worm caves formed by intersection of two 3D noise isosurfaces near zero.
+    pub fn isCave(self: TerrainGenerator, wx: i32, wy: i32, wz: i32) bool {
+        if (wy < 1 or wy > 7) return false;
+        const n1 = self.noise3D(wx, wy, wz, 0.12, 0x1A2B3C4D);
+        const n2 = self.noise3D(wx, wy, wz, 0.12, 0x5E6F7A8B);
+        const d1 = n1 - 0.5;
+        const d2 = n2 - 0.5;
+        return (d1 * d1 + d2 * d2) < 0.016;
+    }
+
     fn stoneAt(self: TerrainGenerator, wx: i32, wy: i32, wz: i32) BlockId {
         if (wy >= 1 and wy <= 3) {
+            if (self.oreHash(wx, wy, wz, 0x1804) % 19 == 0) return .iron_ore;
             if (self.oreHash(wx, wy, wz, 0xC0A1) % 14 == 0) return .coal_ore;
             if (self.oreHash(wx, wy, wz, 0xC0BB1E) % 11 == 0) return .cobblestone;
         }
-        if (wy == 4 and self.oreHash(wx, wy, wz, 0xC0BB1E) % 23 == 0) return .cobblestone;
+        if (wy == 4) {
+            if (self.oreHash(wx, wy, wz, 0x1804) % 31 == 0) return .iron_ore;
+            if (self.oreHash(wx, wy, wz, 0xC0BB1E) % 23 == 0) return .cobblestone;
+        }
         return .stone;
     }
 
@@ -87,8 +140,14 @@ pub const TerrainGenerator = struct {
                 const h: usize = self.heightAt(wx, wz);
                 var y: usize = 0;
                 while (y <= h) : (y += 1) {
-                    const b: BlockId = if (y == h) (if (h < SEA_LEVEL) .dirt else .grass) else if (y >= h -% 2 and h >= 3) .dirt else self.stoneAt(wx, @intCast(y), wz);
-                    chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), b);
+                    const is_surface = (y == h);
+                    const b: BlockId = if (is_surface) (if (h < SEA_LEVEL) .dirt else .grass) else if (y >= h -% 2 and h >= 3) .dirt else self.stoneAt(wx, @intCast(y), wz);
+                    // Caves carve subterranean stone/dirt (keep surface & bottom floor intact)
+                    if (!is_surface and y > 0 and self.isCave(wx, @intCast(y), wz)) {
+                        chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .air);
+                    } else {
+                        chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), b);
+                    }
                 }
                 // Water filling up to SEA_LEVEL
                 if (h < SEA_LEVEL) {
@@ -100,7 +159,7 @@ pub const TerrainGenerator = struct {
             }
         }
 
-        // 2. Spawn trees in grassy land (trunk 3-4 blocks high, 3x3 leaf canopy)
+        // 2. Spawn trees in grassy land (organic rounded canopy with varied trunk)
         lz = 2;
         while (lz < SIZE - 2) : (lz += 1) {
             var lx: usize = 2;
@@ -110,37 +169,63 @@ pub const TerrainGenerator = struct {
                 const h: usize = self.heightAt(wx, wz);
 
                 // Trees only spawn on grass above water
-                if (h >= SEA_LEVEL and self.hasTree(wx, wz) and h + 5 < SIZE) {
-                    // Wood trunk
-                    var ty: usize = h + 1;
-                    while (ty <= h + 3) : (ty += 1) {
-                        chunk.setBlock(@intCast(lx), @intCast(ty), @intCast(lz), .wood);
-                    }
+                if (h >= SEA_LEVEL and self.hasTree(wx, wz)) {
+                    const trunk_h: usize = if (h + 6 < SIZE) 4 else 3;
+                    if (h + trunk_h + 2 < SIZE) {
+                        // Wood trunk
+                        var ty: usize = h + 1;
+                        while (ty <= h + trunk_h) : (ty += 1) {
+                            chunk.setBlock(@intCast(lx), @intCast(ty), @intCast(lz), .wood);
+                        }
 
-                    // Leaf canopy 3x3 on top
-                    var cy: usize = h + 3;
-                    while (cy <= h + 4) : (cy += 1) {
-                        var ox: i32 = -1;
-                        while (ox <= 1) : (ox += 1) {
-                            var oz: i32 = -1;
-                            while (oz <= 1) : (oz += 1) {
-                                const bx: usize = @intCast(@as(i32, @intCast(lx)) + ox);
-                                const bz: usize = @intCast(@as(i32, @intCast(lz)) + oz);
-                                if (chunk.getBlock(@intCast(bx), @intCast(cy), @intCast(bz)) == .air) {
-                                    chunk.setBlock(@intCast(bx), @intCast(cy), @intCast(bz), .leaves);
+                        // Spherical/rounded leaf crown around top of trunk
+                        const top_y = h + trunk_h;
+                        var cy: i32 = @as(i32, @intCast(top_y)) - 2;
+                        while (cy <= @as(i32, @intCast(top_y)) + 1) : (cy += 1) {
+                            if (cy >= SIZE) continue;
+                            const rad: i32 = if (cy >= top_y) 1 else 2;
+                            var ox: i32 = -rad;
+                            while (ox <= rad) : (ox += 1) {
+                                var oz: i32 = -rad;
+                                while (oz <= rad) : (oz += 1) {
+                                    // Cut off outer corners for organic spherical shape
+                                    if (rad == 2 and (ox == -2 or ox == 2) and (oz == -2 or oz == 2)) continue;
+                                    // Plus shape on top crown
+                                    if (cy == top_y + 1 and ((ox != 0 and oz != 0) or (ox == 0 and oz == 0))) {
+                                        if (ox != 0 or oz != 0) continue;
+                                    }
+                                    const bx_i: i32 = @as(i32, @intCast(lx)) + ox;
+                                    const bz_i: i32 = @as(i32, @intCast(lz)) + oz;
+                                    if (bx_i >= 0 and bx_i < SIZE and bz_i >= 0 and bz_i < SIZE and cy >= 0) {
+                                        const bx: usize = @intCast(bx_i);
+                                        const bz: usize = @intCast(bz_i);
+                                        const uy: usize = @intCast(cy);
+                                        if (chunk.getBlock(@intCast(bx), @intCast(uy), @intCast(bz)) == .air) {
+                                            chunk.setBlock(@intCast(bx), @intCast(uy), @intCast(bz), .leaves);
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
-                    // Crown top leaf
-                    if (h + 5 < SIZE) {
-                        chunk.setBlock(@intCast(lx), @intCast(h + 5), @intCast(lz), .leaves);
                     }
                 }
             }
         }
     }
 };
+
+test "underground caves carve stone but leave y=0 bedrock intact" {
+    const tg = TerrainGenerator.init(42);
+    var chunk = Chunk.init();
+    tg.generateChunk(&chunk, 0, 0);
+    var z: usize = 0;
+    while (z < 16) : (z += 1) {
+        var x: usize = 0;
+        while (x < 16) : (x += 1) {
+            try std.testing.expect(chunk.getBlock(@intCast(x), 0, @intCast(z)) != .air);
+        }
+    }
+}
 
 test "stone veins: coal ore and cobblestone only at low layers" {
     const tg = TerrainGenerator.init(1234);
@@ -158,6 +243,18 @@ test "stone veins: coal ore and cobblestone only at low layers" {
             }
         }
     }
+    var iron: usize = 0;
+    y = 1;
+    while (y <= 3) : (y += 1) {
+        var x: i32 = 0;
+        while (x < 64) : (x += 1) {
+            var z: i32 = 0;
+            while (z < 64) : (z += 1) {
+                if (tg.stoneAt(x, y, z) == .iron_ore) iron += 1;
+            }
+        }
+    }
+    try std.testing.expect(iron > 20 and iron < 1500);
     try std.testing.expect(coal > 50 and coal < 2000);
     try std.testing.expect(cob > 50 and cob < 3000);
     try std.testing.expectEqual(tg.stoneAt(0, 8, 0), .stone);
@@ -179,6 +276,16 @@ fn valueNoise2D(seed: u64, wx: i32, wz: i32, freq: f32) f32 {
     const cc = lattice(seed, x0, z0 + 1);
     const d = lattice(seed, x0 + 1, z0 + 1);
     return (a * (1 - sx) + b * sx) * (1 - sz) + (cc * (1 - sx) + d * sx) * sz - 0.5;
+}
+
+fn lattice3(seed: u64, x: i32, y: i32, z: i32) f32 {
+    var h: u64 = seed ^ (@as(u64, @bitCast(@as(i64, x))) *% 0x8da6b343);
+    h ^= (@as(u64, @bitCast(@as(i64, y))) *% 0xd8163841);
+    h ^= (@as(u64, @bitCast(@as(i64, z))) *% 0xcb1ab31f);
+    h ^= h >> 16;
+    h *%= 0x45d9f3b;
+    h ^= h >> 16;
+    return @as(f32, @floatFromInt(h & 0xFFFF)) / 65535.0;
 }
 
 fn lattice(seed: u64, x: i32, z: i32) f32 {
