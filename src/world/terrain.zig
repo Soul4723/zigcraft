@@ -27,6 +27,11 @@ pub const TerrainGenerator = struct {
 
     /// Height (0..SIZE-1, clamped) for a world-space (x,z) column.
     pub fn heightAt(self: TerrainGenerator, wx: i32, wz: i32) u4 {
+        // Macro continentalness noise (low-frequency rolling hills/valleys)
+        const macro_val = valueNoise2D(self.seed +% 0x11223344, wx, wz, 0.02);
+        // Ridge noise creating river cuts/depressions
+        const ridge_val = @abs(valueNoise2D(self.seed +% 0x55667788, wx, wz, 0.035));
+
         var freq = self.frequency;
         var amp = self.amplitude;
         var total: f32 = 0;
@@ -38,7 +43,8 @@ pub const TerrainGenerator = struct {
             freq *= 2.0;
             amp *= 0.5;
         }
-        const h = @as(f32, @floatFromInt(self.base_height)) + total / norm * self.amplitude;
+        const detail = (total / norm) * self.amplitude;
+        const h = @as(f32, @floatFromInt(self.base_height)) + 0.2 + macro_val * 3.5 + detail - (0.5 - ridge_val) * 1.5;
         const clamped = @max(1, @min(11, @as(i32, @intFromFloat(@round(h)))));
         return @intCast(clamped);
     }
@@ -153,7 +159,7 @@ pub const TerrainGenerator = struct {
             }
         }
 
-        // 2. Spawn trees in grassy land (trunk 3-4 blocks high, 3x3 leaf canopy)
+        // 2. Spawn trees in grassy land (organic rounded canopy with varied trunk)
         lz = 2;
         while (lz < SIZE - 2) : (lz += 1) {
             var lx: usize = 2;
@@ -163,31 +169,44 @@ pub const TerrainGenerator = struct {
                 const h: usize = self.heightAt(wx, wz);
 
                 // Trees only spawn on grass above water
-                if (h >= SEA_LEVEL and self.hasTree(wx, wz) and h + 5 < SIZE) {
-                    // Wood trunk
-                    var ty: usize = h + 1;
-                    while (ty <= h + 3) : (ty += 1) {
-                        chunk.setBlock(@intCast(lx), @intCast(ty), @intCast(lz), .wood);
-                    }
+                if (h >= SEA_LEVEL and self.hasTree(wx, wz)) {
+                    const trunk_h: usize = if (h + 6 < SIZE) 4 else 3;
+                    if (h + trunk_h + 2 < SIZE) {
+                        // Wood trunk
+                        var ty: usize = h + 1;
+                        while (ty <= h + trunk_h) : (ty += 1) {
+                            chunk.setBlock(@intCast(lx), @intCast(ty), @intCast(lz), .wood);
+                        }
 
-                    // Leaf canopy 3x3 on top
-                    var cy: usize = h + 3;
-                    while (cy <= h + 4) : (cy += 1) {
-                        var ox: i32 = -1;
-                        while (ox <= 1) : (ox += 1) {
-                            var oz: i32 = -1;
-                            while (oz <= 1) : (oz += 1) {
-                                const bx: usize = @intCast(@as(i32, @intCast(lx)) + ox);
-                                const bz: usize = @intCast(@as(i32, @intCast(lz)) + oz);
-                                if (chunk.getBlock(@intCast(bx), @intCast(cy), @intCast(bz)) == .air) {
-                                    chunk.setBlock(@intCast(bx), @intCast(cy), @intCast(bz), .leaves);
+                        // Spherical/rounded leaf crown around top of trunk
+                        const top_y = h + trunk_h;
+                        var cy: i32 = @as(i32, @intCast(top_y)) - 2;
+                        while (cy <= @as(i32, @intCast(top_y)) + 1) : (cy += 1) {
+                            if (cy >= SIZE) continue;
+                            const rad: i32 = if (cy >= top_y) 1 else 2;
+                            var ox: i32 = -rad;
+                            while (ox <= rad) : (ox += 1) {
+                                var oz: i32 = -rad;
+                                while (oz <= rad) : (oz += 1) {
+                                    // Cut off outer corners for organic spherical shape
+                                    if (rad == 2 and (ox == -2 or ox == 2) and (oz == -2 or oz == 2)) continue;
+                                    // Plus shape on top crown
+                                    if (cy == top_y + 1 and ((ox != 0 and oz != 0) or (ox == 0 and oz == 0))) {
+                                        if (ox != 0 or oz != 0) continue;
+                                    }
+                                    const bx_i: i32 = @as(i32, @intCast(lx)) + ox;
+                                    const bz_i: i32 = @as(i32, @intCast(lz)) + oz;
+                                    if (bx_i >= 0 and bx_i < SIZE and bz_i >= 0 and bz_i < SIZE and cy >= 0) {
+                                        const bx: usize = @intCast(bx_i);
+                                        const bz: usize = @intCast(bz_i);
+                                        const uy: usize = @intCast(cy);
+                                        if (chunk.getBlock(@intCast(bx), @intCast(uy), @intCast(bz)) == .air) {
+                                            chunk.setBlock(@intCast(bx), @intCast(uy), @intCast(bz), .leaves);
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
-                    // Crown top leaf
-                    if (h + 5 < SIZE) {
-                        chunk.setBlock(@intCast(lx), @intCast(h + 5), @intCast(lz), .leaves);
                     }
                 }
             }
