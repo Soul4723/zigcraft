@@ -50,7 +50,7 @@ Rough priority order. Completed milestones marked **[x]**.
 
 29. [x] **Mobs / Entities** — Simple wandering voxel entity with AABB physics and rendering (#41)
 30. [x] **Crafting & Inventory GUI** — Full inventory screen ('E'), 2x2 crafting grid, recipes, item consumption & drop collection (#42)
-31. **High-Resolution / Handcrafted Voxel Textures** — Upgrade from flat procedural noise to authentic, detailed pixel-art textures (stone, cobblestone, ores, dirt, grass, wood, planks, leaves, crafting table).
+31. [x] **Handcrafted Voxel Textures (procedural pixel-art pass)** — Upgrade from flat procedural noise to authentic, detailed pixel-art textures (stone, cobblestone, ores, dirt, grass, wood, planks, leaves, crafting table).
 32. **Tool System & Block Hardness** — Mining speed tiers (bare hand vs pickaxe), tool durability, block hardness tables, and tool-dependent drops (stone requires pickaxe).
 33. **More Blocks, Ores & Underground Caves** — Coal, iron, 3D cave tunnels cutting through heightmap terrain.
 34. **Block Highlight Outline** — Wireframe bounding box rendering around the aimed voxel face.

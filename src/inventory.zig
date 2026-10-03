@@ -14,6 +14,8 @@ pub const ItemType = enum(u8) {
     stick = 8,
     wooden_pickaxe = 9,
     crafting_bench = 10,
+    cobblestone = 11,
+    coal = 12,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -25,6 +27,8 @@ pub const ItemType = enum(u8) {
             .leaves => .leaves,
             .wood_planks => .wood_planks,
             .crafting_bench => .crafting_table,
+            .cobblestone => .cobblestone,
+            .coal => .coal_ore,
             else => null,
         };
     }
@@ -40,6 +44,8 @@ pub const ItemType = enum(u8) {
             .leaves => .leaves,
             .wood_planks => .wood_planks,
             .crafting_table => .crafting_bench,
+            .cobblestone => .cobblestone,
+            .coal_ore => .coal,
         };
     }
 
@@ -64,6 +70,8 @@ pub const ItemType = enum(u8) {
             .stick => "Stick",
             .wooden_pickaxe => "Wooden Pickaxe",
             .crafting_bench => "Crafting Table",
+            .cobblestone => "Cobblestone",
+            .coal => "Coal",
         };
     }
 
@@ -80,6 +88,8 @@ pub const ItemType = enum(u8) {
             .stick => .{ 0.60, 0.45, 0.22, 0.95 },
             .wooden_pickaxe => .{ 0.85, 0.70, 0.40, 0.95 },
             .crafting_bench => .{ 0.75, 0.50, 0.25, 0.95 },
+            .cobblestone => .{ 0.5, 0.5, 0.53, 0.95 },
+            .coal => .{ 0.12, 0.12, 0.14, 0.95 },
         };
     }
 };

@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-02 (Session 022)
+Last updated: 2026-10-03 (Session 023)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`)
@@ -12,7 +12,7 @@ Last updated: 2026-10-02 (Session 022)
 - First-person camera with mouse look and WASD movement
 - Player physics with gravity, jump mechanics, and axis-separated AABB voxel collision snapping
 - Block type system (air, stone, dirt, grass, water, wood, leaves) with distinct properties
-- 4x4 procedural texture atlas (grass top/side, dirt, stone, translucent water, wood bark/rings, leaves, mob wool, mob face)
+- 4x4 procedural texture atlas (bladed grass top, jagged grass-side fringe, clod/pebble dirt, speckled+cracked stone, ridged oak bark with knots, ringed log tops, gapped leaf canopy, grained planks, framed crafting table, cobblestone cells, coal ore blobs, translucent water, mob wool/face)
 - 16x16x16 chunk data structure with set/get/fillLayer
 - Greedy chunk mesher (Milestone 21) with corner & edge Ambient Occlusion calculation (Milestone 26)
 - Procedural fBm value noise heightmap terrain generator with sea-level water lakes (`SEA_LEVEL = 5`) and natural tree generation (wood trunk + leaf canopy)
@@ -27,15 +27,16 @@ Last updated: 2026-10-02 (Session 022)
 - Inventory & Crafting GUI (Milestone 31): 24-slot inventory (6 hotbar, 18 main), 2x2 crafting grid with real-time recipe resolution (planks, sticks, crafting table, wooden pickaxe), full-screen 'E' UI with cursor item manipulation, block mining drops, and placement consumption
 - Mob & Entity system (Milestone 29): wandering voxel sheep with AABB physics, obstacle jumping, animated limb swing walking cycles, and textured multi-box rendering
 - Real-time debug HUD reporting FPS, coordinates, chunk indices, mob count, day/night state, loaded/drawn/culled chunk counts, and aim target
-- 180 unit tests across 21 subsystem modules passing
+- Cobblestone + coal ore blocks with underground veins (y=1..3), mining drops, stone footsteps, inventory items
+- 193 unit tests across 21 subsystem modules passing
 
-## Active Branch: feat/inventory-and-crafting
+## Active Branch: feat/voxel-texture-overhaul
 
-Implements Milestone 31 (Crafting & Inventory GUI).
+Implements texture half of Milestone 31 (handcrafted voxel texture pass + cobblestone/coal ore blocks).
 
 ## What's Next
 
-1. **Voxel Texture Overhaul & New Blocks**: Replace crude procedural math noise with authentic, high-quality Minecraft-style pixel-art textures (stone, cobblestone, coal ore, dirt, side grass overhangs, oak bark, oak planks, leaves, crafting table).
+1. **Remaining texture polish**: atlas tiles (2,3) and (3,3) still reserved/transparent; optional: sand, glass, brick blocks to fill them.
 2. **Block Mining Speed & Tool Utility**: Bare hands mine slowly; wooden pickaxe mines stone faster. Block hardness and tool durability.
 3. **Block Selection Highlight**: Render 3D wireframe outline on aimed block face.
 
