@@ -14,6 +14,7 @@ pub const BlockId = enum(u8) {
     cobblestone = 9,
     coal_ore = 10,
     iron_ore = 11,
+    sand = 12,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water;
@@ -54,6 +55,7 @@ pub const BlockId = enum(u8) {
             .cobblestone => .{ .x = 0, .y = 3 },
             .coal_ore => .{ .x = 1, .y = 3 },
             .iron_ore => .{ .x = 2, .y = 3 },
+            .sand => .{ .x = 3, .y = 3 },
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -83,6 +85,7 @@ pub fn hardness(block: BlockId) f32 {
     return switch (block) {
         .air, .water => 0.0,
         .dirt, .grass => 0.45,
+        .sand => 0.5,
         .wood => 0.9,
         .leaves => 0.25,
         .wood_planks => 0.9,
@@ -138,6 +141,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .cobblestone = .{ .name = "cobblestone", .solid = true, .transparent = false, .fluid = false },
     .coal_ore = .{ .name = "coal_ore", .solid = true, .transparent = false, .fluid = false },
     .iron_ore = .{ .name = "iron_ore", .solid = true, .transparent = false, .fluid = false },
+    .sand = .{ .name = "sand", .solid = true, .transparent = false, .fluid = false },
 });
 
 test "block is_solid" {
@@ -151,6 +155,7 @@ test "block is_solid" {
     try std.testing.expect(BlockId.cobblestone.is_solid());
     try std.testing.expect(BlockId.coal_ore.is_solid());
     try std.testing.expect(BlockId.iron_ore.is_solid());
+    try std.testing.expect(BlockId.sand.is_solid());
 }
 
 test "new block face texture mapping" {
@@ -163,6 +168,9 @@ test "new block face texture mapping" {
     const iron = BlockId.iron_ore.getFaceTexture(0);
     try std.testing.expectEqual(iron.x, 2);
     try std.testing.expectEqual(iron.y, 3);
+    const sand = BlockId.sand.getFaceTexture(0);
+    try std.testing.expectEqual(sand.x, 3);
+    try std.testing.expectEqual(sand.y, 3);
 }
 
 test "block is_transparent" {

@@ -17,6 +17,7 @@ pub const ItemType = enum(u8) {
     cobblestone = 11,
     coal = 12,
     iron_ore = 13,
+    sand = 14,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -31,6 +32,7 @@ pub const ItemType = enum(u8) {
             .cobblestone => .cobblestone,
             .coal => .coal_ore,
             .iron_ore => .iron_ore,
+            .sand => .sand,
             else => null,
         };
     }
@@ -49,6 +51,7 @@ pub const ItemType = enum(u8) {
             .cobblestone => .cobblestone,
             .coal_ore => .coal,
             .iron_ore => .iron_ore,
+            .sand => .sand,
         };
     }
 
@@ -87,6 +90,7 @@ pub const ItemType = enum(u8) {
             .cobblestone => "Cobblestone",
             .coal => "Coal",
             .iron_ore => "Iron Ore",
+            .sand => "Sand",
         };
     }
 
@@ -106,6 +110,7 @@ pub const ItemType = enum(u8) {
             .cobblestone => .{ 0.5, 0.5, 0.53, 0.95 },
             .coal => .{ 0.12, 0.12, 0.14, 0.95 },
             .iron_ore => .{ 0.72, 0.55, 0.42, 0.95 },
+            .sand => .{ 0.91, 0.84, 0.63, 0.95 },
         };
     }
 };
