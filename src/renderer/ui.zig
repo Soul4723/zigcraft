@@ -141,8 +141,13 @@ pub const UIRenderer = struct {
         self.flush(&verts, count);
     }
 
-    /// Render in-game HUD with inventory item stacks and selected slot border
+    /// Render in-game HUD with inventory item stacks, selected slot border,
+    /// and an optional mining progress bar above the crosshair (0..1, <0 hides).
     pub fn drawHUD(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8) void {
+        self.drawHUDWithProgress(aspect, selected_slot, hotbar_items, hotbar_counts, -1.0);
+    }
+
+    pub fn drawHUDWithProgress(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32) void {
         var verts: [1024]UIVertex = undefined;
         var count: usize = 0;
 
@@ -191,6 +196,17 @@ pub const UIRenderer = struct {
                 const bar_w = (slot_w - 2.0 * icon_inset_x) * @min(1.0, frac);
                 addQuad(&verts, &count, x0 + icon_inset_x, y0 + 0.003, x0 + icon_inset_x + bar_w, y0 + 0.003 + bar_h, .{ 0.3, 0.9, 0.3, 0.9 });
             }
+        }
+
+        // Mining progress bar above crosshair
+        if (mine_frac >= 0.0) {
+            const bw: f32 = 0.12;
+            const bh: f32 = 0.012;
+            const bx0 = -bw / 2.0;
+            const by0 = 0.06;
+            addBorderedRect(&verts, &count, bx0, by0, bx0 + bw, by0 + bh, 0.002, .{ 0.1, 0.1, 0.1, 0.9 }, .{ 0.25, 0.25, 0.28, 0.9 });
+            const fill = bw * @min(1.0, @max(0.0, mine_frac));
+            addQuad(&verts, &count, bx0 + 0.002, by0 + 0.002, bx0 + 0.002 + fill, by0 + bh - 0.002, .{ 0.95, 0.8, 0.25, 1.0 });
         }
 
         self.flush(&verts, count);

@@ -49,6 +49,17 @@ pub const ItemType = enum(u8) {
         };
     }
 
+    pub fn maxDurability(self: ItemType) u16 {
+        return switch (self) {
+            .wooden_pickaxe => 25,
+            else => 0,
+        };
+    }
+
+    pub fn isTool(self: ItemType) bool {
+        return self.maxDurability() > 0;
+    }
+
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
@@ -151,7 +162,7 @@ pub const Inventory = struct {
         inv.slots[0] = .{ .item = .stone, .count = 64 };
         inv.slots[1] = .{ .item = .dirt, .count = 64 };
         inv.slots[2] = .{ .item = .grass, .count = 64 };
-        inv.slots[3] = .{ .item = .water, .count = 1 };
+        inv.slots[3] = .{ .item = .wooden_pickaxe, .count = 1 };
         inv.slots[4] = .{ .item = .wood, .count = 32 };
         inv.slots[5] = .{ .item = .leaves, .count = 32 };
 
@@ -274,6 +285,7 @@ test "inventory init and hotbar defaults" {
     const inv = Inventory.init();
     try std.testing.expectEqual(inv.slots[0].item, .stone);
     try std.testing.expectEqual(inv.slots[0].count, 64);
+    try std.testing.expectEqual(inv.slots[3].item, .wooden_pickaxe);
     try std.testing.expectEqual(inv.slots[4].item, .wood);
     try std.testing.expectEqual(inv.slots[5].item, .leaves);
 }
@@ -337,6 +349,9 @@ test "inventory full test: transfer between slots, boundary checks" {
     // Test item max stack
     const pick = ItemType.wooden_pickaxe;
     try std.testing.expectEqual(pick.maxStackSize(), 1);
+    try std.testing.expectEqual(pick.maxDurability(), 25);
+    try std.testing.expect(pick.isTool());
+    try std.testing.expect(!ItemType.stone.isTool());
     const planks = ItemType.wood_planks;
     try std.testing.expectEqual(planks.maxStackSize(), 64);
 }

@@ -27,6 +27,18 @@ fn pickSolid(x: i32, y: i32, z: i32) bool {
     return pick_manager.?.isSolidWorld(x, y, z);
 }
 
+/// Number of blocks a fresh wooden pickaxe can mine.
+fn defaultPickDurability() i32 {
+    return @intCast(inventory_mod.ItemType.wooden_pickaxe.maxDurability());
+}
+
+/// True when the held item meets the block's required tool tier.
+fn blkTierOk(held: inventory_mod.ItemType, block: block_mod.BlockId) bool {
+    const need = block_mod.requiredTier(block);
+    if (need == .hand) return true;
+    return held == .wooden_pickaxe;
+}
+
 fn getFootstepSound(block: block_mod.BlockId) audio_mod.synth.SoundType {
     return switch (block) {
         .grass => .step_grass,
@@ -111,6 +123,11 @@ pub fn main() !void {
     var inventory_open = false;
     var e_key_down = false;
     var selected_slot: usize = 0;
+    var mine_target_valid = false;
+    var mine_key: i64 = 0;
+    var mine_progress: f32 = 0.0;
+    var mine_need: f32 = 1.0;
+    var tool_wear: [6]u16 = [_]u16{0} ** 6;
 
     // Timing & Day/Night cycle
     var last_time = c.glfwGetTime();
@@ -272,7 +289,8 @@ pub fn main() !void {
         }
 
         if (!inventory_open) {
-            ui.drawHUD(aspect, selected_slot, &hotbar_colors, &hotbar_counts);
+            const mine_frac: f32 = if (mine_target_valid and mine_need > 0.0) mine_progress / mine_need else -1.0;
+            ui.drawHUDWithProgress(aspect, selected_slot, &hotbar_colors, &hotbar_counts, mine_frac);
         } else {
             var main_colors: [18][4]f32 = undefined;
             var main_counts: [18]u8 = undefined;
@@ -331,6 +349,11 @@ pub fn main() !void {
             var title_buf: [128]u8 = undefined;
             const title = std.fmt.bufPrintZ(&title_buf, "Zigcraft  fps={d}  time={s}  chunks={d}  mobs={d}  block={s}", .{ fps, time_state, loaded, mob_count, current_item.name() }) catch "Zigcraft";
             c.glfwSetWindowTitle(window, title.ptr);
+        }
+
+        // Reset wear counters for slots not holding a damaged tool
+        for (0..6) |ws| {
+            if (!inventory.slots[ws].item.isTool()) tool_wear[ws] = 0;
         }
 
         // Mouse click handling: In-game block editing or Inventory slot clicking
@@ -424,19 +447,54 @@ pub fn main() !void {
                     }
                 }
             } else {
-                // In-game: left click hit mob or break block, right click place block
+                // In-game: hold left to mine (timed by hardness/tool), right click place
                 const dir = cam.front();
                 if (left and mob_manager.tryHitMob(cam.position, dir, 4.0)) {
                     audio.play(.mob_baa, 0.8);
+                    mine_target_valid = false;
                 } else if (pick_mod.raycast(&pickSolid, cam.position, dir, 8)) |hit| {
                     if (left) {
                         const broken_block = manager.getBlockWorld(hit.x, hit.y, hit.z);
-                        if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .air)) {
-                            audio.play(.break_block, 0.7);
-                            // Add harvested block item to player inventory
-                            const drop_item = inventory_mod.ItemType.fromBlockId(broken_block);
-                            _ = inventory.addItem(drop_item, 1);
-                            std.debug.print("destroyed {s} ({d},{d},{d})\n", .{ @tagName(broken_block), hit.x, hit.y, hit.z });
+                        const held_item_now = inventory.slots[selected_slot].item;
+                        const need = block_mod.mineTime(broken_block, @intFromEnum(held_item_now));
+                        const key: i64 = (@as(i64, hit.x) << 42) ^ (@as(i64, hit.y) << 21) ^ @as(i64, hit.z);
+                        if (!mine_target_valid or mine_key != key) {
+                            mine_target_valid = true;
+                            mine_key = key;
+                            mine_progress = 0.0;
+                            mine_need = @max(need, 0.001);
+                        } else {
+                            mine_progress += dt;
+                        }
+                        if (mine_progress + 0.0001 >= need and need > 0.0) {
+                            mine_target_valid = false;
+                            mine_progress = 0.0;
+                            if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .air)) {
+                                audio.play(.break_block, 0.7);
+                                const held = inventory.slots[selected_slot].item;
+                                const tier_ok = blkTierOk(held, broken_block);
+                                const drop_item = inventory_mod.ItemType.fromBlockId(broken_block);
+                                if (tier_ok) {
+                                    if (broken_block == .coal_ore) {
+                                        _ = inventory.addItem(.coal, 1);
+                                        _ = inventory.addItem(.cobblestone, 1);
+                                    } else {
+                                        _ = inventory.addItem(drop_item, 1);
+                                    }
+                                } else {
+                                    std.debug.print("too hard: {s} needs pickaxe\n", .{@tagName(broken_block)});
+                                }
+                                // Tools wear down one use per mined block
+                                if (held.isTool()) {
+                                    tool_wear[selected_slot] += 1;
+                                    if (tool_wear[selected_slot] >= held.maxDurability()) {
+                                        inventory.slots[selected_slot].clear();
+                                        tool_wear[selected_slot] = 0;
+                                        std.debug.print("pickaxe broke\n", .{});
+                                    }
+                                }
+                                std.debug.print("destroyed {s} ({d},{d},{d})\n", .{ @tagName(broken_block), hit.x, hit.y, hit.z });
+                            }
                         }
                     } else {
                         const px = hit.x + hit.nx;
@@ -457,6 +515,11 @@ pub fn main() !void {
                     }
                 }
             }
+        }
+        if (!left) {
+            mine_target_valid = false;
+            mine_progress = 0.0;
+            mine_need = 1.0;
         }
         left_down = left;
         right_down = right;
