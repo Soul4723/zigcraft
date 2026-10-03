@@ -28,7 +28,8 @@ Last updated: 2026-10-03 (Session 023)
 - Mob & Entity system (Milestone 29): wandering voxel sheep with AABB physics, obstacle jumping, animated limb swing walking cycles, and textured multi-box rendering
 - Real-time debug HUD reporting FPS, coordinates, chunk indices, mob count, day/night state, loaded/drawn/culled chunk counts, and aim target
 - Cobblestone + coal ore blocks with underground veins (y=1..3), mining drops, stone footsteps, inventory items
-- 193 unit tests across 21 subsystem modules passing
+- Tool system: hold-to-mine hardness timing, wooden pickaxe 3x on stone-class, tier-gated drops, 25-use durability, HUD progress bar
+- 200 unit tests across 21 subsystem modules passing
 
 ## Active Branch: feat/voxel-texture-overhaul
 

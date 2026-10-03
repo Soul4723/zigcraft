@@ -70,6 +70,58 @@ pub const BlockDef = struct {
     fluid: bool,
 };
 
+/// Mining hardness: seconds to break with bare hand. Higher = tougher.
+/// Tool tiers gate drops and speed up matching blocks.
+///
+/// Tool ids mirror `ItemType` discriminants without importing inventory
+/// (cross-directory import breaks standalone test targets): 9 = wooden_pickaxe.
+pub const TOOL_WOODEN_PICKAXE: u8 = 9;
+
+pub fn hardness(block: BlockId) f32 {
+    return switch (block) {
+        .air, .water => 0.0,
+        .dirt, .grass => 0.45,
+        .wood => 0.9,
+        .leaves => 0.25,
+        .wood_planks => 0.9,
+        .crafting_table => 0.9,
+        .cobblestone => 2.2,
+        .stone => 2.5,
+        .coal_ore => 3.0,
+    };
+}
+
+/// Tool class needed to harvest a block's drop at all.
+pub const ToolTier = enum(u8) {
+    hand = 0,
+    wooden = 1,
+};
+
+pub fn requiredTier(block: BlockId) ToolTier {
+    return switch (block) {
+        .stone, .cobblestone, .coal_ore => .wooden,
+        else => .hand,
+    };
+}
+
+/// Mining speed multiplier for held item vs target block.
+/// Wooden pickaxe is 3x on stone-class blocks, 1.5x elsewhere.
+pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
+    if (held_tool_id == TOOL_WOODEN_PICKAXE) {
+        return switch (block) {
+            .stone, .cobblestone, .coal_ore => 3.0,
+            else => 1.5,
+        };
+    }
+    return 1.0;
+}
+
+/// Seconds to mine `block` while holding tool with discriminant `held_tool_id`.
+pub fn mineTime(block: BlockId, held_tool_id: u8) f32 {
+    if (block == .air or block == .water) return 0.0;
+    return hardness(block) / toolMultiplier(held_tool_id, block);
+}
+
 pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .air = .{ .name = "air", .solid = false, .transparent = true, .fluid = false },
     .stone = .{ .name = "stone", .solid = true, .transparent = false, .fluid = false },
@@ -123,6 +175,18 @@ test "block properties" {
     const leaves = block_defs.get(.leaves);
     try std.testing.expectEqualStrings(leaves.name, "leaves");
     try std.testing.expect(leaves.solid);
+}
+
+test "hardness tiers and tool multipliers" {
+    try std.testing.expect(hardness(.dirt) < hardness(.stone));
+    try std.testing.expect(hardness(.coal_ore) > hardness(.cobblestone));
+    try std.testing.expectEqual(requiredTier(.stone), .wooden);
+    try std.testing.expectEqual(requiredTier(.coal_ore), .wooden);
+    try std.testing.expectEqual(requiredTier(.dirt), .hand);
+    try std.testing.expect(toolMultiplier(TOOL_WOODEN_PICKAXE, .stone) > toolMultiplier(TOOL_WOODEN_PICKAXE, .dirt));
+    try std.testing.expectEqual(toolMultiplier(0, .stone), 1.0);
+    try std.testing.expect(mineTime(.stone, TOOL_WOODEN_PICKAXE) < mineTime(.stone, 0));
+    try std.testing.expect(mineTime(.dirt, 0) < mineTime(.stone, 0));
 }
 
 test "block count is reasonable" {
