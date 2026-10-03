@@ -17,6 +17,7 @@ const texture_mod = @import("renderer/texture.zig");
 const entity_mod = @import("entity.zig");
 const inventory_mod = @import("inventory.zig");
 const highlight_mod = @import("renderer/highlight.zig");
+const particles_mod = @import("renderer/particles.zig");
 
 const window_width = 1280;
 const window_height = 720;
@@ -112,6 +113,9 @@ pub fn main() !void {
 
     var highlight = try highlight_mod.HighlightRenderer.init(std.heap.page_allocator);
     defer highlight.deinit();
+
+    var particles = try particles_mod.ParticleSystem.init(std.heap.page_allocator);
+    defer particles.deinit();
 
     var audio = audio_mod.AudioSystem.init();
     defer audio.deinit();
@@ -283,6 +287,10 @@ pub fn main() !void {
         sky.draw(mvp, cam.position, sky_top, sky_horizon);
         const stats = manager.draw(mvp, sun_dir);
         try mob_manager.draw(mvp, sun_dir);
+
+        // Update and render block debris particles
+        particles.tick(dt);
+        particles.draw(mvp.ptr());
 
         // Block highlight outline on aimed voxel (skip while mining-gui open)
         if (!inventory_open) {
@@ -484,6 +492,8 @@ pub fn main() !void {
                             mine_progress = 0.0;
                             if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .air)) {
                                 audio.play(.break_block, 0.7);
+                                const drop_col = inventory_mod.ItemType.fromBlockId(broken_block).getColor();
+                                particles.spawnBlockDebris(hit.x, hit.y, hit.z, .{ drop_col[0], drop_col[1], drop_col[2] }, 16);
                                 const held = inventory.slots[selected_slot].item;
                                 const tier_ok = blkTierOk(held, broken_block);
                                 const drop_item = inventory_mod.ItemType.fromBlockId(broken_block);
@@ -519,6 +529,8 @@ pub fn main() !void {
                                 if (hotbar_slot.item.toBlockId()) |place_type| {
                                     if (try manager.editAndRemesh(px, py, pz, place_type)) {
                                         audio.play(.place_block, 0.7);
+                                        const pcol = hotbar_slot.item.getColor();
+                                        particles.spawnBlockDebris(px, py, pz, .{ pcol[0], pcol[1], pcol[2] }, 8);
                                         hotbar_slot.decrement(1);
                                         std.debug.print("placed {s} ({d},{d},{d})\n", .{ @tagName(place_type), px, py, pz });
                                     }

@@ -30,7 +30,8 @@ Last updated: 2026-10-03 (Session 023)
 - Cobblestone + coal ore blocks with underground veins (y=1..3), mining drops, stone footsteps, inventory items
 - Tool system: hold-to-mine hardness timing, wooden pickaxe 3x on stone-class, tier-gated drops, 25-use durability, HUD progress bar
 - Aimed-block wireframe highlight with pulse
-- 202 unit tests passing
+- 3D voxel block break and placement particle bursts with physics and gravity
+- 204 unit tests passing
 
 ## Active Branch: feat/voxel-texture-overhaul
 
