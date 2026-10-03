@@ -44,7 +44,7 @@ const face_normals: [6][3]f32 = .{
 fn faceTexCoords(tile_x: u32, tile_y: u32, w: f32, h: f32) [4][2]f32 {
     _ = w;
     _ = h;
-    const tile_size: f32 = 0.25; // 4x4 atlas
+    const tile_size: f32 = 0.125; // 8x8 atlas
     const u_min = @as(f32, @floatFromInt(tile_x)) * tile_size;
     const v_min = @as(f32, @floatFromInt(tile_y)) * tile_size;
     const u_max = u_min + tile_size;

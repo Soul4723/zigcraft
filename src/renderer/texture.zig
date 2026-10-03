@@ -4,7 +4,7 @@ const c = @cImport({
     @cInclude("GL/glcorearb.h");
 });
 
-pub const ATLAS_TILES_PER_ROW: f32 = 4.0;
+pub const ATLAS_TILES_PER_ROW: f32 = 8.0;
 pub const TILE_UV_SIZE: f32 = 1.0 / ATLAS_TILES_PER_ROW;
 
 pub fn getTileUV(tile_x: u32, tile_y: u32) [4][2]f32 {
@@ -141,7 +141,77 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
     if (tile_x == 3 and tile_y == 3) {
         return sandPixel(x, y);
     }
+    // Glass tile (0, 4): transparent interior with cyan tint, border and specular streaks
+    if (tile_x == 0 and tile_y == 4) {
+        return glassPixel(x, y);
+    }
+    // Sandstone top (1, 4): smooth fine packed sand
+    if (tile_x == 1 and tile_y == 4) {
+        return sandstoneTopPixel(x, y);
+    }
+    // Sandstone side (2, 4): stratified layers with carved relief blocks at bottom
+    if (tile_x == 2 and tile_y == 4) {
+        return sandstoneSidePixel(x, y);
+    }
+    // Sandstone bottom (3, 4): rough cracked underside
+    if (tile_x == 3 and tile_y == 4) {
+        return sandstoneBottomPixel(x, y);
+    }
+    // Red Brick (4, 4): running bond bricks with light mortar seams
+    if (tile_x == 4 and tile_y == 4) {
+        return brickPixel(x, y);
+    }
     return .{ 0, 0, 0, 0 };
+}
+
+fn glassPixel(x: usize, y: usize) [4]u8 {
+    const is_border = (x == 0 or x == 15 or y == 0 or y == 15);
+    if (is_border) return .{ 220, 240, 255, 240 };
+    if (x >= 3 and x <= 6 and y == x) return .{ 255, 255, 255, 210 };
+    if (x >= 10 and x <= 12 and (y + 6 == x)) return .{ 245, 252, 255, 180 };
+    return .{ 190, 225, 245, 30 };
+}
+
+fn sandstoneTopPixel(x: usize, y: usize) [4]u8 {
+    const n = hash2(x, y, 105) % 100;
+    if (n < 10) return .{ 215, 195, 140, 255 };
+    if (n < 25) return .{ 240, 225, 175, 255 };
+    return .{ 228, 210, 155, 255 };
+}
+
+fn sandstoneSidePixel(x: usize, y: usize) [4]u8 {
+    if (y < 11) {
+        const layer = (y / 3) % 2;
+        const n = hash2(x, y, 106) % 20;
+        const base_r: u8 = if (layer == 0) 228 else 215;
+        const base_g: u8 = if (layer == 0) 210 else 195;
+        const base_b: u8 = if (layer == 0) 155 else 140;
+        return .{ base_r + @as(u8, @intCast(n / 2)), base_g + @as(u8, @intCast(n / 2)), base_b, 255 };
+    }
+    if (y == 11) return .{ 175, 150, 95, 255 };
+    const block_sep = (x % 4 == 0);
+    if (block_sep or y == 15) return .{ 185, 160, 105, 255 };
+    return .{ 225, 205, 150, 255 };
+}
+
+fn sandstoneBottomPixel(x: usize, y: usize) [4]u8 {
+    const crack = (x * 2 + y * 3) % 7 == 0;
+    if (crack) return .{ 180, 155, 100, 255 };
+    const n = hash2(x, y, 107) % 30;
+    return .{ 205 + @as(u8, @intCast(n / 2)), 185 + @as(u8, @intCast(n / 2)), 135, 255 };
+}
+
+fn brickPixel(x: usize, y: usize) [4]u8 {
+    const row = y / 4;
+    const is_horiz_mortar = (y % 4 == 0);
+    const shift: usize = if (row % 2 == 1) 4 else 0;
+    const is_vert_mortar = ((x + shift) % 8 == 0);
+    if (is_horiz_mortar or is_vert_mortar) {
+        return .{ 215, 210, 205, 255 };
+    }
+    const n = hash2(x, y, 108) % 25;
+    const shade: u8 = @as(u8, @intCast(n));
+    return .{ 165 + shade, 65 + shade / 2, 52 + shade / 3, 255 };
 }
 
 fn sandPixel(x: usize, y: usize) [4]u8 {
@@ -216,19 +286,19 @@ pub fn createBlockTexture() c.GLuint {
     var texture: c.GLuint = 0;
     c.glGenTextures(1, &texture);
     c.glBindTexture(c.GL_TEXTURE_2D, texture);
-    const atlas_size: usize = 64;
-    var data: [64 * 64 * 4]u8 = undefined;
+    const atlas_size: usize = 128;
+    var data: [128 * 128 * 4]u8 = undefined;
     @memset(&data, 0);
     var ty: usize = 0;
-    while (ty < 4) : (ty += 1) {
+    while (ty < 8) : (ty += 1) {
         var tx: usize = 0;
-        while (tx < 4) : (tx += 1) {
+        while (tx < 8) : (tx += 1) {
             var yy: usize = 0;
             while (yy < 16) : (yy += 1) {
                 var xx: usize = 0;
                 while (xx < 16) : (xx += 1) {
                     const px = tilePixel(@intCast(tx), @intCast(ty), xx, yy);
-                    const idx = ((ty * 16 + yy) * 64 + (tx * 16 + xx)) * 4;
+                    const idx = ((ty * 16 + yy) * 128 + (tx * 16 + xx)) * 4;
                     data[idx] = px[0];
                     data[idx + 1] = px[1];
                     data[idx + 2] = px[2];
@@ -248,14 +318,14 @@ pub fn createBlockTexture() c.GLuint {
 
 test "tile UV coordinates within unit quad" {
     const uv = getTileUV(1, 1);
-    try std.testing.expectEqual(uv[0][0], 0.25);
-    try std.testing.expectEqual(uv[0][1], 0.25);
-    try std.testing.expectEqual(uv[2][0], 0.5);
-    try std.testing.expectEqual(uv[2][1], 0.5);
+    try std.testing.expectEqual(uv[0][0], 0.125);
+    try std.testing.expectEqual(uv[0][1], 0.125);
+    try std.testing.expectEqual(uv[2][0], 0.25);
+    try std.testing.expectEqual(uv[2][1], 0.25);
 }
 
 test "all block tiles opaque, sand tile verified" {
-    const tiles = [_][2]u32{ .{ 0, 0 }, .{ 1, 0 }, .{ 2, 0 }, .{ 3, 0 }, .{ 1, 1 }, .{ 2, 1 }, .{ 3, 1 }, .{ 2, 2 }, .{ 3, 2 }, .{ 0, 3 }, .{ 1, 3 }, .{ 2, 3 }, .{ 3, 3 } };
+    const tiles = [_][2]u32{ .{ 0, 0 }, .{ 1, 0 }, .{ 2, 0 }, .{ 3, 0 }, .{ 1, 1 }, .{ 2, 1 }, .{ 3, 1 }, .{ 2, 2 }, .{ 3, 2 }, .{ 0, 3 }, .{ 1, 3 }, .{ 2, 3 }, .{ 3, 3 }, .{ 1, 4 }, .{ 2, 4 }, .{ 3, 4 }, .{ 4, 4 } };
     for (tiles) |t| {
         var yy: usize = 0;
         while (yy < 16) : (yy += 1) {

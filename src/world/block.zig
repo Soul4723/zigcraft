@@ -15,6 +15,9 @@ pub const BlockId = enum(u8) {
     coal_ore = 10,
     iron_ore = 11,
     sand = 12,
+    glass = 13,
+    sandstone = 14,
+    brick = 15,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water;
@@ -25,7 +28,7 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_transparent(self: BlockId) bool {
-        return self == .air or self == .water;
+        return self == .air or self == .water or self == .glass;
     }
 
     /// Return tile coordinates (tile_x, tile_y) on the 4x4 atlas for given face.
@@ -56,6 +59,13 @@ pub const BlockId = enum(u8) {
             .coal_ore => .{ .x = 1, .y = 3 },
             .iron_ore => .{ .x = 2, .y = 3 },
             .sand => .{ .x = 3, .y = 3 },
+            .glass => .{ .x = 0, .y = 4 },
+            .sandstone => switch (face_idx) {
+                0 => .{ .x = 1, .y = 4 }, // Sandstone Top
+                1 => .{ .x = 3, .y = 4 }, // Sandstone Bottom
+                else => .{ .x = 2, .y = 4 }, // Sandstone Side
+            },
+            .brick => .{ .x = 4, .y = 4 },
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -86,6 +96,9 @@ pub fn hardness(block: BlockId) f32 {
         .air, .water => 0.0,
         .dirt, .grass => 0.45,
         .sand => 0.5,
+        .glass => 0.3,
+        .sandstone => 1.8,
+        .brick => 2.0,
         .wood => 0.9,
         .leaves => 0.25,
         .wood_planks => 0.9,
@@ -105,7 +118,7 @@ pub const ToolTier = enum(u8) {
 
 pub fn requiredTier(block: BlockId) ToolTier {
     return switch (block) {
-        .stone, .cobblestone, .coal_ore, .iron_ore => .wooden,
+        .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick => .wooden,
         else => .hand,
     };
 }
@@ -115,7 +128,7 @@ pub fn requiredTier(block: BlockId) ToolTier {
 pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
     if (held_tool_id == TOOL_WOODEN_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore => 3.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick => 3.0,
             else => 1.5,
         };
     }
@@ -142,6 +155,9 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .coal_ore = .{ .name = "coal_ore", .solid = true, .transparent = false, .fluid = false },
     .iron_ore = .{ .name = "iron_ore", .solid = true, .transparent = false, .fluid = false },
     .sand = .{ .name = "sand", .solid = true, .transparent = false, .fluid = false },
+    .glass = .{ .name = "glass", .solid = true, .transparent = true, .fluid = false },
+    .sandstone = .{ .name = "sandstone", .solid = true, .transparent = false, .fluid = false },
+    .brick = .{ .name = "brick", .solid = true, .transparent = false, .fluid = false },
 });
 
 test "block is_solid" {
@@ -156,6 +172,9 @@ test "block is_solid" {
     try std.testing.expect(BlockId.coal_ore.is_solid());
     try std.testing.expect(BlockId.iron_ore.is_solid());
     try std.testing.expect(BlockId.sand.is_solid());
+    try std.testing.expect(BlockId.glass.is_solid());
+    try std.testing.expect(BlockId.sandstone.is_solid());
+    try std.testing.expect(BlockId.brick.is_solid());
 }
 
 test "new block face texture mapping" {
@@ -171,6 +190,21 @@ test "new block face texture mapping" {
     const sand = BlockId.sand.getFaceTexture(0);
     try std.testing.expectEqual(sand.x, 3);
     try std.testing.expectEqual(sand.y, 3);
+    const gl = BlockId.glass.getFaceTexture(0);
+    try std.testing.expectEqual(gl.x, 0);
+    try std.testing.expectEqual(gl.y, 4);
+    const ss_top = BlockId.sandstone.getFaceTexture(0);
+    try std.testing.expectEqual(ss_top.x, 1);
+    try std.testing.expectEqual(ss_top.y, 4);
+    const ss_side = BlockId.sandstone.getFaceTexture(2);
+    try std.testing.expectEqual(ss_side.x, 2);
+    try std.testing.expectEqual(ss_side.y, 4);
+    const ss_bot = BlockId.sandstone.getFaceTexture(1);
+    try std.testing.expectEqual(ss_bot.x, 3);
+    try std.testing.expectEqual(ss_bot.y, 4);
+    const br = BlockId.brick.getFaceTexture(0);
+    try std.testing.expectEqual(br.x, 4);
+    try std.testing.expectEqual(br.y, 4);
 }
 
 test "block is_transparent" {
@@ -179,6 +213,9 @@ test "block is_transparent" {
     try std.testing.expect(!BlockId.dirt.is_transparent());
     try std.testing.expect(!BlockId.grass.is_transparent());
     try std.testing.expect(BlockId.water.is_transparent());
+    try std.testing.expect(BlockId.glass.is_transparent());
+    try std.testing.expect(!BlockId.sandstone.is_transparent());
+    try std.testing.expect(!BlockId.brick.is_transparent());
     try std.testing.expect(!BlockId.wood.is_transparent());
     try std.testing.expect(!BlockId.leaves.is_transparent());
 }
