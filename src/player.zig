@@ -89,11 +89,10 @@ pub const Player = struct {
         return math.Vec3.init(self.pos.x, self.pos.y + 1.62, self.pos.z);
     }
 
-    /// Advance physics by dt. `solid` answers world-space block solidity.
-    /// Horizontal move is axis-separated against the AABB; vertical move
-    /// lands on block tops and bonks on ceilings.
-    pub fn tick(self: *Player, solid: *const fn (x: i32, y: i32, z: i32) bool, move_x: f32, move_z: f32, jump: bool, dt: f32) void {
+    /// Advance physics by dt. Optional `ladder` fn detects climbing.
+    pub fn tickLadder(self: *Player, solid: *const fn (x: i32, y: i32, z: i32) bool, ladder: ?*const fn (x: i32, y: i32, z: i32) bool, move_x: f32, move_z: f32, jump: bool, dt: f32) void {
         const clamped_dt = @min(dt, 0.05);
+        const on_ladder = if (ladder) |l| isInsideLadder(self.pos, self.radius, self.height, l) else false;
         const old_x = self.pos.x;
         const old_z = self.pos.z;
 
@@ -106,14 +105,25 @@ pub const Player = struct {
             self.distance_walked += @sqrt(dx * dx + dz * dz);
         }
 
-        if (jump and self.on_ground) {
-            self.vel_y = 8.0;
+        if (on_ladder) {
+            // Ladders: gravity halted; jump climbs up, quiet slide down
+            self.vel_y = if (jump) 4.5 else 0.0;
             self.on_ground = false;
+        } else {
+            if (jump and self.on_ground) {
+                self.vel_y = 8.0;
+                self.on_ground = false;
+            }
+            self.vel_y -= 25.0 * clamped_dt;
+            if (self.vel_y < -30.0) self.vel_y = -30.0;
         }
-        self.vel_y -= 25.0 * clamped_dt;
-        if (self.vel_y < -30.0) self.vel_y = -30.0;
         self.pos.y = collideAxis(self.pos, self.radius, self.height, solid, self.vel_y * clamped_dt, Axis.y, &self.vel_y, &self.on_ground);
     }
+
+    pub fn tick(self: *Player, solid: *const fn (x: i32, y: i32, z: i32) bool, move_x: f32, move_z: f32, jump: bool, dt: f32) void {
+        self.tickLadder(solid, null, move_x, move_z, jump, dt);
+    }
+
 };
 
 const Axis = enum { x, y, z };
@@ -298,4 +308,34 @@ test "golden apple heals and regens" {
     try std.testing.expect(p.regen_timer > 0.0);
     p.tickVitals(1.0);
     try std.testing.expect(p.health > 16.0);
+}
+
+fn isInsideLadder(pos: math.Vec3, radius: f32, height: f32, ladder: *const fn (x: i32, y: i32, z: i32) bool) bool {
+    const min_y: i32 = @intFromFloat(@floor(pos.y));
+    const max_y: i32 = @intFromFloat(@floor(pos.y + height));
+    var yb = min_y;
+    while (yb <= max_y) : (yb += 1) {
+        for ([2]f32{ pos.x - radius, pos.x + radius }) |sx| {
+            for ([2]f32{ pos.z - radius, pos.z + radius }) |sz| {
+                const xb: i32 = @intFromFloat(@floor(sx));
+                const zb: i32 = @intFromFloat(@floor(sz));
+                if (ladder(xb, yb, zb)) return true;
+            }
+        }
+    }
+    return false;
+}
+
+fn dummySolid(x: i32, y: i32, z: i32) bool {
+    _ = x; _ = z;
+    return y <= 0;
+}
+fn testLadder(x: i32, y: i32, z: i32) bool {
+    _ = x; _ = z;
+    return y >= 1 and y <= 3;
+}
+test "player climbs ladder when jumping" {
+    var p = Player.init(0.5, 1.0, 0.5);
+    p.tickLadder(&dummySolid, &testLadder, 0, 0, true, 0.05);
+    try std.testing.expect(p.vel_y > 0.0);
 }

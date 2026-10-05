@@ -35,6 +35,7 @@ pub const ItemType = enum(u8) {
     snow_block = 29,
     golden_apple = 30,
     iron_sword = 31,
+    ladder = 32,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -54,6 +55,7 @@ pub const ItemType = enum(u8) {
             .sandstone => .sandstone,
             .brick => .brick,
             .snow_block => .snow,
+            .ladder => .ladder,
             else => null,
         };
     }
@@ -79,6 +81,7 @@ pub const ItemType = enum(u8) {
             .wool => .wool,
             .furnace => .furnace,
             .snow => .snow_block,
+            .ladder => .ladder,
         };
     }
 
@@ -133,6 +136,7 @@ pub const ItemType = enum(u8) {
             .snow_block => "Snow Block",
             .golden_apple => "Golden Apple",
             .iron_sword => "Iron Sword",
+            .ladder => "Ladder",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -170,6 +174,7 @@ pub const ItemType = enum(u8) {
             .snow_block => .{ 0.90, 0.93, 0.98, 0.95 },
             .golden_apple => .{ 1.0, 0.80, 0.20, 0.95 },
             .iron_sword => .{ 0.88, 0.86, 0.92, 0.95 },
+            .ladder => .{ 0.65, 0.45, 0.22, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -337,6 +342,18 @@ pub const Inventory = struct {
         if (non_empty == 4) {
             if (g0 == .cobblestone and g1 == .cobblestone and g2 == .cobblestone and g3 == .cobblestone) {
                 self.craft_output = .{ .item = .brick, .count = 4 };
+                return;
+            }
+        }
+
+        // Recipe 15: 3 Sticks (any 3 slots in 2x2) -> 3 Ladders
+        if (non_empty == 3) {
+            var sticks: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .stick) sticks += 1;
+            }
+            if (sticks == 3) {
+                self.craft_output = .{ .item = .ladder, .count = 3 };
                 return;
             }
         }

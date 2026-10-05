@@ -29,6 +29,11 @@ fn pickSolid(x: i32, y: i32, z: i32) bool {
     return pick_manager.?.isSolidWorld(x, y, z);
 }
 
+fn pickLadder(x: i32, y: i32, z: i32) bool {
+    const mgr = pick_manager orelse return false;
+    return mgr.getBlockWorld(x, y, z).is_ladder();
+}
+
 /// Number of blocks a fresh wooden pickaxe can mine.
 fn defaultPickDurability() i32 {
     return @intCast(inventory_mod.ItemType.wooden_pickaxe.maxDurability());
@@ -224,7 +229,7 @@ pub fn main() !void {
         const wish_len = math.Vec3.len(wish);
         const norm_wish = if (!inventory_open and wish_len > 0.001) wish.scale(1.0 / wish_len) else math.Vec3.init(0, 0, 0);
         const jump = !inventory_open and (c.glfwGetKey(window, c.GLFW_KEY_SPACE) == c.GLFW_PRESS);
-        player.tick(&pickSolid, norm_wish.x * walk_speed * dt, norm_wish.z * walk_speed * dt, jump, dt);
+        player.tickLadder(&pickSolid, &pickLadder, norm_wish.x * walk_speed * dt, norm_wish.z * walk_speed * dt, jump, dt);
         player.tickVitals(dt);
         if (player.pos.y < -30.0) {
             // Fell out of world: damage through vitals path
