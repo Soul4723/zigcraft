@@ -217,6 +217,7 @@ pub fn main() !void {
             player.health = @max(0.0, player.health - 20.0 * dt);
         }
         if (player.isDead()) {
+            audio.play(.hurt, 0.8);
             std.debug.print("you died; respawning\n", .{});
             player.respawn(24.0, 20.0, 24.0);
         }
@@ -592,7 +593,7 @@ pub fn main() !void {
                 if (player.hunger < 20.0) {
                     player.eat(is_cooked);
                     inventory.slots[selected_slot].decrement(1);
-                    audio.play(.craft_item, 0.6);
+                    audio.play(.eat, 0.7);
                     std.debug.print("ate {s} (hunger={d:.1})\n", .{ held_eat.item.name(), player.hunger });
                 }
             }
