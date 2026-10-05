@@ -37,6 +37,20 @@ pub const Player = struct {
         }
     }
 
+    /// True once health hits zero (starve damage is the only source so far).
+    pub fn isDead(self: Player) bool {
+        return self.health <= 0.0;
+    }
+
+    /// Reset vitals + position after death.
+    pub fn respawn(self: *Player, x: f32, y: f32, z: f32) void {
+        self.pos = math.Vec3.init(x, y, z);
+        self.vel_y = 0;
+        self.health = 20.0;
+        self.hunger = 20.0;
+        self.saturation = 5.0;
+    }
+
     /// Passive drain: hunger falls over time, health regen/suffer follows.
     pub fn tickVitals(self: *Player, dt: f32) void {
         self.hunger = @max(0.0, self.hunger - dt * 0.05);
@@ -239,4 +253,15 @@ test "player vitals drain and regen" {
     const h = p.health;
     p.tickVitals(1.0);
     try std.testing.expect(p.health < h);
+}
+
+test "player death and respawn" {
+    var p = Player.init(0.5, 1.0, 0.5);
+    p.health = 0.4;
+    p.hunger = 0.0;
+    p.tickVitals(1.0);
+    try std.testing.expect(p.isDead());
+    p.respawn(24.0, 20.0, 24.0);
+    try std.testing.expect(!p.isDead());
+    try std.testing.expectApproxEqAbs(p.hunger, 20.0, 0.001);
 }

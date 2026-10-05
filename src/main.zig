@@ -212,6 +212,14 @@ pub fn main() !void {
         const jump = !inventory_open and (c.glfwGetKey(window, c.GLFW_KEY_SPACE) == c.GLFW_PRESS);
         player.tick(&pickSolid, norm_wish.x * walk_speed * dt, norm_wish.z * walk_speed * dt, jump, dt);
         player.tickVitals(dt);
+        if (player.pos.y < -30.0) {
+            // Fell out of world: damage through vitals path
+            player.health = @max(0.0, player.health - 20.0 * dt);
+        }
+        if (player.isDead()) {
+            std.debug.print("you died; respawning\n", .{});
+            player.respawn(24.0, 20.0, 24.0);
+        }
         cam.position = player.eyePos();
 
         // Footstep audio triggered periodically while walking on ground
