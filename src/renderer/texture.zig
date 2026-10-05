@@ -169,6 +169,16 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
     if (tile_x == 6 and tile_y == 4) {
         return pigFacePixel(x, y);
     }
+    // Furnace (0, 5): dark stone with glowing fire mouth
+    if (tile_x == 0 and tile_y == 5) {
+        const mouth = (y >= 9 and y <= 12) and (x >= 4 and x <= 11);
+        const ember = mouth and hash2(x, y, 131) % 3 == 0;
+        if (ember) return .{ 255, 140, 40, 255 };
+        if (mouth) return .{ 30, 12, 8, 255 };
+        const n = hash2(x, y, 132) % 26;
+        const shade: u8 = 90 + @as(u8, @intCast(n));
+        return .{ shade, shade, shade + 4, 255 };
+    }
     // Wool (7, 4): soft off-white tufted fleece for sheep drops / beds
     if (tile_x == 7 and tile_y == 4) {
         const n = hash2(x, y, 118) % 18;
@@ -365,7 +375,7 @@ test "tile UV coordinates within unit quad" {
 }
 
 test "all block tiles opaque, sand tile verified" {
-    const tiles = [_][2]u32{ .{ 7, 4 }, .{ 0, 0 }, .{ 1, 0 }, .{ 2, 0 }, .{ 3, 0 }, .{ 1, 1 }, .{ 2, 1 }, .{ 3, 1 }, .{ 2, 2 }, .{ 3, 2 }, .{ 0, 3 }, .{ 1, 3 }, .{ 2, 3 }, .{ 3, 3 }, .{ 1, 4 }, .{ 2, 4 }, .{ 3, 4 }, .{ 4, 4 }, .{ 5, 4 }, .{ 6, 4 } };
+    const tiles = [_][2]u32{ .{ 7, 4 }, .{ 0, 5 }, .{ 0, 0 }, .{ 1, 0 }, .{ 2, 0 }, .{ 3, 0 }, .{ 1, 1 }, .{ 2, 1 }, .{ 3, 1 }, .{ 2, 2 }, .{ 3, 2 }, .{ 0, 3 }, .{ 1, 3 }, .{ 2, 3 }, .{ 3, 3 }, .{ 1, 4 }, .{ 2, 4 }, .{ 3, 4 }, .{ 4, 4 }, .{ 5, 4 }, .{ 6, 4 } };
     for (tiles) |t| {
         var yy: usize = 0;
         while (yy < 16) : (yy += 1) {

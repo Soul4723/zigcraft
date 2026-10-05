@@ -38,7 +38,7 @@ fn defaultPickDurability() i32 {
 fn blkTierOk(held: inventory_mod.ItemType, block: block_mod.BlockId) bool {
     const need = block_mod.requiredTier(block);
     if (need == .hand) return true;
-    return held == .wooden_pickaxe;
+    return held == .wooden_pickaxe or held == .iron_pickaxe;
 }
 
 fn getFootstepSound(block: block_mod.BlockId) audio_mod.synth.SoundType {
@@ -152,6 +152,9 @@ pub fn main() !void {
     var mob_hit_cooldown: f32 = 0.0;
     var bed_cooldown: f32 = 0.0;
     var flint_cooldown: f32 = 0.0;
+    const FurnaceJob = struct { x: i32, y: i32, z: i32, t: f32, fuel: u8, input: inventory_mod.ItemType };
+    var furnaces: [16]FurnaceJob = undefined;
+    var furnace_count: usize = 0;
     var sprouts: [16]struct { x: i32, y: i32, z: i32, t: f32 } = undefined;
     var sprout_count: usize = 0;
     var world_time: f32 = 45.0; // Start at morning daylight
@@ -627,10 +630,15 @@ pub fn main() !void {
                                 }
                             } else if (!hotbar_slot.isEmpty()) {
                                 if (hotbar_slot.item.toBlockId()) |place_type| {
+                                    const is_furnace_place = place_type == .furnace;
                                     if (try manager.editAndRemesh(px, py, pz, place_type)) {
                                         audio.play(.place_block, 0.7);
                                         const pcol = hotbar_slot.item.getColor();
                                         particles.spawnBlockDebris(px, py, pz, .{ pcol[0], pcol[1], pcol[2] }, 8);
+                                        if (is_furnace_place and furnace_count < furnaces.len) {
+                                            furnaces[furnace_count] = .{ .x = px, .y = py, .z = pz, .t = 0, .fuel = 0, .input = .none };
+                                            furnace_count += 1;
+                                        }
                                         hotbar_slot.decrement(1);
                                         std.debug.print("placed {s} ({d},{d},{d})\n", .{ @tagName(place_type), px, py, pz });
                                     }
@@ -666,12 +674,77 @@ pub fn main() !void {
                 }
             }
         }
+        // Furnace tick: cook stored input using fuel, 10s per item
+        {
+            var fi: usize = 0;
+            while (fi < furnace_count) {
+                const f = &furnaces[fi];
+                if (manager.getBlockWorld(f.x, f.y, f.z) != .furnace) {
+                    furnaces[fi] = furnaces[furnace_count - 1];
+                    furnace_count -= 1;
+                    continue;
+                }
+                if (f.input != .none and f.fuel > 0) {
+                    f.t += dt;
+                    if (f.t >= 10.0) {
+                        f.t = 0.0;
+                        f.fuel -= 1;
+                        const done: inventory_mod.ItemType = switch (f.input) {
+                            .raw_pork => .cooked_pork,
+                            .raw_mutton => .cooked_mutton,
+                            .sand => .glass,
+                            .iron_ore => .iron_ingot,
+                            else => .none,
+                        };
+                        f.input = .none;
+                        if (done != .none) {
+                            _ = inventory.addItem(done, 1);
+                            audio.play(.craft_item, 0.7);
+                            std.debug.print("smelted {s}\n", .{done.name()});
+                        }
+                    }
+                } else {
+                    f.t = 0.0;
+                }
+                fi += 1;
+            }
+        }
         // F: flint spark — ignite aimed flammable block (edge triggered, 0.5s cooldown)
         flint_cooldown = @max(0.0, flint_cooldown - dt);
         if (!inventory_open and flint_cooldown <= 0.0 and c.glfwGetKey(window, c.GLFW_KEY_F) == c.GLFW_PRESS) {
             const dir_f = cam.front();
             if (pick_mod.raycast(&pickSolid, cam.position, dir_f, 5)) |hit_f| {
                 const target = manager.getBlockWorld(hit_f.x, hit_f.y, hit_f.z);
+                if (target == .furnace) {
+                    // feed held item as input or fuel
+                    const held_f = inventory.slots[selected_slot];
+                    const smeltable = switch (held_f.item) {
+                        .raw_pork, .raw_mutton, .sand, .iron_ore => true,
+                        else => false,
+                    };
+                    var fed = false;
+                    var k: usize = 0;
+                    while (k < furnace_count) : (k += 1) {
+                        if (furnaces[k].x == hit_f.x and furnaces[k].y == hit_f.y and furnaces[k].z == hit_f.z) break;
+                    }
+                    if (k >= furnace_count and furnace_count < furnaces.len) {
+                        furnaces[furnace_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z, .t = 0, .fuel = 0, .input = .none };
+                        furnace_count += 1;
+                    }
+                    if (k < furnaces.len and furnaces[k].x == hit_f.x and furnaces[k].y == hit_f.y and furnaces[k].z == hit_f.z) {
+                        if (held_f.item == .coal and furnaces[k].fuel < 8) {
+                            furnaces[k].fuel += 1;
+                            inventory.slots[selected_slot].decrement(1);
+                            fed = true;
+                        } else if (smeltable and furnaces[k].input == .none) {
+                            furnaces[k].input = held_f.item;
+                            inventory.slots[selected_slot].decrement(1);
+                            fed = true;
+                        }
+                    }
+                    if (fed) audio.play(.place_block, 0.6);
+                    flint_cooldown = 0.5;
+                } else
                 if (target.isFlammable()) {
                     particles.spawnFlame(hit_f.x, hit_f.y, hit_f.z, 14);
                     if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, .air)) {
