@@ -611,9 +611,9 @@ pub fn main() !void {
             if (pick_mod.raycast(&pickSolid, cam.position, dir_f, 5)) |hit_f| {
                 const target = manager.getBlockWorld(hit_f.x, hit_f.y, hit_f.z);
                 if (target.isFlammable()) {
+                    particles.spawnFlame(hit_f.x, hit_f.y, hit_f.z, 14);
                     if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, .air)) {
                         audio.play(.break_block, 0.6);
-                        particles.spawnFlame(hit_f.x, hit_f.y, hit_f.z, 14);
                         const drop_item = inventory_mod.ItemType.fromBlockId(target);
                         if (target == .leaves and @as(u8, @intCast(@abs(@as(i64, hit_f.x) * 13 + @as(i64, hit_f.z) * 7))) % 4 == 0) {
                             // charred leaves occasionally drop nothing extra; skip
