@@ -21,6 +21,8 @@ pub const Particle = struct {
 
 pub const MAX_PARTICLES: usize = 256;
 
+pub const Flame = struct { x: i32, y: i32, z: i32, life: f32 };
+
 /// Lightweight CPU particle system rendering textured/colored billboard-free cubes
 /// or cross quads with point-sprites/quads. Uses dynamic VBO of 12 triangles (24 verts)
 /// per active particle or small cubes. To keep vertex buffer small and fast, each
@@ -121,6 +123,32 @@ pub const ParticleSystem = struct {
     }
 
     /// Advance physics (gravity + velocity), remove expired particles in place.
+    /// Emit rising orange/yellow ember debris at a block cell (fire visual).
+    pub fn spawnFlame(self: *ParticleSystem, bx: i32, by: i32, bz: i32, count: usize) void {
+        var i: usize = 0;
+        while (i < count) : (i += 1) {
+            const hx = @mod(bx * 7 + by * 13 + bz * 17 + @as(i32, @intCast(i * 31)), 60);
+            const hz = @mod(bx * 3 + by * 11 + bz * 5 + @as(i32, @intCast(i * 17)), 60);
+            const fx = @as(f32, @floatFromInt(bx)) + 0.2 + @as(f32, @floatFromInt(hx)) / 100.0;
+            const fz = @as(f32, @floatFromInt(bz)) + 0.2 + @as(f32, @floatFromInt(hz)) / 100.0;
+            const warm: f32 = @as(f32, @floatFromInt(i % 3)) / 2.0;
+            if (self.count >= MAX_PARTICLES) return;
+            self.particles[self.count] = .{
+                .x = fx,
+                .y = @as(f32, @floatFromInt(by)) + 0.1,
+                .z = fz,
+                .vx = 0.0,
+                .vy = 1.2 + warm,
+                .vz = 0.0,
+                .life = 0.5,
+                .max_life = 0.5,
+                .color = .{ 1.0, 0.45 + warm * 0.25, 0.1 },
+                .size = 0.09,
+            };
+            self.count += 1;
+        }
+    }
+
     pub fn tick(self: *ParticleSystem, dt: f32) void {
         var i: usize = 0;
         const gravity: f32 = 18.0;

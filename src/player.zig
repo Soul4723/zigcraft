@@ -11,6 +11,7 @@ pub const Player = struct {
     health: f32,
     hunger: f32,
     saturation: f32,
+    spawn_point: math.Vec3,
 
     pub fn init(x: f32, y: f32, z: f32) Player {
         return .{
@@ -23,6 +24,7 @@ pub const Player = struct {
             .health = 20.0,
             .hunger = 20.0,
             .saturation = 5.0,
+            .spawn_point = math.Vec3.init(x, y, z),
         };
     }
 
@@ -49,6 +51,7 @@ pub const Player = struct {
         self.health = 20.0;
         self.hunger = 20.0;
         self.saturation = 5.0;
+        self.spawn_point = self.pos;
     }
 
     /// Passive drain: hunger falls over time, health regen/suffer follows.

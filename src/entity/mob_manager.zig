@@ -112,7 +112,7 @@ pub const MobManager = struct {
         }
     }
 
-    pub const HitResult = struct { mob_type: mob_mod.MobType, pos: math.Vec3, died: bool, drop: ?mob_mod.MobType };
+    pub const HitResult = struct { mob_type: mob_mod.MobType, pos: math.Vec3, died: bool, drop: ?mob_mod.MobType, wool: bool };
 
     /// Try hitting a mob with raycast from camera. Returns hit info incl. death/drop.
     pub fn tryHitMob(self: *MobManager, origin: math.Vec3, dir: math.Vec3, max_dist: f32) ?HitResult {
@@ -132,9 +132,9 @@ pub const MobManager = struct {
             if (died) {
                 const pos = self.mobs.items[i].pos;
                 _ = self.mobs.swapRemove(i);
-                return .{ .mob_type = mtype, .pos = pos, .died = true, .drop = mtype };
+                return .{ .mob_type = mtype, .pos = pos, .died = true, .drop = mtype, .wool = mtype == .sheep };
             }
-            return .{ .mob_type = mtype, .pos = self.mobs.items[i].pos, .died = false, .drop = null };
+            return .{ .mob_type = mtype, .pos = self.mobs.items[i].pos, .died = false, .drop = null, .wool = false };
         }
 
         return null;

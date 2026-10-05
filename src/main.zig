@@ -150,6 +150,8 @@ pub fn main() !void {
     var left_down = false;
     var right_down = false;
     var mob_hit_cooldown: f32 = 0.0;
+    var bed_cooldown: f32 = 0.0;
+    var flint_cooldown: f32 = 0.0;
     var world_time: f32 = 45.0; // Start at morning daylight
     var last_step_dist: f32 = 0.0;
 
@@ -219,7 +221,7 @@ pub fn main() !void {
         if (player.isDead()) {
             audio.play(.hurt, 0.8);
             std.debug.print("you died; respawning\n", .{});
-            player.respawn(24.0, 20.0, 24.0);
+            player.respawn(player.spawn_point.x, player.spawn_point.y, player.spawn_point.z);
         }
         cam.position = player.eyePos();
 
@@ -505,6 +507,7 @@ pub fn main() !void {
                             .sheep => .raw_mutton,
                         };
                         _ = inventory.addItem(drop, 1);
+                        if (hit_mob.wool) _ = inventory.addItem(.wool, 1);
                         std.debug.print("killed {s}, dropped {s}\n", .{ @tagName(hit_mob.mob_type), drop.name() });
                     }
                     mine_target_valid = false;
@@ -580,6 +583,48 @@ pub fn main() !void {
             mine_target_valid = false;
             mine_progress = 0.0;
             mine_need = 1.0;
+        }
+        // Sleep on wool block at night: aim at wool + press B sets spawn, skips to dawn
+        bed_cooldown = @max(0.0, bed_cooldown - dt);
+        const sun_y_now = @sin(world_time);
+        if (!inventory_open and bed_cooldown <= 0.0 and c.glfwGetKey(window, c.GLFW_KEY_B) == c.GLFW_PRESS) {
+            const dir_b = cam.front();
+            if (pick_mod.raycast(&pickSolid, cam.position, dir_b, 5)) |hit_b| {
+                if (manager.getBlockWorld(hit_b.x, hit_b.y, hit_b.z) == .wool) {
+                    if (sun_y_now < 0.15) {
+                        world_time = std.math.pi * 0.08; // dawn
+                        player.spawn_point = player.pos;
+                        player.health = 20.0;
+                        audio.play(.craft_item, 0.7);
+                        std.debug.print("slept; spawn set\n", .{});
+                    } else {
+                        std.debug.print("sleep only at night\n", .{});
+                    }
+                    bed_cooldown = 1.0;
+                }
+            }
+        }
+        // F: flint spark — ignite aimed flammable block (edge triggered, 0.5s cooldown)
+        flint_cooldown = @max(0.0, flint_cooldown - dt);
+        if (!inventory_open and flint_cooldown <= 0.0 and c.glfwGetKey(window, c.GLFW_KEY_F) == c.GLFW_PRESS) {
+            const dir_f = cam.front();
+            if (pick_mod.raycast(&pickSolid, cam.position, dir_f, 5)) |hit_f| {
+                const target = manager.getBlockWorld(hit_f.x, hit_f.y, hit_f.z);
+                if (target.isFlammable()) {
+                    particles.spawnFlame(hit_f.x, hit_f.y, hit_f.z, 14);
+                    if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, .air)) {
+                        audio.play(.break_block, 0.6);
+                        const drop_item = inventory_mod.ItemType.fromBlockId(target);
+                        if (target == .leaves and @as(u8, @intCast(@abs(@as(i64, hit_f.x) * 13 + @as(i64, hit_f.z) * 7))) % 4 == 0) {
+                            // charred leaves occasionally drop nothing extra; skip
+                        } else {
+                            _ = inventory.addItem(drop_item, 1);
+                        }
+                        std.debug.print("burned {s}\n", .{@tagName(target)});
+                    }
+                    flint_cooldown = 0.5;
+                }
+            }
         }
         // Right-click eats held meat (edge triggered, in-game only)
         if (right and !right_down and !inventory_open) {
