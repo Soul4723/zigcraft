@@ -185,6 +185,9 @@ pub fn main() !void {
     const Wire = struct { x: i32, y: i32, z: i32, powered: bool };
     var wires: [64]Wire = undefined;
     var wire_count: usize = 0;
+    const Repeater = struct { x: i32, y: i32, z: i32, powered: bool, timer: f32 };
+    var repeaters: [32]Repeater = undefined;
+    var repeater_count: usize = 0;
     var world_time: f32 = 45.0; // Start at morning daylight
     var last_step_dist: f32 = 0.0;
 
@@ -364,7 +367,7 @@ pub fn main() !void {
                     const ny = w.y + ad[1];
                     const nz = w.z + ad[2];
                     const nb = manager.getBlockWorld(nx, ny, nz);
-                    if (nb == .pressure_plate_down or nb == .lever_on) {
+                    if (nb == .pressure_plate_down or nb == .lever_on or nb == .repeater_on) {
                         powered = true;
                         break;
                     }
@@ -420,6 +423,53 @@ pub fn main() !void {
                     }
                 }
                 wi += 1;
+            }
+        }
+
+        // Redstone Repeater logic: 1-tick (0.1s) delay, unidirectional diode amplifier
+        {
+            var ri: usize = 0;
+            while (ri < repeater_count) {
+                const rep = &repeaters[ri];
+                const cur_b = manager.getBlockWorld(rep.x, rep.y, rep.z);
+                if (cur_b != .repeater_off and cur_b != .repeater_on) {
+                    repeaters[ri] = repeaters[repeater_count - 1];
+                    repeater_count -= 1;
+                    continue;
+                }
+
+                // Check power input from south/west (-Z, -X) adjacent blocks
+                var input_powered = false;
+                const in_offsets = [_][3]i32{ .{ 0, 0, -1 }, .{ -1, 0, 0 }, .{ 0, -1, 0 } };
+                for (in_offsets) |io| {
+                    const ib = manager.getBlockWorld(rep.x + io[0], rep.y + io[1], rep.z + io[2]);
+                    if (ib == .redstone_wire_on or ib == .lever_on or ib == .pressure_plate_down) {
+                        input_powered = true;
+                        break;
+                    }
+                }
+
+                if (input_powered and !rep.powered) {
+                    rep.timer += dt;
+                    if (rep.timer >= 0.1) {
+                        rep.powered = true;
+                        rep.timer = 0.0;
+                        _ = try manager.editAndRemesh(rep.x, rep.y, rep.z, .repeater_on);
+                        particles.spawnFlame(rep.x, rep.y, rep.z, 1);
+                        audio.play(.click_on, 0.4);
+                        std.debug.print("repeater powered ({d},{d},{d})\n", .{ rep.x, rep.y, rep.z });
+                    }
+                } else if (!input_powered and rep.powered) {
+                    rep.timer += dt;
+                    if (rep.timer >= 0.1) {
+                        rep.powered = false;
+                        rep.timer = 0.0;
+                        _ = try manager.editAndRemesh(rep.x, rep.y, rep.z, .repeater_off);
+                    }
+                } else {
+                    rep.timer = 0.0;
+                }
+                ri += 1;
             }
         }
 
@@ -891,6 +941,10 @@ pub fn main() !void {
                                         if (place_type == .redstone_wire_off and wire_count < wires.len) {
                                             wires[wire_count] = .{ .x = px, .y = py, .z = pz, .powered = false };
                                             wire_count += 1;
+                                        }
+                                        if (place_type == .repeater_off and repeater_count < repeaters.len) {
+                                            repeaters[repeater_count] = .{ .x = px, .y = py, .z = pz, .powered = false, .timer = 0.0 };
+                                            repeater_count += 1;
                                         }
                                         if (is_furnace_place and furnace_count < furnaces.len) {
                                             furnaces[furnace_count] = .{ .x = px, .y = py, .z = pz, .t = 0, .fuel = 0, .input = .none };
