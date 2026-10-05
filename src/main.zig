@@ -475,8 +475,25 @@ pub fn main() !void {
             } else {
                 // In-game: hold left to mine (timed by hardness/tool), right click place
                 const dir = cam.front();
-                if (left and mob_manager.tryHitMob(cam.position, dir, 4.0)) {
-                    audio.play(.mob_baa, 0.8);
+                const hit_mob_opt = if (left) mob_manager.tryHitMob(cam.position, dir, 4.0) else null;
+                if (hit_mob_opt) |hit_mob| {
+                    const hit_sound: audio_mod.synth.SoundType = switch (hit_mob.mob_type) {
+                        .sheep => .mob_baa,
+                        .pig => .mob_oink,
+                    };
+                    audio.play(hit_sound, 0.8);
+                    const px: i32 = @intFromFloat(@floor(hit_mob.pos.x));
+                    const py: i32 = @intFromFloat(@floor(hit_mob.pos.y));
+                    const pz: i32 = @intFromFloat(@floor(hit_mob.pos.z));
+                    particles.spawnBlockDebris(px, py, pz, .{ 0.85, 0.2, 0.2 }, 8);
+                    if (hit_mob.died) {
+                        const drop: inventory_mod.ItemType = switch (hit_mob.mob_type) {
+                            .pig => .raw_pork,
+                            .sheep => .raw_mutton,
+                        };
+                        _ = inventory.addItem(drop, 1);
+                        std.debug.print("killed {s}, dropped {s}\n", .{ @tagName(hit_mob.mob_type), drop.name() });
+                    }
                     mine_target_valid = false;
                 } else if (pick_mod.raycast(&pickSolid, cam.position, dir, 8)) |hit| {
                     if (left) {

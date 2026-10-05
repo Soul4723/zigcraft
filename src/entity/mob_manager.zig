@@ -52,7 +52,8 @@ pub const MobManager = struct {
                 const ground = chunk_manager.getBlockWorld(ix, iy, iz);
                 if (ground == .grass or ground == .dirt) {
                     if (chunk_manager.getBlockWorld(ix, iy + 1, iz) == .air and chunk_manager.getBlockWorld(ix, iy + 2, iz) == .air) {
-                        try self.spawnMob(.sheep, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
+                        const mtype: mob_mod.MobType = if (self.rng.random().float(f32) < 0.5) .sheep else .pig;
+                        try self.spawnMob(mtype, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
                         break;
                     }
                 }
@@ -96,7 +97,11 @@ pub const MobManager = struct {
                     const dy = mob.pos.y - player_pos.y;
                     const dz = mob.pos.z - player_pos.z;
                     if (dx * dx + dy * dy + dz * dz < 25.0 * 25.0) {
-                        a.play(.mob_baa, 0.45);
+                        const sound: audio_mod.synth.SoundType = switch (mob.mob_type) {
+                            .sheep => .mob_baa,
+                            .pig => .mob_oink,
+                        };
+                        a.play(sound, 0.45);
                         break;
                     }
                 }
@@ -104,8 +109,10 @@ pub const MobManager = struct {
         }
     }
 
-    /// Try hitting a mob with raycast from camera. Returns true if a mob was hit.
-    pub fn tryHitMob(self: *MobManager, origin: math.Vec3, dir: math.Vec3, max_dist: f32) bool {
+    pub const HitResult = struct { mob_type: mob_mod.MobType, pos: math.Vec3, died: bool, drop: ?mob_mod.MobType };
+
+    /// Try hitting a mob with raycast from camera. Returns hit info incl. death/drop.
+    pub fn tryHitMob(self: *MobManager, origin: math.Vec3, dir: math.Vec3, max_dist: f32) ?HitResult {
         var closest_dist: f32 = max_dist;
         var hit_idx: ?usize = null;
 
@@ -117,11 +124,17 @@ pub const MobManager = struct {
         }
 
         if (hit_idx) |i| {
-            self.mobs.items[i].takeHit(dir);
-            return true;
+            const mtype = self.mobs.items[i].mob_type;
+            const died = self.mobs.items[i].takeHit(dir);
+            if (died) {
+                const pos = self.mobs.items[i].pos;
+                _ = self.mobs.swapRemove(i);
+                return .{ .mob_type = mtype, .pos = pos, .died = true, .drop = mtype };
+            }
+            return .{ .mob_type = mtype, .pos = self.mobs.items[i].pos, .died = false, .drop = null };
         }
 
-        return false;
+        return null;
     }
 
     pub fn draw(self: *MobManager, view_proj: math.Mat4, sun_dir: math.Vec3) !void {

@@ -83,10 +83,10 @@ pub const Persistence = struct {
 };
 
 test "save and load roundtrip" {
-    const test_dir = "zig-cache/test_persistence";
+    const test_dir = ".zig-cache/test_persistence";
     _ = c.mkdir(test_dir, 0o755);
     defer {
-        _ = c.unlink("zig-cache/test_persistence/c_-5_12.bin");
+        _ = c.unlink(".zig-cache/test_persistence/c_-5_12.bin");
         _ = c.rmdir(test_dir);
     }
 

@@ -268,7 +268,7 @@ test "streaming loads radius and unloads outside" {
         .chunks = std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80).init(std.testing.allocator),
         .radius = 1,
         .terrain = terrain_mod.TerrainGenerator.init(123),
-        .persistence = persistence_mod.Persistence.init("zig-cache/test_mgr_stream"),
+        .persistence = persistence_mod.Persistence.init(".zig-cache/test_mgr_stream"),
     };
     defer mgr.deinit();
 
@@ -301,7 +301,7 @@ test "isSolidWorld checks negative chunk coords" {
         .chunks = std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80).init(std.testing.allocator),
         .radius = 1,
         .terrain = terrain_mod.TerrainGenerator.init(0),
-        .persistence = persistence_mod.Persistence.init("zig-cache/test_mgr_solid"),
+        .persistence = persistence_mod.Persistence.init(".zig-cache/test_mgr_solid"),
     };
     defer mgr.deinit();
 
@@ -321,7 +321,7 @@ test "getBlockWorld returns block id or air" {
         .chunks = std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80).init(std.testing.allocator),
         .radius = 1,
         .terrain = terrain_mod.TerrainGenerator.init(0),
-        .persistence = persistence_mod.Persistence.init("zig-cache/test_mgr_block"),
+        .persistence = persistence_mod.Persistence.init(".zig-cache/test_mgr_block"),
     };
     defer mgr.deinit();
 

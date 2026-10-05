@@ -195,87 +195,175 @@ fn appendBox(
 }
 
 pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVertex), inds: *std.ArrayList(u32), mob: mob_mod.Mob) !void {
-    const uv_wool = texture.getTileUV(0, 2);
-    const uv_face = texture.getTileUV(1, 2);
-
-    // Sheep geometry in local coordinate frame (Z = forward, Y = up, X = right)
-    // 1. Body: 0.5 x 0.45 x 0.7, centered at (0, 0.45, 0)
-    try appendBox(
-        allocator,
-        verts,
-        inds,
-        math.Vec3.init(0, 0.45, 0),
-        math.Vec3.init(0.5, 0.45, 0.7),
-        mob.yaw,
-        mob.pos,
-        uv_wool,
-        uv_wool,
-    );
-
-    // 2. Head: 0.35 x 0.35 x 0.35, centered forward and up at (0, 0.65, 0.45)
-    try appendBox(
-        allocator,
-        verts,
-        inds,
-        math.Vec3.init(0, 0.65, 0.45),
-        math.Vec3.init(0.35, 0.35, 0.35),
-        mob.yaw,
-        mob.pos,
-        uv_face,
-        uv_wool,
-    );
-
-    // 3. Legs: 4 legs with alternating swing animation
     const leg_swing = @sin(mob.anim_time) * 0.12;
 
-    // Front-Left (x = -0.16, z = 0.22)
-    try appendBox(
-        allocator,
-        verts,
-        inds,
-        math.Vec3.init(-0.16, 0.15, 0.22 + leg_swing),
-        math.Vec3.init(0.14, 0.3, 0.14),
-        mob.yaw,
-        mob.pos,
-        uv_wool,
-        uv_wool,
-    );
-    // Front-Right (x = 0.16, z = 0.22)
-    try appendBox(
-        allocator,
-        verts,
-        inds,
-        math.Vec3.init(0.16, 0.15, 0.22 - leg_swing),
-        math.Vec3.init(0.14, 0.3, 0.14),
-        mob.yaw,
-        mob.pos,
-        uv_wool,
-        uv_wool,
-    );
-    // Back-Left (x = -0.16, z = -0.22)
-    try appendBox(
-        allocator,
-        verts,
-        inds,
-        math.Vec3.init(-0.16, 0.15, -0.22 - leg_swing),
-        math.Vec3.init(0.14, 0.3, 0.14),
-        mob.yaw,
-        mob.pos,
-        uv_wool,
-        uv_wool,
-    );
-    // Back-Right (x = 0.16, z = -0.22)
-    try appendBox(
-        allocator,
-        verts,
-        inds,
-        math.Vec3.init(0.16, 0.15, -0.22 + leg_swing),
-        math.Vec3.init(0.14, 0.3, 0.14),
-        mob.yaw,
-        mob.pos,
-        uv_wool,
-        uv_wool,
-    );
+    switch (mob.mob_type) {
+        .sheep => {
+            const uv_wool = texture.getTileUV(0, 2);
+            const uv_face = texture.getTileUV(1, 2);
+
+            // 1. Body: 0.5 x 0.45 x 0.7, centered at (0, 0.45, 0)
+            try appendBox(
+                allocator,
+                verts,
+                inds,
+                math.Vec3.init(0, 0.45, 0),
+                math.Vec3.init(0.5, 0.45, 0.7),
+                mob.yaw,
+                mob.pos,
+                uv_wool,
+                uv_wool,
+            );
+
+            // 2. Head: 0.35 x 0.35 x 0.35, centered forward and up at (0, 0.65, 0.45)
+            try appendBox(
+                allocator,
+                verts,
+                inds,
+                math.Vec3.init(0, 0.65, 0.45),
+                math.Vec3.init(0.35, 0.35, 0.35),
+                mob.yaw,
+                mob.pos,
+                uv_face,
+                uv_wool,
+            );
+
+            // 3. Legs: 4 legs with alternating swing animation
+            try appendBox(
+                allocator,
+                verts,
+                inds,
+                math.Vec3.init(-0.16, 0.15, 0.22 + leg_swing),
+                math.Vec3.init(0.14, 0.3, 0.14),
+                mob.yaw,
+                mob.pos,
+                uv_wool,
+                uv_wool,
+            );
+            try appendBox(
+                allocator,
+                verts,
+                inds,
+                math.Vec3.init(0.16, 0.15, 0.22 - leg_swing),
+                math.Vec3.init(0.14, 0.3, 0.14),
+                mob.yaw,
+                mob.pos,
+                uv_wool,
+                uv_wool,
+            );
+            try appendBox(
+                allocator,
+                verts,
+                inds,
+                math.Vec3.init(-0.16, 0.15, -0.22 - leg_swing),
+                math.Vec3.init(0.14, 0.3, 0.14),
+                mob.yaw,
+                mob.pos,
+                uv_wool,
+                uv_wool,
+            );
+            try appendBox(
+                allocator,
+                verts,
+                inds,
+                math.Vec3.init(0.16, 0.15, -0.22 + leg_swing),
+                math.Vec3.init(0.14, 0.3, 0.14),
+                mob.yaw,
+                mob.pos,
+                uv_wool,
+                uv_wool,
+            );
+        },
+        .pig => {
+            const uv_skin = texture.getTileUV(5, 4);
+            const uv_face = texture.getTileUV(6, 4);
+
+            // 1. Body: 0.48 x 0.40 x 0.64, centered at (0, 0.36, 0)
+            try appendBox(
+                allocator,
+                verts,
+                inds,
+                math.Vec3.init(0, 0.36, 0),
+                math.Vec3.init(0.48, 0.40, 0.64),
+                mob.yaw,
+                mob.pos,
+                uv_skin,
+                uv_skin,
+            );
+
+            // 2. Head: 0.34 x 0.32 x 0.34, forward at (0, 0.52, 0.42)
+            try appendBox(
+                allocator,
+                verts,
+                inds,
+                math.Vec3.init(0, 0.52, 0.42),
+                math.Vec3.init(0.34, 0.32, 0.34),
+                mob.yaw,
+                mob.pos,
+                uv_face,
+                uv_skin,
+            );
+
+            // 3. Snout protrusion box: 0.16 x 0.10 x 0.08, at (0, 0.48, 0.61)
+            try appendBox(
+                allocator,
+                verts,
+                inds,
+                math.Vec3.init(0, 0.48, 0.61),
+                math.Vec3.init(0.16, 0.10, 0.08),
+                mob.yaw,
+                mob.pos,
+                uv_face,
+                uv_skin,
+            );
+
+            // 4. Stumpy legs (height 0.22)
+            try appendBox(
+                allocator,
+                verts,
+                inds,
+                math.Vec3.init(-0.15, 0.11, 0.20 + leg_swing),
+                math.Vec3.init(0.12, 0.22, 0.12),
+                mob.yaw,
+                mob.pos,
+                uv_skin,
+                uv_skin,
+            );
+            try appendBox(
+                allocator,
+                verts,
+                inds,
+                math.Vec3.init(0.15, 0.11, 0.20 - leg_swing),
+                math.Vec3.init(0.12, 0.22, 0.12),
+                mob.yaw,
+                mob.pos,
+                uv_skin,
+                uv_skin,
+            );
+            try appendBox(
+                allocator,
+                verts,
+                inds,
+                math.Vec3.init(-0.15, 0.11, -0.20 - leg_swing),
+                math.Vec3.init(0.12, 0.22, 0.12),
+                mob.yaw,
+                mob.pos,
+                uv_skin,
+                uv_skin,
+            );
+            try appendBox(
+                allocator,
+                verts,
+                inds,
+                math.Vec3.init(0.15, 0.11, -0.20 + leg_swing),
+                math.Vec3.init(0.12, 0.22, 0.12),
+                mob.yaw,
+                mob.pos,
+                uv_skin,
+                uv_skin,
+            );
+        },
+    }
 }
 
 test "appendMobMesh generates correct vertex and index counts" {
@@ -291,4 +379,12 @@ test "appendMobMesh generates correct vertex and index counts" {
     // 6 boxes * 6 faces * 6 indices = 216 indices
     try std.testing.expectEqual(@as(usize, 144), verts.items.len);
     try std.testing.expectEqual(@as(usize, 216), inds.items.len);
+
+    // Pig test: 7 boxes (body, head, snout, 4 legs) = 7 * 24 = 168 verts, 7 * 36 = 252 indices
+    verts.clearRetainingCapacity();
+    inds.clearRetainingCapacity();
+    const pig = mob_mod.Mob.init(.pig, 0, 0, 0);
+    try appendMobMesh(std.testing.allocator, &verts, &inds, pig);
+    try std.testing.expectEqual(@as(usize, 168), verts.items.len);
+    try std.testing.expectEqual(@as(usize, 252), inds.items.len);
 }
