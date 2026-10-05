@@ -369,7 +369,7 @@ pub fn main() !void {
 
         if (!inventory_open) {
             const mine_frac: f32 = if (mine_target_valid and mine_need > 0.0) mine_progress / mine_need else -1.0;
-            ui.drawHUDWithVitals(aspect, selected_slot, &hotbar_colors, &hotbar_counts, mine_frac, player.health, player.hunger);
+            ui.drawHUDWithBuffs(aspect, selected_slot, &hotbar_colors, &hotbar_counts, mine_frac, player.health, player.hunger, player.regen_timer > 0.0);
         } else {
             var main_colors: [18][4]f32 = undefined;
             var main_counts: [18]u8 = undefined;

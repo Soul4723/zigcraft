@@ -148,14 +148,18 @@ pub const UIRenderer = struct {
     }
 
     pub fn drawHUDWithVitals(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32) void {
-        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, health, hunger);
+        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, health, hunger, false);
+    }
+
+    pub fn drawHUDWithBuffs(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool) void {
+        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, health, hunger, regen);
     }
 
     pub fn drawHUDWithProgress(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32) void {
-        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, 20.0, 20.0);
+        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, 20.0, 20.0, false);
     }
 
-    pub fn drawHUDWithProgressVitals(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32) void {
+    pub fn drawHUDWithProgressVitals(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool) void {
         var verts: [1024]UIVertex = undefined;
         var count: usize = 0;
 
@@ -215,7 +219,8 @@ pub const UIRenderer = struct {
             const hbx0 = start_x;
             addBorderedRect(&verts, &count, hbx0, by0, hbx0 + bw, by0 + bh, 0.0015, .{ 0.1, 0.05, 0.05, 0.9 }, .{ 0.25, 0.08, 0.08, 0.9 });
             const hfill = bw * @min(1.0, @max(0.0, health / 20.0));
-            addQuad(&verts, &count, hbx0 + 0.0015, by0 + 0.0015, hbx0 + 0.0015 + hfill, by0 + bh - 0.0015, .{ 0.9, 0.15, 0.15, 1.0 });
+            const hcol: [4]f32 = if (regen) .{ 1.0, 0.80, 0.20, 1.0 } else .{ 0.9, 0.15, 0.15, 1.0 };
+            addQuad(&verts, &count, hbx0 + 0.0015, by0 + 0.0015, hbx0 + 0.0015 + hfill, by0 + bh - 0.0015, hcol);
             // Hunger right half
             const gbx0 = start_x + total_w - bw;
             addBorderedRect(&verts, &count, gbx0, by0, gbx0 + bw, by0 + bh, 0.0015, .{ 0.1, 0.07, 0.03, 0.9 }, .{ 0.25, 0.15, 0.05, 0.9 });
