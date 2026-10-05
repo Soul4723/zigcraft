@@ -36,6 +36,7 @@ pub const ItemType = enum(u8) {
     golden_apple = 30,
     iron_sword = 31,
     ladder = 32,
+    tnt = 33,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -56,6 +57,7 @@ pub const ItemType = enum(u8) {
             .brick => .brick,
             .snow_block => .snow,
             .ladder => .ladder,
+            .tnt => .tnt,
             else => null,
         };
     }
@@ -82,6 +84,7 @@ pub const ItemType = enum(u8) {
             .furnace => .furnace,
             .snow => .snow_block,
             .ladder => .ladder,
+            .tnt => .tnt,
         };
     }
 
@@ -137,6 +140,7 @@ pub const ItemType = enum(u8) {
             .golden_apple => "Golden Apple",
             .iron_sword => "Iron Sword",
             .ladder => "Ladder",
+            .tnt => "TNT",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -175,6 +179,7 @@ pub const ItemType = enum(u8) {
             .golden_apple => .{ 1.0, 0.80, 0.20, 0.95 },
             .iron_sword => .{ 0.88, 0.86, 0.92, 0.95 },
             .ladder => .{ 0.65, 0.45, 0.22, 0.95 },
+            .tnt => .{ 0.85, 0.18, 0.15, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -342,6 +347,16 @@ pub const Inventory = struct {
         if (non_empty == 4) {
             if (g0 == .cobblestone and g1 == .cobblestone and g2 == .cobblestone and g3 == .cobblestone) {
                 self.craft_output = .{ .item = .brick, .count = 4 };
+                return;
+            }
+        }
+
+        // Recipe 16: 2 Sand + 2 Coal (diagonal checkerboard) -> 1 TNT
+        if (non_empty == 4) {
+            if ((g0 == .sand and g3 == .sand and g1 == .coal and g2 == .coal) or
+                (g1 == .sand and g2 == .sand and g0 == .coal and g3 == .coal))
+            {
+                self.craft_output = .{ .item = .tnt, .count = 1 };
                 return;
             }
         }
@@ -602,4 +617,14 @@ test "golden apple recipe: 2 apples + ingot + coal" {
     inv.craft_grid[3] = .{ .item = .coal, .count = 1 };
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .golden_apple);
+}
+
+test "tnt recipe: 2 sand + 2 coal checkerboard" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .sand, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .coal, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .coal, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .sand, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .tnt);
 }

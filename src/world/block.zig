@@ -22,6 +22,7 @@ pub const BlockId = enum(u8) {
     furnace = 17,
     snow = 18,
     ladder = 19,
+    tnt = 20,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water and self != .ladder;
@@ -85,6 +86,7 @@ pub const BlockId = enum(u8) {
             .furnace => .{ .x = 0, .y = 5 },
             .snow => .{ .x = 1, .y = 5 },
             .ladder => .{ .x = 4, .y = 5 },
+            .tnt => .{ .x = 5, .y = 5 },
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -122,6 +124,7 @@ pub fn hardness(block: BlockId) f32 {
         .furnace => 2.5,
         .snow => 0.3,
         .ladder => 0.4,
+        .tnt => 0.0,
         .brick => 2.0,
         .wood => 0.9,
         .leaves => 0.25,
@@ -191,6 +194,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .furnace = .{ .name = "furnace", .solid = true, .transparent = false, .fluid = false },
     .snow = .{ .name = "snow", .solid = true, .transparent = false, .fluid = false },
     .ladder = .{ .name = "ladder", .solid = false, .transparent = true, .fluid = false },
+    .tnt = .{ .name = "tnt", .solid = true, .transparent = false, .fluid = false },
     .brick = .{ .name = "brick", .solid = true, .transparent = false, .fluid = false },
 });
 
@@ -317,4 +321,12 @@ test "furnace block props" {
     try std.testing.expectEqual(t.x, 0);
     try std.testing.expectEqual(t.y, 5);
     try std.testing.expectEqual(requiredTier(.furnace), .wooden);
+}
+
+test "tnt block props" {
+    try std.testing.expect(BlockId.tnt.is_solid());
+    const t = BlockId.tnt.getFaceTexture(0);
+    try std.testing.expectEqual(t.x, 5);
+    try std.testing.expectEqual(t.y, 5);
+    try std.testing.expectEqual(hardness(.tnt), 0.0);
 }

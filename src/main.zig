@@ -161,6 +161,9 @@ pub fn main() !void {
     var flint_cooldown: f32 = 0.0;
     var throw_cooldown: f32 = 0.0;
     var wolf_bite_cooldown: f32 = 0.0;
+    const Fuse = struct { x: i32, y: i32, z: i32, t: f32 };
+    var fuses: [8]Fuse = undefined;
+    var fuse_count: usize = 0;
     const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32 };
     var thrown: [8]Thrown = undefined;
     var thrown_count: usize = 0;
@@ -824,13 +827,89 @@ pub fn main() !void {
                 throw_cooldown = 0.4;
             }
         }
+        // TNT tick: white/smoke pulses during fuse; explode on 0
+        {
+            var fsi: usize = 0;
+            while (fsi < fuse_count) {
+                var fu = &fuses[fsi];
+                fu.t -= dt;
+                // fuse particles
+                particles.spawnFlame(fu.x, fu.y + 1, fu.z, 2);
+                if (fu.t <= 0.0) {
+                    const ex = fu.x;
+                    const ey = fu.y;
+                    const ez = fu.z;
+                    // remove TNT block itself
+                    _ = try manager.editAndRemesh(ex, ey, ez, .air);
+                    // explode 3-block sphere
+                    var rx: i32 = -3;
+                    while (rx <= 3) : (rx += 1) {
+                        var ry: i32 = -3;
+                        while (ry <= 3) : (ry += 1) {
+                            var rz: i32 = -3;
+                            while (rz <= 3) : (rz += 1) {
+                                if (rx * rx + ry * ry + rz * rz <= 10) {
+                                    const bx = ex + rx;
+                                    const by = ey + ry;
+                                    const bz = ez + rz;
+                                    if (by > 0) {
+                                        const old_b = manager.getBlockWorld(bx, by, bz);
+                                        if (old_b != .air) {
+                                            _ = try manager.editAndRemesh(bx, by, bz, .air);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    audio.play(.break_block, 1.0);
+                    particles.spawnBlockDebris(ex, ey, ez, .{ 1.0, 0.3, 0.1 }, 64);
+                    // mob blast damage
+                    for (mob_manager.mobs.items, 0..) |*m, mi| {
+                        const mdx = m.pos.x - @as(f32, @floatFromInt(ex));
+                        const mdy = m.pos.y - @as(f32, @floatFromInt(ey));
+                        const mdz = m.pos.z - @as(f32, @floatFromInt(ez));
+                        const dist_sq = mdx * mdx + mdy * mdy + mdz * mdz;
+                        if (dist_sq < 36.0) {
+                            const died = m.takeHitDmg(math.Vec3.init(mdx, mdy + 2.0, mdz), 8);
+                            if (died) {
+                                _ = mob_manager.mobs.swapRemove(mi);
+                            }
+                        }
+                    }
+                    // player blast damage + launch
+                    const pdx = player.pos.x - @as(f32, @floatFromInt(ex));
+                    const pdy = player.pos.y - @as(f32, @floatFromInt(ey));
+                    const pdz = player.pos.z - @as(f32, @floatFromInt(ez));
+                    const pdist = @sqrt(pdx * pdx + pdy * pdy + pdz * pdz);
+                    if (pdist < 7.0 and pdist > 0.1) {
+                        const blast_force = (7.0 - pdist) / 7.0;
+                        player.health = @max(0.0, player.health - blast_force * 14.0);
+                        player.vel_y = blast_force * 12.0;
+                        player.pos.x += (pdx / pdist) * blast_force * 3.0;
+                        player.pos.z += (pdz / pdist) * blast_force * 3.0;
+                        audio.play(.hurt, 1.0);
+                    }
+                    fuses[fsi] = fuses[fuse_count - 1];
+                    fuse_count -= 1;
+                } else {
+                    fsi += 1;
+                }
+            }
+        }
         // F: flint spark — ignite aimed flammable block (edge triggered, 0.5s cooldown)
         flint_cooldown = @max(0.0, flint_cooldown - dt);
         if (!inventory_open and flint_cooldown <= 0.0 and c.glfwGetKey(window, c.GLFW_KEY_F) == c.GLFW_PRESS) {
             const dir_f = cam.front();
             if (pick_mod.raycast(&pickSolid, cam.position, dir_f, 5)) |hit_f| {
                 const target = manager.getBlockWorld(hit_f.x, hit_f.y, hit_f.z);
-                if (target == .furnace) {
+                if (target == .tnt and fuse_count < fuses.len) {
+                    fuses[fuse_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z, .t = 2.5 };
+                    fuse_count += 1;
+                    audio.play(.place_block, 0.8);
+                    std.debug.print("lit TNT fuse\n", .{});
+                    flint_cooldown = 0.5;
+                } else if (target == .furnace) {
                     // feed held item as input or fuel
                     const held_f = inventory.slots[selected_slot];
                     const smeltable = switch (held_f.item) {
