@@ -213,6 +213,15 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         }
         return .{ 0, 0, 0, 0 }; // transparent cutout between rungs
     }
+    // TNT (5, 5): red dynamite sticks with white label stripe
+    if (tile_x == 5 and tile_y == 5) {
+        const is_band = (y >= 6 and y <= 9);
+        if (is_band) return .{ 235, 235, 240, 255 };
+        const seam = (x % 4 == 0);
+        if (seam) return .{ 140, 25, 20, 255 };
+        const n = hash2(x, y, 171) % 20;
+        return .{ 215 + @as(u8, @intCast(n)), 35 + @as(u8, @intCast(n / 3)), 28, 255 };
+    }
     // Wool (7, 4): soft off-white tufted fleece for sheep drops / beds
     if (tile_x == 7 and tile_y == 4) {
         const n = hash2(x, y, 118) % 18;
@@ -409,7 +418,7 @@ test "tile UV coordinates within unit quad" {
 }
 
 test "all block tiles opaque, sand tile verified" {
-    const tiles = [_][2]u32{ .{ 7, 4 }, .{ 0, 5 }, .{ 1, 5 }, .{ 2, 5 }, .{ 3, 5 }, .{ 0, 0 }, .{ 1, 0 }, .{ 2, 0 }, .{ 3, 0 }, .{ 1, 1 }, .{ 2, 1 }, .{ 3, 1 }, .{ 2, 2 }, .{ 3, 2 }, .{ 0, 3 }, .{ 1, 3 }, .{ 2, 3 }, .{ 3, 3 }, .{ 1, 4 }, .{ 2, 4 }, .{ 3, 4 }, .{ 4, 4 }, .{ 5, 4 }, .{ 6, 4 } };
+    const tiles = [_][2]u32{ .{ 7, 4 }, .{ 0, 5 }, .{ 1, 5 }, .{ 2, 5 }, .{ 3, 5 }, .{ 5, 5 }, .{ 0, 0 }, .{ 1, 0 }, .{ 2, 0 }, .{ 3, 0 }, .{ 1, 1 }, .{ 2, 1 }, .{ 3, 1 }, .{ 2, 2 }, .{ 3, 2 }, .{ 0, 3 }, .{ 1, 3 }, .{ 2, 3 }, .{ 3, 3 }, .{ 1, 4 }, .{ 2, 4 }, .{ 3, 4 }, .{ 4, 4 }, .{ 5, 4 }, .{ 6, 4 } };
     for (tiles) |t| {
         var yy: usize = 0;
         while (yy < 16) : (yy += 1) {
