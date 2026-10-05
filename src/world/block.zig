@@ -20,6 +20,7 @@ pub const BlockId = enum(u8) {
     brick = 15,
     wool = 16,
     furnace = 17,
+    snow = 18,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water;
@@ -77,6 +78,7 @@ pub const BlockId = enum(u8) {
             .brick => .{ .x = 4, .y = 4 },
             .wool => .{ .x = 7, .y = 4 },
             .furnace => .{ .x = 0, .y = 5 },
+            .snow => .{ .x = 1, .y = 5 },
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -112,6 +114,7 @@ pub fn hardness(block: BlockId) f32 {
         .sandstone => 1.8,
         .wool => 0.4,
         .furnace => 2.5,
+        .snow => 0.3,
         .brick => 2.0,
         .wood => 0.9,
         .leaves => 0.25,
@@ -179,6 +182,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .sandstone = .{ .name = "sandstone", .solid = true, .transparent = false, .fluid = false },
     .wool = .{ .name = "wool", .solid = true, .transparent = false, .fluid = false },
     .furnace = .{ .name = "furnace", .solid = true, .transparent = false, .fluid = false },
+    .snow = .{ .name = "snow", .solid = true, .transparent = false, .fluid = false },
     .brick = .{ .name = "brick", .solid = true, .transparent = false, .fluid = false },
 });
 

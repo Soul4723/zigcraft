@@ -148,7 +148,7 @@ pub const TerrainGenerator = struct {
                     const is_surface = (y == h);
                     const is_beach = (h == SEA_LEVEL or h == SEA_LEVEL + 1);
                     const b: BlockId = if (is_surface)
-                        (if (h < SEA_LEVEL) .dirt else if (is_beach) .sand else .grass)
+                        (if (h < SEA_LEVEL) .dirt else if (is_beach) .sand else if (h >= 9) .snow else .grass)
                     else if (y >= h -% 2 and h >= 3)
                         (if (is_beach) .sand else .dirt)
                     else
