@@ -38,6 +38,7 @@ pub const ItemType = enum(u8) {
     ladder = 32,
     tnt = 33,
     torch = 34,
+    chest = 35,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -60,6 +61,7 @@ pub const ItemType = enum(u8) {
             .ladder => .ladder,
             .tnt => .tnt,
             .torch => .torch,
+            .chest => .chest,
             else => null,
         };
     }
@@ -88,6 +90,7 @@ pub const ItemType = enum(u8) {
             .ladder => .ladder,
             .tnt => .tnt,
             .torch => .torch,
+            .chest => .chest,
         };
     }
 
@@ -145,6 +148,7 @@ pub const ItemType = enum(u8) {
             .ladder => "Ladder",
             .tnt => "TNT",
             .torch => "Torch",
+            .chest => "Chest",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -185,6 +189,7 @@ pub const ItemType = enum(u8) {
             .ladder => .{ 0.65, 0.45, 0.22, 0.95 },
             .tnt => .{ 0.85, 0.18, 0.15, 0.95 },
             .torch => .{ 1.0, 0.70, 0.20, 0.95 },
+            .chest => .{ 0.70, 0.45, 0.20, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -327,6 +332,22 @@ pub const Inventory = struct {
         if (non_empty == 4) {
             if (g0 == .wood_planks and g1 == .wood_planks and g2 == .wood_planks and g3 == .wood_planks) {
                 self.craft_output = .{ .item = .crafting_bench, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 18: 3 Wood Planks (hollow corner 2x2) -> 1 Chest
+        if (non_empty == 3) {
+            const is_plank = (g0 == .wood_planks or g0 == .none) and
+                (g1 == .wood_planks or g1 == .none) and
+                (g2 == .wood_planks or g2 == .none) and
+                (g3 == .wood_planks or g3 == .none);
+            const count_planks = @as(u8, if (g0 == .wood_planks) 1 else 0) +
+                @as(u8, if (g1 == .wood_planks) 1 else 0) +
+                @as(u8, if (g2 == .wood_planks) 1 else 0) +
+                @as(u8, if (g3 == .wood_planks) 1 else 0);
+            if (is_plank and count_planks == 3) {
+                self.craft_output = .{ .item = .chest, .count = 1 };
                 return;
             }
         }
@@ -651,4 +672,15 @@ test "torch recipe: coal over stick -> 4 torches" {
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .torch);
     try std.testing.expectEqual(inv.craft_output.count, 4);
+}
+
+test "chest recipe: 3 wood planks -> 1 chest" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .chest);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
 }

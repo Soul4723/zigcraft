@@ -237,6 +237,22 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         }
         return .{ 0, 0, 0, 0 };
     }
+    // Chest (7, 5): oak wooden box with dark metal band and front latch
+    if (tile_x == 7 and tile_y == 5) {
+        // Latch on front center: 2x3 silver pixel
+        if (x >= 7 and x <= 8 and y >= 6 and y <= 8) {
+            return .{ 220, 220, 230, 255 };
+        }
+        // Metal rim/clasp band along middle-upper seam and outer edges
+        const is_rim = (y == 0 or y == 15 or x == 0 or x == 15 or y == 7);
+        if (is_rim) {
+            const dark = hash2(x, y, 91) % 15;
+            return .{ 45 + @as(u8, @intCast(dark)), 35 + @as(u8, @intCast(dark)), 25, 255 };
+        }
+        // Rich warm oak planks
+        const n = hash2(x, y, 192) % 20;
+        return .{ 165 + @as(u8, @intCast(n)), 110 + @as(u8, @intCast(n / 2)), 55, 255 };
+    }
     // Wool (7, 4): soft off-white tufted fleece for sheep drops / beds
     if (tile_x == 7 and tile_y == 4) {
         const n = hash2(x, y, 118) % 18;
@@ -433,7 +449,7 @@ test "tile UV coordinates within unit quad" {
 }
 
 test "all block tiles opaque, sand tile verified" {
-    const tiles = [_][2]u32{ .{ 7, 4 }, .{ 0, 5 }, .{ 1, 5 }, .{ 2, 5 }, .{ 3, 5 }, .{ 5, 5 }, .{ 0, 0 }, .{ 1, 0 }, .{ 2, 0 }, .{ 3, 0 }, .{ 1, 1 }, .{ 2, 1 }, .{ 3, 1 }, .{ 2, 2 }, .{ 3, 2 }, .{ 0, 3 }, .{ 1, 3 }, .{ 2, 3 }, .{ 3, 3 }, .{ 1, 4 }, .{ 2, 4 }, .{ 3, 4 }, .{ 4, 4 }, .{ 5, 4 }, .{ 6, 4 } };
+    const tiles = [_][2]u32{ .{ 7, 5 }, .{ 7, 4 }, .{ 0, 5 }, .{ 1, 5 }, .{ 2, 5 }, .{ 3, 5 }, .{ 5, 5 }, .{ 0, 0 }, .{ 1, 0 }, .{ 2, 0 }, .{ 3, 0 }, .{ 1, 1 }, .{ 2, 1 }, .{ 3, 1 }, .{ 2, 2 }, .{ 3, 2 }, .{ 0, 3 }, .{ 1, 3 }, .{ 2, 3 }, .{ 3, 3 }, .{ 1, 4 }, .{ 2, 4 }, .{ 3, 4 }, .{ 4, 4 }, .{ 5, 4 }, .{ 6, 4 } };
     for (tiles) |t| {
         var yy: usize = 0;
         while (yy < 16) : (yy += 1) {

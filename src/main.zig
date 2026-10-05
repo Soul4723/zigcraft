@@ -174,6 +174,9 @@ pub fn main() !void {
     const FurnaceJob = struct { x: i32, y: i32, z: i32, t: f32, fuel: u8, input: inventory_mod.ItemType };
     var furnaces: [16]FurnaceJob = undefined;
     var furnace_count: usize = 0;
+    const Chest = struct { x: i32, y: i32, z: i32, items: [4]inventory_mod.ItemStack };
+    var chests: [16]Chest = undefined;
+    var chest_count: usize = 0;
     var sprouts: [16]struct { x: i32, y: i32, z: i32, t: f32 } = undefined;
     var sprout_count: usize = 0;
     var world_time: f32 = 45.0; // Start at morning daylight
@@ -622,6 +625,19 @@ pub fn main() !void {
                                 const tier_ok = blkTierOk(held, broken_block);
                                 const drop_item = inventory_mod.ItemType.fromBlockId(broken_block);
                                 if (tier_ok) {
+                                    if (broken_block == .chest) {
+                                        var ci: usize = 0;
+                                        while (ci < chest_count) : (ci += 1) {
+                                            if (chests[ci].x == hit.x and chests[ci].y == hit.y and chests[ci].z == hit.z) {
+                                                for (chests[ci].items) |citem| {
+                                                    if (!citem.isEmpty()) _ = inventory.addItem(citem.item, citem.count);
+                                                }
+                                                chests[ci] = chests[chest_count - 1];
+                                                chest_count -= 1;
+                                                break;
+                                            }
+                                        }
+                                    }
                                     if (broken_block == .coal_ore) {
                                         _ = inventory.addItem(.coal, 1);
                                         _ = inventory.addItem(.cobblestone, 1);
@@ -692,6 +708,10 @@ pub fn main() !void {
                                         if (place_type == .torch and torch_count < torches.len) {
                                             torches[torch_count] = .{ .x = px, .y = py, .z = pz };
                                             torch_count += 1;
+                                        }
+                                        if (place_type == .chest and chest_count < chests.len) {
+                                            chests[chest_count] = .{ .x = px, .y = py, .z = pz, .items = [_]inventory_mod.ItemStack{.{}} ** 4 };
+                                            chest_count += 1;
                                         }
                                         if (is_furnace_place and furnace_count < furnaces.len) {
                                             furnaces[furnace_count] = .{ .x = px, .y = py, .z = pz, .t = 0, .fuel = 0, .input = .none };
@@ -938,6 +958,59 @@ pub fn main() !void {
                     audio.play(.place_block, 0.8);
                     std.debug.print("lit TNT fuse\n", .{});
                     flint_cooldown = 0.5;
+                } else if (target == .chest) {
+                    var k: usize = 0;
+                    while (k < chest_count) : (k += 1) {
+                        if (chests[k].x == hit_f.x and chests[k].y == hit_f.y and chests[k].z == hit_f.z) break;
+                    }
+                    if (k >= chest_count and chest_count < chests.len) {
+                        chests[chest_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z, .items = [_]inventory_mod.ItemStack{.{}} ** 4 };
+                        chest_count += 1;
+                    }
+                    if (k < chests.len and chests[k].x == hit_f.x and chests[k].y == hit_f.y and chests[k].z == hit_f.z) {
+                        const held_item = inventory.slots[selected_slot].item;
+                        if (held_item != .none) {
+                            var stored = false;
+                            for (&chests[k].items) |*cslot| {
+                                if (cslot.item == held_item and cslot.count < 64) {
+                                    cslot.count += 1;
+                                    inventory.slots[selected_slot].decrement(1);
+                                    stored = true;
+                                    break;
+                                }
+                            }
+                            if (!stored) {
+                                for (&chests[k].items) |*cslot| {
+                                    if (cslot.isEmpty()) {
+                                        cslot.* = .{ .item = held_item, .count = 1 };
+                                        inventory.slots[selected_slot].decrement(1);
+                                        stored = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (stored) {
+                                audio.play(.place_block, 0.7);
+                                std.debug.print("deposited {s} into chest\n", .{held_item.name()});
+                            }
+                        } else {
+                            for (&chests[k].items) |*cslot| {
+                                if (!cslot.isEmpty()) {
+                                    const take_cnt = cslot.count;
+                                    const itm = cslot.item;
+                                    const rem = inventory.addItem(itm, take_cnt);
+                                    if (rem < take_cnt) {
+                                        cslot.count = rem;
+                                        if (rem == 0) cslot.clear();
+                                        audio.play(.break_block, 0.7);
+                                        std.debug.print("withdrew {d} {s} from chest\n", .{take_cnt, itm.name()});
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    flint_cooldown = 0.3;
                 } else if (target == .furnace) {
                     // feed held item as input or fuel
                     const held_f = inventory.slots[selected_slot];
