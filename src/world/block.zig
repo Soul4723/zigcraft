@@ -99,8 +99,9 @@ pub const BlockDef = struct {
 /// Tool tiers gate drops and speed up matching blocks.
 ///
 /// Tool ids mirror `ItemType` discriminants without importing inventory
-/// (cross-directory import breaks standalone test targets): 9 = wooden_pickaxe.
+/// (cross-directory import breaks standalone test targets): 9 = wooden_pickaxe, 27 = iron_pickaxe.
 pub const TOOL_WOODEN_PICKAXE: u8 = 9;
+pub const TOOL_IRON_PICKAXE: u8 = 27;
 
 pub fn hardness(block: BlockId) f32 {
     return switch (block) {
@@ -139,6 +140,12 @@ pub fn requiredTier(block: BlockId) ToolTier {
 /// Mining speed multiplier for held item vs target block.
 /// Wooden pickaxe is 3x on stone-class blocks, 1.5x elsewhere.
 pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
+    if (held_tool_id == TOOL_IRON_PICKAXE) {
+        return switch (block) {
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace => 4.0,
+            else => 2.0,
+        };
+    }
     if (held_tool_id == TOOL_WOODEN_PICKAXE) {
         return switch (block) {
             .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace => 3.0,

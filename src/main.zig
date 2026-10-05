@@ -38,7 +38,7 @@ fn defaultPickDurability() i32 {
 fn blkTierOk(held: inventory_mod.ItemType, block: block_mod.BlockId) bool {
     const need = block_mod.requiredTier(block);
     if (need == .hand) return true;
-    return held == .wooden_pickaxe;
+    return held == .wooden_pickaxe or held == .iron_pickaxe;
 }
 
 fn getFootstepSound(block: block_mod.BlockId) audio_mod.synth.SoundType {

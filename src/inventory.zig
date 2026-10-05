@@ -30,6 +30,7 @@ pub const ItemType = enum(u8) {
     sapling = 24,
     furnace = 25,
     iron_ingot = 26,
+    iron_pickaxe = 27,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -78,6 +79,7 @@ pub const ItemType = enum(u8) {
     pub fn maxDurability(self: ItemType) u16 {
         return switch (self) {
             .wooden_pickaxe => 25,
+            .iron_pickaxe => 120,
             else => 0,
         };
     }
@@ -119,6 +121,7 @@ pub const ItemType = enum(u8) {
             .sapling => "Sapling",
             .furnace => "Furnace",
             .iron_ingot => "Iron Ingot",
+            .iron_pickaxe => "Iron Pickaxe",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -151,6 +154,7 @@ pub const ItemType = enum(u8) {
             .sapling => .{ 0.35, 0.65, 0.25, 0.95 },
             .furnace => .{ 0.35, 0.35, 0.38, 0.95 },
             .iron_ingot => .{ 0.85, 0.82, 0.78, 0.95 },
+            .iron_pickaxe => .{ 0.90, 0.85, 0.80, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -318,6 +322,14 @@ pub const Inventory = struct {
         if (non_empty == 4) {
             if (g0 == .cobblestone and g1 == .cobblestone and g2 == .cobblestone and g3 == .cobblestone) {
                 self.craft_output = .{ .item = .brick, .count = 4 };
+                return;
+            }
+        }
+
+        // Recipe 11: Iron Pickaxe: top row 2 ingots + stick below (either slot)
+        if (non_empty == 3) {
+            if (g0 == .iron_ingot and g1 == .iron_ingot and (g2 == .stick or g3 == .stick)) {
+                self.craft_output = .{ .item = .iron_pickaxe, .count = 1 };
                 return;
             }
         }
