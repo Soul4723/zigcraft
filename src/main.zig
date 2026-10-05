@@ -152,6 +152,8 @@ pub fn main() !void {
     var mob_hit_cooldown: f32 = 0.0;
     var bed_cooldown: f32 = 0.0;
     var flint_cooldown: f32 = 0.0;
+    var sprouts: [16]struct { x: i32, y: i32, z: i32, t: f32 } = undefined;
+    var sprout_count: usize = 0;
     var world_time: f32 = 45.0; // Start at morning daylight
     var last_step_dist: f32 = 0.0;
 
@@ -233,6 +235,35 @@ pub fn main() !void {
             const ground_z: i32 = @intFromFloat(@floor(player.pos.z));
             const ground_block = manager.getBlockWorld(ground_x, ground_y, ground_z);
             audio.play(getFootstepSound(ground_block), 0.5);
+        }
+
+        // Grow planted sprouts after 30s into 4-high trees with canopy
+        var si: usize = 0;
+        while (si < sprout_count) {
+            sprouts[si].t += dt;
+            if (sprouts[si].t >= 30.0) {
+                const sx = sprouts[si].x;
+                const sy = sprouts[si].y;
+                const sz = sprouts[si].z;
+                var gi: i32 = 1;
+                while (gi <= 3) : (gi += 1) {
+                    if (manager.getBlockWorld(sx, sy + gi, sz) == .air) _ = try manager.editAndRemesh(sx, sy + gi, sz, .wood);
+                }
+                var ox: i32 = -1;
+                while (ox <= 1) : (ox += 1) {
+                    var oz: i32 = -1;
+                    while (oz <= 1) : (oz += 1) {
+                        if (ox == 0 and oz == 0) continue;
+                        if (manager.getBlockWorld(sx + ox, sy + 4, sz + oz) == .air) _ = try manager.editAndRemesh(sx + ox, sy + 4, sz + oz, .leaves);
+                    }
+                }
+                if (manager.getBlockWorld(sx, sy + 4, sz) == .air) _ = try manager.editAndRemesh(sx, sy + 4, sz, .leaves);
+                std.debug.print("sapling grew\n", .{});
+                sprouts[si] = sprouts[sprout_count - 1];
+                sprout_count -= 1;
+            } else {
+                si += 1;
+            }
         }
 
         // Stream chunks dynamically around player
@@ -543,11 +574,16 @@ pub fn main() !void {
                                         _ = inventory.addItem(drop_item, 1);
                                     }
                                     if (broken_block == .leaves) {
-                                        // Orchard + decay: ~1/7 leaf breaks drop an apple
+                                        // Orchard + decay: ~1/7 leaf breaks drop an apple, ~1/12 a sapling
                                         const h: u32 = @as(u32, @bitCast(hit.x *% 31 +% hit.y *% 17 +% hit.z)) % 7;
                                         if (h == 0) {
                                             _ = inventory.addItem(.apple, 1);
                                             std.debug.print("apple dropped\n", .{});
+                                        }
+                                        const sh: u32 = @as(u32, @bitCast(hit.x *% 13 +% hit.y *% 29 +% hit.z *% 7)) % 12;
+                                        if (sh == 0) {
+                                            _ = inventory.addItem(.sapling, 1);
+                                            std.debug.print("sapling dropped\n", .{});
                                         }
                                     }
                                 } else {
@@ -571,7 +607,25 @@ pub fn main() !void {
                         const pz = hit.z + hit.nz;
                         if (!pickSolid(px, py, pz)) {
                             var hotbar_slot = &inventory.slots[selected_slot];
-                            if (!hotbar_slot.isEmpty()) {
+                            if (hotbar_slot.item == .sapling) {
+                                const soil = manager.getBlockWorld(hit.x, hit.y, hit.z);
+                                if ((soil == .grass or soil == .dirt) and hit.ny == 1 and py + 2 < 16) {
+                                    if (manager.getBlockWorld(px, py + 1, pz) == .air and manager.getBlockWorld(px, py + 2, pz) == .air) {
+                                        var ok = try manager.editAndRemesh(px, py, pz, .wood);
+                                        ok = (try manager.editAndRemesh(px, py + 1, pz, .wood)) and ok;
+                                        ok = (try manager.editAndRemesh(px, py + 2, pz, .leaves)) and ok;
+                                        if (ok) {
+                                            audio.play(.place_block, 0.7);
+                                            hotbar_slot.decrement(1);
+                                            if (sprout_count < sprouts.len) {
+                                                sprouts[sprout_count] = .{ .x = px, .y = py, .z = pz, .t = 0.0 };
+                                                sprout_count += 1;
+                                            }
+                                            std.debug.print("planted sapling\n", .{});
+                                        }
+                                    }
+                                }
+                            } else if (!hotbar_slot.isEmpty()) {
                                 if (hotbar_slot.item.toBlockId()) |place_type| {
                                     if (try manager.editAndRemesh(px, py, pz, place_type)) {
                                         audio.play(.place_block, 0.7);
