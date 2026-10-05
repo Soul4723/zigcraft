@@ -542,6 +542,14 @@ pub fn main() !void {
                                     } else {
                                         _ = inventory.addItem(drop_item, 1);
                                     }
+                                    if (broken_block == .leaves) {
+                                        // Orchard + decay: ~1/7 leaf breaks drop an apple
+                                        const h: u32 = @as(u32, @bitCast(hit.x *% 31 +% hit.y *% 17 +% hit.z)) % 7;
+                                        if (h == 0) {
+                                            _ = inventory.addItem(.apple, 1);
+                                            std.debug.print("apple dropped\n", .{});
+                                        }
+                                    }
                                 } else {
                                     std.debug.print("too hard: {s} needs pickaxe\n", .{@tagName(broken_block)});
                                 }
@@ -615,11 +623,7 @@ pub fn main() !void {
                     if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, .air)) {
                         audio.play(.break_block, 0.6);
                         const drop_item = inventory_mod.ItemType.fromBlockId(target);
-                        if (target == .leaves and @as(u8, @intCast(@abs(@as(i64, hit_f.x) * 13 + @as(i64, hit_f.z) * 7))) % 4 == 0) {
-                            // charred leaves occasionally drop nothing extra; skip
-                        } else {
-                            _ = inventory.addItem(drop_item, 1);
-                        }
+                        _ = inventory.addItem(drop_item, 1);
                         std.debug.print("burned {s}\n", .{@tagName(target)});
                     }
                     flint_cooldown = 0.5;
@@ -634,6 +638,12 @@ pub fn main() !void {
                 .raw_pork, .raw_mutton => false,
                 else => null,
             };
+            if (held_eat.item == .apple and player.hunger < 20.0) {
+                player.eatApple();
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.7);
+                std.debug.print("ate apple (hunger={d:.1})\n", .{player.hunger});
+            } else
             if (cooked) |is_cooked| {
                 if (player.hunger < 20.0) {
                     player.eat(is_cooked);

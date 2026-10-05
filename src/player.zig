@@ -28,6 +28,12 @@ pub const Player = struct {
         };
     }
 
+    /// Eat apple: light snack.
+    pub fn eatApple(self: *Player) void {
+        self.hunger = @min(20.0, self.hunger + 4.0);
+        self.saturation = @min(20.0, self.saturation + 3.0);
+    }
+
     /// Eat cooked (or raw) meat. Restores hunger/saturation only.
     pub fn eat(self: *Player, cooked: bool) void {
         if (cooked) {

@@ -49,6 +49,11 @@ pub const TerrainGenerator = struct {
         return @intCast(clamped);
     }
 
+    /// Pseudo-random check if an apple should hang in a leaf canopy cell.
+    pub fn hasApple(self: TerrainGenerator, wx: i32, wy: i32, wz: i32) bool {
+        return self.oreHash(wx, wy, wz, 0xA991E) % 23 == 0;
+    }
+
     /// Pseudo-random check if a tree trunk should spawn at world column (wx, wz).
     fn hasTree(self: TerrainGenerator, wx: i32, wz: i32) bool {
         // Pseudo-random hash
