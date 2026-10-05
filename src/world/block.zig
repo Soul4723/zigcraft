@@ -39,9 +39,11 @@ pub const BlockId = enum(u8) {
     redstone_lamp_on = 34,
     iron_door_closed = 35,
     iron_door_open = 36,
+    redstone_torch_off = 37,
+    redstone_torch_on = 38,
 
     pub fn is_solid(self: BlockId) bool {
-        return self != .air and self != .water and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on;
+        return self != .air and self != .water and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on;
     }
 
     pub fn is_ladder(self: BlockId) bool {
@@ -53,7 +55,7 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_transparent(self: BlockId) bool {
-        return self == .air or self == .water or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on;
+        return self == .air or self == .water or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on;
     }
 
     pub fn isFlammable(self: BlockId) bool {
@@ -119,6 +121,8 @@ pub const BlockId = enum(u8) {
             .redstone_lamp_on => .{ .x = 3, .y = 7 },
             .iron_door_closed => .{ .x = 4, .y = 7 },
             .iron_door_open => .{ .x = 5, .y = 7 },
+            .redstone_torch_off => .{ .x = 6, .y = 7 },
+            .redstone_torch_on => .{ .x = 7, .y = 7 },
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -158,6 +162,7 @@ pub fn hardness(block: BlockId) f32 {
         .ladder => 0.4,
         .tnt => 0.0,
         .torch => 0.1,
+        .redstone_torch_off, .redstone_torch_on => 0.0,
         .redstone_wire_off, .redstone_wire_on => 0.0,
         .chest => 1.0,
         .wooden_door_closed, .wooden_door_open, .pressure_plate_up, .pressure_plate_down, .lever_off, .lever_on => 0.5,
@@ -250,6 +255,8 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .redstone_lamp_on = .{ .name = "redstone_lamp_on", .solid = true, .transparent = false, .fluid = false },
     .iron_door_closed = .{ .name = "iron_door_closed", .solid = true, .transparent = true, .fluid = false },
     .iron_door_open = .{ .name = "iron_door_open", .solid = false, .transparent = true, .fluid = false },
+    .redstone_torch_off = .{ .name = "redstone_torch_off", .solid = false, .transparent = true, .fluid = false },
+    .redstone_torch_on = .{ .name = "redstone_torch_on", .solid = false, .transparent = true, .fluid = false },
     .brick = .{ .name = "brick", .solid = true, .transparent = false, .fluid = false },
 });
 
@@ -402,6 +409,19 @@ test "chest block props" {
     try std.testing.expectEqual(t.x, 7);
     try std.testing.expectEqual(t.y, 5);
     try std.testing.expectEqual(hardness(.chest), 1.0);
+}
+
+test "redstone torch block properties" {
+    try std.testing.expect(!BlockId.redstone_torch_off.is_solid());
+    try std.testing.expect(!BlockId.redstone_torch_on.is_solid());
+    try std.testing.expect(BlockId.redstone_torch_off.is_transparent());
+    try std.testing.expect(BlockId.redstone_torch_on.is_transparent());
+    const rto = BlockId.redstone_torch_off.getFaceTexture(0);
+    try std.testing.expectEqual(rto.x, 6);
+    try std.testing.expectEqual(rto.y, 7);
+    const rtn = BlockId.redstone_torch_on.getFaceTexture(0);
+    try std.testing.expectEqual(rtn.x, 7);
+    try std.testing.expectEqual(rtn.y, 7);
 }
 
 test "iron door block properties" {

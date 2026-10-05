@@ -408,6 +408,36 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         }
         return .{ 0, 0, 0, 0 }; // alpha pass-through
     }
+    // Redstone Torch Off (6, 7): wooden shaft with unlit dark crimson burnt redstone tip
+    if (tile_x == 6 and tile_y == 7) {
+        const is_shaft = (x >= 6 and x <= 9) and (y >= 5);
+        const is_head = (x >= 5 and x <= 10) and (y <= 4);
+        if (is_head) {
+            const n = hash2(x, y, 271) % 16;
+            return .{ 130 + @as(u8, @intCast(n)), 20 + @as(u8, @intCast(n / 4)), 15, 255 }; // dark red tip
+        }
+        if (is_shaft) {
+            const n = hash2(x, y, 272) % 12;
+            return .{ 120 + @as(u8, @intCast(n)), 80 + @as(u8, @intCast(n / 2)), 40, 255 };
+        }
+        return .{ 0, 0, 0, 0 };
+    }
+    // Redstone Torch On (7, 7): wooden shaft with radiant glowing neon redstone tip and electric aura
+    if (tile_x == 7 and tile_y == 7) {
+        const is_shaft = (x >= 6 and x <= 9) and (y >= 5);
+        const is_head = (x >= 5 and x <= 10) and (y <= 4);
+        if (is_head) {
+            const hot = (y <= 2) and (x >= 6 and x <= 9);
+            if (hot) return .{ 255, 120, 80, 255 }; // bright orange-red spark center
+            const n = hash2(x, y, 273) % 20;
+            return .{ 235 + @as(u8, @intCast(n)), 35 + @as(u8, @intCast(n / 3)), 25, 255 }; // radiant red head
+        }
+        if (is_shaft) {
+            const n = hash2(x, y, 274) % 12;
+            return .{ 120 + @as(u8, @intCast(n)), 80 + @as(u8, @intCast(n / 2)), 40, 255 };
+        }
+        return .{ 0, 0, 0, 0 };
+    }
     // Chest (7, 5): oak wooden box with dark metal band and front latch
     if (tile_x == 7 and tile_y == 5) {
         // Latch on front center: 2x3 silver pixel
@@ -639,6 +669,13 @@ test "all block tiles opaque, sand tile verified" {
     try std.testing.expectEqual(tilePixel(1, 3, 3, 3)[0], 18);
     try std.testing.expectEqual(tilePixel(1, 3, 10, 5)[0], 18);
     try std.testing.expectEqual(tilePixel(1, 3, 6, 11)[0], 18);
+}
+
+test "redstone torch tiles rendered with dark vs radiant tips" {
+    try std.testing.expectEqual(tilePixel(6, 7, 0, 0)[3], 0); // transparent background
+    try std.testing.expect(tilePixel(6, 7, 7, 3)[0] < 160); // dark red tip
+    try std.testing.expectEqual(tilePixel(7, 7, 7, 1)[0], 255); // glowing center
+    try std.testing.expectEqual(tilePixel(7, 7, 7, 8)[3], 255); // wood shaft
 }
 
 test "iron door tiles rendered with rivets and slit cutout" {
