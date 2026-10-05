@@ -27,6 +27,7 @@ pub const ItemType = enum(u8) {
     cooked_mutton = 21,
     wool = 22,
     apple = 23,
+    sapling = 24,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -112,6 +113,7 @@ pub const ItemType = enum(u8) {
             .brick => "Bricks",
             .wool => "Wool",
             .apple => "Apple",
+            .sapling => "Sapling",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -141,6 +143,7 @@ pub const ItemType = enum(u8) {
             .brick => .{ 0.72, 0.32, 0.25, 0.95 },
             .wool => .{ 0.92, 0.90, 0.85, 0.95 },
             .apple => .{ 0.85, 0.15, 0.12, 0.95 },
+            .sapling => .{ 0.35, 0.65, 0.25, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },

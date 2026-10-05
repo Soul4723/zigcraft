@@ -543,11 +543,16 @@ pub fn main() !void {
                                         _ = inventory.addItem(drop_item, 1);
                                     }
                                     if (broken_block == .leaves) {
-                                        // Orchard + decay: ~1/7 leaf breaks drop an apple
+                                        // Orchard + decay: ~1/7 leaf breaks drop an apple, ~1/12 a sapling
                                         const h: u32 = @as(u32, @bitCast(hit.x *% 31 +% hit.y *% 17 +% hit.z)) % 7;
                                         if (h == 0) {
                                             _ = inventory.addItem(.apple, 1);
                                             std.debug.print("apple dropped\n", .{});
+                                        }
+                                        const sh: u32 = @as(u32, @bitCast(hit.x *% 13 +% hit.y *% 29 +% hit.z *% 7)) % 12;
+                                        if (sh == 0) {
+                                            _ = inventory.addItem(.sapling, 1);
+                                            std.debug.print("sapling dropped\n", .{});
                                         }
                                     }
                                 } else {
@@ -571,7 +576,21 @@ pub fn main() !void {
                         const pz = hit.z + hit.nz;
                         if (!pickSolid(px, py, pz)) {
                             var hotbar_slot = &inventory.slots[selected_slot];
-                            if (!hotbar_slot.isEmpty()) {
+                            if (hotbar_slot.item == .sapling) {
+                                const soil = manager.getBlockWorld(hit.x, hit.y, hit.z);
+                                if ((soil == .grass or soil == .dirt) and hit.ny == 1 and py + 2 < 16) {
+                                    if (manager.getBlockWorld(px, py + 1, pz) == .air and manager.getBlockWorld(px, py + 2, pz) == .air) {
+                                        var ok = try manager.editAndRemesh(px, py, pz, .wood);
+                                        ok = (try manager.editAndRemesh(px, py + 1, pz, .wood)) and ok;
+                                        ok = (try manager.editAndRemesh(px, py + 2, pz, .leaves)) and ok;
+                                        if (ok) {
+                                            audio.play(.place_block, 0.7);
+                                            hotbar_slot.decrement(1);
+                                            std.debug.print("planted sapling\n", .{});
+                                        }
+                                    }
+                                }
+                            } else if (!hotbar_slot.isEmpty()) {
                                 if (hotbar_slot.item.toBlockId()) |place_type| {
                                     if (try manager.editAndRemesh(px, py, pz, place_type)) {
                                         audio.play(.place_block, 0.7);
