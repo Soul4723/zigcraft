@@ -182,6 +182,9 @@ pub fn main() !void {
     const Plate = struct { x: i32, y: i32, z: i32, down: bool };
     var plates: [32]Plate = undefined;
     var plate_count: usize = 0;
+    const Wire = struct { x: i32, y: i32, z: i32, powered: bool };
+    var wires: [64]Wire = undefined;
+    var wire_count: usize = 0;
     var world_time: f32 = 45.0; // Start at morning daylight
     var last_step_dist: f32 = 0.0;
 
@@ -335,6 +338,88 @@ pub fn main() !void {
                     }
                 }
                 pi += 1;
+            }
+        }
+
+        // Redstone wire power propagation and TNT ignition
+        {
+            var wi: usize = 0;
+            while (wi < wire_count) {
+                const w = &wires[wi];
+                const cur_b = manager.getBlockWorld(w.x, w.y, w.z);
+                if (cur_b != .redstone_wire_off and cur_b != .redstone_wire_on) {
+                    wires[wi] = wires[wire_count - 1];
+                    wire_count -= 1;
+                    continue;
+                }
+
+                // Check power source in 6 directions (pressed plate or active torch)
+                var powered = false;
+                const adj_dirs = [_][3]i32{
+                    .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 },
+                    .{ 0, -1, 0 }, .{ 0, 1, 0 },
+                };
+                for (adj_dirs) |ad| {
+                    const nx = w.x + ad[0];
+                    const ny = w.y + ad[1];
+                    const nz = w.z + ad[2];
+                    const nb = manager.getBlockWorld(nx, ny, nz);
+                    if (nb == .pressure_plate_down) {
+                        powered = true;
+                        break;
+                    }
+                }
+
+                // Or powered by adjacent already-powered wire
+                if (!powered) {
+                    for (wires[0..wire_count]) |other_w| {
+                        if (other_w.x == w.x and other_w.y == w.y and other_w.z == w.z) continue;
+                        if (other_w.powered) {
+                            const dx = other_w.x - w.x;
+                            const dy = other_w.y - w.y;
+                            const dz = other_w.z - w.z;
+                            if (dx * dx + dy * dy + dz * dz == 1) {
+                                powered = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (powered and !w.powered) {
+                    w.powered = true;
+                    _ = try manager.editAndRemesh(w.x, w.y, w.z, .redstone_wire_on);
+                    particles.spawnFlame(w.x, w.y, w.z, 2);
+
+                    // If wire touches TNT block, trigger it!
+                    for (adj_dirs) |ad| {
+                        const tx = w.x + ad[0];
+                        const ty = w.y + ad[1];
+                        const tz = w.z + ad[2];
+                        if (manager.getBlockWorld(tx, ty, tz) == .tnt and fuse_count < fuses.len) {
+                            fuses[fuse_count] = .{ .x = tx, .y = ty, .z = tz, .t = 2.0 };
+                            fuse_count += 1;
+                            audio.play(.place_block, 0.8);
+                            std.debug.print("redstone wire ignited TNT ({d},{d},{d})\n", .{ tx, ty, tz });
+                        }
+                        if (manager.getBlockWorld(tx, ty, tz) == .wooden_door_closed) {
+                            _ = try manager.editAndRemesh(tx, ty, tz, .wooden_door_open);
+                        }
+                    }
+                } else if (!powered and w.powered) {
+                    w.powered = false;
+                    _ = try manager.editAndRemesh(w.x, w.y, w.z, .redstone_wire_off);
+
+                    for (adj_dirs) |ad| {
+                        const tx = w.x + ad[0];
+                        const ty = w.y + ad[1];
+                        const tz = w.z + ad[2];
+                        if (manager.getBlockWorld(tx, ty, tz) == .wooden_door_open) {
+                            _ = try manager.editAndRemesh(tx, ty, tz, .wooden_door_closed);
+                        }
+                    }
+                }
+                wi += 1;
             }
         }
 
@@ -802,6 +887,10 @@ pub fn main() !void {
                                         if (place_type == .pressure_plate_up and plate_count < plates.len) {
                                             plates[plate_count] = .{ .x = px, .y = py, .z = pz, .down = false };
                                             plate_count += 1;
+                                        }
+                                        if (place_type == .redstone_wire_off and wire_count < wires.len) {
+                                            wires[wire_count] = .{ .x = px, .y = py, .z = pz, .powered = false };
+                                            wire_count += 1;
                                         }
                                         if (is_furnace_place and furnace_count < furnaces.len) {
                                             furnaces[furnace_count] = .{ .x = px, .y = py, .z = pz, .t = 0, .fuel = 0, .input = .none };

@@ -285,6 +285,28 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         }
         return .{ 0, 0, 0, 0 }; // transparent margin
     }
+    // Redstone Wire Off (4, 6): cross-pattern dust trail, dark crimson rust red
+    if (tile_x == 4 and tile_y == 6) {
+        const is_cross = (x >= 6 and x <= 9) or (y >= 6 and y <= 9);
+        const is_dot = (x >= 4 and x <= 11 and y >= 4 and y <= 11) and (hash2(x, y, 221) % 4 != 0);
+        if (is_cross or is_dot) {
+            const n = hash2(x, y, 222) % 20;
+            return .{ 120 + @as(u8, @intCast(n)), 16 + @as(u8, @intCast(n / 4)), 12, 255 };
+        }
+        return .{ 0, 0, 0, 0 };
+    }
+    // Redstone Wire On (5, 6): bright glowing neon vermilion dust trail with spark speckles
+    if (tile_x == 5 and tile_y == 6) {
+        const is_cross = (x >= 6 and x <= 9) or (y >= 6 and y <= 9);
+        const is_dot = (x >= 4 and x <= 11 and y >= 4 and y <= 11) and (hash2(x, y, 223) % 4 != 0);
+        if (is_cross or is_dot) {
+            const spark = hash2(x, y, 224) % 9 == 0;
+            if (spark) return .{ 255, 230, 180, 255 }; // bright electrical spark
+            const n = hash2(x, y, 225) % 25;
+            return .{ 230 + @as(u8, @intCast(n)), 45 + @as(u8, @intCast(n / 2)), 30, 255 };
+        }
+        return .{ 0, 0, 0, 0 };
+    }
     // Chest (7, 5): oak wooden box with dark metal band and front latch
     if (tile_x == 7 and tile_y == 5) {
         // Latch on front center: 2x3 silver pixel
@@ -516,6 +538,15 @@ test "all block tiles opaque, sand tile verified" {
     try std.testing.expectEqual(tilePixel(1, 3, 3, 3)[0], 18);
     try std.testing.expectEqual(tilePixel(1, 3, 10, 5)[0], 18);
     try std.testing.expectEqual(tilePixel(1, 3, 6, 11)[0], 18);
+}
+
+test "redstone wire tiles rendered with cross dust pattern" {
+    try std.testing.expectEqual(tilePixel(4, 6, 0, 0)[3], 0);
+    try std.testing.expectEqual(tilePixel(4, 6, 7, 7)[3], 255);
+    try std.testing.expect(tilePixel(4, 6, 7, 7)[0] < 150); // dark red
+    try std.testing.expectEqual(tilePixel(5, 6, 0, 0)[3], 0);
+    try std.testing.expectEqual(tilePixel(5, 6, 7, 7)[3], 255);
+    try std.testing.expect(tilePixel(5, 6, 7, 7)[0] >= 230); // bright neon red
 }
 
 test "pressure plate tiles rendered with transparent border" {
