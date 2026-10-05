@@ -36,12 +36,13 @@ pub const MobManager = struct {
         try self.mobs.append(self.allocator, mob_mod.Mob.init(mob_type, x, y, z));
     }
 
-    /// Ensure initial population of sheep on surface land around center
+    /// Ensure initial population of sheep/pigs on surface land around center.
+    /// Keeps spawning up to cap as mobs die or despawn.
     pub fn ensureSpawnPopulation(self: *MobManager, chunk_manager: *const chunk_manager_mod.ChunkManager, center_x: f32, center_z: f32) !void {
         if (self.mobs.items.len >= 6) return;
 
         var attempts: usize = 0;
-        while (self.mobs.items.len < 6 and attempts < 40) : (attempts += 1) {
+        while (self.mobs.items.len < 6 and attempts < 12) : (attempts += 1) {
             const rx = center_x + (self.rng.random().float(f32) * 36.0 - 18.0);
             const rz = center_z + (self.rng.random().float(f32) * 36.0 - 18.0);
             const ix: i32 = @intFromFloat(@floor(rx));
@@ -67,7 +68,9 @@ pub const MobManager = struct {
             var mob = &self.mobs.items[idx];
             mob.tick(solid, dt, &self.rng);
 
-            if (mob.pos.y < -5.0) {
+            const dx0 = mob.pos.x - player_pos.x;
+            const dz0 = mob.pos.z - player_pos.z;
+            if (dx0 * dx0 + dz0 * dz0 > 64.0 * 64.0 or mob.pos.y < -5.0) {
                 _ = self.mobs.swapRemove(idx);
                 continue;
             }
