@@ -41,6 +41,7 @@ pub const ItemType = enum(u8) {
     chest = 35,
     wooden_door = 36,
     pressure_plate = 37,
+    redstone_dust = 38,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -66,6 +67,7 @@ pub const ItemType = enum(u8) {
             .chest => .chest,
             .wooden_door => .wooden_door_closed,
             .pressure_plate => .pressure_plate_up,
+            .redstone_dust => .redstone_wire_off,
             else => null,
         };
     }
@@ -97,6 +99,7 @@ pub const ItemType = enum(u8) {
             .chest => .chest,
             .wooden_door_closed, .wooden_door_open => .wooden_door,
             .pressure_plate_up, .pressure_plate_down => .pressure_plate,
+            .redstone_wire_off, .redstone_wire_on => .redstone_dust,
         };
     }
 
@@ -157,6 +160,7 @@ pub const ItemType = enum(u8) {
             .chest => "Chest",
             .wooden_door => "Wooden Door",
             .pressure_plate => "Pressure Plate",
+            .redstone_dust => "Redstone Dust",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -200,6 +204,7 @@ pub const ItemType = enum(u8) {
             .chest => .{ 0.70, 0.45, 0.20, 0.95 },
             .wooden_door => .{ 0.65, 0.40, 0.18, 0.95 },
             .pressure_plate => .{ 0.70, 0.48, 0.22, 0.95 },
+            .redstone_dust => .{ 0.85, 0.15, 0.12, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -373,6 +378,17 @@ pub const Inventory = struct {
                     self.craft_output = .{ .item = .wooden_door, .count = 1 };
                     return;
                 }
+            }
+        }
+
+        // Recipe 21: 1 Coal + 1 Iron Ingot (vertical or horizontal) -> 4 Redstone Dust
+        if (non_empty == 2) {
+            const has_c = (g0 == .coal or g1 == .coal or g2 == .coal or g3 == .coal);
+            const has_i = (g0 == .iron_ingot or g1 == .iron_ingot or g2 == .iron_ingot or g3 == .iron_ingot);
+            if (has_c and has_i) {
+                // Ensure not torches (coal + stick) or smelting
+                self.craft_output = .{ .item = .redstone_dust, .count = 4 };
+                return;
             }
         }
 
@@ -727,6 +743,15 @@ test "door recipe: 1 stick over 2 wood planks -> 1 wooden door" {
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .wooden_door);
     try std.testing.expectEqual(inv.craft_output.count, 1);
+}
+
+test "redstone dust recipe: coal + iron ingot -> 4 redstone dust" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .coal, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .iron_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .redstone_dust);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
 }
 
 test "pressure plate recipe: 2 wood planks horizontal -> 1 pressure plate" {
