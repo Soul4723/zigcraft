@@ -40,6 +40,7 @@ pub const ItemType = enum(u8) {
     torch = 34,
     chest = 35,
     wooden_door = 36,
+    pressure_plate = 37,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -64,6 +65,7 @@ pub const ItemType = enum(u8) {
             .torch => .torch,
             .chest => .chest,
             .wooden_door => .wooden_door_closed,
+            .pressure_plate => .pressure_plate_up,
             else => null,
         };
     }
@@ -94,6 +96,7 @@ pub const ItemType = enum(u8) {
             .torch => .torch,
             .chest => .chest,
             .wooden_door_closed, .wooden_door_open => .wooden_door,
+            .pressure_plate_up, .pressure_plate_down => .pressure_plate,
         };
     }
 
@@ -153,6 +156,7 @@ pub const ItemType = enum(u8) {
             .torch => "Torch",
             .chest => "Chest",
             .wooden_door => "Wooden Door",
+            .pressure_plate => "Pressure Plate",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -195,6 +199,7 @@ pub const ItemType = enum(u8) {
             .torch => .{ 1.0, 0.70, 0.20, 0.95 },
             .chest => .{ 0.70, 0.45, 0.20, 0.95 },
             .wooden_door => .{ 0.65, 0.40, 0.18, 0.95 },
+            .pressure_plate => .{ 0.70, 0.48, 0.22, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -368,6 +373,16 @@ pub const Inventory = struct {
                     self.craft_output = .{ .item = .wooden_door, .count = 1 };
                     return;
                 }
+            }
+        }
+
+        // Recipe 20: 2 Wood Planks horizontally (g0+g1 or g2+g3) -> 1 Pressure Plate
+        if (non_empty == 2) {
+            if ((g0 == .wood_planks and g1 == .wood_planks and g2 == .none and g3 == .none) or
+                (g2 == .wood_planks and g3 == .wood_planks and g0 == .none and g1 == .none))
+            {
+                self.craft_output = .{ .item = .pressure_plate, .count = 1 };
+                return;
             }
         }
 
@@ -711,5 +726,23 @@ test "door recipe: 1 stick over 2 wood planks -> 1 wooden door" {
     inv.craft_grid[3] = .{ .item = .wood_planks, .count = 1 };
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .wooden_door);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+}
+
+test "pressure plate recipe: 2 wood planks horizontal -> 1 pressure plate" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wood_planks, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .pressure_plate);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Also test bottom row
+    inv.craft_grid[0].clear();
+    inv.craft_grid[1].clear();
+    inv.craft_grid[2] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .wood_planks, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .pressure_plate);
     try std.testing.expectEqual(inv.craft_output.count, 1);
 }

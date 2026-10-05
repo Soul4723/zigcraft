@@ -27,9 +27,11 @@ pub const BlockId = enum(u8) {
     chest = 22,
     wooden_door_closed = 23,
     wooden_door_open = 24,
+    pressure_plate_up = 25,
+    pressure_plate_down = 26,
 
     pub fn is_solid(self: BlockId) bool {
-        return self != .air and self != .water and self != .ladder and self != .torch and self != .wooden_door_open;
+        return self != .air and self != .water and self != .ladder and self != .torch and self != .wooden_door_open and self != .pressure_plate_up and self != .pressure_plate_down;
     }
 
     pub fn is_ladder(self: BlockId) bool {
@@ -41,12 +43,12 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_transparent(self: BlockId) bool {
-        return self == .air or self == .water or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open;
+        return self == .air or self == .water or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .pressure_plate_up or self == .pressure_plate_down;
     }
 
     pub fn isFlammable(self: BlockId) bool {
         return switch (self) {
-            .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest, .wooden_door_closed, .wooden_door_open => true,
+            .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest, .wooden_door_closed, .wooden_door_open, .pressure_plate_up, .pressure_plate_down => true,
             else => false,
         };
     }
@@ -95,6 +97,8 @@ pub const BlockId = enum(u8) {
             .chest => .{ .x = 7, .y = 5 },
             .wooden_door_closed => .{ .x = 0, .y = 6 },
             .wooden_door_open => .{ .x = 1, .y = 6 },
+            .pressure_plate_up => .{ .x = 2, .y = 6 },
+            .pressure_plate_down => .{ .x = 3, .y = 6 },
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -135,7 +139,7 @@ pub fn hardness(block: BlockId) f32 {
         .tnt => 0.0,
         .torch => 0.1,
         .chest => 1.0,
-        .wooden_door_closed, .wooden_door_open => 0.8,
+        .wooden_door_closed, .wooden_door_open, .pressure_plate_up, .pressure_plate_down => 0.5,
         .brick => 2.0,
         .wood => 0.9,
         .leaves => 0.25,
@@ -210,6 +214,8 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .chest = .{ .name = "chest", .solid = true, .transparent = false, .fluid = false },
     .wooden_door_closed = .{ .name = "wooden_door_closed", .solid = true, .transparent = true, .fluid = false },
     .wooden_door_open = .{ .name = "wooden_door_open", .solid = false, .transparent = true, .fluid = false },
+    .pressure_plate_up = .{ .name = "pressure_plate_up", .solid = false, .transparent = true, .fluid = false },
+    .pressure_plate_down = .{ .name = "pressure_plate_down", .solid = false, .transparent = true, .fluid = false },
     .brick = .{ .name = "brick", .solid = true, .transparent = false, .fluid = false },
 });
 
@@ -370,6 +376,17 @@ test "door block properties" {
     try std.testing.expect(BlockId.wooden_door_closed.is_transparent());
     try std.testing.expect(BlockId.wooden_door_open.is_transparent());
     try std.testing.expect(BlockId.wooden_door_closed.isFlammable());
+    try std.testing.expect(!BlockId.pressure_plate_up.is_solid());
+    try std.testing.expect(!BlockId.pressure_plate_down.is_solid());
+    try std.testing.expect(BlockId.pressure_plate_up.is_transparent());
+    try std.testing.expect(BlockId.pressure_plate_down.is_transparent());
+    try std.testing.expect(BlockId.pressure_plate_up.isFlammable());
+    const tpu = BlockId.pressure_plate_up.getFaceTexture(0);
+    try std.testing.expectEqual(tpu.x, 2);
+    try std.testing.expectEqual(tpu.y, 6);
+    const tpd = BlockId.pressure_plate_down.getFaceTexture(0);
+    try std.testing.expectEqual(tpd.x, 3);
+    try std.testing.expectEqual(tpd.y, 6);
     const tc = BlockId.wooden_door_closed.getFaceTexture(0);
     try std.testing.expectEqual(tc.x, 0);
     try std.testing.expectEqual(tc.y, 6);
