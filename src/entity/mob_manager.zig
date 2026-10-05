@@ -126,7 +126,7 @@ pub const MobManager = struct {
     pub const HitResult = struct { mob_type: mob_mod.MobType, pos: math.Vec3, died: bool, drop: ?mob_mod.MobType, wool: bool };
 
     /// Try hitting a mob with raycast from camera. Returns hit info incl. death/drop.
-    pub fn tryHitMob(self: *MobManager, origin: math.Vec3, dir: math.Vec3, max_dist: f32) ?HitResult {
+    pub fn tryHitMobDmg(self: *MobManager, origin: math.Vec3, dir: math.Vec3, max_dist: f32, dmg: u8) ?HitResult {
         var closest_dist: f32 = max_dist;
         var hit_idx: ?usize = null;
 
@@ -139,7 +139,7 @@ pub const MobManager = struct {
 
         if (hit_idx) |i| {
             const mtype = self.mobs.items[i].mob_type;
-            const died = self.mobs.items[i].takeHit(dir);
+            const died = self.mobs.items[i].takeHitDmg(dir, dmg);
             if (died) {
                 const pos = self.mobs.items[i].pos;
                 _ = self.mobs.swapRemove(i);
@@ -149,6 +149,10 @@ pub const MobManager = struct {
         }
 
         return null;
+    }
+
+    pub fn tryHitMob(self: *MobManager, origin: math.Vec3, dir: math.Vec3, max_dist: f32) ?HitResult {
+        return self.tryHitMobDmg(origin, dir, max_dist, 1);
     }
 
     pub fn draw(self: *MobManager, view_proj: math.Mat4, sun_dir: math.Vec3) !void {

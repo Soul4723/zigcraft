@@ -552,9 +552,18 @@ pub fn main() !void {
                 // In-game: hold left to mine (timed by hardness/tool), right click place
                 const dir = cam.front();
                 mob_hit_cooldown = @max(0.0, mob_hit_cooldown - dt);
-                const hit_mob_opt = if (left and mob_hit_cooldown <= 0.0) mob_manager.tryHitMob(cam.position, dir, 4.0) else null;
+                const held_weapon = inventory.slots[selected_slot].item;
+                const hit_dmg: u8 = if (held_weapon == .iron_sword) 2 else 1;
+                const hit_mob_opt = if (left and mob_hit_cooldown <= 0.0) mob_manager.tryHitMobDmg(cam.position, dir, 4.0, hit_dmg) else null;
                 if (hit_mob_opt) |hit_mob| {
                     mob_hit_cooldown = 0.35;
+                    if (held_weapon.isTool()) {
+                        tool_wear[selected_slot] += 1;
+                        if (tool_wear[selected_slot] >= held_weapon.maxDurability()) {
+                            inventory.slots[selected_slot].clear();
+                            tool_wear[selected_slot] = 0;
+                        }
+                    }
                     const hit_sound: audio_mod.synth.SoundType = switch (hit_mob.mob_type) {
                         .sheep => .mob_baa,
                         .pig => .mob_oink,
