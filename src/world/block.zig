@@ -19,6 +19,7 @@ pub const BlockId = enum(u8) {
     sandstone = 14,
     brick = 15,
     wool = 16,
+    furnace = 17,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water;
@@ -75,6 +76,7 @@ pub const BlockId = enum(u8) {
             },
             .brick => .{ .x = 4, .y = 4 },
             .wool => .{ .x = 7, .y = 4 },
+            .furnace => .{ .x = 0, .y = 5 },
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -108,6 +110,7 @@ pub fn hardness(block: BlockId) f32 {
         .glass => 0.3,
         .sandstone => 1.8,
         .wool => 0.4,
+        .furnace => 2.5,
         .brick => 2.0,
         .wood => 0.9,
         .leaves => 0.25,
@@ -128,7 +131,7 @@ pub const ToolTier = enum(u8) {
 
 pub fn requiredTier(block: BlockId) ToolTier {
     return switch (block) {
-        .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick => .wooden,
+        .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace => .wooden,
         else => .hand,
     };
 }
@@ -138,7 +141,7 @@ pub fn requiredTier(block: BlockId) ToolTier {
 pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
     if (held_tool_id == TOOL_WOODEN_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick => 3.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace => 3.0,
             else => 1.5,
         };
     }
@@ -168,6 +171,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .glass = .{ .name = "glass", .solid = true, .transparent = true, .fluid = false },
     .sandstone = .{ .name = "sandstone", .solid = true, .transparent = false, .fluid = false },
     .wool = .{ .name = "wool", .solid = true, .transparent = false, .fluid = false },
+    .furnace = .{ .name = "furnace", .solid = true, .transparent = false, .fluid = false },
     .brick = .{ .name = "brick", .solid = true, .transparent = false, .fluid = false },
 });
 
@@ -286,4 +290,12 @@ test "flammable blocks" {
     try std.testing.expect(BlockId.wool.isFlammable());
     try std.testing.expect(!BlockId.stone.isFlammable());
     try std.testing.expect(!BlockId.coal_ore.isFlammable());
+}
+
+test "furnace block props" {
+    try std.testing.expect(BlockId.furnace.is_solid());
+    const t = BlockId.furnace.getFaceTexture(2);
+    try std.testing.expectEqual(t.x, 0);
+    try std.testing.expectEqual(t.y, 5);
+    try std.testing.expectEqual(requiredTier(.furnace), .wooden);
 }
