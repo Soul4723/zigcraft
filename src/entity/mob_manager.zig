@@ -53,7 +53,8 @@ pub const MobManager = struct {
                 const ground = chunk_manager.getBlockWorld(ix, iy, iz);
                 if (ground == .grass or ground == .dirt) {
                     if (chunk_manager.getBlockWorld(ix, iy + 1, iz) == .air and chunk_manager.getBlockWorld(ix, iy + 2, iz) == .air) {
-                        const mtype: mob_mod.MobType = if (self.rng.random().float(f32) < 0.5) .sheep else .pig;
+                        const roll = self.rng.random().float(f32);
+                        const mtype: mob_mod.MobType = if (roll < 0.42) .sheep else if (roll < 0.84) .pig else .wolf;
                         try self.spawnMob(mtype, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
                         break;
                     }
@@ -66,6 +67,15 @@ pub const MobManager = struct {
         var idx: usize = 0;
         while (idx < self.mobs.items.len) {
             var mob = &self.mobs.items[idx];
+            if (mob.mob_type == .wolf) {
+                const wdx = player_pos.x - mob.pos.x;
+                const wdz = player_pos.z - mob.pos.z;
+                const wd = @sqrt(wdx * wdx + wdz * wdz);
+                if (wd < 12.0 and wd > 0.5) {
+                    mob.yaw = std.math.atan2(wdx, wdz);
+                    mob.walk_timer = 0.5;
+                }
+            }
             mob.tick(solid, dt, &self.rng);
 
             const dx0 = mob.pos.x - player_pos.x;
@@ -103,6 +113,7 @@ pub const MobManager = struct {
                         const sound: audio_mod.synth.SoundType = switch (mob.mob_type) {
                             .sheep => .mob_baa,
                             .pig => .mob_oink,
+                            .wolf => .mob_growl,
                         };
                         a.play(sound, 0.45);
                         break;

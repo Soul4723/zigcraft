@@ -187,6 +187,22 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         const base: u8 = 228 + @as(u8, @intCast(n));
         return .{ base - 8, base - 2, base, 255 };
     }
+    // Wolf fur (2, 5): dark gray-brown matted coat
+    if (tile_x == 2 and tile_y == 5) {
+        const n = hash2(x, y, 151) % 22;
+        const streak = (x + y) % 5 == 0;
+        if (streak) return .{ 70 + @as(u8, @intCast(n / 2)), 62 + @as(u8, @intCast(n / 2)), 55, 255 };
+        return .{ 95 + @as(u8, @intCast(n)), 86 + @as(u8, @intCast(n)), 76, 255 };
+    }
+    // Wolf face (3, 5): amber eyes, dark muzzle
+    if (tile_x == 3 and tile_y == 5) {
+        const eye = (y >= 6 and y <= 7) and ((x >= 2 and x <= 4) or (x >= 11 and x <= 13));
+        if (eye) return .{ 230, 150, 40, 255 };
+        const muzzle = (y >= 9 and y <= 13) and (x >= 5 and x <= 10);
+        if (muzzle) return .{ 45, 40, 36, 255 };
+        const n = hash2(x, y, 152) % 18;
+        return .{ 100 + @as(u8, @intCast(n)), 90 + @as(u8, @intCast(n)), 80, 255 };
+    }
     // Wool (7, 4): soft off-white tufted fleece for sheep drops / beds
     if (tile_x == 7 and tile_y == 4) {
         const n = hash2(x, y, 118) % 18;
@@ -383,7 +399,7 @@ test "tile UV coordinates within unit quad" {
 }
 
 test "all block tiles opaque, sand tile verified" {
-    const tiles = [_][2]u32{ .{ 7, 4 }, .{ 0, 5 }, .{ 1, 5 }, .{ 0, 0 }, .{ 1, 0 }, .{ 2, 0 }, .{ 3, 0 }, .{ 1, 1 }, .{ 2, 1 }, .{ 3, 1 }, .{ 2, 2 }, .{ 3, 2 }, .{ 0, 3 }, .{ 1, 3 }, .{ 2, 3 }, .{ 3, 3 }, .{ 1, 4 }, .{ 2, 4 }, .{ 3, 4 }, .{ 4, 4 }, .{ 5, 4 }, .{ 6, 4 } };
+    const tiles = [_][2]u32{ .{ 7, 4 }, .{ 0, 5 }, .{ 1, 5 }, .{ 2, 5 }, .{ 3, 5 }, .{ 0, 0 }, .{ 1, 0 }, .{ 2, 0 }, .{ 3, 0 }, .{ 1, 1 }, .{ 2, 1 }, .{ 3, 1 }, .{ 2, 2 }, .{ 3, 2 }, .{ 0, 3 }, .{ 1, 3 }, .{ 2, 3 }, .{ 3, 3 }, .{ 1, 4 }, .{ 2, 4 }, .{ 3, 4 }, .{ 4, 4 }, .{ 5, 4 }, .{ 6, 4 } };
     for (tiles) |t| {
         var yy: usize = 0;
         while (yy < 16) : (yy += 1) {

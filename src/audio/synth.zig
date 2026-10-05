@@ -14,6 +14,7 @@ pub const SoundType = enum {
     craft_item,
     eat,
     hurt,
+    mob_growl,
 };
 
 pub const SAMPLE_RATE: u32 = 44100;
@@ -70,6 +71,7 @@ pub const AudioMixer = struct {
             .mob_oink => SAMPLE_RATE / 4, // ~250ms
             .eat => SAMPLE_RATE / 5, // ~200ms
             .hurt => SAMPLE_RATE / 3, // ~330ms
+            .mob_growl => SAMPLE_RATE / 2, // ~500ms
             .craft_item => SAMPLE_RATE / 6, // ~166ms
         };
 
@@ -219,6 +221,16 @@ pub const AudioMixer = struct {
                 const tone = @sin(t * freq * 2.0 * std.math.pi) * 0.4;
                 return (noise * @max(0.0, chomp) + tone * 0.5) * envelope * 0.6;
             },
+            .mob_growl => {
+                // Wolf growl: low rumbling 70Hz with amplitude wobble
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const wobble = 0.6 + 0.4 * @sin(t * 55.0);
+                const freq: f32 = 70.0;
+                const phase = t * freq * 2.0 * std.math.pi;
+                const tone = @sin(phase) + 0.5 * @sin(phase * 1.5) + 0.25 * @sin(phase * 2.02);
+                const noise = (rng.random().float(f32) * 2.0 - 1.0) * 0.15;
+                return (tone * wobble + noise) * envelope * 0.6;
+            },
             .hurt => {
                 // Pained yelp: falling pitch 400->150Hz
                 const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
@@ -258,7 +270,7 @@ test "AudioMixer play voice produces non-zero samples" {
 
 test "AudioMixer all sound types render without overflow or crash" {
     var mixer = AudioMixer.init();
-    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt };
+    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl };
     for (sounds) |snd| {
         mixer.play(snd, 1.0);
     }

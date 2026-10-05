@@ -363,6 +363,24 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
                 uv_skin,
             );
         },
+        .wolf => {
+            const uv_fur = texture.getTileUV(2, 5);
+            const uv_face = texture.getTileUV(3, 5);
+
+            // 1. Body: lean 0.42 x 0.38 x 0.72 at (0, 0.42, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.42, 0), math.Vec3.init(0.42, 0.38, 0.72), mob.yaw, mob.pos, uv_fur, uv_fur);
+            // 2. Head: 0.30 cube forward-up at (0, 0.62, 0.44)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.62, 0.44), math.Vec3.init(0.30, 0.30, 0.30), mob.yaw, mob.pos, uv_face, uv_fur);
+            // 3. Snout: 0.14 x 0.10 x 0.12 at (0, 0.56, 0.62)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.56, 0.62), math.Vec3.init(0.14, 0.10, 0.12), mob.yaw, mob.pos, uv_face, uv_fur);
+            // 4. Tail: angled 0.10 x 0.10 x 0.30 at back (0, 0.52, -0.46)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.52, -0.46), math.Vec3.init(0.10, 0.10, 0.30), mob.yaw, mob.pos, uv_fur, uv_fur);
+            // 5-8. Tall legs (0.32 high)
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.14, 0.16, 0.24 + leg_swing), math.Vec3.init(0.11, 0.32, 0.11), mob.yaw, mob.pos, uv_fur, uv_fur);
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.14, 0.16, 0.24 - leg_swing), math.Vec3.init(0.11, 0.32, 0.11), mob.yaw, mob.pos, uv_fur, uv_fur);
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.14, 0.16, -0.24 - leg_swing), math.Vec3.init(0.11, 0.32, 0.11), mob.yaw, mob.pos, uv_fur, uv_fur);
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.14, 0.16, -0.24 + leg_swing), math.Vec3.init(0.11, 0.32, 0.11), mob.yaw, mob.pos, uv_fur, uv_fur);
+        },
     }
 }
 

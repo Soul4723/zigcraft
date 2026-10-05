@@ -155,6 +155,7 @@ pub fn main() !void {
     var bed_cooldown: f32 = 0.0;
     var flint_cooldown: f32 = 0.0;
     var throw_cooldown: f32 = 0.0;
+    var wolf_bite_cooldown: f32 = 0.0;
     const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32 };
     var thrown: [8]Thrown = undefined;
     var thrown_count: usize = 0;
@@ -281,6 +282,28 @@ pub fn main() !void {
         // Mob spawning and physics AI tick
         try mob_manager.ensureSpawnPopulation(&manager, player.pos.x, player.pos.z);
         mob_manager.tick(&pickSolid, player.pos, player.radius, &audio, dt);
+
+        // Wolf bites: contact damage with per-second cooldown
+        wolf_bite_cooldown = @max(0.0, wolf_bite_cooldown - dt);
+        if (wolf_bite_cooldown <= 0.0) {
+            for (mob_manager.mobs.items) |m| {
+                if (m.mob_type != .wolf) continue;
+                const bdx = m.pos.x - player.pos.x;
+                const bdz = m.pos.z - player.pos.z;
+                const bdy = m.pos.y - player.pos.y;
+                if (bdx * bdx + bdz * bdz < 1.2 * 1.2 and @abs(bdy) < 2.0) {
+                    player.health = @max(0.0, player.health - 2.0);
+                    audio.play(.hurt, 0.8);
+                    // knock player slightly away
+                    const bl = @max(0.5, @sqrt(bdx * bdx + bdz * bdz));
+                    player.pos.x -= bdx / bl * 0.6;
+                    player.pos.z -= bdz / bl * 0.6;
+                    std.debug.print("wolf bite (hp={d:.1})\n", .{player.health});
+                    wolf_bite_cooldown = 1.0;
+                    break;
+                }
+            }
+        }
 
         // Mouse look
         var xpos: f64 = 0;
@@ -535,6 +558,7 @@ pub fn main() !void {
                     const hit_sound: audio_mod.synth.SoundType = switch (hit_mob.mob_type) {
                         .sheep => .mob_baa,
                         .pig => .mob_oink,
+                        .wolf => .mob_growl,
                     };
                     audio.play(hit_sound, 0.8);
                     const px: i32 = @intFromFloat(@floor(hit_mob.pos.x));
@@ -545,6 +569,7 @@ pub fn main() !void {
                         const drop: inventory_mod.ItemType = switch (hit_mob.mob_type) {
                             .pig => .raw_pork,
                             .sheep => .raw_mutton,
+                            .wolf => .none,
                         };
                         _ = inventory.addItem(drop, 1);
                         if (hit_mob.wool) _ = inventory.addItem(.wool, 1);
@@ -749,6 +774,7 @@ pub fn main() !void {
                                     const md: inventory_mod.ItemType = switch (m.mob_type) {
                                         .pig => .raw_pork,
                                         .sheep => .raw_mutton,
+                                        .wolf => .none,
                                     };
                                     const mp = m.pos;
                                     _ = mob_manager.mobs.swapRemove(mi);
