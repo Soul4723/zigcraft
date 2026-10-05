@@ -18,6 +18,7 @@ pub const BlockId = enum(u8) {
     glass = 13,
     sandstone = 14,
     brick = 15,
+    wool = 16,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water;
@@ -66,6 +67,7 @@ pub const BlockId = enum(u8) {
                 else => .{ .x = 2, .y = 4 }, // Sandstone Side
             },
             .brick => .{ .x = 4, .y = 4 },
+            .wool => .{ .x = 7, .y = 4 },
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -98,6 +100,7 @@ pub fn hardness(block: BlockId) f32 {
         .sand => 0.5,
         .glass => 0.3,
         .sandstone => 1.8,
+        .wool => 0.4,
         .brick => 2.0,
         .wood => 0.9,
         .leaves => 0.25,
@@ -157,6 +160,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .sand = .{ .name = "sand", .solid = true, .transparent = false, .fluid = false },
     .glass = .{ .name = "glass", .solid = true, .transparent = true, .fluid = false },
     .sandstone = .{ .name = "sandstone", .solid = true, .transparent = false, .fluid = false },
+    .wool = .{ .name = "wool", .solid = true, .transparent = false, .fluid = false },
     .brick = .{ .name = "brick", .solid = true, .transparent = false, .fluid = false },
 });
 
@@ -258,4 +262,13 @@ test "block face texture mapping" {
     const leaves = BlockId.leaves.getFaceTexture(0);
     try std.testing.expectEqual(leaves.x, 3);
     try std.testing.expectEqual(leaves.y, 1);
+}
+
+test "wool block props" {
+    try std.testing.expect(BlockId.wool.is_solid());
+    try std.testing.expect(!BlockId.wool.is_transparent());
+    const t = BlockId.wool.getFaceTexture(2);
+    try std.testing.expectEqual(t.x, 7);
+    try std.testing.expectEqual(t.y, 4);
+    try std.testing.expectApproxEqAbs(hardness(.wool), 0.4, 0.001);
 }
