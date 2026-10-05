@@ -45,6 +45,7 @@ pub const ItemType = enum(u8) {
     lever = 39,
     redstone_repeater = 40,
     redstone_lamp = 41,
+    iron_door = 42,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -74,6 +75,7 @@ pub const ItemType = enum(u8) {
             .lever => .lever_off,
             .redstone_repeater => .repeater_off,
             .redstone_lamp => .redstone_lamp_off,
+            .iron_door => .iron_door_closed,
             else => null,
         };
     }
@@ -109,6 +111,7 @@ pub const ItemType = enum(u8) {
             .lever_off, .lever_on => .lever,
             .repeater_off, .repeater_on => .redstone_repeater,
             .redstone_lamp_off, .redstone_lamp_on => .redstone_lamp,
+            .iron_door_closed, .iron_door_open => .iron_door,
         };
     }
 
@@ -173,6 +176,7 @@ pub const ItemType = enum(u8) {
             .lever => "Lever",
             .redstone_repeater => "Redstone Repeater",
             .redstone_lamp => "Redstone Lamp",
+            .iron_door => "Iron Door",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -220,6 +224,7 @@ pub const ItemType = enum(u8) {
             .lever => .{ 0.65, 0.62, 0.58, 0.95 },
             .redstone_repeater => .{ 0.72, 0.72, 0.75, 0.95 },
             .redstone_lamp => .{ 0.95, 0.75, 0.35, 0.95 },
+            .iron_door => .{ 0.85, 0.85, 0.88, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -393,6 +398,14 @@ pub const Inventory = struct {
                     self.craft_output = .{ .item = .wooden_door, .count = 1 };
                     return;
                 }
+            }
+        }
+
+        // Recipe 25: 4 Iron Ingots (2x2 filled) -> 1 Iron Door
+        if (non_empty == 4) {
+            if (g0 == .iron_ingot and g1 == .iron_ingot and g2 == .iron_ingot and g3 == .iron_ingot) {
+                self.craft_output = .{ .item = .iron_door, .count = 1 };
+                return;
             }
         }
 
@@ -795,6 +808,17 @@ test "door recipe: 1 stick over 2 wood planks -> 1 wooden door" {
     inv.craft_grid[3] = .{ .item = .wood_planks, .count = 1 };
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .wooden_door);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+}
+
+test "iron door recipe: 4 iron ingots -> 1 iron door" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .iron_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .iron_door);
     try std.testing.expectEqual(inv.craft_output.count, 1);
 }
 

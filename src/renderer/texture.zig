@@ -383,6 +383,31 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         const n = hash2(x, y, 252) % 15;
         return .{ 255, 225 + @as(u8, @intCast(n / 2)), 110 + @as(u8, @intCast(n)), 255 }; // glowing warm gold
     }
+    // Iron Door Closed (4, 7): reinforced metallic iron plating with riveted borders and 2 square peepholes
+    if (tile_x == 4 and tile_y == 7) {
+        // Dual square viewing slits
+        if ((y >= 3 and y <= 5 and x >= 4 and x <= 6) or (y >= 3 and y <= 5 and x >= 9 and x <= 11)) {
+            return .{ 30, 35, 45, 140 }; // glass slit cutout
+        }
+        // Border frame and cross bracing
+        const is_frame = (x == 1 or x == 14 or y == 1 or y == 14 or y == 7 or y == 8);
+        if (is_frame) return .{ 150, 150, 155, 255 }; // dark metallic trim
+        // Rivets at panel corners
+        const is_rivet = (x == 3 or x == 12) and (y == 3 or y == 6 or y == 9 or y == 13);
+        if (is_rivet) return .{ 240, 240, 245, 255 }; // specular rivet head
+        const n = hash2(x, y, 261) % 20;
+        return .{ 190 + @as(u8, @intCast(n)), 190 + @as(u8, @intCast(n)), 195 + @as(u8, @intCast(n / 2)), 255 };
+    }
+    // Iron Door Open (5, 7): 3px steel edge profile with alpha pass-through
+    if (tile_x == 5 and tile_y == 7) {
+        if (x <= 2) {
+            const is_rivet = (y == 3 or y == 7 or y == 12);
+            if (is_rivet and x == 1) return .{ 240, 240, 245, 255 };
+            const n = hash2(x, y, 262) % 15;
+            return .{ 175 + @as(u8, @intCast(n)), 175 + @as(u8, @intCast(n)), 180, 255 };
+        }
+        return .{ 0, 0, 0, 0 }; // alpha pass-through
+    }
     // Chest (7, 5): oak wooden box with dark metal band and front latch
     if (tile_x == 7 and tile_y == 5) {
         // Latch on front center: 2x3 silver pixel
@@ -614,6 +639,13 @@ test "all block tiles opaque, sand tile verified" {
     try std.testing.expectEqual(tilePixel(1, 3, 3, 3)[0], 18);
     try std.testing.expectEqual(tilePixel(1, 3, 10, 5)[0], 18);
     try std.testing.expectEqual(tilePixel(1, 3, 6, 11)[0], 18);
+}
+
+test "iron door tiles rendered with rivets and slit cutout" {
+    try std.testing.expectEqual(tilePixel(4, 7, 5, 4)[3], 140); // window slit
+    try std.testing.expectEqual(tilePixel(4, 7, 3, 3)[0], 240); // rivet head
+    try std.testing.expectEqual(tilePixel(5, 7, 0, 0)[3], 255); // edge
+    try std.testing.expectEqual(tilePixel(5, 7, 10, 10)[3], 0);  // pass-through
 }
 
 test "lamp tiles rendered with lattice frame and amber/golden cores" {
