@@ -8,6 +8,7 @@ pub const SoundType = enum {
     break_block,
     place_block,
     mob_baa,
+    mob_oink,
     craft_item,
 };
 
@@ -60,6 +61,7 @@ pub const AudioMixer = struct {
             .break_block => SAMPLE_RATE / 6, // ~166ms
             .place_block => SAMPLE_RATE / 10, // ~100ms
             .mob_baa => SAMPLE_RATE / 3, // ~333ms
+            .mob_oink => SAMPLE_RATE / 4, // ~250ms
             .craft_item => SAMPLE_RATE / 6, // ~166ms
         };
 
@@ -164,6 +166,17 @@ pub const AudioMixer = struct {
                 const env = @sin(progress * std.math.pi);
                 return (h1 + h2 + h3 + breath) * env * 0.45;
             },
+            .mob_oink => {
+                // Pig grunt / oink: low pitch formant grunt (~130-160Hz) with rapid pitch rise & fall + snort noise
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const pitch_bend = 1.0 + 0.3 * @sin(progress * std.math.pi);
+                const freq: f32 = 135.0 * pitch_bend;
+                const phase = t * freq * 2.0 * std.math.pi;
+                const tone = @sin(phase) + 0.4 * @sin(phase * 2.0) + 0.2 * @sin(phase * 3.0);
+                const snort = (rng.random().float(f32) * 2.0 - 1.0) * 0.25;
+                const env = @sin(progress * std.math.pi) * (1.0 - progress * 0.4);
+                return (tone * 0.75 + snort) * env * 0.5;
+            },
             .craft_item => {
                 const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
                 const freq: f32 = if (progress < 0.5) 880.0 else 1320.0;
@@ -204,7 +217,7 @@ test "AudioMixer play voice produces non-zero samples" {
 
 test "AudioMixer all sound types render without overflow or crash" {
     var mixer = AudioMixer.init();
-    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .break_block, .place_block, .mob_baa };
+    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .break_block, .place_block, .mob_baa, .mob_oink };
     for (sounds) |snd| {
         mixer.play(snd, 1.0);
     }

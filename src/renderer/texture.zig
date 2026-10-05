@@ -161,7 +161,39 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
     if (tile_x == 4 and tile_y == 4) {
         return brickPixel(x, y);
     }
+    // Pig skin (5, 4): soft pink with subtle tone shifts
+    if (tile_x == 5 and tile_y == 4) {
+        return pigSkinPixel(x, y);
+    }
+    // Pig face (6, 4): eyes and snout with nostrils
+    if (tile_x == 6 and tile_y == 4) {
+        return pigFacePixel(x, y);
+    }
     return .{ 0, 0, 0, 0 };
+}
+
+fn pigSkinPixel(x: usize, y: usize) [4]u8 {
+    const n = hash2(x, y, 115) % 15;
+    const base_r: u8 = 240 + @as(u8, @intCast(n));
+    const base_g: u8 = 165 + @as(u8, @intCast(n / 2));
+    const base_b: u8 = 165 + @as(u8, @intCast(n / 2));
+    return .{ base_r, base_g, base_b, 255 };
+}
+
+fn pigFacePixel(x: usize, y: usize) [4]u8 {
+    const left_eye = (y >= 6 and y <= 7) and (x >= 2 and x <= 4);
+    const right_eye = (y >= 6 and y <= 7) and (x >= 11 and x <= 13);
+    const left_pupil = (y == 7) and (x == 3 or x == 4);
+    const right_pupil = (y == 7) and (x == 11 or x == 12);
+    if (left_pupil or right_pupil) return .{ 45, 30, 30, 255 };
+    if (left_eye or right_eye) return .{ 255, 255, 255, 255 };
+
+    const is_snout = (y >= 8 and y <= 11) and (x >= 5 and x <= 10);
+    const is_nostril = (y == 9 or y == 10) and (x == 6 or x == 9);
+    if (is_nostril) return .{ 140, 70, 70, 255 };
+    if (is_snout) return .{ 215, 125, 125, 255 };
+
+    return pigSkinPixel(x, y);
 }
 
 fn glassPixel(x: usize, y: usize) [4]u8 {
@@ -325,7 +357,7 @@ test "tile UV coordinates within unit quad" {
 }
 
 test "all block tiles opaque, sand tile verified" {
-    const tiles = [_][2]u32{ .{ 0, 0 }, .{ 1, 0 }, .{ 2, 0 }, .{ 3, 0 }, .{ 1, 1 }, .{ 2, 1 }, .{ 3, 1 }, .{ 2, 2 }, .{ 3, 2 }, .{ 0, 3 }, .{ 1, 3 }, .{ 2, 3 }, .{ 3, 3 }, .{ 1, 4 }, .{ 2, 4 }, .{ 3, 4 }, .{ 4, 4 } };
+    const tiles = [_][2]u32{ .{ 0, 0 }, .{ 1, 0 }, .{ 2, 0 }, .{ 3, 0 }, .{ 1, 1 }, .{ 2, 1 }, .{ 3, 1 }, .{ 2, 2 }, .{ 3, 2 }, .{ 0, 3 }, .{ 1, 3 }, .{ 2, 3 }, .{ 3, 3 }, .{ 1, 4 }, .{ 2, 4 }, .{ 3, 4 }, .{ 4, 4 }, .{ 5, 4 }, .{ 6, 4 } };
     for (tiles) |t| {
         var yy: usize = 0;
         while (yy < 16) : (yy += 1) {

@@ -21,6 +21,8 @@ pub const ItemType = enum(u8) {
     glass = 15,
     sandstone = 16,
     brick = 17,
+    raw_pork = 18,
+    raw_mutton = 19,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -103,6 +105,8 @@ pub const ItemType = enum(u8) {
             .glass => "Glass",
             .sandstone => "Sandstone",
             .brick => "Bricks",
+            .raw_pork => "Raw Pork",
+            .raw_mutton => "Raw Mutton",
         };
     }
 
@@ -126,6 +130,8 @@ pub const ItemType = enum(u8) {
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
             .brick => .{ 0.72, 0.32, 0.25, 0.95 },
+            .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
+            .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
         };
     }
 };

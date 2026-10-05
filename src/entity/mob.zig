@@ -3,6 +3,7 @@ const math = @import("../math.zig");
 
 pub const MobType = enum {
     sheep,
+    pig,
 };
 
 pub const Mob = struct {
@@ -19,8 +20,21 @@ pub const Mob = struct {
     anim_time: f32,
     change_dir_timer: f32,
     wants_sound: bool,
+    health: u8,
 
     pub fn init(mob_type: MobType, x: f32, y: f32, z: f32) Mob {
+        const w: f32 = switch (mob_type) {
+            .sheep => 0.6,
+            .pig => 0.55,
+        };
+        const h: f32 = switch (mob_type) {
+            .sheep => 0.9,
+            .pig => 0.75,
+        };
+        const spd: f32 = switch (mob_type) {
+            .sheep => 1.4,
+            .pig => 1.6,
+        };
         return .{
             .mob_type = mob_type,
             .pos = math.Vec3.init(x, y, z),
@@ -28,13 +42,14 @@ pub const Mob = struct {
             .yaw = 0.0,
             .pitch = 0.0,
             .on_ground = false,
-            .width = 0.6,
-            .height = 0.9,
+            .width = w,
+            .height = h,
             .walk_timer = 0.0,
-            .walk_speed = 1.4,
+            .walk_speed = spd,
             .anim_time = 0.0,
             .change_dir_timer = 2.0,
             .wants_sound = false,
+            .health = 3,
         };
     }
 
@@ -147,13 +162,16 @@ pub const Mob = struct {
         return tmin;
     }
 
-    pub fn takeHit(self: *Mob, from_dir: math.Vec3) void {
+    /// Apply punch knockback and 1 damage. Returns true when health reaches 0.
+    pub fn takeHit(self: *Mob, from_dir: math.Vec3) bool {
+        if (self.health > 0) self.health -= 1;
         self.vel.y = 5.0;
         self.vel.x = from_dir.x * 4.0;
         self.vel.z = from_dir.z * 4.0;
         self.on_ground = false;
         self.walk_timer = 2.5;
         self.yaw = std.math.atan2(from_dir.x, from_dir.z);
+        return self.health == 0;
     }
 };
 
@@ -287,10 +305,18 @@ test "mob rayIntersects detects hit" {
     try std.testing.expect(miss == null);
 }
 
+test "mob takeHit decrements health and reports death" {
+    var dying = Mob.init(.pig, 0.0, 1.0, 0.0);
+    try std.testing.expect(!dying.takeHit(math.Vec3.init(0.0, 0.0, 1.0)));
+    try std.testing.expect(!dying.takeHit(math.Vec3.init(0.0, 0.0, 1.0)));
+    try std.testing.expect(dying.takeHit(math.Vec3.init(0.0, 0.0, 1.0)));
+    try std.testing.expectEqual(@as(u8, 0), dying.health);
+}
+
 test "mob takeHit applies knockback and sets state" {
     var mob = Mob.init(.sheep, 0.0, 1.0, 0.0);
     mob.on_ground = true;
-    mob.takeHit(math.Vec3.init(0.0, 0.0, 1.0));
+    _ = mob.takeHit(math.Vec3.init(0.0, 0.0, 1.0));
     try std.testing.expectEqual(@as(f32, 5.0), mob.vel.y);
     try std.testing.expectEqual(@as(f32, 4.0), mob.vel.z);
     try std.testing.expect(!mob.on_ground);
