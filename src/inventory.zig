@@ -42,6 +42,7 @@ pub const ItemType = enum(u8) {
     wooden_door = 36,
     pressure_plate = 37,
     redstone_dust = 38,
+    lever = 39,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -68,6 +69,7 @@ pub const ItemType = enum(u8) {
             .wooden_door => .wooden_door_closed,
             .pressure_plate => .pressure_plate_up,
             .redstone_dust => .redstone_wire_off,
+            .lever => .lever_off,
             else => null,
         };
     }
@@ -100,6 +102,7 @@ pub const ItemType = enum(u8) {
             .wooden_door_closed, .wooden_door_open => .wooden_door,
             .pressure_plate_up, .pressure_plate_down => .pressure_plate,
             .redstone_wire_off, .redstone_wire_on => .redstone_dust,
+            .lever_off, .lever_on => .lever,
         };
     }
 
@@ -161,6 +164,7 @@ pub const ItemType = enum(u8) {
             .wooden_door => "Wooden Door",
             .pressure_plate => "Pressure Plate",
             .redstone_dust => "Redstone Dust",
+            .lever => "Lever",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -205,6 +209,7 @@ pub const ItemType = enum(u8) {
             .wooden_door => .{ 0.65, 0.40, 0.18, 0.95 },
             .pressure_plate => .{ 0.70, 0.48, 0.22, 0.95 },
             .redstone_dust => .{ 0.85, 0.15, 0.12, 0.95 },
+            .lever => .{ 0.65, 0.62, 0.58, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -378,6 +383,16 @@ pub const Inventory = struct {
                     self.craft_output = .{ .item = .wooden_door, .count = 1 };
                     return;
                 }
+            }
+        }
+
+        // Recipe 22: 1 Stick above 1 Cobblestone (vertical) -> 1 Lever
+        if (non_empty == 2) {
+            if ((g0 == .stick and g2 == .cobblestone and g1 == .none and g3 == .none) or
+                (g1 == .stick and g3 == .cobblestone and g0 == .none and g2 == .none))
+            {
+                self.craft_output = .{ .item = .lever, .count = 1 };
+                return;
             }
         }
 
@@ -742,6 +757,15 @@ test "door recipe: 1 stick over 2 wood planks -> 1 wooden door" {
     inv.craft_grid[3] = .{ .item = .wood_planks, .count = 1 };
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .wooden_door);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+}
+
+test "lever recipe: stick over cobblestone -> 1 lever" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .stick, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .cobblestone, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .lever);
     try std.testing.expectEqual(inv.craft_output.count, 1);
 }
 

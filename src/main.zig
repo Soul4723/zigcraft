@@ -364,7 +364,7 @@ pub fn main() !void {
                     const ny = w.y + ad[1];
                     const nz = w.z + ad[2];
                     const nb = manager.getBlockWorld(nx, ny, nz);
-                    if (nb == .pressure_plate_down) {
+                    if (nb == .pressure_plate_down or nb == .lever_on) {
                         powered = true;
                         break;
                     }
@@ -1131,7 +1131,30 @@ pub fn main() !void {
             const dir_f = cam.front();
             if (pick_mod.raycast(&pickSolid, cam.position, dir_f, 5)) |hit_f| {
                 const target = manager.getBlockWorld(hit_f.x, hit_f.y, hit_f.z);
-                if (target == .wooden_door_closed or target == .wooden_door_open) {
+                if (target == .lever_off or target == .lever_on) {
+                    const toggled: block_mod.BlockId = if (target == .lever_off) .lever_on else .lever_off;
+                    if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, toggled)) {
+                        if (toggled == .lever_on) audio.play(.click_on, 0.9) else audio.play(.click_off, 0.7);
+                        const adj_offsets = [_][3]i32{
+                            .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 },
+                            .{ 1, 1, 0 }, .{ -1, 1, 0 }, .{ 0, 1, 1 }, .{ 0, 1, -1 },
+                            .{ 0, 1, 0 }, .{ 0, -1, 0 },
+                        };
+                        for (adj_offsets) |off| {
+                            const dx = hit_f.x + off[0];
+                            const dy = hit_f.y + off[1];
+                            const dz = hit_f.z + off[2];
+                            const db = manager.getBlockWorld(dx, dy, dz);
+                            if (toggled == .lever_on and db == .wooden_door_closed) {
+                                _ = try manager.editAndRemesh(dx, dy, dz, .wooden_door_open);
+                            } else if (toggled == .lever_off and db == .wooden_door_open) {
+                                _ = try manager.editAndRemesh(dx, dy, dz, .wooden_door_closed);
+                            }
+                        }
+                        std.debug.print("toggled lever to {s} ({d},{d},{d})\n", .{ @tagName(toggled), hit_f.x, hit_f.y, hit_f.z });
+                    }
+                    flint_cooldown = 0.25;
+                } else if (target == .wooden_door_closed or target == .wooden_door_open) {
                     const toggled: block_mod.BlockId = if (target == .wooden_door_closed) .wooden_door_open else .wooden_door_closed;
                     if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, toggled)) {
                         audio.play(.place_block, 0.9);

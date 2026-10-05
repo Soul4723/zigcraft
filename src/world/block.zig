@@ -31,9 +31,11 @@ pub const BlockId = enum(u8) {
     pressure_plate_down = 26,
     redstone_wire_off = 27,
     redstone_wire_on = 28,
+    lever_off = 29,
+    lever_on = 30,
 
     pub fn is_solid(self: BlockId) bool {
-        return self != .air and self != .water and self != .ladder and self != .torch and self != .wooden_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on;
+        return self != .air and self != .water and self != .ladder and self != .torch and self != .wooden_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on;
     }
 
     pub fn is_ladder(self: BlockId) bool {
@@ -45,7 +47,7 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_transparent(self: BlockId) bool {
-        return self == .air or self == .water or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on;
+        return self == .air or self == .water or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on;
     }
 
     pub fn isFlammable(self: BlockId) bool {
@@ -103,6 +105,8 @@ pub const BlockId = enum(u8) {
             .pressure_plate_down => .{ .x = 3, .y = 6 },
             .redstone_wire_off => .{ .x = 4, .y = 6 },
             .redstone_wire_on => .{ .x = 5, .y = 6 },
+            .lever_off => .{ .x = 6, .y = 6 },
+            .lever_on => .{ .x = 7, .y = 6 },
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -144,7 +148,7 @@ pub fn hardness(block: BlockId) f32 {
         .torch => 0.1,
         .redstone_wire_off, .redstone_wire_on => 0.0,
         .chest => 1.0,
-        .wooden_door_closed, .wooden_door_open, .pressure_plate_up, .pressure_plate_down => 0.5,
+        .wooden_door_closed, .wooden_door_open, .pressure_plate_up, .pressure_plate_down, .lever_off, .lever_on => 0.5,
         .brick => 2.0,
         .wood => 0.9,
         .leaves => 0.25,
@@ -223,6 +227,8 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .pressure_plate_down = .{ .name = "pressure_plate_down", .solid = false, .transparent = true, .fluid = false },
     .redstone_wire_off = .{ .name = "redstone_wire_off", .solid = false, .transparent = true, .fluid = false },
     .redstone_wire_on = .{ .name = "redstone_wire_on", .solid = false, .transparent = true, .fluid = false },
+    .lever_off = .{ .name = "lever_off", .solid = false, .transparent = true, .fluid = false },
+    .lever_on = .{ .name = "lever_on", .solid = false, .transparent = true, .fluid = false },
     .brick = .{ .name = "brick", .solid = true, .transparent = false, .fluid = false },
 });
 
@@ -375,6 +381,19 @@ test "chest block props" {
     try std.testing.expectEqual(t.x, 7);
     try std.testing.expectEqual(t.y, 5);
     try std.testing.expectEqual(hardness(.chest), 1.0);
+}
+
+test "lever block properties" {
+    try std.testing.expect(!BlockId.lever_off.is_solid());
+    try std.testing.expect(!BlockId.lever_on.is_solid());
+    try std.testing.expect(BlockId.lever_off.is_transparent());
+    try std.testing.expect(BlockId.lever_on.is_transparent());
+    const lo = BlockId.lever_off.getFaceTexture(0);
+    try std.testing.expectEqual(lo.x, 6);
+    try std.testing.expectEqual(lo.y, 6);
+    const ln = BlockId.lever_on.getFaceTexture(0);
+    try std.testing.expectEqual(ln.x, 7);
+    try std.testing.expectEqual(ln.y, 6);
 }
 
 test "redstone wire block properties" {

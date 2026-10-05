@@ -307,6 +307,36 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         }
         return .{ 0, 0, 0, 0 };
     }
+    // Lever Off (6, 6): cobblestone base mount with diagonal wooden handle pointing left
+    if (tile_x == 6 and tile_y == 6) {
+        // Cobblestone mounting plate at bottom: y: 11..14, x: 4..11
+        if (y >= 11 and y <= 14 and x >= 4 and x <= 11) {
+            const n = hash2(x, y, 231) % 20;
+            return .{ 110 + @as(u8, @intCast(n)), 110 + @as(u8, @intCast(n)), 115, 255 };
+        }
+        // Wooden handle stick tilted up-left: x from 4..8, y from 4..11 (slope dy/dx ~ 1.5)
+        const in_handle = (y >= 4 and y <= 11) and (x >= 4 and x <= 8) and (@as(i32, @intCast(y)) - @as(i32, @intCast(x)) >= -1 and @as(i32, @intCast(y)) - @as(i32, @intCast(x)) <= 5);
+        if (in_handle) {
+            const n = hash2(x, y, 232) % 15;
+            return .{ 140 + @as(u8, @intCast(n)), 95 + @as(u8, @intCast(n / 2)), 45, 255 };
+        }
+        return .{ 0, 0, 0, 0 };
+    }
+    // Lever On (7, 6): cobblestone base mount with handle thrown down-right + glowing contact
+    if (tile_x == 7 and tile_y == 6) {
+        if (y >= 11 and y <= 14 and x >= 4 and x <= 11) {
+            const is_spark = (x >= 9 and x <= 10 and y == 11);
+            if (is_spark) return .{ 255, 60, 30, 255 }; // redstone active contact dot
+            const n = hash2(x, y, 233) % 20;
+            return .{ 110 + @as(u8, @intCast(n)), 110 + @as(u8, @intCast(n)), 115, 255 };
+        }
+        const in_handle_thrown = (y >= 7 and y <= 12) and (x >= 7 and x <= 12) and (@as(i32, @intCast(y)) + @as(i32, @intCast(x)) >= 17 and @as(i32, @intCast(y)) + @as(i32, @intCast(x)) <= 21);
+        if (in_handle_thrown) {
+            const n = hash2(x, y, 234) % 15;
+            return .{ 140 + @as(u8, @intCast(n)), 95 + @as(u8, @intCast(n / 2)), 45, 255 };
+        }
+        return .{ 0, 0, 0, 0 };
+    }
     // Chest (7, 5): oak wooden box with dark metal band and front latch
     if (tile_x == 7 and tile_y == 5) {
         // Latch on front center: 2x3 silver pixel
@@ -538,6 +568,13 @@ test "all block tiles opaque, sand tile verified" {
     try std.testing.expectEqual(tilePixel(1, 3, 3, 3)[0], 18);
     try std.testing.expectEqual(tilePixel(1, 3, 10, 5)[0], 18);
     try std.testing.expectEqual(tilePixel(1, 3, 6, 11)[0], 18);
+}
+
+test "lever tiles rendered with mount and handle" {
+    try std.testing.expectEqual(tilePixel(6, 6, 0, 0)[3], 0);
+    try std.testing.expectEqual(tilePixel(6, 6, 7, 12)[3], 255); // base plate
+    try std.testing.expectEqual(tilePixel(7, 6, 0, 0)[3], 0);
+    try std.testing.expectEqual(tilePixel(7, 6, 9, 11)[0], 255); // active contact dot
 }
 
 test "redstone wire tiles rendered with cross dust pattern" {
