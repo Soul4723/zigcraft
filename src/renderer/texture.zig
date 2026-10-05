@@ -203,6 +203,16 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         const n = hash2(x, y, 152) % 18;
         return .{ 100 + @as(u8, @intCast(n)), 90 + @as(u8, @intCast(n)), 80, 255 };
     }
+    // Ladder (4, 5): wooden rungs on vertical rails
+    if (tile_x == 4 and tile_y == 5) {
+        const is_rail = (x <= 2 or x >= 13);
+        const is_rung = (y % 4 == 0) and (x >= 2 and x <= 13);
+        if (is_rail or is_rung) {
+            const n = hash2(x, y, 161) % 15;
+            return .{ 140 + @as(u8, @intCast(n)), 98 + @as(u8, @intCast(n / 2)), 52, 255 };
+        }
+        return .{ 0, 0, 0, 0 }; // transparent cutout between rungs
+    }
     // Wool (7, 4): soft off-white tufted fleece for sheep drops / beds
     if (tile_x == 7 and tile_y == 4) {
         const n = hash2(x, y, 118) % 18;
