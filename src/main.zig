@@ -840,7 +840,12 @@ pub fn main() !void {
                 .raw_pork, .raw_mutton => false,
                 else => null,
             };
-            if (held_eat.item == .apple and player.hunger < 20.0) {
+            if (held_eat.item == .golden_apple) {
+                player.eatGolden();
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.8);
+                std.debug.print("ate golden apple (hp={d:.1})\n", .{player.health});
+            } else if (held_eat.item == .apple and player.hunger < 20.0) {
                 player.eatApple();
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.7);
