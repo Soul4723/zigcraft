@@ -191,6 +191,9 @@ pub fn main() !void {
     const Lamp = struct { x: i32, y: i32, z: i32, lit: bool };
     var lamps: [32]Lamp = undefined;
     var lamp_count: usize = 0;
+    const RedTorch = struct { x: i32, y: i32, z: i32, lit: bool };
+    var red_torches: [32]RedTorch = undefined;
+    var red_torch_count: usize = 0;
     var world_time: f32 = 45.0; // Start at morning daylight
     var last_step_dist: f32 = 0.0;
 
@@ -370,7 +373,7 @@ pub fn main() !void {
                     const ny = w.y + ad[1];
                     const nz = w.z + ad[2];
                     const nb = manager.getBlockWorld(nx, ny, nz);
-                    if (nb == .pressure_plate_down or nb == .lever_on or nb == .repeater_on) {
+                    if (nb == .pressure_plate_down or nb == .lever_on or nb == .repeater_on or nb == .redstone_torch_on) {
                         powered = true;
                         break;
                     }
@@ -452,7 +455,7 @@ pub fn main() !void {
                 const in_offsets = [_][3]i32{ .{ 0, 0, -1 }, .{ -1, 0, 0 }, .{ 0, -1, 0 } };
                 for (in_offsets) |io| {
                     const ib = manager.getBlockWorld(rep.x + io[0], rep.y + io[1], rep.z + io[2]);
-                    if (ib == .redstone_wire_on or ib == .lever_on or ib == .pressure_plate_down) {
+                    if (ib == .redstone_wire_on or ib == .lever_on or ib == .pressure_plate_down or ib == .redstone_torch_on) {
                         input_powered = true;
                         break;
                     }
@@ -501,7 +504,7 @@ pub fn main() !void {
                 };
                 for (adj_dirs) |ad| {
                     const nb = manager.getBlockWorld(la.x + ad[0], la.y + ad[1], la.z + ad[2]);
-                    if (nb == .redstone_wire_on or nb == .pressure_plate_down or nb == .lever_on or nb == .repeater_on) {
+                    if (nb == .redstone_wire_on or nb == .pressure_plate_down or nb == .lever_on or nb == .repeater_on or nb == .redstone_torch_on) {
                         power_in = true;
                         break;
                     }
@@ -517,6 +520,47 @@ pub fn main() !void {
                     _ = try manager.editAndRemesh(la.x, la.y, la.z, .redstone_lamp_off);
                 }
                 li += 1;
+            }
+        }
+
+        // Redstone Torch: NOT-gate inverter! Lit by default; turns OFF when supporting block below is powered
+        {
+            var rti: usize = 0;
+            while (rti < red_torch_count) {
+                const rt = &red_torches[rti];
+                const cur_b = manager.getBlockWorld(rt.x, rt.y, rt.z);
+                if (cur_b != .redstone_torch_on and cur_b != .redstone_torch_off) {
+                    red_torches[rti] = red_torches[red_torch_count - 1];
+                    red_torch_count -= 1;
+                    continue;
+                }
+
+                // Base block directly below the torch
+                const base_y = rt.y - 1;
+                // Base block receives power from adjacent wires or levers
+                var base_powered = false;
+                const adj_dirs = [_][3]i32{
+                    .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 },
+                    .{ 0, -1, 0 },
+                };
+                for (adj_dirs) |ad| {
+                    const nb = manager.getBlockWorld(rt.x + ad[0], base_y + ad[1], rt.z + ad[2]);
+                    if (nb == .redstone_wire_on or nb == .lever_on or nb == .pressure_plate_down) {
+                        base_powered = true;
+                        break;
+                    }
+                }
+
+                // If base block is powered, torch inverts (turns OFF)
+                if (base_powered and rt.lit) {
+                    rt.lit = false;
+                    _ = try manager.editAndRemesh(rt.x, rt.y, rt.z, .redstone_torch_off);
+                } else if (!base_powered and !rt.lit) {
+                    rt.lit = true;
+                    _ = try manager.editAndRemesh(rt.x, rt.y, rt.z, .redstone_torch_on);
+                    particles.spawnFlame(rt.x, rt.y, rt.z, 2);
+                }
+                rti += 1;
             }
         }
 
@@ -996,6 +1040,10 @@ pub fn main() !void {
                                         if (place_type == .redstone_lamp_off and lamp_count < lamps.len) {
                                             lamps[lamp_count] = .{ .x = px, .y = py, .z = pz, .lit = false };
                                             lamp_count += 1;
+                                        }
+                                        if (place_type == .redstone_torch_on and red_torch_count < red_torches.len) {
+                                            red_torches[red_torch_count] = .{ .x = px, .y = py, .z = pz, .lit = true };
+                                            red_torch_count += 1;
                                         }
                                         if (is_furnace_place and furnace_count < furnaces.len) {
                                             furnaces[furnace_count] = .{ .x = px, .y = py, .z = pz, .t = 0, .fuel = 0, .input = .none };
