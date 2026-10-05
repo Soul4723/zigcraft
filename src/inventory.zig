@@ -23,6 +23,8 @@ pub const ItemType = enum(u8) {
     brick = 17,
     raw_pork = 18,
     raw_mutton = 19,
+    cooked_pork = 20,
+    cooked_mutton = 21,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -107,6 +109,8 @@ pub const ItemType = enum(u8) {
             .brick => "Bricks",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
+            .cooked_pork => "Cooked Pork",
+            .cooked_mutton => "Cooked Mutton",
         };
     }
 
@@ -132,6 +136,8 @@ pub const ItemType = enum(u8) {
             .brick => .{ 0.72, 0.32, 0.25, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
+            .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
+            .cooked_mutton => .{ 0.55, 0.28, 0.20, 0.95 },
         };
     }
 };
@@ -299,6 +305,20 @@ pub const Inventory = struct {
             }
         }
 
+        // Recipe 8: Cooking in 2x2: 1 Raw Meat + 1 Coal (fuel below) -> 1 Cooked Meat
+        if (non_empty == 2) {
+            const cook = [_]ItemType{ .raw_pork, .raw_mutton };
+            for (cook) |raw| {
+                const done: ItemType = if (raw == .raw_pork) .cooked_pork else .cooked_mutton;
+                if (((g0 == raw and g2 == .coal) or (g1 == raw and g3 == .coal) or
+                    (g0 == .coal and g2 == raw) or (g1 == .coal and g3 == raw)))
+                {
+                    self.craft_output = .{ .item = done, .count = 1 };
+                    return;
+                }
+            }
+        }
+
         // Recipe 7: Smelting simulation in 2x2: 1 Sand + 1 Coal -> 2 Glass
         if (non_empty == 2) {
             if ((g0 == .sand and g2 == .coal) or (g1 == .sand and g3 == .coal) or
@@ -441,4 +461,20 @@ test "crafting recipes: sandstone, bricks, glass" {
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .glass);
     try std.testing.expectEqual(inv.craft_output.count, 2);
+}
+
+test "cooking recipes: raw meat + coal -> cooked meat" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .raw_pork, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{ .item = .coal, .count = 1 };
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .cooked_pork);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    inv.craft_grid[0] = .{ .item = .raw_mutton, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .coal, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .cooked_mutton);
 }

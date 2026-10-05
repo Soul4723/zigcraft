@@ -8,6 +8,9 @@ pub const Player = struct {
     height: f32,
     radius: f32,
     distance_walked: f32,
+    health: f32,
+    hunger: f32,
+    saturation: f32,
 
     pub fn init(x: f32, y: f32, z: f32) Player {
         return .{
@@ -17,7 +20,31 @@ pub const Player = struct {
             .height = 1.8,
             .radius = 0.3,
             .distance_walked = 0,
+            .health = 20.0,
+            .hunger = 20.0,
+            .saturation = 5.0,
         };
+    }
+
+    /// Eat cooked (or raw) meat. Restores hunger/saturation only.
+    pub fn eat(self: *Player, cooked: bool) void {
+        if (cooked) {
+            self.hunger = @min(20.0, self.hunger + 6.0);
+            self.saturation = @min(20.0, self.saturation + 8.0);
+        } else {
+            self.hunger = @min(20.0, self.hunger + 2.0);
+            self.saturation = @min(20.0, self.saturation + 1.0);
+        }
+    }
+
+    /// Passive drain: hunger falls over time, health regen/suffer follows.
+    pub fn tickVitals(self: *Player, dt: f32) void {
+        self.hunger = @max(0.0, self.hunger - dt * 0.05);
+        if (self.hunger > 14.0 and self.health < 20.0) {
+            self.health = @min(20.0, self.health + dt * 0.4);
+        } else if (self.hunger <= 0.0 and self.health > 0.0) {
+            self.health = @max(0.0, self.health - dt * 0.5);
+        }
     }
 
     pub fn eyePos(self: Player) math.Vec3 {
@@ -189,4 +216,27 @@ test "player walking updates distance_walked" {
     p.on_ground = true;
     p.tick(&testSolid, 1.0, 0, false, 0.016);
     try std.testing.expect(p.distance_walked > 0.0);
+}
+
+test "player eat restores hunger" {
+    var p = Player.init(0.5, 1.0, 0.5);
+    p.hunger = 10.0;
+    p.saturation = 0.0;
+    p.eat(true);
+    try std.testing.expectApproxEqAbs(p.hunger, 16.0, 0.001);
+    try std.testing.expectApproxEqAbs(p.saturation, 8.0, 0.001);
+    p.eat(false);
+    try std.testing.expectApproxEqAbs(p.hunger, 18.0, 0.001);
+}
+
+test "player vitals drain and regen" {
+    var p = Player.init(0.5, 1.0, 0.5);
+    p.health = 10.0;
+    p.hunger = 20.0;
+    p.tickVitals(1.0);
+    try std.testing.expect(p.health > 10.0);
+    p.hunger = 0.0;
+    const h = p.health;
+    p.tickVitals(1.0);
+    try std.testing.expect(p.health < h);
 }
