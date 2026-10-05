@@ -149,6 +149,7 @@ pub fn main() !void {
     var hud_time: f32 = 0;
     var left_down = false;
     var right_down = false;
+    var mob_hit_cooldown: f32 = 0.0;
     var world_time: f32 = 45.0; // Start at morning daylight
     var last_step_dist: f32 = 0.0;
 
@@ -210,6 +211,16 @@ pub fn main() !void {
         const norm_wish = if (!inventory_open and wish_len > 0.001) wish.scale(1.0 / wish_len) else math.Vec3.init(0, 0, 0);
         const jump = !inventory_open and (c.glfwGetKey(window, c.GLFW_KEY_SPACE) == c.GLFW_PRESS);
         player.tick(&pickSolid, norm_wish.x * walk_speed * dt, norm_wish.z * walk_speed * dt, jump, dt);
+        player.tickVitals(dt);
+        if (player.pos.y < -30.0) {
+            // Fell out of world: damage through vitals path
+            player.health = @max(0.0, player.health - 20.0 * dt);
+        }
+        if (player.isDead()) {
+            audio.play(.hurt, 0.8);
+            std.debug.print("you died; respawning\n", .{});
+            player.respawn(24.0, 20.0, 24.0);
+        }
         cam.position = player.eyePos();
 
         // Footstep audio triggered periodically while walking on ground
@@ -316,7 +327,7 @@ pub fn main() !void {
 
         if (!inventory_open) {
             const mine_frac: f32 = if (mine_target_valid and mine_need > 0.0) mine_progress / mine_need else -1.0;
-            ui.drawHUDWithProgress(aspect, selected_slot, &hotbar_colors, &hotbar_counts, mine_frac);
+            ui.drawHUDWithVitals(aspect, selected_slot, &hotbar_colors, &hotbar_counts, mine_frac, player.health, player.hunger);
         } else {
             var main_colors: [18][4]f32 = undefined;
             var main_counts: [18]u8 = undefined;
@@ -475,8 +486,10 @@ pub fn main() !void {
             } else {
                 // In-game: hold left to mine (timed by hardness/tool), right click place
                 const dir = cam.front();
-                const hit_mob_opt = if (left) mob_manager.tryHitMob(cam.position, dir, 4.0) else null;
+                mob_hit_cooldown = @max(0.0, mob_hit_cooldown - dt);
+                const hit_mob_opt = if (left and mob_hit_cooldown <= 0.0) mob_manager.tryHitMob(cam.position, dir, 4.0) else null;
                 if (hit_mob_opt) |hit_mob| {
+                    mob_hit_cooldown = 0.35;
                     const hit_sound: audio_mod.synth.SoundType = switch (hit_mob.mob_type) {
                         .sheep => .mob_baa,
                         .pig => .mob_oink,
@@ -567,6 +580,23 @@ pub fn main() !void {
             mine_target_valid = false;
             mine_progress = 0.0;
             mine_need = 1.0;
+        }
+        // Right-click eats held meat (edge triggered, in-game only)
+        if (right and !right_down and !inventory_open) {
+            const held_eat = inventory.slots[selected_slot];
+            const cooked = switch (held_eat.item) {
+                .cooked_pork, .cooked_mutton => true,
+                .raw_pork, .raw_mutton => false,
+                else => null,
+            };
+            if (cooked) |is_cooked| {
+                if (player.hunger < 20.0) {
+                    player.eat(is_cooked);
+                    inventory.slots[selected_slot].decrement(1);
+                    audio.play(.eat, 0.7);
+                    std.debug.print("ate {s} (hunger={d:.1})\n", .{ held_eat.item.name(), player.hunger });
+                }
+            }
         }
         left_down = left;
         right_down = right;

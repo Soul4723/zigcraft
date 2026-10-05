@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-03 (Session 023)
+Last updated: 2026-10-05 (Session 032, unmerged)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`)
@@ -36,6 +36,7 @@ Last updated: 2026-10-03 (Session 023)
 - Sand block, handcrafted golden beach texture, and coastline generation
 - Expanded 8x8 texture atlas (128x128px, 64-tile capacity)
 - Glass, multi-faced Sandstone, and Red Bricks with crafting recipes
+- Pig mob (second mob type): pink skin/face tiles, oink synth, 50/50 spawn mix, 3-hit kill with raw pork/mutton drops
 - 209 unit tests passing
 
 ## Active Branch: feat/voxel-texture-overhaul

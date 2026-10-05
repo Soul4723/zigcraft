@@ -10,6 +10,8 @@ pub const SoundType = enum {
     mob_baa,
     mob_oink,
     craft_item,
+    eat,
+    hurt,
 };
 
 pub const SAMPLE_RATE: u32 = 44100;
@@ -62,6 +64,8 @@ pub const AudioMixer = struct {
             .place_block => SAMPLE_RATE / 10, // ~100ms
             .mob_baa => SAMPLE_RATE / 3, // ~333ms
             .mob_oink => SAMPLE_RATE / 4, // ~250ms
+            .eat => SAMPLE_RATE / 5, // ~200ms
+            .hurt => SAMPLE_RATE / 3, // ~330ms
             .craft_item => SAMPLE_RATE / 6, // ~166ms
         };
 
@@ -186,6 +190,23 @@ pub const AudioMixer = struct {
                 const amp = (1.0 - sub_progress) * (1.0 - @exp(-t * 80.0));
                 return wave * amp * 0.5;
             },
+            .eat => {
+                // Munch: 3 short noise chomps decaying
+                const chomp = @sin(progress * std.math.pi * 3.0);
+                const noise = (rng.random().float(f32) * 2.0 - 1.0) * 0.5;
+                const freq: f32 = 300.0 * (1.0 - progress * 0.5);
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const tone = @sin(t * freq * 2.0 * std.math.pi) * 0.4;
+                return (noise * @max(0.0, chomp) + tone * 0.5) * envelope * 0.6;
+            },
+            .hurt => {
+                // Pained yelp: falling pitch 400->150Hz
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const freq: f32 = 400.0 - 250.0 * progress;
+                const phase = t * freq * 2.0 * std.math.pi;
+                const tone = @sin(phase) + 0.3 * @sin(phase * 2.0);
+                return tone * envelope * 0.55;
+            },
         }
     }
 };
@@ -217,7 +238,7 @@ test "AudioMixer play voice produces non-zero samples" {
 
 test "AudioMixer all sound types render without overflow or crash" {
     var mixer = AudioMixer.init();
-    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .break_block, .place_block, .mob_baa, .mob_oink };
+    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt };
     for (sounds) |snd| {
         mixer.play(snd, 1.0);
     }
