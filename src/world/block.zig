@@ -33,9 +33,11 @@ pub const BlockId = enum(u8) {
     redstone_wire_on = 28,
     lever_off = 29,
     lever_on = 30,
+    repeater_off = 31,
+    repeater_on = 32,
 
     pub fn is_solid(self: BlockId) bool {
-        return self != .air and self != .water and self != .ladder and self != .torch and self != .wooden_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on;
+        return self != .air and self != .water and self != .ladder and self != .torch and self != .wooden_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on;
     }
 
     pub fn is_ladder(self: BlockId) bool {
@@ -47,7 +49,7 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_transparent(self: BlockId) bool {
-        return self == .air or self == .water or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on;
+        return self == .air or self == .water or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on;
     }
 
     pub fn isFlammable(self: BlockId) bool {
@@ -107,6 +109,8 @@ pub const BlockId = enum(u8) {
             .redstone_wire_on => .{ .x = 5, .y = 6 },
             .lever_off => .{ .x = 6, .y = 6 },
             .lever_on => .{ .x = 7, .y = 6 },
+            .repeater_off => .{ .x = 0, .y = 7 },
+            .repeater_on => .{ .x = 1, .y = 7 },
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -149,6 +153,7 @@ pub fn hardness(block: BlockId) f32 {
         .redstone_wire_off, .redstone_wire_on => 0.0,
         .chest => 1.0,
         .wooden_door_closed, .wooden_door_open, .pressure_plate_up, .pressure_plate_down, .lever_off, .lever_on => 0.5,
+        .repeater_off, .repeater_on => 0.2,
         .brick => 2.0,
         .wood => 0.9,
         .leaves => 0.25,
@@ -229,6 +234,8 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .redstone_wire_on = .{ .name = "redstone_wire_on", .solid = false, .transparent = true, .fluid = false },
     .lever_off = .{ .name = "lever_off", .solid = false, .transparent = true, .fluid = false },
     .lever_on = .{ .name = "lever_on", .solid = false, .transparent = true, .fluid = false },
+    .repeater_off = .{ .name = "repeater_off", .solid = false, .transparent = true, .fluid = false },
+    .repeater_on = .{ .name = "repeater_on", .solid = false, .transparent = true, .fluid = false },
     .brick = .{ .name = "brick", .solid = true, .transparent = false, .fluid = false },
 });
 
@@ -381,6 +388,19 @@ test "chest block props" {
     try std.testing.expectEqual(t.x, 7);
     try std.testing.expectEqual(t.y, 5);
     try std.testing.expectEqual(hardness(.chest), 1.0);
+}
+
+test "repeater block properties" {
+    try std.testing.expect(!BlockId.repeater_off.is_solid());
+    try std.testing.expect(!BlockId.repeater_on.is_solid());
+    try std.testing.expect(BlockId.repeater_off.is_transparent());
+    try std.testing.expect(BlockId.repeater_on.is_transparent());
+    const ro = BlockId.repeater_off.getFaceTexture(0);
+    try std.testing.expectEqual(ro.x, 0);
+    try std.testing.expectEqual(ro.y, 7);
+    const rn = BlockId.repeater_on.getFaceTexture(0);
+    try std.testing.expectEqual(rn.x, 1);
+    try std.testing.expectEqual(rn.y, 7);
 }
 
 test "lever block properties" {

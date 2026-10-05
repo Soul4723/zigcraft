@@ -337,6 +337,38 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         }
         return .{ 0, 0, 0, 0 };
     }
+    // Redstone Repeater Off (0, 7): smooth stone slab base with two miniature dark redstone torches
+    if (tile_x == 0 and tile_y == 7) {
+        // Base plate: y: 2..13, x: 2..13
+        if (x >= 2 and x <= 13 and y >= 2 and y <= 13) {
+            // Two redstone torches along center vertical axis: (7, 4) and (7, 10)
+            const is_torch1 = (x >= 7 and x <= 8 and y >= 3 and y <= 5);
+            const is_torch2 = (x >= 7 and x <= 8 and y >= 9 and y <= 11);
+            if (is_torch1 or is_torch2) {
+                if (y == 3 or y == 9) return .{ 140, 20, 15, 255 }; // dark red tip
+                return .{ 110, 80, 45, 255 }; // torch stick
+            }
+            const n = hash2(x, y, 241) % 16;
+            return .{ 145 + @as(u8, @intCast(n)), 145 + @as(u8, @intCast(n)), 150, 255 }; // stone slab
+        }
+        return .{ 0, 0, 0, 0 };
+    }
+    // Redstone Repeater On (1, 7): stone slab base with two glowing lit redstone torches
+    if (tile_x == 1 and tile_y == 7) {
+        if (x >= 2 and x <= 13 and y >= 2 and y <= 13) {
+            const is_torch1 = (x >= 7 and x <= 8 and y >= 3 and y <= 5);
+            const is_torch2 = (x >= 7 and x <= 8 and y >= 9 and y <= 11);
+            if (is_torch1 or is_torch2) {
+                if (y == 3 or y == 9) return .{ 255, 60, 30, 255 }; // lit glowing redstone tip
+                return .{ 130, 90, 50, 255 };
+            }
+            // Active power indicator line
+            if (x >= 7 and x <= 8 and y >= 6 and y <= 8) return .{ 220, 40, 25, 255 };
+            const n = hash2(x, y, 242) % 16;
+            return .{ 145 + @as(u8, @intCast(n)), 145 + @as(u8, @intCast(n)), 150, 255 };
+        }
+        return .{ 0, 0, 0, 0 };
+    }
     // Chest (7, 5): oak wooden box with dark metal band and front latch
     if (tile_x == 7 and tile_y == 5) {
         // Latch on front center: 2x3 silver pixel
@@ -568,6 +600,13 @@ test "all block tiles opaque, sand tile verified" {
     try std.testing.expectEqual(tilePixel(1, 3, 3, 3)[0], 18);
     try std.testing.expectEqual(tilePixel(1, 3, 10, 5)[0], 18);
     try std.testing.expectEqual(tilePixel(1, 3, 6, 11)[0], 18);
+}
+
+test "repeater tiles rendered with stone slab base and dual torches" {
+    try std.testing.expectEqual(tilePixel(0, 7, 0, 0)[3], 0);
+    try std.testing.expectEqual(tilePixel(0, 7, 5, 5)[3], 255); // slab
+    try std.testing.expectEqual(tilePixel(0, 7, 7, 3)[0], 140); // dark torch tip
+    try std.testing.expectEqual(tilePixel(1, 7, 7, 3)[0], 255); // lit torch tip
 }
 
 test "lever tiles rendered with mount and handle" {
