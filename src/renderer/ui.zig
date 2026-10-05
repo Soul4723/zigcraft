@@ -147,7 +147,15 @@ pub const UIRenderer = struct {
         self.drawHUDWithProgress(aspect, selected_slot, hotbar_items, hotbar_counts, -1.0);
     }
 
+    pub fn drawHUDWithVitals(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32) void {
+        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, health, hunger);
+    }
+
     pub fn drawHUDWithProgress(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32) void {
+        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, 20.0, 20.0);
+    }
+
+    pub fn drawHUDWithProgressVitals(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32) void {
         var verts: [1024]UIVertex = undefined;
         var count: usize = 0;
 
@@ -196,6 +204,23 @@ pub const UIRenderer = struct {
                 const bar_w = (slot_w - 2.0 * icon_inset_x) * @min(1.0, frac);
                 addQuad(&verts, &count, x0 + icon_inset_x, y0 + 0.003, x0 + icon_inset_x + bar_w, y0 + 0.003 + bar_h, .{ 0.3, 0.9, 0.3, 0.9 });
             }
+        }
+
+        // Health (red) + hunger (orange) bars above hotbar
+        {
+            const bw: f32 = 0.10;
+            const bh: f32 = 0.010;
+            const by0 = base_y - 0.022;
+            // Health left half
+            const hbx0 = start_x;
+            addBorderedRect(&verts, &count, hbx0, by0, hbx0 + bw, by0 + bh, 0.0015, .{ 0.1, 0.05, 0.05, 0.9 }, .{ 0.25, 0.08, 0.08, 0.9 });
+            const hfill = bw * @min(1.0, @max(0.0, health / 20.0));
+            addQuad(&verts, &count, hbx0 + 0.0015, by0 + 0.0015, hbx0 + 0.0015 + hfill, by0 + bh - 0.0015, .{ 0.9, 0.15, 0.15, 1.0 });
+            // Hunger right half
+            const gbx0 = start_x + total_w - bw;
+            addBorderedRect(&verts, &count, gbx0, by0, gbx0 + bw, by0 + bh, 0.0015, .{ 0.1, 0.07, 0.03, 0.9 }, .{ 0.25, 0.15, 0.05, 0.9 });
+            const gfill = bw * @min(1.0, @max(0.0, hunger / 20.0));
+            addQuad(&verts, &count, gbx0 + 0.0015, by0 + 0.0015, gbx0 + 0.0015 + gfill, by0 + bh - 0.0015, .{ 0.95, 0.6, 0.15, 1.0 });
         }
 
         // Mining progress bar above crosshair
