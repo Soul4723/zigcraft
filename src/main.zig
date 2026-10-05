@@ -408,8 +408,11 @@ pub fn main() !void {
                             audio.play(.place_block, 0.8);
                             std.debug.print("redstone wire ignited TNT ({d},{d},{d})\n", .{ tx, ty, tz });
                         }
-                        if (manager.getBlockWorld(tx, ty, tz) == .wooden_door_closed) {
+                        const wb = manager.getBlockWorld(tx, ty, tz);
+                        if (wb == .wooden_door_closed) {
                             _ = try manager.editAndRemesh(tx, ty, tz, .wooden_door_open);
+                        } else if (wb == .iron_door_closed) {
+                            _ = try manager.editAndRemesh(tx, ty, tz, .iron_door_open);
                         }
                     }
                 } else if (!powered and w.powered) {
@@ -420,8 +423,11 @@ pub fn main() !void {
                         const tx = w.x + ad[0];
                         const ty = w.y + ad[1];
                         const tz = w.z + ad[2];
-                        if (manager.getBlockWorld(tx, ty, tz) == .wooden_door_open) {
+                        const wb = manager.getBlockWorld(tx, ty, tz);
+                        if (wb == .wooden_door_open) {
                             _ = try manager.editAndRemesh(tx, ty, tz, .wooden_door_closed);
+                        } else if (wb == .iron_door_open) {
+                            _ = try manager.editAndRemesh(tx, ty, tz, .iron_door_closed);
                         }
                     }
                 }
@@ -1248,10 +1254,18 @@ pub fn main() !void {
                                 _ = try manager.editAndRemesh(dx, dy, dz, .wooden_door_open);
                             } else if (toggled == .lever_off and db == .wooden_door_open) {
                                 _ = try manager.editAndRemesh(dx, dy, dz, .wooden_door_closed);
+                            } else if (toggled == .lever_on and db == .iron_door_closed) {
+                                _ = try manager.editAndRemesh(dx, dy, dz, .iron_door_open);
+                            } else if (toggled == .lever_off and db == .iron_door_open) {
+                                _ = try manager.editAndRemesh(dx, dy, dz, .iron_door_closed);
                             }
                         }
                         std.debug.print("toggled lever to {s} ({d},{d},{d})\n", .{ @tagName(toggled), hit_f.x, hit_f.y, hit_f.z });
                     }
+                    flint_cooldown = 0.25;
+                } else if (target == .iron_door_closed or target == .iron_door_open) {
+                    audio.play(.step_stone, 0.7);
+                    std.debug.print("iron door locked; requires redstone signal\n", .{});
                     flint_cooldown = 0.25;
                 } else if (target == .wooden_door_closed or target == .wooden_door_open) {
                     const toggled: block_mod.BlockId = if (target == .wooden_door_closed) .wooden_door_open else .wooden_door_closed;
