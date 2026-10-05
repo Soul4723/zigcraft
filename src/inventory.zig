@@ -34,6 +34,7 @@ pub const ItemType = enum(u8) {
     snowball = 28,
     snow_block = 29,
     golden_apple = 30,
+    iron_sword = 31,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -85,6 +86,7 @@ pub const ItemType = enum(u8) {
         return switch (self) {
             .wooden_pickaxe => 25,
             .iron_pickaxe => 120,
+            .iron_sword => 100,
             else => 0,
         };
     }
@@ -130,6 +132,7 @@ pub const ItemType = enum(u8) {
             .snowball => "Snowball",
             .snow_block => "Snow Block",
             .golden_apple => "Golden Apple",
+            .iron_sword => "Iron Sword",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -166,6 +169,7 @@ pub const ItemType = enum(u8) {
             .snowball => .{ 0.93, 0.95, 1.0, 0.95 },
             .snow_block => .{ 0.90, 0.93, 0.98, 0.95 },
             .golden_apple => .{ 1.0, 0.80, 0.20, 0.95 },
+            .iron_sword => .{ 0.88, 0.86, 0.92, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -333,6 +337,16 @@ pub const Inventory = struct {
         if (non_empty == 4) {
             if (g0 == .cobblestone and g1 == .cobblestone and g2 == .cobblestone and g3 == .cobblestone) {
                 self.craft_output = .{ .item = .brick, .count = 4 };
+                return;
+            }
+        }
+
+        // Recipe 14: Iron Sword: 2 ingots vertically
+        if (non_empty == 2) {
+            if ((g0 == .iron_ingot and g2 == .iron_ingot and g1 == .none and g3 == .none) or
+                (g1 == .iron_ingot and g3 == .iron_ingot and g0 == .none and g2 == .none))
+            {
+                self.craft_output = .{ .item = .iron_sword, .count = 1 };
                 return;
             }
         }

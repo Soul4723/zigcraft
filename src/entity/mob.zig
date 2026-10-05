@@ -4,6 +4,7 @@ const math = @import("../math.zig");
 pub const MobType = enum {
     sheep,
     pig,
+    wolf,
 };
 
 pub const Mob = struct {
@@ -26,14 +27,17 @@ pub const Mob = struct {
         const w: f32 = switch (mob_type) {
             .sheep => 0.6,
             .pig => 0.55,
+            .wolf => 0.6,
         };
         const h: f32 = switch (mob_type) {
             .sheep => 0.9,
             .pig => 0.75,
+            .wolf => 0.8,
         };
         const spd: f32 = switch (mob_type) {
             .sheep => 1.4,
             .pig => 1.6,
+            .wolf => 3.2,
         };
         return .{
             .mob_type = mob_type,
@@ -49,7 +53,7 @@ pub const Mob = struct {
             .anim_time = 0.0,
             .change_dir_timer = 2.0,
             .wants_sound = false,
-            .health = 3,
+            .health = if (mob_type == .wolf) 5 else 3,
         };
     }
 
@@ -162,9 +166,9 @@ pub const Mob = struct {
         return tmin;
     }
 
-    /// Apply punch knockback and 1 damage. Returns true when health reaches 0.
-    pub fn takeHit(self: *Mob, from_dir: math.Vec3) bool {
-        if (self.health > 0) self.health -= 1;
+    /// Apply punch/weapon knockback and damage. Returns true when health reaches 0.
+    pub fn takeHitDmg(self: *Mob, from_dir: math.Vec3, dmg: u8) bool {
+        self.health = if (self.health > dmg) self.health - dmg else 0;
         self.vel.y = 5.0;
         self.vel.x = from_dir.x * 4.0;
         self.vel.z = from_dir.z * 4.0;
@@ -173,6 +177,11 @@ pub const Mob = struct {
         self.yaw = std.math.atan2(from_dir.x, from_dir.z);
         return self.health == 0;
     }
+
+    pub fn takeHit(self: *Mob, from_dir: math.Vec3) bool {
+        return self.takeHitDmg(from_dir, 1);
+    }
+
 };
 
 const Axis = enum { x, y, z };
@@ -321,4 +330,20 @@ test "mob takeHit applies knockback and sets state" {
     try std.testing.expectEqual(@as(f32, 4.0), mob.vel.z);
     try std.testing.expect(!mob.on_ground);
     try std.testing.expect(mob.walk_timer > 0.0);
+}
+
+test "wolf tougher and faster than sheep" {
+    const w = Mob.init(.wolf, 0.0, 1.0, 0.0);
+    const sh = Mob.init(.sheep, 0.0, 1.0, 0.0);
+    try std.testing.expect(w.health > sh.health);
+    try std.testing.expect(w.walk_speed > sh.walk_speed);
+}
+
+test "mob takeHitDmg deals variable damage" {
+    var mob = Mob.init(.wolf, 0.0, 1.0, 0.0);
+    try std.testing.expectEqual(mob.health, 5);
+    try std.testing.expect(!mob.takeHitDmg(math.Vec3.init(0, 0, 1), 2));
+    try std.testing.expectEqual(mob.health, 3);
+    try std.testing.expect(mob.takeHitDmg(math.Vec3.init(0, 0, 1), 3));
+    try std.testing.expectEqual(mob.health, 0);
 }
