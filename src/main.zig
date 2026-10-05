@@ -54,6 +54,8 @@ fn getFootstepSound(block: block_mod.BlockId) audio_mod.synth.SoundType {
         .glass => .step_stone,
         .sandstone => .step_stone,
         .brick => .step_stone,
+        .snow => .step_snow,
+        .wool => .step_wool,
         else => .step_grass,
     };
 }

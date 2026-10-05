@@ -5,6 +5,8 @@ pub const SoundType = enum {
     step_stone,
     step_wood,
     step_dirt,
+    step_snow,
+    step_wool,
     break_block,
     place_block,
     mob_baa,
@@ -58,6 +60,8 @@ pub const AudioMixer = struct {
 
         const duration_samples: usize = switch (sound) {
             .step_grass, .step_dirt => SAMPLE_RATE / 10, // ~100ms
+            .step_snow => SAMPLE_RATE / 8, // ~125ms
+            .step_wool => SAMPLE_RATE / 12, // ~83ms
             .step_stone => SAMPLE_RATE / 12, // ~83ms
             .step_wood => SAMPLE_RATE / 9, // ~110ms
             .break_block => SAMPLE_RATE / 6, // ~166ms
@@ -140,6 +144,22 @@ pub const AudioMixer = struct {
                 const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
                 const tone = @sin(t * freq * 2.0 * std.math.pi) * 0.4;
                 return (noise + tone) * envelope * 0.5;
+            },
+            .step_snow => {
+                // Powdery crunch: bright noise with slow decay
+                const noise = (rng.random().float(f32) * 2.0 - 1.0) * 0.65;
+                const freq: f32 = 900.0 * (1.0 - progress * 0.3);
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const tone = @sin(t * freq * 2.0 * std.math.pi) * 0.15;
+                return (noise + tone) * envelope * 0.55;
+            },
+            .step_wool => {
+                // Soft thud: low sine, fast decay
+                const freq: f32 = 120.0 * (1.0 - progress * 0.3);
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const tone = @sin(t * freq * 2.0 * std.math.pi) * 0.7;
+                const noise = (rng.random().float(f32) * 2.0 - 1.0) * 0.1;
+                return (tone + noise) * envelope * 0.5;
             },
             .break_block => {
                 // Crunchy burst with pitch drop
@@ -238,7 +258,7 @@ test "AudioMixer play voice produces non-zero samples" {
 
 test "AudioMixer all sound types render without overflow or crash" {
     var mixer = AudioMixer.init();
-    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt };
+    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt };
     for (sounds) |snd| {
         mixer.play(snd, 1.0);
     }
