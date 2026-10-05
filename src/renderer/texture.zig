@@ -369,6 +369,20 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         }
         return .{ 0, 0, 0, 0 };
     }
+    // Redstone Lamp Off (2, 7): dark amber glowstone glass framed in dark brass lattice
+    if (tile_x == 2 and tile_y == 7) {
+        const is_frame = (x <= 1 or x >= 14 or y <= 1 or y >= 14 or x == 7 or x == 8 or y == 7 or y == 8);
+        if (is_frame) return .{ 65, 42, 22, 255 }; // dark wood/brass strut
+        const n = hash2(x, y, 251) % 20;
+        return .{ 115 + @as(u8, @intCast(n)), 60 + @as(u8, @intCast(n / 2)), 25, 255 }; // inactive reddish amber
+    }
+    // Redstone Lamp On (3, 7): brilliantly luminous bright golden-yellow incandescent glow with brass lattice
+    if (tile_x == 3 and tile_y == 7) {
+        const is_frame = (x <= 1 or x >= 14 or y <= 1 or y >= 14 or x == 7 or x == 8 or y == 7 or y == 8);
+        if (is_frame) return .{ 95, 65, 30, 255 };
+        const n = hash2(x, y, 252) % 15;
+        return .{ 255, 225 + @as(u8, @intCast(n / 2)), 110 + @as(u8, @intCast(n)), 255 }; // glowing warm gold
+    }
     // Chest (7, 5): oak wooden box with dark metal band and front latch
     if (tile_x == 7 and tile_y == 5) {
         // Latch on front center: 2x3 silver pixel
@@ -600,6 +614,13 @@ test "all block tiles opaque, sand tile verified" {
     try std.testing.expectEqual(tilePixel(1, 3, 3, 3)[0], 18);
     try std.testing.expectEqual(tilePixel(1, 3, 10, 5)[0], 18);
     try std.testing.expectEqual(tilePixel(1, 3, 6, 11)[0], 18);
+}
+
+test "lamp tiles rendered with lattice frame and amber/golden cores" {
+    try std.testing.expectEqual(tilePixel(2, 7, 0, 0)[0], 65); // frame
+    try std.testing.expect(tilePixel(2, 7, 4, 4)[0] > 100); // dark amber
+    try std.testing.expectEqual(tilePixel(3, 7, 4, 4)[0], 255); // brilliant glow
+    try std.testing.expect(tilePixel(3, 7, 4, 4)[1] > 200);
 }
 
 test "repeater tiles rendered with stone slab base and dual torches" {

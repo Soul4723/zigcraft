@@ -188,6 +188,9 @@ pub fn main() !void {
     const Repeater = struct { x: i32, y: i32, z: i32, powered: bool, timer: f32 };
     var repeaters: [32]Repeater = undefined;
     var repeater_count: usize = 0;
+    const Lamp = struct { x: i32, y: i32, z: i32, lit: bool };
+    var lamps: [32]Lamp = undefined;
+    var lamp_count: usize = 0;
     var world_time: f32 = 45.0; // Start at morning daylight
     var last_step_dist: f32 = 0.0;
 
@@ -470,6 +473,44 @@ pub fn main() !void {
                     rep.timer = 0.0;
                 }
                 ri += 1;
+            }
+        }
+
+        // Redstone Lamp: checks 6 adjacent neighbors for active power (wire, plate, lever, repeater)
+        {
+            var li: usize = 0;
+            while (li < lamp_count) {
+                const la = &lamps[li];
+                const cur_b = manager.getBlockWorld(la.x, la.y, la.z);
+                if (cur_b != .redstone_lamp_off and cur_b != .redstone_lamp_on) {
+                    lamps[li] = lamps[lamp_count - 1];
+                    lamp_count -= 1;
+                    continue;
+                }
+
+                var power_in = false;
+                const adj_dirs = [_][3]i32{
+                    .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 },
+                    .{ 0, 1, 0 }, .{ 0, -1, 0 },
+                };
+                for (adj_dirs) |ad| {
+                    const nb = manager.getBlockWorld(la.x + ad[0], la.y + ad[1], la.z + ad[2]);
+                    if (nb == .redstone_wire_on or nb == .pressure_plate_down or nb == .lever_on or nb == .repeater_on) {
+                        power_in = true;
+                        break;
+                    }
+                }
+
+                if (power_in and !la.lit) {
+                    la.lit = true;
+                    _ = try manager.editAndRemesh(la.x, la.y, la.z, .redstone_lamp_on);
+                    particles.spawnFlame(la.x, la.y, la.z, 2);
+                    std.debug.print("lamp lit ({d},{d},{d})\n", .{ la.x, la.y, la.z });
+                } else if (!power_in and la.lit) {
+                    la.lit = false;
+                    _ = try manager.editAndRemesh(la.x, la.y, la.z, .redstone_lamp_off);
+                }
+                li += 1;
             }
         }
 
@@ -945,6 +986,10 @@ pub fn main() !void {
                                         if (place_type == .repeater_off and repeater_count < repeaters.len) {
                                             repeaters[repeater_count] = .{ .x = px, .y = py, .z = pz, .powered = false, .timer = 0.0 };
                                             repeater_count += 1;
+                                        }
+                                        if (place_type == .redstone_lamp_off and lamp_count < lamps.len) {
+                                            lamps[lamp_count] = .{ .x = px, .y = py, .z = pz, .lit = false };
+                                            lamp_count += 1;
                                         }
                                         if (is_furnace_place and furnace_count < furnaces.len) {
                                             furnaces[furnace_count] = .{ .x = px, .y = py, .z = pz, .t = 0, .fuel = 0, .input = .none };
