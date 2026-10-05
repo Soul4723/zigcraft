@@ -151,6 +151,7 @@ pub fn main() !void {
     var right_down = false;
     var mob_hit_cooldown: f32 = 0.0;
     var bed_cooldown: f32 = 0.0;
+    var flint_cooldown: f32 = 0.0;
     var world_time: f32 = 45.0; // Start at morning daylight
     var last_step_dist: f32 = 0.0;
 
@@ -600,6 +601,28 @@ pub fn main() !void {
                         std.debug.print("sleep only at night\n", .{});
                     }
                     bed_cooldown = 1.0;
+                }
+            }
+        }
+        // F: flint spark — ignite aimed flammable block (edge triggered, 0.5s cooldown)
+        flint_cooldown = @max(0.0, flint_cooldown - dt);
+        if (!inventory_open and flint_cooldown <= 0.0 and c.glfwGetKey(window, c.GLFW_KEY_F) == c.GLFW_PRESS) {
+            const dir_f = cam.front();
+            if (pick_mod.raycast(&pickSolid, cam.position, dir_f, 5)) |hit_f| {
+                const target = manager.getBlockWorld(hit_f.x, hit_f.y, hit_f.z);
+                if (target.isFlammable()) {
+                    if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, .air)) {
+                        audio.play(.break_block, 0.6);
+                        particles.spawnFlame(hit_f.x, hit_f.y, hit_f.z, 14);
+                        const drop_item = inventory_mod.ItemType.fromBlockId(target);
+                        if (target == .leaves and @as(u8, @intCast(@abs(@as(i64, hit_f.x) * 13 + @as(i64, hit_f.z) * 7))) % 4 == 0) {
+                            // charred leaves occasionally drop nothing extra; skip
+                        } else {
+                            _ = inventory.addItem(drop_item, 1);
+                        }
+                        std.debug.print("burned {s}\n", .{@tagName(target)});
+                    }
+                    flint_cooldown = 0.5;
                 }
             }
         }

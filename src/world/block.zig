@@ -32,6 +32,13 @@ pub const BlockId = enum(u8) {
         return self == .air or self == .water or self == .glass;
     }
 
+    pub fn isFlammable(self: BlockId) bool {
+        return switch (self) {
+            .wood, .leaves, .wood_planks, .crafting_table, .wool => true,
+            else => false,
+        };
+    }
+
     /// Return tile coordinates (tile_x, tile_y) on the 4x4 atlas for given face.
     /// Face index matches chunk_mesh order:
     /// 0: Up (+Y)
@@ -271,4 +278,12 @@ test "wool block props" {
     try std.testing.expectEqual(t.x, 7);
     try std.testing.expectEqual(t.y, 4);
     try std.testing.expectApproxEqAbs(hardness(.wool), 0.4, 0.001);
+}
+
+test "flammable blocks" {
+    try std.testing.expect(BlockId.wood.isFlammable());
+    try std.testing.expect(BlockId.leaves.isFlammable());
+    try std.testing.expect(BlockId.wool.isFlammable());
+    try std.testing.expect(!BlockId.stone.isFlammable());
+    try std.testing.expect(!BlockId.coal_ore.isFlammable());
 }
