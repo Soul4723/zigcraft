@@ -263,6 +263,28 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         }
         return .{ 0, 0, 0, 0 }; // alpha pass-through
     }
+    // Wooden Pressure Plate Unpressed (2, 6): central 10x10 wooden pad with raised chamfer edges
+    if (tile_x == 2 and tile_y == 6) {
+        if (x >= 2 and x <= 13 and y >= 2 and y <= 13) {
+            const is_rim = (x == 2 or x == 13 or y == 2 or y == 13);
+            if (is_rim) return .{ 110, 75, 35, 255 };
+            const n = hash2(x, y, 211) % 16;
+            return .{ 155 + @as(u8, @intCast(n)), 105 + @as(u8, @intCast(n / 2)), 50, 255 };
+        }
+        return .{ 0, 0, 0, 0 }; // transparent exterior margin
+    }
+    // Wooden Pressure Plate Pressed (3, 6): recessed darker pad with redstone contact pin in center
+    if (tile_x == 3 and tile_y == 6) {
+        if (x >= 3 and x <= 12 and y >= 3 and y <= 12) {
+            const is_pin = (x >= 7 and x <= 8 and y >= 7 and y <= 8);
+            if (is_pin) return .{ 220, 30, 20, 255 }; // redstone active spark center
+            const is_rim = (x == 3 or x == 12 or y == 3 or y == 12);
+            if (is_rim) return .{ 90, 60, 28, 255 };
+            const n = hash2(x, y, 212) % 14;
+            return .{ 125 + @as(u8, @intCast(n)), 80 + @as(u8, @intCast(n / 2)), 38, 255 };
+        }
+        return .{ 0, 0, 0, 0 }; // transparent margin
+    }
     // Chest (7, 5): oak wooden box with dark metal band and front latch
     if (tile_x == 7 and tile_y == 5) {
         // Latch on front center: 2x3 silver pixel
@@ -494,6 +516,13 @@ test "all block tiles opaque, sand tile verified" {
     try std.testing.expectEqual(tilePixel(1, 3, 3, 3)[0], 18);
     try std.testing.expectEqual(tilePixel(1, 3, 10, 5)[0], 18);
     try std.testing.expectEqual(tilePixel(1, 3, 6, 11)[0], 18);
+}
+
+test "pressure plate tiles rendered with transparent border" {
+    try std.testing.expectEqual(tilePixel(2, 6, 0, 0)[3], 0);
+    try std.testing.expectEqual(tilePixel(2, 6, 5, 5)[3], 255);
+    try std.testing.expectEqual(tilePixel(3, 6, 0, 0)[3], 0);
+    try std.testing.expectEqual(tilePixel(3, 6, 7, 7)[0], 220); // redstone pin red
 }
 
 test "grass side fringe green on top, dirt at bottom" {

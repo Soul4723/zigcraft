@@ -179,6 +179,9 @@ pub fn main() !void {
     var chest_count: usize = 0;
     var sprouts: [16]struct { x: i32, y: i32, z: i32, t: f32 } = undefined;
     var sprout_count: usize = 0;
+    const Plate = struct { x: i32, y: i32, z: i32, down: bool };
+    var plates: [32]Plate = undefined;
+    var plate_count: usize = 0;
     var world_time: f32 = 45.0; // Start at morning daylight
     var last_step_dist: f32 = 0.0;
 
@@ -251,6 +254,89 @@ pub fn main() !void {
             player.respawn(player.spawn_point.x, player.spawn_point.y, player.spawn_point.z);
         }
         cam.position = player.eyePos();
+
+        // Pressure plate trigger logic: test player and mob positions on active plates
+        {
+            var pi: usize = 0;
+            while (pi < plate_count) {
+                const pl = &plates[pi];
+                const blk = manager.getBlockWorld(pl.x, pl.y, pl.z);
+                if (blk != .pressure_plate_up and blk != .pressure_plate_down) {
+                    plates[pi] = plates[plate_count - 1];
+                    plate_count -= 1;
+                    continue;
+                }
+
+                // Check if player is standing within plate bounds:
+                // plate is at (pl.x, pl.y, pl.z), foot pos (player.pos.x, player.pos.y, player.pos.z)
+                var stepped = false;
+                const fx = player.pos.x;
+                const fy = player.pos.y;
+                const fz = player.pos.z;
+                if (fx >= @as(f32, @floatFromInt(pl.x)) - 0.2 and fx <= @as(f32, @floatFromInt(pl.x)) + 1.2 and
+                    fz >= @as(f32, @floatFromInt(pl.z)) - 0.2 and fz <= @as(f32, @floatFromInt(pl.z)) + 1.2 and
+                    fy >= @as(f32, @floatFromInt(pl.y)) - 0.1 and fy <= @as(f32, @floatFromInt(pl.y)) + 0.6)
+                {
+                    stepped = true;
+                }
+
+                // Also check any mob standing on it
+                if (!stepped) {
+                    for (mob_manager.mobs.items) |m| {
+                        if (m.pos.x >= @as(f32, @floatFromInt(pl.x)) - 0.3 and m.pos.x <= @as(f32, @floatFromInt(pl.x)) + 1.3 and
+                            m.pos.z >= @as(f32, @floatFromInt(pl.z)) - 0.3 and m.pos.z <= @as(f32, @floatFromInt(pl.z)) + 1.3 and
+                            m.pos.y >= @as(f32, @floatFromInt(pl.y)) - 0.1 and m.pos.y <= @as(f32, @floatFromInt(pl.y)) + 0.6)
+                        {
+                            stepped = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (stepped and !pl.down) {
+                    pl.down = true;
+                    _ = try manager.editAndRemesh(pl.x, pl.y, pl.z, .pressure_plate_down);
+                    audio.play(.click_on, 0.85);
+
+                    // Open any adjacent wooden doors (within Manhattan dist 1 horizontal or 1 above/below)
+                    const adj_offsets = [_][3]i32{
+                        .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 },
+                        .{ 1, 1, 0 }, .{ -1, 1, 0 }, .{ 0, 1, 1 }, .{ 0, 1, -1 },
+                        .{ 0, 1, 0 },
+                    };
+                    for (adj_offsets) |off| {
+                        const dx = pl.x + off[0];
+                        const dy = pl.y + off[1];
+                        const dz = pl.z + off[2];
+                        if (manager.getBlockWorld(dx, dy, dz) == .wooden_door_closed) {
+                            _ = try manager.editAndRemesh(dx, dy, dz, .wooden_door_open);
+                            std.debug.print("plate triggered: opened door ({d},{d},{d})\n", .{ dx, dy, dz });
+                        }
+                    }
+                } else if (!stepped and pl.down) {
+                    pl.down = false;
+                    _ = try manager.editAndRemesh(pl.x, pl.y, pl.z, .pressure_plate_up);
+                    audio.play(.click_off, 0.7);
+
+                    // Close any adjacent wooden doors
+                    const adj_offsets = [_][3]i32{
+                        .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 },
+                        .{ 1, 1, 0 }, .{ -1, 1, 0 }, .{ 0, 1, 1 }, .{ 0, 1, -1 },
+                        .{ 0, 1, 0 },
+                    };
+                    for (adj_offsets) |off| {
+                        const dx = pl.x + off[0];
+                        const dy = pl.y + off[1];
+                        const dz = pl.z + off[2];
+                        if (manager.getBlockWorld(dx, dy, dz) == .wooden_door_open) {
+                            _ = try manager.editAndRemesh(dx, dy, dz, .wooden_door_closed);
+                            std.debug.print("plate released: closed door ({d},{d},{d})\n", .{ dx, dy, dz });
+                        }
+                    }
+                }
+                pi += 1;
+            }
+        }
 
         // Footstep audio triggered periodically while walking on ground
         if (player.on_ground and player.distance_walked - last_step_dist >= 1.7) {
@@ -712,6 +798,10 @@ pub fn main() !void {
                                         if (place_type == .chest and chest_count < chests.len) {
                                             chests[chest_count] = .{ .x = px, .y = py, .z = pz, .items = [_]inventory_mod.ItemStack{.{}} ** 4 };
                                             chest_count += 1;
+                                        }
+                                        if (place_type == .pressure_plate_up and plate_count < plates.len) {
+                                            plates[plate_count] = .{ .x = px, .y = py, .z = pz, .down = false };
+                                            plate_count += 1;
                                         }
                                         if (is_furnace_place and furnace_count < furnaces.len) {
                                             furnaces[furnace_count] = .{ .x = px, .y = py, .z = pz, .t = 0, .fuel = 0, .input = .none };
