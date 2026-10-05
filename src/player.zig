@@ -12,6 +12,7 @@ pub const Player = struct {
     hunger: f32,
     saturation: f32,
     spawn_point: math.Vec3,
+    regen_timer: f32,
 
     pub fn init(x: f32, y: f32, z: f32) Player {
         return .{
@@ -25,7 +26,16 @@ pub const Player = struct {
             .hunger = 20.0,
             .saturation = 5.0,
             .spawn_point = math.Vec3.init(x, y, z),
+            .regen_timer = 0.0,
         };
+    }
+
+    /// Golden apple: instant heal + regen timer.
+    pub fn eatGolden(self: *Player) void {
+        self.health = @min(20.0, self.health + 6.0);
+        self.hunger = @min(20.0, self.hunger + 4.0);
+        self.saturation = @min(20.0, self.saturation + 6.0);
+        self.regen_timer = 30.0;
     }
 
     /// Eat apple: light snack.
@@ -57,11 +67,16 @@ pub const Player = struct {
         self.health = 20.0;
         self.hunger = 20.0;
         self.saturation = 5.0;
+        self.regen_timer = 0.0;
         self.spawn_point = self.pos;
     }
 
     /// Passive drain: hunger falls over time, health regen/suffer follows.
     pub fn tickVitals(self: *Player, dt: f32) void {
+        self.regen_timer = @max(0.0, self.regen_timer - dt);
+        if (self.regen_timer > 0.0 and self.health < 20.0) {
+            self.health = @min(20.0, self.health + dt * 0.8);
+        }
         self.hunger = @max(0.0, self.hunger - dt * 0.05);
         if (self.hunger > 14.0 and self.health < 20.0) {
             self.health = @min(20.0, self.health + dt * 0.4);
@@ -273,4 +288,14 @@ test "player death and respawn" {
     p.respawn(24.0, 20.0, 24.0);
     try std.testing.expect(!p.isDead());
     try std.testing.expectApproxEqAbs(p.hunger, 20.0, 0.001);
+}
+
+test "golden apple heals and regens" {
+    var p = Player.init(0.5, 1.0, 0.5);
+    p.health = 10.0;
+    p.eatGolden();
+    try std.testing.expectApproxEqAbs(p.health, 16.0, 0.001);
+    try std.testing.expect(p.regen_timer > 0.0);
+    p.tickVitals(1.0);
+    try std.testing.expect(p.health > 16.0);
 }

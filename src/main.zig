@@ -369,7 +369,7 @@ pub fn main() !void {
 
         if (!inventory_open) {
             const mine_frac: f32 = if (mine_target_valid and mine_need > 0.0) mine_progress / mine_need else -1.0;
-            ui.drawHUDWithVitals(aspect, selected_slot, &hotbar_colors, &hotbar_counts, mine_frac, player.health, player.hunger);
+            ui.drawHUDWithBuffs(aspect, selected_slot, &hotbar_colors, &hotbar_counts, mine_frac, player.health, player.hunger, player.regen_timer > 0.0);
         } else {
             var main_colors: [18][4]f32 = undefined;
             var main_counts: [18]u8 = undefined;
@@ -840,7 +840,12 @@ pub fn main() !void {
                 .raw_pork, .raw_mutton => false,
                 else => null,
             };
-            if (held_eat.item == .apple and player.hunger < 20.0) {
+            if (held_eat.item == .golden_apple) {
+                player.eatGolden();
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.8);
+                std.debug.print("ate golden apple (hp={d:.1})\n", .{player.health});
+            } else if (held_eat.item == .apple and player.hunger < 20.0) {
                 player.eatApple();
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.7);
