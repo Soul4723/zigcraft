@@ -952,7 +952,14 @@ pub fn main() !void {
             const dir_f = cam.front();
             if (pick_mod.raycast(&pickSolid, cam.position, dir_f, 5)) |hit_f| {
                 const target = manager.getBlockWorld(hit_f.x, hit_f.y, hit_f.z);
-                if (target == .tnt and fuse_count < fuses.len) {
+                if (target == .wooden_door_closed or target == .wooden_door_open) {
+                    const toggled: block_mod.BlockId = if (target == .wooden_door_closed) .wooden_door_open else .wooden_door_closed;
+                    if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, toggled)) {
+                        audio.play(.place_block, 0.9);
+                        std.debug.print("toggled door to {s} ({d},{d},{d})\n", .{ @tagName(toggled), hit_f.x, hit_f.y, hit_f.z });
+                    }
+                    flint_cooldown = 0.25;
+                } else if (target == .tnt and fuse_count < fuses.len) {
                     fuses[fuse_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z, .t = 2.5 };
                     fuse_count += 1;
                     audio.play(.place_block, 0.8);
