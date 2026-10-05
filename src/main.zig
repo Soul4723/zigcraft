@@ -152,6 +152,10 @@ pub fn main() !void {
     var mob_hit_cooldown: f32 = 0.0;
     var bed_cooldown: f32 = 0.0;
     var flint_cooldown: f32 = 0.0;
+    var throw_cooldown: f32 = 0.0;
+    const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32 };
+    var thrown: [8]Thrown = undefined;
+    var thrown_count: usize = 0;
     const FurnaceJob = struct { x: i32, y: i32, z: i32, t: f32, fuel: u8, input: inventory_mod.ItemType };
     var furnaces: [16]FurnaceJob = undefined;
     var furnace_count: usize = 0;
@@ -573,6 +577,8 @@ pub fn main() !void {
                                     if (broken_block == .coal_ore) {
                                         _ = inventory.addItem(.coal, 1);
                                         _ = inventory.addItem(.cobblestone, 1);
+                                    } else if (broken_block == .snow) {
+                                        _ = inventory.addItem(.snowball, 2);
                                     } else {
                                         _ = inventory.addItem(drop_item, 1);
                                     }
@@ -707,6 +713,73 @@ pub fn main() !void {
                     f.t = 0.0;
                 }
                 fi += 1;
+            }
+        }
+        // Thrown snowball physics: gravity arc, mob hit = 1 dmg + knockback, block hit = puff
+        {
+            var ti: usize = 0;
+            while (ti < thrown_count) {
+                var t = &thrown[ti];
+                t.life -= dt;
+                t.vel.y -= 12.0 * dt;
+                t.pos.x += t.vel.x * dt;
+                t.pos.y += t.vel.y * dt;
+                t.pos.z += t.vel.z * dt;
+                var dead = t.life <= 0.0;
+                if (!dead) {
+                    const mbx: i32 = @intFromFloat(@floor(t.pos.x));
+                    const mby: i32 = @intFromFloat(@floor(t.pos.y));
+                    const mbz: i32 = @intFromFloat(@floor(t.pos.z));
+                    if (pickSolid(mbx, mby, mbz)) {
+                        particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.93, 0.95, 1.0 }, 6);
+                        dead = true;
+                    } else {
+                        // mob hit test (generous radius)
+                        for (mob_manager.mobs.items, 0..) |*m, mi| {
+                            const ddx = m.pos.x - t.pos.x;
+                            const ddy = (m.pos.y + 0.4) - t.pos.y;
+                            const ddz = m.pos.z - t.pos.z;
+                            if (ddx * ddx + ddy * ddy + ddz * ddz < 0.8 * 0.8) {
+                                const died = m.takeHit(cam.front());
+                                audio.play(.hurt, 0.5);
+                                particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.93, 0.95, 1.0 }, 8);
+                                if (died) {
+                                    const md: inventory_mod.ItemType = switch (m.mob_type) {
+                                        .pig => .raw_pork,
+                                        .sheep => .raw_mutton,
+                                    };
+                                    const mp = m.pos;
+                                    _ = mob_manager.mobs.swapRemove(mi);
+                                    _ = inventory.addItem(md, 1);
+                                    if (m.mob_type == .sheep) _ = inventory.addItem(.wool, 1);
+                                    _ = mp;
+                                }
+                                dead = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (dead) {
+                    thrown[ti] = thrown[thrown_count - 1];
+                    thrown_count -= 1;
+                } else {
+                    // trail puff
+                    particles.spawnBlockDebris(@intFromFloat(@floor(t.pos.x)), @intFromFloat(@floor(t.pos.y)), @intFromFloat(@floor(t.pos.z)), .{ 0.9, 0.92, 1.0 }, 1);
+                    ti += 1;
+                }
+            }
+        }
+        // G throws snowball
+        throw_cooldown = @max(0.0, throw_cooldown - dt);
+        if (!inventory_open and throw_cooldown <= 0.0 and c.glfwGetKey(window, c.GLFW_KEY_G) == c.GLFW_PRESS) {
+            if (inventory.slots[selected_slot].item == .snowball and thrown_count < thrown.len) {
+                const dir_g = cam.front();
+                thrown[thrown_count] = .{ .pos = cam.position, .vel = math.Vec3.init(dir_g.x * 18.0, dir_g.y * 18.0 + 2.0, dir_g.z * 18.0), .life = 3.0 };
+                thrown_count += 1;
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.place_block, 0.4);
+                throw_cooldown = 0.4;
             }
         }
         // F: flint spark — ignite aimed flammable block (edge triggered, 0.5s cooldown)

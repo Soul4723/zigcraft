@@ -31,6 +31,8 @@ pub const ItemType = enum(u8) {
     furnace = 25,
     iron_ingot = 26,
     iron_pickaxe = 27,
+    snowball = 28,
+    snow_block = 29,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -49,6 +51,7 @@ pub const ItemType = enum(u8) {
             .glass => .glass,
             .sandstone => .sandstone,
             .brick => .brick,
+            .snow_block => .snow,
             else => null,
         };
     }
@@ -73,6 +76,7 @@ pub const ItemType = enum(u8) {
             .brick => .brick,
             .wool => .wool,
             .furnace => .furnace,
+            .snow => .snow_block,
         };
     }
 
@@ -122,6 +126,8 @@ pub const ItemType = enum(u8) {
             .furnace => "Furnace",
             .iron_ingot => "Iron Ingot",
             .iron_pickaxe => "Iron Pickaxe",
+            .snowball => "Snowball",
+            .snow_block => "Snow Block",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -155,6 +161,8 @@ pub const ItemType = enum(u8) {
             .furnace => .{ 0.35, 0.35, 0.38, 0.95 },
             .iron_ingot => .{ 0.85, 0.82, 0.78, 0.95 },
             .iron_pickaxe => .{ 0.90, 0.85, 0.80, 0.95 },
+            .snowball => .{ 0.93, 0.95, 1.0, 0.95 },
+            .snow_block => .{ 0.90, 0.93, 0.98, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -330,6 +338,14 @@ pub const Inventory = struct {
         if (non_empty == 3) {
             if (g0 == .iron_ingot and g1 == .iron_ingot and (g2 == .stick or g3 == .stick)) {
                 self.craft_output = .{ .item = .iron_pickaxe, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 12: 4 Snowballs (2x2) -> 1 Snow Block
+        if (non_empty == 4) {
+            if (g0 == .snowball and g1 == .snowball and g2 == .snowball and g3 == .snowball) {
+                self.craft_output = .{ .item = .snow_block, .count = 1 };
                 return;
             }
         }
