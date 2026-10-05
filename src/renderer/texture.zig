@@ -237,6 +237,32 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         }
         return .{ 0, 0, 0, 0 };
     }
+    // Wooden Door Closed (0, 6): vertical wooden planks with top square peephole window and iron knob
+    if (tile_x == 0 and tile_y == 6) {
+        // Window opening in upper quadrant (y: 3..5, x: 5..10)
+        if (y >= 3 and y <= 5 and x >= 5 and x <= 10) {
+            return .{ 30, 40, 50, 160 }; // glass tint cutout
+        }
+        // Iron door handle knob (y: 8..9, x: 12..13)
+        if (y >= 8 and y <= 9 and x >= 12 and x <= 13) {
+            return .{ 210, 210, 220, 255 };
+        }
+        // Plank panels & borders
+        const is_border = (x == 1 or x == 14 or y == 1 or y == 14 or y == 7);
+        if (is_border) return .{ 110, 75, 35, 255 };
+        const n = hash2(x, y, 201) % 18;
+        return .{ 145 + @as(u8, @intCast(n)), 95 + @as(u8, @intCast(n / 2)), 45, 255 };
+    }
+    // Wooden Door Open (1, 6): door swung 90 deg sideways, thin 3px edge strip visible with open air space
+    if (tile_x == 1 and tile_y == 6) {
+        if (x <= 2) {
+            const is_handle = (y >= 8 and y <= 9 and x == 2);
+            if (is_handle) return .{ 210, 210, 220, 255 };
+            const n = hash2(x, y, 202) % 16;
+            return .{ 130 + @as(u8, @intCast(n)), 85 + @as(u8, @intCast(n / 2)), 40, 255 };
+        }
+        return .{ 0, 0, 0, 0 }; // alpha pass-through
+    }
     // Chest (7, 5): oak wooden box with dark metal band and front latch
     if (tile_x == 7 and tile_y == 5) {
         // Latch on front center: 2x3 silver pixel

@@ -25,9 +25,11 @@ pub const BlockId = enum(u8) {
     tnt = 20,
     torch = 21,
     chest = 22,
+    wooden_door_closed = 23,
+    wooden_door_open = 24,
 
     pub fn is_solid(self: BlockId) bool {
-        return self != .air and self != .water and self != .ladder and self != .torch;
+        return self != .air and self != .water and self != .ladder and self != .torch and self != .wooden_door_open;
     }
 
     pub fn is_ladder(self: BlockId) bool {
@@ -39,12 +41,12 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_transparent(self: BlockId) bool {
-        return self == .air or self == .water or self == .glass or self == .ladder or self == .torch;
+        return self == .air or self == .water or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open;
     }
 
     pub fn isFlammable(self: BlockId) bool {
         return switch (self) {
-            .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest => true,
+            .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest, .wooden_door_closed, .wooden_door_open => true,
             else => false,
         };
     }
@@ -91,6 +93,8 @@ pub const BlockId = enum(u8) {
             .tnt => .{ .x = 5, .y = 5 },
             .torch => .{ .x = 6, .y = 5 },
             .chest => .{ .x = 7, .y = 5 },
+            .wooden_door_closed => .{ .x = 0, .y = 6 },
+            .wooden_door_open => .{ .x = 1, .y = 6 },
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -131,6 +135,7 @@ pub fn hardness(block: BlockId) f32 {
         .tnt => 0.0,
         .torch => 0.1,
         .chest => 1.0,
+        .wooden_door_closed, .wooden_door_open => 0.8,
         .brick => 2.0,
         .wood => 0.9,
         .leaves => 0.25,
@@ -203,6 +208,8 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .tnt = .{ .name = "tnt", .solid = true, .transparent = false, .fluid = false },
     .torch = .{ .name = "torch", .solid = false, .transparent = true, .fluid = false },
     .chest = .{ .name = "chest", .solid = true, .transparent = false, .fluid = false },
+    .wooden_door_closed = .{ .name = "wooden_door_closed", .solid = true, .transparent = true, .fluid = false },
+    .wooden_door_open = .{ .name = "wooden_door_open", .solid = false, .transparent = true, .fluid = false },
     .brick = .{ .name = "brick", .solid = true, .transparent = false, .fluid = false },
 });
 
@@ -355,4 +362,18 @@ test "chest block props" {
     try std.testing.expectEqual(t.x, 7);
     try std.testing.expectEqual(t.y, 5);
     try std.testing.expectEqual(hardness(.chest), 1.0);
+}
+
+test "door block properties" {
+    try std.testing.expect(BlockId.wooden_door_closed.is_solid());
+    try std.testing.expect(!BlockId.wooden_door_open.is_solid());
+    try std.testing.expect(BlockId.wooden_door_closed.is_transparent());
+    try std.testing.expect(BlockId.wooden_door_open.is_transparent());
+    try std.testing.expect(BlockId.wooden_door_closed.isFlammable());
+    const tc = BlockId.wooden_door_closed.getFaceTexture(0);
+    try std.testing.expectEqual(tc.x, 0);
+    try std.testing.expectEqual(tc.y, 6);
+    const to = BlockId.wooden_door_open.getFaceTexture(0);
+    try std.testing.expectEqual(to.x, 1);
+    try std.testing.expectEqual(to.y, 6);
 }
