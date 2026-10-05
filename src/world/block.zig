@@ -35,6 +35,8 @@ pub const BlockId = enum(u8) {
     lever_on = 30,
     repeater_off = 31,
     repeater_on = 32,
+    redstone_lamp_off = 33,
+    redstone_lamp_on = 34,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water and self != .ladder and self != .torch and self != .wooden_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on;
@@ -111,6 +113,8 @@ pub const BlockId = enum(u8) {
             .lever_on => .{ .x = 7, .y = 6 },
             .repeater_off => .{ .x = 0, .y = 7 },
             .repeater_on => .{ .x = 1, .y = 7 },
+            .redstone_lamp_off => .{ .x = 2, .y = 7 },
+            .redstone_lamp_on => .{ .x = 3, .y = 7 },
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -154,6 +158,7 @@ pub fn hardness(block: BlockId) f32 {
         .chest => 1.0,
         .wooden_door_closed, .wooden_door_open, .pressure_plate_up, .pressure_plate_down, .lever_off, .lever_on => 0.5,
         .repeater_off, .repeater_on => 0.2,
+        .redstone_lamp_off, .redstone_lamp_on => 0.4,
         .brick => 2.0,
         .wood => 0.9,
         .leaves => 0.25,
@@ -236,6 +241,8 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .lever_on = .{ .name = "lever_on", .solid = false, .transparent = true, .fluid = false },
     .repeater_off = .{ .name = "repeater_off", .solid = false, .transparent = true, .fluid = false },
     .repeater_on = .{ .name = "repeater_on", .solid = false, .transparent = true, .fluid = false },
+    .redstone_lamp_off = .{ .name = "redstone_lamp_off", .solid = true, .transparent = false, .fluid = false },
+    .redstone_lamp_on = .{ .name = "redstone_lamp_on", .solid = true, .transparent = false, .fluid = false },
     .brick = .{ .name = "brick", .solid = true, .transparent = false, .fluid = false },
 });
 
@@ -388,6 +395,19 @@ test "chest block props" {
     try std.testing.expectEqual(t.x, 7);
     try std.testing.expectEqual(t.y, 5);
     try std.testing.expectEqual(hardness(.chest), 1.0);
+}
+
+test "redstone lamp block properties" {
+    try std.testing.expect(BlockId.redstone_lamp_off.is_solid());
+    try std.testing.expect(BlockId.redstone_lamp_on.is_solid());
+    try std.testing.expect(!BlockId.redstone_lamp_off.is_transparent());
+    try std.testing.expect(!BlockId.redstone_lamp_on.is_transparent());
+    const lo = BlockId.redstone_lamp_off.getFaceTexture(0);
+    try std.testing.expectEqual(lo.x, 2);
+    try std.testing.expectEqual(lo.y, 7);
+    const ln = BlockId.redstone_lamp_on.getFaceTexture(0);
+    try std.testing.expectEqual(ln.x, 3);
+    try std.testing.expectEqual(ln.y, 7);
 }
 
 test "repeater block properties" {
