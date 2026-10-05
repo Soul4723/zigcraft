@@ -152,6 +152,8 @@ pub fn main() !void {
     var mob_hit_cooldown: f32 = 0.0;
     var bed_cooldown: f32 = 0.0;
     var flint_cooldown: f32 = 0.0;
+    var sprouts: [16]struct { x: i32, y: i32, z: i32, t: f32 } = undefined;
+    var sprout_count: usize = 0;
     var world_time: f32 = 45.0; // Start at morning daylight
     var last_step_dist: f32 = 0.0;
 
@@ -233,6 +235,35 @@ pub fn main() !void {
             const ground_z: i32 = @intFromFloat(@floor(player.pos.z));
             const ground_block = manager.getBlockWorld(ground_x, ground_y, ground_z);
             audio.play(getFootstepSound(ground_block), 0.5);
+        }
+
+        // Grow planted sprouts after 30s into 4-high trees with canopy
+        var si: usize = 0;
+        while (si < sprout_count) {
+            sprouts[si].t += dt;
+            if (sprouts[si].t >= 30.0) {
+                const sx = sprouts[si].x;
+                const sy = sprouts[si].y;
+                const sz = sprouts[si].z;
+                var gi: i32 = 1;
+                while (gi <= 3) : (gi += 1) {
+                    if (manager.getBlockWorld(sx, sy + gi, sz) == .air) _ = try manager.editAndRemesh(sx, sy + gi, sz, .wood);
+                }
+                var ox: i32 = -1;
+                while (ox <= 1) : (ox += 1) {
+                    var oz: i32 = -1;
+                    while (oz <= 1) : (oz += 1) {
+                        if (ox == 0 and oz == 0) continue;
+                        if (manager.getBlockWorld(sx + ox, sy + 4, sz + oz) == .air) _ = try manager.editAndRemesh(sx + ox, sy + 4, sz + oz, .leaves);
+                    }
+                }
+                if (manager.getBlockWorld(sx, sy + 4, sz) == .air) _ = try manager.editAndRemesh(sx, sy + 4, sz, .leaves);
+                std.debug.print("sapling grew\n", .{});
+                sprouts[si] = sprouts[sprout_count - 1];
+                sprout_count -= 1;
+            } else {
+                si += 1;
+            }
         }
 
         // Stream chunks dynamically around player
@@ -586,6 +617,10 @@ pub fn main() !void {
                                         if (ok) {
                                             audio.play(.place_block, 0.7);
                                             hotbar_slot.decrement(1);
+                                            if (sprout_count < sprouts.len) {
+                                                sprouts[sprout_count] = .{ .x = px, .y = py, .z = pz, .t = 0.0 };
+                                                sprout_count += 1;
+                                            }
                                             std.debug.print("planted sapling\n", .{});
                                         }
                                     }
