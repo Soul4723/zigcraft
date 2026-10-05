@@ -222,6 +222,21 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         const n = hash2(x, y, 171) % 20;
         return .{ 215 + @as(u8, @intCast(n)), 35 + @as(u8, @intCast(n / 3)), 28, 255 };
     }
+    // Torch (6, 5): vertical wooden shaft with glowing coal ember tip
+    if (tile_x == 6 and tile_y == 5) {
+        const is_shaft = (x >= 6 and x <= 9) and (y >= 4);
+        const is_head = (x >= 5 and x <= 10) and (y <= 4);
+        if (is_head) {
+            const hot = (y <= 2) and (x >= 6 and x <= 9);
+            if (hot) return .{ 255, 235, 120, 255 }; // yellow-white core
+            return .{ 255, 130, 30, 255 }; // orange flame tip
+        }
+        if (is_shaft) {
+            const n = hash2(x, y, 181) % 12;
+            return .{ 120 + @as(u8, @intCast(n)), 80 + @as(u8, @intCast(n / 2)), 40, 255 };
+        }
+        return .{ 0, 0, 0, 0 };
+    }
     // Wool (7, 4): soft off-white tufted fleece for sheep drops / beds
     if (tile_x == 7 and tile_y == 4) {
         const n = hash2(x, y, 118) % 18;

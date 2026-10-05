@@ -164,6 +164,10 @@ pub fn main() !void {
     const Fuse = struct { x: i32, y: i32, z: i32, t: f32 };
     var fuses: [8]Fuse = undefined;
     var fuse_count: usize = 0;
+    const Torch = struct { x: i32, y: i32, z: i32 };
+    var torches: [32]Torch = undefined;
+    var torch_count: usize = 0;
+    var torch_puff_timer: f32 = 0.0;
     const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32 };
     var thrown: [8]Thrown = undefined;
     var thrown_count: usize = 0;
@@ -685,6 +689,10 @@ pub fn main() !void {
                                         audio.play(.place_block, 0.7);
                                         const pcol = hotbar_slot.item.getColor();
                                         particles.spawnBlockDebris(px, py, pz, .{ pcol[0], pcol[1], pcol[2] }, 8);
+                                        if (place_type == .torch and torch_count < torches.len) {
+                                            torches[torch_count] = .{ .x = px, .y = py, .z = pz };
+                                            torch_count += 1;
+                                        }
                                         if (is_furnace_place and furnace_count < furnaces.len) {
                                             furnaces[furnace_count] = .{ .x = px, .y = py, .z = pz, .t = 0, .fuel = 0, .input = .none };
                                             furnace_count += 1;
@@ -759,6 +767,27 @@ pub fn main() !void {
                 fi += 1;
             }
         }
+        // Torch flame particles: nearby active torches emit flame tips
+        torch_puff_timer += dt;
+        if (torch_puff_timer >= 0.2) {
+            torch_puff_timer = 0.0;
+            var ti: usize = 0;
+            while (ti < torch_count) {
+                const tr = &torches[ti];
+                if (manager.getBlockWorld(tr.x, tr.y, tr.z) != .torch) {
+                    torches[ti] = torches[torch_count - 1];
+                    torch_count -= 1;
+                    continue;
+                }
+                const tdx = @as(f32, @floatFromInt(tr.x)) - player.pos.x;
+                const tdz = @as(f32, @floatFromInt(tr.z)) - player.pos.z;
+                if (tdx * tdx + tdz * tdz < 20.0 * 20.0) {
+                    particles.spawnFlame(tr.x, tr.y, tr.z, 1);
+                }
+                ti += 1;
+            }
+        }
+
         // Thrown snowball physics: gravity arc, mob hit = 1 dmg + knockback, block hit = puff
         {
             var ti: usize = 0;

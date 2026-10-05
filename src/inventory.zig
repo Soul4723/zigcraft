@@ -37,6 +37,7 @@ pub const ItemType = enum(u8) {
     iron_sword = 31,
     ladder = 32,
     tnt = 33,
+    torch = 34,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -58,6 +59,7 @@ pub const ItemType = enum(u8) {
             .snow_block => .snow,
             .ladder => .ladder,
             .tnt => .tnt,
+            .torch => .torch,
             else => null,
         };
     }
@@ -85,6 +87,7 @@ pub const ItemType = enum(u8) {
             .snow => .snow_block,
             .ladder => .ladder,
             .tnt => .tnt,
+            .torch => .torch,
         };
     }
 
@@ -141,6 +144,7 @@ pub const ItemType = enum(u8) {
             .iron_sword => "Iron Sword",
             .ladder => "Ladder",
             .tnt => "TNT",
+            .torch => "Torch",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -180,6 +184,7 @@ pub const ItemType = enum(u8) {
             .iron_sword => .{ 0.88, 0.86, 0.92, 0.95 },
             .ladder => .{ 0.65, 0.45, 0.22, 0.95 },
             .tnt => .{ 0.85, 0.18, 0.15, 0.95 },
+            .torch => .{ 1.0, 0.70, 0.20, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -347,6 +352,16 @@ pub const Inventory = struct {
         if (non_empty == 4) {
             if (g0 == .cobblestone and g1 == .cobblestone and g2 == .cobblestone and g3 == .cobblestone) {
                 self.craft_output = .{ .item = .brick, .count = 4 };
+                return;
+            }
+        }
+
+        // Recipe 17: 1 Coal above 1 Stick (vertical) -> 4 Torches
+        if (non_empty == 2) {
+            if ((g0 == .coal and g2 == .stick and g1 == .none and g3 == .none) or
+                (g1 == .coal and g3 == .stick and g0 == .none and g2 == .none))
+            {
+                self.craft_output = .{ .item = .torch, .count = 4 };
                 return;
             }
         }
@@ -627,4 +642,13 @@ test "tnt recipe: 2 sand + 2 coal checkerboard" {
     inv.craft_grid[3] = .{ .item = .sand, .count = 1 };
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .tnt);
+}
+
+test "torch recipe: coal over stick -> 4 torches" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .coal, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .stick, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .torch);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
 }
