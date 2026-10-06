@@ -16,3 +16,6 @@ Thumbs.db
 # Temporary
 /tmp/
 *.tmp
+
+# Local build binary
+/zigcraft

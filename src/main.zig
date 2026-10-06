@@ -189,6 +189,8 @@ pub fn main() !void {
     const Repeater = struct { x: i32, y: i32, z: i32, powered: bool, timer: f32, stage: u2 };
     var repeaters: [32]Repeater = undefined;
     var repeater_count: usize = 0;
+    var known_stage_chunks: [64]struct { x: i32, z: i32 } = undefined;
+    var known_stage_count: usize = 0;
     const Lamp = struct { x: i32, y: i32, z: i32, lit: bool };
     var lamps: [32]Lamp = undefined;
     var lamp_count: usize = 0;
@@ -273,6 +275,46 @@ pub fn main() !void {
         // are re-derived from block ids; only repeater delay timers persist in session.
         // Throttled to every 4th frame: ~50k block reads/frame average.
         if (frame_count % 4 == 0) {
+            {
+                var snap: [32][4]i32 = undefined;
+                var sn: usize = 0;
+                for (repeaters[0..repeater_count]) |rep| {
+                    if (sn >= snap.len) break;
+                    snap[sn] = .{ rep.x, rep.y, rep.z, rep.stage };
+                    sn += 1;
+                }
+                chunk_manager_mod.ChunkManager.setStageSnapshot(snap[0..sn]);
+            }
+            // Apply persisted repeater stages for newly seen chunks
+            var stage_iter = manager.chunks.iterator();
+            while (stage_iter.next()) |entry| {
+                const scx = entry.key_ptr.x;
+                const scz = entry.key_ptr.z;
+                var known = false;
+                for (known_stage_chunks[0..known_stage_count]) |kc| {
+                    if (kc.x == scx and kc.z == scz) {
+                        known = true;
+                        break;
+                    }
+                }
+                if (!known) {
+                    if (known_stage_count < known_stage_chunks.len) {
+                        known_stage_chunks[known_stage_count] = .{ .x = scx, .z = scz };
+                        known_stage_count += 1;
+                    }
+                    var staged = [_][4]i32{.{ 0, 0, 0, 0 }} ** 32;
+                    const nstaged = manager.loadStages(scx, scz, &staged);
+                    var si: usize = 0;
+                    while (si < nstaged) : (si += 1) {
+                        for (repeaters[0..repeater_count]) |*rep| {
+                            if (rep.x == staged[si][0] and rep.y == staged[si][1] and rep.z == staged[si][2]) {
+                                rep.stage = @intCast(staged[si][3] & 3);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
             var rs_iter = manager.chunks.iterator();
             while (rs_iter.next()) |entry| {
                 const rcx = entry.key_ptr.x;
@@ -1409,6 +1451,19 @@ pub fn main() !void {
                             found_stage = true;
                             audio.play(.click_on, 0.6);
                             std.debug.print("repeater delay stage {d} ({d},{d},{d})\n", .{ @as(u8, rep.stage) + 1, hit_f.x, hit_f.y, hit_f.z });
+                            {
+                                var snap: [32][4]i32 = undefined;
+                                var sn: usize = 0;
+                                for (repeaters[0..repeater_count]) |sr| {
+                                    if (sn >= snap.len) break;
+                                    snap[sn] = .{ sr.x, sr.y, sr.z, sr.stage };
+                                    sn += 1;
+                                }
+                                chunk_manager_mod.ChunkManager.setStageSnapshot(snap[0..sn]);
+                                if (manager.chunks.getPtr(.{ .x = @divFloor(hit_f.x, 16), .z = @divFloor(hit_f.z, 16) })) |e| {
+                                    manager.saveStages(@divFloor(hit_f.x, 16), @divFloor(hit_f.z, 16), &e.chunk);
+                                }
+                            }
                             break;
                         }
                     }
