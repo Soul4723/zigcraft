@@ -511,9 +511,13 @@ pub fn main() !void {
                         const dx = pl.x + off[0];
                         const dy = pl.y + off[1];
                         const dz = pl.z + off[2];
-                        if (manager.getBlockWorld(dx, dy, dz) == .wooden_door_closed) {
+                        const pdb = manager.getBlockWorld(dx, dy, dz);
+                        if (pdb == .wooden_door_closed) {
                             _ = try manager.editAndRemesh(dx, dy, dz, .wooden_door_open);
                             std.debug.print("plate triggered: opened door ({d},{d},{d})\n", .{ dx, dy, dz });
+                        } else if (pdb == .iron_door_closed) {
+                            _ = try manager.editAndRemesh(dx, dy, dz, .iron_door_open);
+                            std.debug.print("plate triggered: opened iron door ({d},{d},{d})\n", .{ dx, dy, dz });
                         }
                     }
                 } else if (!stepped and pl.down) {
@@ -531,9 +535,13 @@ pub fn main() !void {
                         const dx = pl.x + off[0];
                         const dy = pl.y + off[1];
                         const dz = pl.z + off[2];
-                        if (manager.getBlockWorld(dx, dy, dz) == .wooden_door_open) {
+                        const pdb = manager.getBlockWorld(dx, dy, dz);
+                        if (pdb == .wooden_door_open) {
                             _ = try manager.editAndRemesh(dx, dy, dz, .wooden_door_closed);
                             std.debug.print("plate released: closed door ({d},{d},{d})\n", .{ dx, dy, dz });
+                        } else if (pdb == .iron_door_open) {
+                            _ = try manager.editAndRemesh(dx, dy, dz, .iron_door_closed);
+                            std.debug.print("plate released: closed iron door ({d},{d},{d})\n", .{ dx, dy, dz });
                         }
                     }
                 }
