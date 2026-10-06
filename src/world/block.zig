@@ -41,9 +41,14 @@ pub const BlockId = enum(u8) {
     iron_door_open = 36,
     redstone_torch_off = 37,
     redstone_torch_on = 38,
+    cactus = 39,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on;
+    }
+
+    pub fn is_cactus(self: BlockId) bool {
+        return self == .cactus;
     }
 
     pub fn is_ladder(self: BlockId) bool {
@@ -137,6 +142,7 @@ pub const BlockId = enum(u8) {
             .iron_door_open => .{ .x = 5, .y = 7 },
             .redstone_torch_off => .{ .x = 6, .y = 7 },
             .redstone_torch_on => .{ .x = 7, .y = 7 },
+            .cactus => .{ .x = 3, .y = 1 },
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -192,6 +198,7 @@ pub fn hardness(block: BlockId) f32 {
         .coal_ore => 3.0,
         .iron_ore => 3.5,
         .iron_door_closed, .iron_door_open => 3.0,
+        .cactus => 0.4,
     };
 }
 
@@ -271,6 +278,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .iron_door_open = .{ .name = "iron_door_open", .solid = false, .transparent = true, .fluid = false },
     .redstone_torch_off = .{ .name = "redstone_torch_off", .solid = false, .transparent = true, .fluid = false },
     .redstone_torch_on = .{ .name = "redstone_torch_on", .solid = false, .transparent = true, .fluid = false },
+    .cactus = .{ .name = "cactus", .solid = true, .transparent = false, .fluid = false },
     .brick = .{ .name = "brick", .solid = true, .transparent = false, .fluid = false },
 });
 
@@ -537,4 +545,13 @@ test "door block properties" {
     const to = BlockId.wooden_door_open.getFaceTexture(0);
     try std.testing.expectEqual(to.x, 1);
     try std.testing.expectEqual(to.y, 6);
+}
+
+test "cactus properties and block definition" {
+    try std.testing.expect(BlockId.cactus.is_solid());
+    try std.testing.expect(BlockId.cactus.is_cactus());
+    try std.testing.expectEqual(hardness(BlockId.cactus), 0.4);
+    const tex = BlockId.cactus.getFaceTexture(0);
+    try std.testing.expectEqual(tex.x, 3);
+    try std.testing.expectEqual(tex.y, 1);
 }

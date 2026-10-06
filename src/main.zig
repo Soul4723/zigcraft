@@ -283,6 +283,30 @@ pub fn main() !void {
             if (eye_block.is_solid() and eye_block != .leaves and eye_block != .glass) {
                 player.health = @max(0.0, player.health - 1.0 * dt);
             }
+
+            // Cactus contact damage: 1 hp/sec if player AABB intersects adjacent cactus
+            const px_i: i32 = @intFromFloat(@floor(player.pos.x));
+            const py_i: i32 = @intFromFloat(@floor(player.pos.y));
+            const pz_i: i32 = @intFromFloat(@floor(player.pos.z));
+            var touches_cactus = false;
+            var dy_c: i32 = 0;
+            while (dy_c <= 1) : (dy_c += 1) {
+                var dx_c: i32 = -1;
+                while (dx_c <= 1) : (dx_c += 1) {
+                    var dz_c: i32 = -1;
+                    while (dz_c <= 1) : (dz_c += 1) {
+                        if (manager.getBlockWorld(px_i + dx_c, py_i + dy_c, pz_i + dz_c) == .cactus) {
+                            touches_cactus = true;
+                            break;
+                        }
+                    }
+                    if (touches_cactus) break;
+                }
+                if (touches_cactus) break;
+            }
+            if (touches_cactus) {
+                player.health = @max(0.0, player.health - 1.0 * dt);
+            }
         }
         if (player.isDead()) {
             audio.play(.hurt, 0.8);
