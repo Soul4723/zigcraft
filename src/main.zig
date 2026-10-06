@@ -267,6 +267,109 @@ pub fn main() !void {
         }
         cam.position = player.eyePos();
 
+        // Sync redstone caches from world state so TNT/mining/streaming/persistence
+        // edits (which bypass placement tracking) are still simulated. Power flags
+        // are re-derived from block ids; only repeater delay timers persist in session.
+        // Throttled to every 4th frame: ~50k block reads/frame average.
+        if (frame_count % 4 == 0) {
+            var rs_iter = manager.chunks.iterator();
+            while (rs_iter.next()) |entry| {
+                const rcx = entry.key_ptr.x;
+                const rcz = entry.key_ptr.z;
+                const rch = &entry.value_ptr.chunk;
+                var ry: usize = 0;
+                while (ry < 16) : (ry += 1) {
+                    var rz: usize = 0;
+                    while (rz < 16) : (rz += 1) {
+                        var rx: usize = 0;
+                        while (rx < 16) : (rx += 1) {
+                            const rb = rch.blocks[ry][rz][rx];
+                            switch (rb) {
+                                .pressure_plate_up, .pressure_plate_down, .redstone_wire_off, .redstone_wire_on, .repeater_off, .repeater_on, .redstone_lamp_off, .redstone_lamp_on, .redstone_torch_off, .redstone_torch_on => {},
+                                else => continue,
+                            }
+                            const wx: i32 = rcx * 16 + @as(i32, @intCast(rx));
+                            const wy: i32 = @as(i32, @intCast(ry));
+                            const wz: i32 = rcz * 16 + @as(i32, @intCast(rz));
+                            switch (rb) {
+                                .pressure_plate_up, .pressure_plate_down => {
+                                    var found = false;
+                                    for (plates[0..plate_count]) |pp| {
+                                        if (pp.x == wx and pp.y == wy and pp.z == wz) {
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!found and plate_count < plates.len) {
+                                        plates[plate_count] = .{ .x = wx, .y = wy, .z = wz, .down = (rb == .pressure_plate_down) };
+                                        plate_count += 1;
+                                    }
+                                },
+                                .redstone_wire_off, .redstone_wire_on => {
+                                    var found = false;
+                                    for (wires[0..wire_count]) |ww| {
+                                        if (ww.x == wx and ww.y == wy and ww.z == wz) {
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!found and wire_count < wires.len) {
+                                        wires[wire_count] = .{ .x = wx, .y = wy, .z = wz, .powered = (rb == .redstone_wire_on) };
+                                        wire_count += 1;
+                                    }
+                                },
+                                .repeater_off, .repeater_on => {
+                                    var found = false;
+                                    for (repeaters[0..repeater_count]) |*rep| {
+                                        if (rep.x == wx and rep.y == wy and rep.z == wz) {
+                                            // Do not clobber in-flight delay: only register
+                                            // repeaters already settled to their block state.
+                                            if ((rb == .repeater_on) == rep.powered) rep.timer = 0.0;
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!found and repeater_count < repeaters.len) {
+                                        repeaters[repeater_count] = .{ .x = wx, .y = wy, .z = wz, .powered = (rb == .repeater_on), .timer = 0.0 };
+                                        repeater_count += 1;
+                                    }
+                                },
+                                .redstone_lamp_off, .redstone_lamp_on => {
+                                    var found = false;
+                                    for (lamps[0..lamp_count]) |*la| {
+                                        if (la.x == wx and la.y == wy and la.z == wz) {
+                                            la.lit = (rb == .redstone_lamp_on);
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!found and lamp_count < lamps.len) {
+                                        lamps[lamp_count] = .{ .x = wx, .y = wy, .z = wz, .lit = (rb == .redstone_lamp_on) };
+                                        lamp_count += 1;
+                                    }
+                                },
+                                .redstone_torch_off, .redstone_torch_on => {
+                                    var found = false;
+                                    for (red_torches[0..red_torch_count]) |*rt| {
+                                        if (rt.x == wx and rt.y == wy and rt.z == wz) {
+                                            rt.lit = (rb == .redstone_torch_on);
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!found and red_torch_count < red_torches.len) {
+                                        red_torches[red_torch_count] = .{ .x = wx, .y = wy, .z = wz, .lit = (rb == .redstone_torch_on) };
+                                        red_torch_count += 1;
+                                    }
+                                },
+                                else => {},
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Pressure plate trigger logic: test player and mob positions on active plates
         {
             var pi: usize = 0;
@@ -350,57 +453,69 @@ pub fn main() !void {
             }
         }
 
-        // Redstone wire power propagation and TNT ignition
+        // Redstone wire power: BFS over wire graph from source-adjacent seeds.
+        // Pure function of world state; order-independent both ways.
         {
-            var wi: usize = 0;
-            while (wi < wire_count) {
-                const w = &wires[wi];
-                const cur_b = manager.getBlockWorld(w.x, w.y, w.z);
-                if (cur_b != .redstone_wire_off and cur_b != .redstone_wire_on) {
-                    wires[wi] = wires[wire_count - 1];
-                    wire_count -= 1;
-                    continue;
+            const adj_dirs = [_][3]i32{
+                .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 },
+                .{ 0, -1, 0 }, .{ 0, 1, 0 },
+            };
+            {
+                var wi: usize = 0;
+                while (wi < wire_count) {
+                    const w = &wires[wi];
+                    const cur_b = manager.getBlockWorld(w.x, w.y, w.z);
+                    if (cur_b != .redstone_wire_off and cur_b != .redstone_wire_on) {
+                        wires[wi] = wires[wire_count - 1];
+                        wire_count -= 1;
+                        continue;
+                    }
+                    wi += 1;
                 }
-
-                // Check power source in 6 directions (pressed plate or active torch)
-                var powered = false;
-                const adj_dirs = [_][3]i32{
-                    .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 },
-                    .{ 0, -1, 0 }, .{ 0, 1, 0 },
-                };
+            }
+            var want: [64]bool = [_]bool{false} ** 64;
+            var wi: usize = 0;
+            while (wi < wire_count) : (wi += 1) {
+                const w = &wires[wi];
                 for (adj_dirs) |ad| {
-                    const nx = w.x + ad[0];
-                    const ny = w.y + ad[1];
-                    const nz = w.z + ad[2];
-                    const nb = manager.getBlockWorld(nx, ny, nz);
+                    const nb = manager.getBlockWorld(w.x + ad[0], w.y + ad[1], w.z + ad[2]);
                     if (nb == .pressure_plate_down or nb == .lever_on or nb == .repeater_on or nb == .redstone_torch_on) {
-                        powered = true;
+                        want[wi] = true;
                         break;
                     }
                 }
-
-                // Or powered by adjacent already-powered wire
-                if (!powered) {
-                    for (wires[0..wire_count]) |other_w| {
-                        if (other_w.x == w.x and other_w.y == w.y and other_w.z == w.z) continue;
-                        if (other_w.powered) {
-                            const dx = other_w.x - w.x;
-                            const dy = other_w.y - w.y;
-                            const dz = other_w.z - w.z;
-                            if (dx * dx + dy * dy + dz * dz == 1) {
-                                powered = true;
+            }
+            // Spread along the wire graph: any wire block (either id) adjacent
+            // to a wanted wire becomes wanted. Uses block ids, not flags.
+            var spread = true;
+            while (spread) {
+                spread = false;
+                wi = 0;
+                while (wi < wire_count) : (wi += 1) {
+                    if (want[wi]) continue;
+                    const w = &wires[wi];
+                    for (adj_dirs) |ad| {
+                        const nb = manager.getBlockWorld(w.x + ad[0], w.y + ad[1], w.z + ad[2]);
+                        if (nb != .redstone_wire_on and nb != .redstone_wire_off) continue;
+                        var ni: usize = 0;
+                        while (ni < wire_count) : (ni += 1) {
+                            if (wires[ni].x == w.x + ad[0] and wires[ni].y == w.y + ad[1] and wires[ni].z == w.z + ad[2] and want[ni]) {
+                                want[wi] = true;
+                                spread = true;
                                 break;
                             }
                         }
+                        if (want[wi]) break;
                     }
                 }
-
-                if (powered and !w.powered) {
+            }
+            wi = 0;
+            while (wi < wire_count) : (wi += 1) {
+                const w = &wires[wi];
+                if (want[wi] and !w.powered) {
                     w.powered = true;
                     _ = try manager.editAndRemesh(w.x, w.y, w.z, .redstone_wire_on);
                     particles.spawnFlame(w.x, w.y, w.z, 2);
-
-                    // If wire touches TNT block, trigger it!
                     for (adj_dirs) |ad| {
                         const tx = w.x + ad[0];
                         const ty = w.y + ad[1];
@@ -418,10 +533,9 @@ pub fn main() !void {
                             _ = try manager.editAndRemesh(tx, ty, tz, .iron_door_open);
                         }
                     }
-                } else if (!powered and w.powered) {
+                } else if (!want[wi] and w.powered) {
                     w.powered = false;
                     _ = try manager.editAndRemesh(w.x, w.y, w.z, .redstone_wire_off);
-
                     for (adj_dirs) |ad| {
                         const tx = w.x + ad[0];
                         const ty = w.y + ad[1];
@@ -434,7 +548,6 @@ pub fn main() !void {
                         }
                     }
                 }
-                wi += 1;
             }
         }
 
@@ -1024,26 +1137,6 @@ pub fn main() !void {
                                         if (place_type == .chest and chest_count < chests.len) {
                                             chests[chest_count] = .{ .x = px, .y = py, .z = pz, .items = [_]inventory_mod.ItemStack{.{}} ** 4 };
                                             chest_count += 1;
-                                        }
-                                        if (place_type == .pressure_plate_up and plate_count < plates.len) {
-                                            plates[plate_count] = .{ .x = px, .y = py, .z = pz, .down = false };
-                                            plate_count += 1;
-                                        }
-                                        if (place_type == .redstone_wire_off and wire_count < wires.len) {
-                                            wires[wire_count] = .{ .x = px, .y = py, .z = pz, .powered = false };
-                                            wire_count += 1;
-                                        }
-                                        if (place_type == .repeater_off and repeater_count < repeaters.len) {
-                                            repeaters[repeater_count] = .{ .x = px, .y = py, .z = pz, .powered = false, .timer = 0.0 };
-                                            repeater_count += 1;
-                                        }
-                                        if (place_type == .redstone_lamp_off and lamp_count < lamps.len) {
-                                            lamps[lamp_count] = .{ .x = px, .y = py, .z = pz, .lit = false };
-                                            lamp_count += 1;
-                                        }
-                                        if (place_type == .redstone_torch_on and red_torch_count < red_torches.len) {
-                                            red_torches[red_torch_count] = .{ .x = px, .y = py, .z = pz, .lit = true };
-                                            red_torch_count += 1;
                                         }
                                         if (is_furnace_place and furnace_count < furnaces.len) {
                                             furnaces[furnace_count] = .{ .x = px, .y = py, .z = pz, .t = 0, .fuel = 0, .input = .none };
