@@ -92,6 +92,34 @@ pub const UIRenderer = struct {
     }
 
 
+    /// Render a toast status bar in the top-right corner.
+    /// `alpha` in [0..1] scales opacity, `color` is RGB tint.
+    pub fn drawToast(self: *UIRenderer, aspect: f32, alpha: f32, color: [3]f32) void {
+        if (alpha <= 0.01) return;
+        var verts: [32]UIVertex = undefined;
+        var count: usize = 0;
+        const w: f32 = 0.22 / aspect;
+        const h: f32 = 0.035;
+        const x1: f32 = 0.95;
+        const x0: f32 = x1 - w;
+        const y1: f32 = 0.92;
+        const y0: f32 = y1 - h;
+        const border = [4]f32{ 0.1, 0.1, 0.1, 0.85 * alpha };
+        const fill = [4]f32{ color[0], color[1], color[2], 0.75 * alpha };
+        addBorderedRect(&verts, &count, x0, y0, x1, y1, 0.003, border, fill);
+
+        c.glEnable(c.GL_BLEND);
+        c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
+        c.glDisable(c.GL_DEPTH_TEST);
+        c.glUseProgram(self.program);
+        c.glBindVertexArray(self.vao);
+        c.glBindBuffer(c.GL_ARRAY_BUFFER, self.vbo);
+        c.glBufferSubData(c.GL_ARRAY_BUFFER, 0, @intCast(count * @sizeOf(UIVertex)), &verts);
+        c.glDrawArrays(c.GL_TRIANGLES, 0, @intCast(count));
+        c.glEnable(c.GL_DEPTH_TEST);
+        c.glDisable(c.GL_BLEND);
+    }
+
     /// Render crosshair and hotbar block indicators.
     /// screen aspect = width / height.
     pub fn draw(self: *UIRenderer, aspect: f32, selected_slot: usize) void {
@@ -391,4 +419,8 @@ pub const UIRenderer = struct {
 
 test "ui vertex layout" {
     try std.testing.expectEqual(@sizeOf(UIVertex), 24);
+}
+
+test "toast vertex sizing" {
+    try std.testing.expect(@sizeOf(UIVertex) == 24);
 }

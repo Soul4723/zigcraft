@@ -197,6 +197,8 @@ pub fn main() !void {
     const RedTorch = struct { x: i32, y: i32, z: i32, lit: bool, flips: [8]f32, flip_count: u8, burnout: f32 };
     var red_torches: [64]RedTorch = undefined;
     var red_torch_count: usize = 0;
+    var toast_timer: f32 = 0.0;
+    var toast_color: [3]f32 = .{ 1.0, 0.8, 0.2 };
     var rs_cap_warned_plate = false;
     var rs_cap_warned_wire = false;
     var rs_cap_warned_rep = false;
@@ -394,7 +396,7 @@ pub fn main() !void {
                                         wire_count += 1;
                                     } else if (!found and !rs_cap_warned_wire) {
                                         rs_cap_warned_wire = true;
-                                        std.debug.print("redstone cap: wires full ({d}), some wires unsimulated\n", .{wires.len});
+                                        std.debug.print("redstone cap: wires full ({d}), some wires unsimulated\n", .{wires.len}); toast_timer = 3.0; toast_color = .{ 0.95, 0.45, 0.1 };
                                     }
                                 },
                                 .repeater_off, .repeater_on => {
@@ -877,7 +879,7 @@ pub fn main() !void {
                     if (redstone_mod.torchBurnedOut(rt.flips, flip_now)) {
                         rt.burnout = 30.0;
                         audio.play(.click_off, 0.5);
-                        std.debug.print("torch burned out ({d},{d},{d})\n", .{ rt.x, rt.y, rt.z });
+                        std.debug.print("torch burned out ({d},{d},{d})\n", .{ rt.x, rt.y, rt.z }); toast_timer = 2.5; toast_color = .{ 0.85, 0.25, 0.15 };
                     }
                 } else if (!base_powered and !rt.lit) {
                     rt.lit = true;
@@ -896,7 +898,7 @@ pub fn main() !void {
                     if (redstone_mod.torchBurnedOut(rt.flips, flip_now)) {
                         rt.burnout = 30.0;
                         audio.play(.click_off, 0.5);
-                        std.debug.print("torch burned out ({d},{d},{d})\n", .{ rt.x, rt.y, rt.z });
+                        std.debug.print("torch burned out ({d},{d},{d})\n", .{ rt.x, rt.y, rt.z }); toast_timer = 2.5; toast_color = .{ 0.85, 0.25, 0.15 };
                     }
                 }
                 rti += 1;
@@ -1071,6 +1073,11 @@ pub fn main() !void {
         if (!inventory_open) {
             const mine_frac: f32 = if (mine_target_valid and mine_need > 0.0) mine_progress / mine_need else -1.0;
             ui.drawHUDWithBuffs(aspect, selected_slot, &hotbar_colors, &hotbar_counts, mine_frac, player.health, player.hunger, player.regen_timer > 0.0);
+            if (toast_timer > 0.0) {
+                toast_timer = @max(0.0, toast_timer - dt);
+                const t_alpha = @min(1.0, toast_timer);
+                ui.drawToast(aspect, t_alpha, toast_color);
+            }
         } else {
             var main_colors: [18][4]f32 = undefined;
             var main_counts: [18]u8 = undefined;
