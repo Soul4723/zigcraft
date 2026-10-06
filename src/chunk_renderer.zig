@@ -104,7 +104,13 @@ pub const ChunkRenderer = struct {
         c.glDeleteTextures(1, &self.texture);
     }
 
-    pub fn draw(self: *ChunkRenderer, mvp_ptr: [*c]const f32, sun_dir: math.Vec3) void {
+    pub const LampLight = struct {
+        positions: [8][3]f32 = [_][3]f32{.{ 0, -100, 0 }} ** 8,
+        count: usize = 0,
+        night: f32 = 0.0,
+    };
+
+    pub fn draw(self: *ChunkRenderer, mvp_ptr: [*c]const f32, sun_dir: math.Vec3, chunk_origin: [3]f32, lamp_light: LampLight) void {
         if (self.index_count == 0) return;
         c.glEnable(c.GL_BLEND);
         c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
@@ -114,6 +120,10 @@ pub const ChunkRenderer = struct {
         shader.setUniformInt(self.program, "u_texture", 0);
         shader.setUniformMat4(self.program, "u_mvp", mvp_ptr);
         shader.setUniformVec3(self.program, "u_light_dir", sun_dir.x, sun_dir.y, sun_dir.z);
+        shader.setUniformVec3(self.program, "u_chunk_origin", chunk_origin[0], chunk_origin[1], chunk_origin[2]);
+        shader.setUniformVec3Array(self.program, "u_lamp_pos", lamp_light.positions[0..]);
+        shader.setUniformFloat(self.program, "u_lamp_count", @floatFromInt(lamp_light.count));
+        shader.setUniformFloat(self.program, "u_night", lamp_light.night);
         c.glBindVertexArray(self.vao);
         c.glDrawElements(c.GL_TRIANGLES, @intCast(self.index_count), c.GL_UNSIGNED_INT, @ptrFromInt(0));
         c.glDisable(c.GL_BLEND);
