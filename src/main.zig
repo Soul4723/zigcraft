@@ -197,6 +197,11 @@ pub fn main() !void {
     const RedTorch = struct { x: i32, y: i32, z: i32, lit: bool, flips: [8]f32, flip_count: u8, burnout: f32 };
     var red_torches: [64]RedTorch = undefined;
     var red_torch_count: usize = 0;
+    var rs_cap_warned_plate = false;
+    var rs_cap_warned_wire = false;
+    var rs_cap_warned_rep = false;
+    var rs_cap_warned_lamp = false;
+    var rs_cap_warned_torch = false;
     var world_time: f32 = 45.0; // Start at morning daylight
     var last_step_dist: f32 = 0.0;
 
@@ -346,6 +351,9 @@ pub fn main() !void {
                                     if (!found and plate_count < plates.len) {
                                         plates[plate_count] = .{ .x = wx, .y = wy, .z = wz, .down = (rb == .pressure_plate_down) };
                                         plate_count += 1;
+                                    } else if (!found and !rs_cap_warned_plate) {
+                                        rs_cap_warned_plate = true;
+                                        std.debug.print("redstone cap: plates full ({d}), some plates unsimulated\n", .{plates.len});
                                     }
                                 },
                                 .redstone_wire_off, .redstone_wire_on => {
@@ -359,6 +367,9 @@ pub fn main() !void {
                                     if (!found and wire_count < wires.len) {
                                         wires[wire_count] = .{ .x = wx, .y = wy, .z = wz, .powered = (rb == .redstone_wire_on) };
                                         wire_count += 1;
+                                    } else if (!found and !rs_cap_warned_wire) {
+                                        rs_cap_warned_wire = true;
+                                        std.debug.print("redstone cap: wires full ({d}), some wires unsimulated\n", .{wires.len});
                                     }
                                 },
                                 .repeater_off, .repeater_on => {
@@ -375,6 +386,9 @@ pub fn main() !void {
                                     if (!found and repeater_count < repeaters.len) {
                                         repeaters[repeater_count] = .{ .x = wx, .y = wy, .z = wz, .powered = (rb == .repeater_on), .timer = 0.0, .stage = 0 };
                                         repeater_count += 1;
+                                    } else if (!found and !rs_cap_warned_rep) {
+                                        rs_cap_warned_rep = true;
+                                        std.debug.print("redstone cap: repeaters full ({d})\n", .{repeaters.len});
                                     }
                                 },
                                 .redstone_lamp_off, .redstone_lamp_on => {
@@ -389,6 +403,9 @@ pub fn main() !void {
                                     if (!found and lamp_count < lamps.len) {
                                         lamps[lamp_count] = .{ .x = wx, .y = wy, .z = wz, .lit = (rb == .redstone_lamp_on) };
                                         lamp_count += 1;
+                                    } else if (!found and !rs_cap_warned_lamp) {
+                                        rs_cap_warned_lamp = true;
+                                        std.debug.print("redstone cap: lamps full ({d})\n", .{lamps.len});
                                     }
                                 },
                                 .redstone_torch_off, .redstone_torch_on => {
@@ -403,6 +420,9 @@ pub fn main() !void {
                                     if (!found and red_torch_count < red_torches.len) {
                                         red_torches[red_torch_count] = .{ .x = wx, .y = wy, .z = wz, .lit = (rb == .redstone_torch_on), .flips = [_]f32{-100} ** 8, .flip_count = 0, .burnout = 0.0 };
                                         red_torch_count += 1;
+                                    } else if (!found and !rs_cap_warned_torch) {
+                                        rs_cap_warned_torch = true;
+                                        std.debug.print("redstone cap: torches full ({d})\n", .{red_torches.len});
                                     }
                                 },
                                 else => {},
