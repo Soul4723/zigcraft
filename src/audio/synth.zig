@@ -7,6 +7,7 @@ pub const SoundType = enum {
     step_dirt,
     step_snow,
     step_wool,
+    step_sand,
     break_block,
     place_block,
     mob_baa,
@@ -62,7 +63,7 @@ pub const AudioMixer = struct {
         }
 
         const duration_samples: usize = switch (sound) {
-            .step_grass, .step_dirt => SAMPLE_RATE / 10, // ~100ms
+            .step_grass, .step_dirt, .step_sand => SAMPLE_RATE / 10, // ~100ms
             .step_snow => SAMPLE_RATE / 8, // ~125ms
             .step_wool => SAMPLE_RATE / 12, // ~83ms
             .step_stone => SAMPLE_RATE / 12, // ~83ms
@@ -149,6 +150,14 @@ pub const AudioMixer = struct {
                 const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
                 const tone = @sin(t * freq * 2.0 * std.math.pi) * 0.4;
                 return (noise + tone) * envelope * 0.5;
+            },
+            .step_sand => {
+                // Gritty granular slide/crunch: high-frequency noise + low thud
+                const noise = (rng.random().float(f32) * 2.0 - 1.0) * 0.8;
+                const freq: f32 = 80.0 * (1.0 - progress * 0.5);
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const tone = @sin(t * freq * 2.0 * std.math.pi) * 0.25;
+                return (noise * 0.75 + tone) * envelope * 0.5;
             },
             .step_snow => {
                 // Powdery crunch: bright noise with slow decay
@@ -289,7 +298,7 @@ test "AudioMixer play voice produces non-zero samples" {
 
 test "AudioMixer all sound types render without overflow or crash" {
     var mixer = AudioMixer.init();
-    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .click_on, .click_off };
+    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .click_on, .click_off };
     for (sounds) |snd| {
         mixer.play(snd, 1.0);
     }
