@@ -1465,7 +1465,7 @@ pub fn main() !void {
                     } else {
                         // Landing: 1 dmg per 3 fallen blocks to whoever is inside
                         if (f.dist >= 3) {
-                            const dmg: f32 = @as(f32, @floatFromInt(f.dist / 3));
+                            const dmg: u8 = @intCast(@min(@divTrunc(f.dist, 3), 20));
                             for (mob_manager.mobs.items, 0..) |*m, mi| {
                                 const mbx: i32 = @intFromFloat(@floor(m.pos.x));
                                 const mby: i32 = @intFromFloat(@floor(m.pos.y));
@@ -1481,7 +1481,7 @@ pub fn main() !void {
                             const pby: i32 = @intFromFloat(@floor(player.pos.y));
                             const pbz: i32 = @intFromFloat(@floor(player.pos.z));
                             if (pbx == f.x and (pby == f.y or pby == f.y + 1) and pbz == f.z) {
-                                player.health = @max(0.0, player.health - dmg);
+                                player.health = @max(0.0, player.health - @as(f32, @floatFromInt(dmg)));
                                 audio.play(.hurt, 0.8);
                             }
                         }
