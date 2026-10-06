@@ -1575,6 +1575,9 @@ pub fn main() !void {
                 if (cur_tb == .water or manager.getBlockWorld(tr.x, tr.y + 1, tr.z) == .water) {
                     _ = try manager.editAndRemesh(tr.x, tr.y, tr.z, .air);
                     particles.spawnBlockDebris(tr.x, tr.y, tr.z, .{ 0.8, 0.6, 0.2 }, 4);
+                    const pdx = @as(f32, @floatFromInt(tr.x)) - player.pos.x;
+                    const pdz = @as(f32, @floatFromInt(tr.z)) - player.pos.z;
+                    if (pdx * pdx + pdz * pdz < 144.0) _ = inventory.addItem(.torch, 1);
                     torches[ti] = torches[torch_count - 1];
                     torch_count -= 1;
                     continue;
