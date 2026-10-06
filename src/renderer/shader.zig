@@ -118,15 +118,18 @@ pub const chunk_vert: [:0]const u8 =
 \\layout (location = 1) in vec3 aNormal;
 \\layout (location = 2) in vec2 aTexCoord;
 \\layout (location = 3) in float aAO;
+\\layout (location = 4) in float aEmissive;
 \\uniform mat4 u_mvp;
 \\out vec2 FragTexCoord;
 \\out vec3 FragNormal;
 \\out float FragAO;
+\\out float FragEmissive;
 \\void main() {
 \\    gl_Position = u_mvp * vec4(aPos, 1.0);
 \\    FragTexCoord = aTexCoord;
 \\    FragNormal = aNormal;
 \\    FragAO = aAO;
+\\    FragEmissive = aEmissive;
 \\}
 ;
 /// Wireframe box shader: position (loc 0), MVP + solid color.
@@ -179,6 +182,7 @@ pub const chunk_frag: [:0]const u8 =
 \\in vec2 FragTexCoord;
 \\in vec3 FragNormal;
 \\in float FragAO;
+\\in float FragEmissive;
 \\out vec4 FragColor;
 \\uniform sampler2D u_texture;
 \\uniform vec3 u_light_dir;
@@ -187,7 +191,8 @@ pub const chunk_frag: [:0]const u8 =
 \\    float ambient = 0.35;
 \\    // FragAO in [0.0..1.0]: 1.0 = fully open, 0.0 = deeply occluded
 \\    float ao_factor = 0.55 + 0.45 * FragAO;
-\\    float light = (ambient + 0.65 * diff) * ao_factor;
+\\    float sun = (ambient + 0.65 * diff) * ao_factor;
+\\    float light = mix(sun, 1.0, clamp(FragEmissive, 0.0, 1.0));
 \\    vec4 tex = texture(u_texture, FragTexCoord);
 \\    FragColor = vec4(tex.rgb * light, tex.a);
 \\}
