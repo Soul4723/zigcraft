@@ -289,6 +289,16 @@ pub fn main() !void {
                     sn += 1;
                 }
                 chunk_manager_mod.ChunkManager.setStageSnapshot(snap[0..sn]);
+                var bsnap: [64][4]i32 = undefined;
+                var bn: usize = 0;
+                for (red_torches[0..red_torch_count]) |bt| {
+                    if (bn >= bsnap.len) break;
+                    if (bt.burnout > 0.0) {
+                        bsnap[bn] = .{ bt.x, bt.y, bt.z, @intFromFloat(bt.burnout) };
+                        bn += 1;
+                    }
+                }
+                chunk_manager_mod.ChunkManager.setBurnoutSnapshot(bsnap[0..bn]);
             }
             // Apply persisted repeater stages for newly seen chunks
             var stage_iter = manager.chunks.iterator();
@@ -306,6 +316,17 @@ pub fn main() !void {
                     if (known_stage_count < known_stage_chunks.len) {
                         known_stage_chunks[known_stage_count] = .{ .x = scx, .z = scz };
                         known_stage_count += 1;
+                    }
+                    var burned = [_][4]i32{.{ 0, 0, 0, 0 }} ** 64;
+                    const nburned = manager.loadBurnout(scx, scz, &burned);
+                    var bi: usize = 0;
+                    while (bi < nburned) : (bi += 1) {
+                        for (red_torches[0..red_torch_count]) |*rt| {
+                            if (rt.x == burned[bi][0] and rt.y == burned[bi][1] and rt.z == burned[bi][2]) {
+                                rt.burnout = @floatFromInt(burned[bi][3]);
+                                break;
+                            }
+                        }
                     }
                     var staged = [_][4]i32{.{ 0, 0, 0, 0 }} ** 64;
                     const nstaged = manager.loadStages(scx, scz, &staged);

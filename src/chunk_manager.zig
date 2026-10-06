@@ -266,11 +266,48 @@ pub const ChunkManager = struct {
     pub fn saveStages(self: *const ChunkManager, cx: i32, cz: i32, chunk: *const Chunk) void {
         _ = chunk;
         _ = self.stageCache(cx, cz);
+        self.burnoutCache(cx, cz);
+    }
+
+    fn burnoutCache(self: *const ChunkManager, cx: i32, cz: i32) void {
+        var buf = [_][4]u8{.{ 0, 0, 0, 0 }} ** 64;
+        var n: usize = 0;
+        for (burnoutSnapshot[0..burnoutSnapshotLen]) |st| {
+            if (@divFloor(st[0], 16) != cx or @divFloor(st[2], 16) != cz) continue;
+            if (n >= buf.len) break;
+            buf[n] = .{ @intCast(@mod(st[0], 16)), @intCast(st[1]), @intCast(@mod(st[2], 16)), @intCast(@min(st[3], 255)) };
+            n += 1;
+        }
+        _ = self.persistence.saveTorchBurnout(cx, cz, buf[0..n]);
+    }
+
+    /// Load persisted burnout entries for chunk (cx,cz) as world coords [x,y,z,secs].
+    pub fn loadBurnout(self: *const ChunkManager, cx: i32, cz: i32, out: [][4]i32) usize {
+        var raw = [_][4]u8{.{ 0, 0, 0, 0 }} ** 64;
+        var slice: [][4]u8 = &raw;
+        const n = self.persistence.loadTorchBurnout(cx, cz, &slice);
+        var count: usize = 0;
+        while (count < n and count < out.len) : (count += 1) {
+            out[count] = .{ cx * 16 + @as(i32, raw[count][0]), @as(i32, raw[count][1]), cz * 16 + @as(i32, raw[count][2]), @as(i32, raw[count][3]) };
+        }
+        return count;
     }
 
     /// Session hook main.zig sets: serialized stages snapshot for save (copied in).
     pub var stageSnapshot: [64][4]i32 = undefined;
     pub var stageSnapshotLen: usize = 0;
+
+    /// Session hook: burned-out torches snapshot [x,y,z,secs] for save (copied in).
+    pub var burnoutSnapshot: [64][4]i32 = undefined;
+    pub var burnoutSnapshotLen: usize = 0;
+
+    pub fn setBurnoutSnapshot(items: []const [4]i32) void {
+        burnoutSnapshotLen = @min(items.len, burnoutSnapshot.len);
+        var i: usize = 0;
+        while (i < burnoutSnapshotLen) : (i += 1) {
+            burnoutSnapshot[i] = items[i];
+        }
+    }
 
     pub fn setStageSnapshot(stages: []const [4]i32) void {
         stageSnapshotLen = @min(stages.len, stageSnapshot.len);
