@@ -1774,7 +1774,13 @@ pub fn main() !void {
                 } else if (target == .lever_off or target == .lever_on) {
                     const toggled: block_mod.BlockId = if (target == .lever_off) .lever_on else .lever_off;
                     if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, toggled)) {
-                        if (toggled == .lever_on) audio.play(.click_on, 0.9) else audio.play(.click_off, 0.7);
+                        if (toggled == .lever_on) {
+                            audio.play(.click_on, 0.9);
+                            particles.spawnFlame(hit_f.x, hit_f.y, hit_f.z, 2);
+                        } else {
+                            audio.play(.click_off, 0.7);
+                            particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.5, 0.5, 0.5 }, 3);
+                        }
                         const adj_offsets = [_][3]i32{
                             .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 },
                             .{ 1, 1, 0 }, .{ -1, 1, 0 }, .{ 0, 1, 1 }, .{ 0, 1, -1 },
