@@ -626,10 +626,19 @@ pub fn main() !void {
                         const ty = w.y + ad[1];
                         const tz = w.z + ad[2];
                         if (manager.getBlockWorld(tx, ty, tz) == .tnt and fuse_count < fuses.len) {
-                            fuses[fuse_count] = .{ .x = tx, .y = ty, .z = tz, .t = 2.0 };
-                            fuse_count += 1;
-                            audio.play(.place_block, 0.8);
-                            std.debug.print("redstone wire ignited TNT ({d},{d},{d})\n", .{ tx, ty, tz });
+                            var dup = false;
+                            for (fuses[0..fuse_count]) |f| {
+                                if (f.x == tx and f.y == ty and f.z == tz) {
+                                    dup = true;
+                                    break;
+                                }
+                            }
+                            if (!dup) {
+                                fuses[fuse_count] = .{ .x = tx, .y = ty, .z = tz, .t = 2.0 };
+                                fuse_count += 1;
+                                audio.play(.place_block, 0.8);
+                                std.debug.print("redstone wire ignited TNT ({d},{d},{d})\n", .{ tx, ty, tz });
+                            }
                         }
                         const wb = manager.getBlockWorld(tx, ty, tz);
                         if (wb == .wooden_door_closed) {
