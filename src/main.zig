@@ -273,6 +273,16 @@ pub fn main() !void {
         if (player.pos.y < -30.0) {
             // Fell out of world: damage through vitals path
             player.health = @max(0.0, player.health - 20.0 * dt);
+        } else {
+            // Suffocation: eye position inside solid opaque block damages player (1 hp/sec)
+            const eye = player.eyePos();
+            const ex: i32 = @intFromFloat(@floor(eye.x));
+            const ey: i32 = @intFromFloat(@floor(eye.y));
+            const ez: i32 = @intFromFloat(@floor(eye.z));
+            const eye_block = manager.getBlockWorld(ex, ey, ez);
+            if (eye_block.is_solid() and eye_block != .leaves and eye_block != .glass) {
+                player.health = @max(0.0, player.health - 1.0 * dt);
+            }
         }
         if (player.isDead()) {
             audio.play(.hurt, 0.8);
