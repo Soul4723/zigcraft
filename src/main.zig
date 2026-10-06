@@ -1449,10 +1449,17 @@ pub fn main() !void {
                 f.t += dt;
                 if (f.t >= 0.15) {
                     f.t = 0.0;
-                    if (manager.getBlockWorld(f.x, f.y - 1, f.z) == .air and f.y > 0) {
+                    const below = manager.getBlockWorld(f.x, f.y - 1, f.z);
+                    if (below == .air and f.y > 0) {
                         _ = try manager.editAndRemesh(f.x, f.y - 1, f.z, .sand);
                         _ = try manager.editAndRemesh(f.x, f.y, f.z, .air);
                         f.y -= 1;
+                    } else if (!below.is_solid() and f.y > 0) {
+                        // Sand crushes torches/wires/plates/etc: pop cell, keep falling
+                        _ = try manager.editAndRemesh(f.x, f.y - 1, f.z, .sand);
+                        _ = try manager.editAndRemesh(f.x, f.y, f.z, .air);
+                        f.y -= 1;
+                        particles.spawnBlockDebris(f.x, f.y, f.z, .{ 0.8, 0.7, 0.5 }, 4);
                     } else {
                         fallings[fi2] = fallings[falling_count - 1];
                         falling_count -= 1;
