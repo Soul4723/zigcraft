@@ -53,6 +53,10 @@ pub const ChunkRenderer = struct {
         c.glEnableVertexAttribArray(3);
         c.glVertexAttribPointer(3, 1, c.GL_FLOAT, c.GL_FALSE, @sizeOf(chunk_mesh.Vertex), @ptrFromInt(@sizeOf([3]f32) + @sizeOf([3]f32) + @sizeOf([2]f32)));
 
+        // emissive (loc 4)
+        c.glEnableVertexAttribArray(4);
+        c.glVertexAttribPointer(4, 1, c.GL_FLOAT, c.GL_FALSE, @sizeOf(chunk_mesh.Vertex), @ptrFromInt(@sizeOf([3]f32) + @sizeOf([3]f32) + @sizeOf([2]f32) + @sizeOf(f32)));
+
         c.glBindVertexArray(0);
 
         const program = try shader.createProgram(

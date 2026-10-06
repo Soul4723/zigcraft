@@ -58,6 +58,20 @@ pub const BlockId = enum(u8) {
         return self == .air or self == .water or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on;
     }
 
+    /// 0.0 = lit by sun only. 1.0 = full glow even at midnight.
+    /// Covers flame torches, lit redstone lamps, lit redstone torches,
+    /// powered wire, and powered repeaters.
+    pub fn emissive(self: BlockId) f32 {
+        return switch (self) {
+            .torch => 0.9,
+            .redstone_lamp_on => 1.0,
+            .redstone_torch_on => 0.85,
+            .redstone_wire_on => 0.7,
+            .repeater_on => 0.6,
+            else => 0.0,
+        };
+    }
+
     pub fn isFlammable(self: BlockId) bool {
         return switch (self) {
             .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest, .wooden_door_closed, .wooden_door_open, .pressure_plate_up, .pressure_plate_down => true,
@@ -409,6 +423,15 @@ test "chest block props" {
     try std.testing.expectEqual(t.x, 7);
     try std.testing.expectEqual(t.y, 5);
     try std.testing.expectEqual(hardness(.chest), 1.0);
+}
+
+test "emissive blocks glow, stone and dirt do not" {
+    try std.testing.expectApproxEqAbs(BlockId.torch.emissive(), 0.9, 0.001);
+    try std.testing.expectApproxEqAbs(BlockId.redstone_lamp_on.emissive(), 1.0, 0.001);
+    try std.testing.expectApproxEqAbs(BlockId.redstone_wire_on.emissive(), 0.7, 0.001);
+    try std.testing.expectEqual(BlockId.stone.emissive(), 0.0);
+    try std.testing.expectEqual(BlockId.redstone_lamp_off.emissive(), 0.0);
+    try std.testing.expectEqual(BlockId.redstone_wire_off.emissive(), 0.0);
 }
 
 test "redstone torch block properties" {

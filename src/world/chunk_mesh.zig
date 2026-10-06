@@ -10,6 +10,7 @@ pub const Vertex = extern struct {
     normal: [3]f32,
     tex_coord: [2]f32,
     ao: f32, // 0.0 (fully occluded) to 1.0 (open)
+    emissive: f32, // 0.0 = sun-lit, 1.0 = full glow (lamp, torch, live wire)
 };
 
 /// A generated mesh ready for rendering.
@@ -181,6 +182,7 @@ pub fn generateMesh(
                     const fw: f32 = @floatFromInt(w);
                     const fh: f32 = @floatFromInt(h);
                     const tile = block.getFaceTexture(face_idx);
+                    const face_emissive = block.emissive();
                     const tex = faceTexCoords(tile.x, tile.y, fw, fh);
                     const base_idx: u32 = @intCast(vertices.items.len);
 
@@ -268,15 +270,15 @@ pub fn generateMesh(
 
                     const winding_normal = (dir[0] + dir[1] + dir[2]) > 0;
                     if (winding_normal) {
-                        try vertices.append(allocator, .{ .position = c0, .normal = normal, .tex_coord = tex[0], .ao = ao0 });
-                        try vertices.append(allocator, .{ .position = c1, .normal = normal, .tex_coord = tex[1], .ao = ao1 });
-                        try vertices.append(allocator, .{ .position = c2, .normal = normal, .tex_coord = tex[2], .ao = ao2 });
-                        try vertices.append(allocator, .{ .position = c3, .normal = normal, .tex_coord = tex[3], .ao = ao3 });
+                        try vertices.append(allocator, .{ .position = c0, .normal = normal, .tex_coord = tex[0], .ao = ao0, .emissive = face_emissive });
+                        try vertices.append(allocator, .{ .position = c1, .normal = normal, .tex_coord = tex[1], .ao = ao1, .emissive = face_emissive });
+                        try vertices.append(allocator, .{ .position = c2, .normal = normal, .tex_coord = tex[2], .ao = ao2, .emissive = face_emissive });
+                        try vertices.append(allocator, .{ .position = c3, .normal = normal, .tex_coord = tex[3], .ao = ao3, .emissive = face_emissive });
                     } else {
-                        try vertices.append(allocator, .{ .position = c0, .normal = normal, .tex_coord = tex[0], .ao = ao0 });
-                        try vertices.append(allocator, .{ .position = c3, .normal = normal, .tex_coord = tex[3], .ao = ao3 });
-                        try vertices.append(allocator, .{ .position = c2, .normal = normal, .tex_coord = tex[2], .ao = ao2 });
-                        try vertices.append(allocator, .{ .position = c1, .normal = normal, .tex_coord = tex[1], .ao = ao1 });
+                        try vertices.append(allocator, .{ .position = c0, .normal = normal, .tex_coord = tex[0], .ao = ao0, .emissive = face_emissive });
+                        try vertices.append(allocator, .{ .position = c3, .normal = normal, .tex_coord = tex[3], .ao = ao3, .emissive = face_emissive });
+                        try vertices.append(allocator, .{ .position = c2, .normal = normal, .tex_coord = tex[2], .ao = ao2, .emissive = face_emissive });
+                        try vertices.append(allocator, .{ .position = c1, .normal = normal, .tex_coord = tex[1], .ao = ao1, .emissive = face_emissive });
                     }
 
                     try indices.appendSlice(allocator, &[_]u32{
@@ -321,5 +323,23 @@ test "single block produces 6 quads with AO" {
 }
 
 test "vertex layout contains ao field" {
-    try std.testing.expectEqual(@sizeOf(Vertex), (3 + 3 + 2 + 1) * @sizeOf(f32));
+    try std.testing.expectEqual(@sizeOf(Vertex), (3 + 3 + 2 + 1 + 1) * @sizeOf(f32));
+}
+
+test "torch face carries emissive, stone does not" {
+    var chunk = Chunk.init();
+    chunk.setBlock(7, 7, 7, .torch);
+    var mesh = try generateMesh(std.testing.allocator, &chunk, null);
+    defer mesh.deinit(std.testing.allocator);
+    try std.testing.expect(mesh.vertices.len > 0);
+    for (mesh.vertices) |v| {
+        try std.testing.expectApproxEqAbs(v.emissive, 0.9, 0.001);
+    }
+    var rock = Chunk.init();
+    rock.setBlock(7, 7, 7, .stone);
+    var rock_mesh = try generateMesh(std.testing.allocator, &rock, null);
+    defer rock_mesh.deinit(std.testing.allocator);
+    for (rock_mesh.vertices) |v| {
+        try std.testing.expectEqual(v.emissive, 0.0);
+    }
 }

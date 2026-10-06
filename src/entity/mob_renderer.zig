@@ -13,6 +13,7 @@ pub const MobVertex = extern struct {
     normal: [3]f32,
     uv: [2]f32,
     ao: f32, // constant 1.0 for mobs
+    emissive: f32, // 0.0; mobs never glow
 };
 
 pub const MobRenderer = struct {
@@ -48,6 +49,9 @@ pub const MobRenderer = struct {
 
         c.glEnableVertexAttribArray(3);
         c.glVertexAttribPointer(3, 1, c.GL_FLOAT, c.GL_FALSE, @sizeOf(MobVertex), @ptrFromInt(@sizeOf([3]f32) + @sizeOf([3]f32) + @sizeOf([2]f32)));
+
+        c.glEnableVertexAttribArray(4);
+        c.glVertexAttribPointer(4, 1, c.GL_FLOAT, c.GL_FALSE, @sizeOf(MobVertex), @ptrFromInt(@sizeOf([3]f32) + @sizeOf([3]f32) + @sizeOf([2]f32) + @sizeOf(f32)));
 
         c.glBindVertexArray(0);
 
@@ -181,7 +185,7 @@ fn appendBox(
                 .pos = [3]f32{ mob_center.x + rx, mob_center.y + ly, mob_center.z + rz },
                 .normal = r_normal,
                 .uv = uv[i],
-                .ao = 1.0,
+                .ao = 1.0, .emissive = 0.0,
             });
         }
 
