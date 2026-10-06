@@ -1437,7 +1437,21 @@ pub fn main() !void {
                                     const bz = ez + rz;
                                     if (by > 0) {
                                         const old_b = manager.getBlockWorld(bx, by, bz);
-                                        if (old_b != .air) {
+                                        if (old_b == .tnt) {
+                                            // Chain-detonate: light neighbor TNT with short fuse
+                                            var already = false;
+                                            for (fuses[0..fuse_count]) |f| {
+                                                if (f.x == bx and f.y == by and f.z == bz) {
+                                                    already = true;
+                                                    break;
+                                                }
+                                            }
+                                            if (!already and fuse_count < fuses.len) {
+                                                fuses[fuse_count] = .{ .x = bx, .y = by, .z = bz, .t = 0.5 };
+                                                fuse_count += 1;
+                                                std.debug.print("chain-detonated TNT ({d},{d},{d})\n", .{ bx, by, bz });
+                                            }
+                                        } else if (old_b != .air) {
                                             _ = try manager.editAndRemesh(bx, by, bz, .air);
                                         }
                                     }
