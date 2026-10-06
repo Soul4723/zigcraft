@@ -202,7 +202,7 @@ pub fn main() !void {
     var rs_cap_warned_rep = false;
     var rs_cap_warned_lamp = false;
     var rs_cap_warned_torch = false;
-    const FallSand = struct { x: i32, y: i32, z: i32, t: f32 };
+    const FallSand = struct { x: i32, y: i32, z: i32, t: f32, dist: i32 };
     var fallings: [32]FallSand = undefined;
     var falling_count: usize = 0;
     var sand_scan: u8 = 0;
@@ -1427,7 +1427,7 @@ pub fn main() !void {
                                     }
                                 }
                                 if (!known and falling_count < fallings.len) {
-                                    fallings[falling_count] = .{ .x = wx, .y = wy, .z = wz, .t = 0.0 };
+                                    fallings[falling_count] = .{ .x = wx, .y = wy, .z = wz, .t = 0.0, .dist = 0 };
                                     falling_count += 1;
                                 }
                                 if (falling_count >= fallings.len) break;
@@ -1454,13 +1454,37 @@ pub fn main() !void {
                         _ = try manager.editAndRemesh(f.x, f.y - 1, f.z, .sand);
                         _ = try manager.editAndRemesh(f.x, f.y, f.z, .air);
                         f.y -= 1;
+                        f.dist += 1;
                     } else if (!below.is_solid() and f.y > 0) {
                         // Sand crushes torches/wires/plates/etc: pop cell, keep falling
                         _ = try manager.editAndRemesh(f.x, f.y - 1, f.z, .sand);
                         _ = try manager.editAndRemesh(f.x, f.y, f.z, .air);
                         f.y -= 1;
+                        f.dist += 1;
                         particles.spawnBlockDebris(f.x, f.y, f.z, .{ 0.8, 0.7, 0.5 }, 4);
                     } else {
+                        // Landing: 1 dmg per 3 fallen blocks to whoever is inside
+                        if (f.dist >= 3) {
+                            const dmg: u8 = @intCast(@min(@divTrunc(f.dist, 3), 20));
+                            for (mob_manager.mobs.items, 0..) |*m, mi| {
+                                const mbx: i32 = @intFromFloat(@floor(m.pos.x));
+                                const mby: i32 = @intFromFloat(@floor(m.pos.y));
+                                const mbz: i32 = @intFromFloat(@floor(m.pos.z));
+                                if (mbx == f.x and (mby == f.y or mby == f.y + 1) and mbz == f.z) {
+                                    if (m.takeHitDmg(math.Vec3.init(0, 1, 0), dmg)) {
+                                        _ = mob_manager.mobs.swapRemove(mi);
+                                    }
+                                    break;
+                                }
+                            }
+                            const pbx: i32 = @intFromFloat(@floor(player.pos.x));
+                            const pby: i32 = @intFromFloat(@floor(player.pos.y));
+                            const pbz: i32 = @intFromFloat(@floor(player.pos.z));
+                            if (pbx == f.x and (pby == f.y or pby == f.y + 1) and pbz == f.z) {
+                                player.health = @max(0.0, player.health - @as(f32, @floatFromInt(dmg)));
+                                audio.play(.hurt, 0.8);
+                            }
+                        }
                         fallings[fi2] = fallings[falling_count - 1];
                         falling_count -= 1;
                         continue;
