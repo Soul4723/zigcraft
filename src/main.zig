@@ -11,6 +11,7 @@ const pick_mod = @import("pick.zig");
 const sky_mod = @import("sky.zig");
 const player_mod = @import("player.zig");
 const block_mod = @import("world/block.zig");
+const redstone_mod = @import("world/redstone.zig");
 const ui_mod = @import("renderer/ui.zig");
 const audio_mod = @import("audio/audio.zig");
 const texture_mod = @import("renderer/texture.zig");
@@ -453,8 +454,8 @@ pub fn main() !void {
             }
         }
 
-        // Redstone wire power: BFS over wire graph from source-adjacent seeds.
-        // Pure function of world state; order-independent both ways.
+        // Redstone wire power: BFS signal strength from sources (15 max, -1/wire).
+        // Order-independent; session flags only mirror block state.
         {
             const adj_dirs = [_][3]i32{
                 .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 },
@@ -473,46 +474,55 @@ pub fn main() !void {
                     wi += 1;
                 }
             }
-            var want: [64]bool = [_]bool{false} ** 64;
+            var strength: [64]u4 = [_]u4{0} ** 64;
             var wi: usize = 0;
             while (wi < wire_count) : (wi += 1) {
                 const w = &wires[wi];
                 for (adj_dirs) |ad| {
                     const nb = manager.getBlockWorld(w.x + ad[0], w.y + ad[1], w.z + ad[2]);
-                    if (nb == .pressure_plate_down or nb == .lever_on or nb == .repeater_on or nb == .redstone_torch_on) {
-                        want[wi] = true;
+                    if (redstone_mod.isSource(nb)) {
+                        strength[wi] = redstone_mod.max_strength;
                         break;
                     }
                 }
             }
-            // Spread along the wire graph: any wire block (either id) adjacent
-            // to a wanted wire becomes wanted. Uses block ids, not flags.
-            var spread = true;
-            while (spread) {
-                spread = false;
+            // Relax along wire graph until no strength rises (Bellman-Ford style,
+            // capped at wire_count passes; typically settles in chain-length passes).
+            var pass: usize = 0;
+            var rising = true;
+            while (rising and pass < wire_count) : (pass += 1) {
+                rising = false;
                 wi = 0;
                 while (wi < wire_count) : (wi += 1) {
-                    if (want[wi]) continue;
                     const w = &wires[wi];
+                    var best: u4 = strength[wi];
                     for (adj_dirs) |ad| {
-                        const nb = manager.getBlockWorld(w.x + ad[0], w.y + ad[1], w.z + ad[2]);
+                        const nx = w.x + ad[0];
+                        const ny = w.y + ad[1];
+                        const nz = w.z + ad[2];
+                        const nb = manager.getBlockWorld(nx, ny, nz);
                         if (nb != .redstone_wire_on and nb != .redstone_wire_off) continue;
                         var ni: usize = 0;
                         while (ni < wire_count) : (ni += 1) {
-                            if (wires[ni].x == w.x + ad[0] and wires[ni].y == w.y + ad[1] and wires[ni].z == w.z + ad[2] and want[ni]) {
-                                want[wi] = true;
-                                spread = true;
+                            const o = &wires[ni];
+                            if (o.x == nx and o.y == ny and o.z == nz and strength[ni] > 1) {
+                                const via: u4 = strength[ni] - 1;
+                                if (via > best) best = via;
                                 break;
                             }
                         }
-                        if (want[wi]) break;
+                    }
+                    if (best > strength[wi]) {
+                        strength[wi] = best;
+                        rising = true;
                     }
                 }
             }
             wi = 0;
             while (wi < wire_count) : (wi += 1) {
                 const w = &wires[wi];
-                if (want[wi] and !w.powered) {
+                const want = strength[wi] > 0;
+                if (want and !w.powered) {
                     w.powered = true;
                     _ = try manager.editAndRemesh(w.x, w.y, w.z, .redstone_wire_on);
                     particles.spawnFlame(w.x, w.y, w.z, 2);
@@ -533,7 +543,7 @@ pub fn main() !void {
                             _ = try manager.editAndRemesh(tx, ty, tz, .iron_door_open);
                         }
                     }
-                } else if (!want[wi] and w.powered) {
+                } else if (!want and w.powered) {
                     w.powered = false;
                     _ = try manager.editAndRemesh(w.x, w.y, w.z, .redstone_wire_off);
                     for (adj_dirs) |ad| {
