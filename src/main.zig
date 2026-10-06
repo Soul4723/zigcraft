@@ -575,6 +575,30 @@ pub fn main() !void {
                 }
                 rti2 += 1;
             }
+            var rpi: usize = 0;
+            while (rpi < repeater_count) {
+                const rep = &repeaters[rpi];
+                if (manager.getBlockWorld(rep.x, rep.y, rep.z) == .water) {
+                    _ = try manager.editAndRemesh(rep.x, rep.y, rep.z, .air);
+                    particles.spawnBlockDebris(rep.x, rep.y, rep.z, .{ 0.5, 0.5, 0.5 }, 4);
+                    repeaters[rpi] = repeaters[repeater_count - 1];
+                    repeater_count -= 1;
+                    continue;
+                }
+                rpi += 1;
+            }
+            var ppi: usize = 0;
+            while (ppi < plate_count) {
+                const pl = &plates[ppi];
+                if (manager.getBlockWorld(pl.x, pl.y, pl.z) == .water) {
+                    _ = try manager.editAndRemesh(pl.x, pl.y, pl.z, .air);
+                    particles.spawnBlockDebris(pl.x, pl.y, pl.z, .{ 0.6, 0.4, 0.2 }, 4);
+                    plates[ppi] = plates[plate_count - 1];
+                    plate_count -= 1;
+                    continue;
+                }
+                ppi += 1;
+            }
         }
 
                 // Redstone wire power: BFS signal strength from sources (15 max, -1/wire).
