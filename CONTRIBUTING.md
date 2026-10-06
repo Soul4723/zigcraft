@@ -150,3 +150,9 @@ the session log and work on something that doesn't need it.
 4. **Two approaches seem equally good**: Pick one, write an ADR explaining why,
    move on. Don't stall.
 5. **Something is broken**: Fix it before starting new work. Update STATUS.md.
+
+## Continuous Execution Mandate
+- Do not stop after minor steps or ask for confirmation on routine changes.
+- Avoid micro-slicing work into trivial 10-line PRs unless explicitly constrained.
+- Keep  focused on game loop and input dispatch; extract game rules, hazards, and simulation mechanics into modular domain files under .
+- Ensure new domain files are added to  in .
