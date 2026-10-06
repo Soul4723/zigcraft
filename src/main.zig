@@ -1526,6 +1526,13 @@ pub fn main() !void {
                         _ = try manager.editAndRemesh(f.x, f.y, f.z, .air);
                         f.y -= 1;
                         f.dist += 1;
+                    } else if (below == .water and f.y > 0) {
+                        // Falling sand displaces water with sand and creates splash particles
+                        _ = try manager.editAndRemesh(f.x, f.y - 1, f.z, .sand);
+                        _ = try manager.editAndRemesh(f.x, f.y, f.z, .air);
+                        f.y -= 1;
+                        f.dist += 1;
+                        particles.spawnBlockDebris(f.x, f.y, f.z, .{ 0.2, 0.45, 0.95 }, 8);
                     } else if (!below.is_solid() and f.y > 0) {
                         // Sand crushes torches/wires/plates/etc: pop cell, keep falling
                         _ = try manager.editAndRemesh(f.x, f.y - 1, f.z, .sand);
