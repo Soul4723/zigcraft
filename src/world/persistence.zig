@@ -88,6 +88,33 @@ pub const Persistence = struct {
         return got;
     }
 
+    /// Burned-out torch sidecar: `c_{x}_{z}.rtb` holds up to 64 (lx,y,lz,secs) quads.
+    pub fn saveTorchBurnout(self: Persistence, cx: i32, cz: i32, items: []const [4]u8) bool {
+        self.ensureDir();
+        var path_buf: [256:0]u8 = undefined;
+        const file_path = std.fmt.bufPrintZ(&path_buf, "{s}/c_{d}_{d}.rtb", .{ self.dir_path, cx, cz }) catch return false;
+        const f = c.fopen(file_path.ptr, "wb") orelse return false;
+        defer _ = c.fclose(f);
+        var count: u8 = @intCast(@min(items.len, 64));
+        if (c.fwrite(&count, 1, 1, f) != 1) return false;
+        if (count == 0) return true;
+        if (c.fwrite(items.ptr, 4, count, f) != count) return false;
+        return true;
+    }
+
+    /// Load torch burnout sidecar into `out`; returns count.
+    pub fn loadTorchBurnout(self: Persistence, cx: i32, cz: i32, out: *[][4]u8) usize {
+        var rpath: [256:0]u8 = undefined;
+        const rp = std.fmt.bufPrintZ(&rpath, "{s}/c_{d}_{d}.rtb", .{ self.dir_path, cx, cz }) catch return 0;
+        const f = c.fopen(rp.ptr, "rb") orelse return 0;
+        defer _ = c.fclose(f);
+        var count: u8 = 0;
+        if (c.fread(&count, 1, 1, f) != 1) return 0;
+        const n: usize = @min(count, out.len);
+        if (n == 0) return 0;
+        return c.fread(out.ptr, 4, n, f);
+    }
+
     /// Save a chunk to disk. Ensures storage directory exists.
     pub fn saveChunk(self: Persistence, cx: i32, cz: i32, chunk: *const Chunk) bool {
         self.ensureDir();
@@ -187,4 +214,21 @@ test "redstone block states persist roundtrip" {
     try std.testing.expectEqual(BlockId.redstone_torch_off, dst.getBlock(10, 11, 12));
     try std.testing.expectEqual(BlockId.pressure_plate_down, dst.getBlock(13, 14, 15));
     try std.testing.expectEqual(BlockId.lever_on, dst.getBlock(0, 0, 1));
+}
+
+test "torch burnout sidecar roundtrip" {
+    const test_dir = ".zig-cache/test_persistence";
+    _ = c.mkdir(test_dir, 0o755);
+    defer {
+        _ = c.unlink(".zig-cache/test_persistence/c_4_5.rtb");
+    }
+    const pp = Persistence.init(test_dir);
+    const items = [_][4]u8{ .{ 2, 6, 3, 25 }, .{ 9, 1, 1, 7 } };
+    try std.testing.expect(pp.saveTorchBurnout(4, 5, &items));
+    var out = [_][4]u8{.{ 0, 0, 0, 0 }} ** 64;
+    var slice: [][4]u8 = &out;
+    const n = pp.loadTorchBurnout(4, 5, &slice);
+    try std.testing.expectEqual(@as(usize, 2), n);
+    try std.testing.expectEqual(items[0], out[0]);
+    try std.testing.expectEqual(items[1], out[1]);
 }
