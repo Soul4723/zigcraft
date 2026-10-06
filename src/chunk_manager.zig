@@ -269,7 +269,7 @@ pub const ChunkManager = struct {
     }
 
     /// Session hook main.zig sets: serialized stages snapshot for save (copied in).
-    pub var stageSnapshot: [32][4]i32 = undefined;
+    pub var stageSnapshot: [64][4]i32 = undefined;
     pub var stageSnapshotLen: usize = 0;
 
     pub fn setStageSnapshot(stages: []const [4]i32) void {
@@ -281,7 +281,7 @@ pub const ChunkManager = struct {
     }
 
     fn stageCache(self: *const ChunkManager, cx: i32, cz: i32) void {
-        var buf = [_][4]u8{.{ 0, 0, 0, 0 }} ** 32;
+        var buf = [_][4]u8{.{ 0, 0, 0, 0 }} ** 64;
         var n: usize = 0;
         for (stageSnapshot[0..stageSnapshotLen]) |st| {
             if (@divFloor(st[0], 16) != cx or @divFloor(st[2], 16) != cz) continue;
@@ -294,7 +294,7 @@ pub const ChunkManager = struct {
 
     /// Load persisted repeater stages for chunk (cx,cz) as world coords [x,y,z,stage].
     pub fn loadStages(self: *const ChunkManager, cx: i32, cz: i32, out: [][4]i32) usize {
-        var raw = [_][4]u8{.{ 0, 0, 0, 0 }} ** 32;
+        var raw = [_][4]u8{.{ 0, 0, 0, 0 }} ** 64;
         var slice: [][4]u8 = &raw;
         const n = self.persistence.loadRepeaterStages(cx, cz, &slice);
         var count: usize = 0;
