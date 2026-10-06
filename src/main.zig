@@ -559,6 +559,9 @@ pub fn main() !void {
                 if (manager.getBlockWorld(w.x, w.y, w.z) == .water or manager.getBlockWorld(w.x, w.y + 1, w.z) == .water) {
                     _ = try manager.editAndRemesh(w.x, w.y, w.z, .air);
                     particles.spawnBlockDebris(w.x, w.y, w.z, .{ 0.6, 0.1, 0.1 }, 4);
+                    const pdx = @as(f32, @floatFromInt(w.x)) - player.pos.x;
+                    const pdz = @as(f32, @floatFromInt(w.z)) - player.pos.z;
+                    if (pdx * pdx + pdz * pdz < 144.0) _ = inventory.addItem(.redstone_dust, 1);
                     wires[wri] = wires[wire_count - 1];
                     wire_count -= 1;
                     continue;
@@ -571,6 +574,9 @@ pub fn main() !void {
                 if (manager.getBlockWorld(rt.x, rt.y, rt.z) == .water) {
                     _ = try manager.editAndRemesh(rt.x, rt.y, rt.z, .air);
                     particles.spawnBlockDebris(rt.x, rt.y, rt.z, .{ 0.7, 0.2, 0.1 }, 4);
+                    const pdx = @as(f32, @floatFromInt(rt.x)) - player.pos.x;
+                    const pdz = @as(f32, @floatFromInt(rt.z)) - player.pos.z;
+                    if (pdx * pdx + pdz * pdz < 144.0) _ = inventory.addItem(.redstone_torch, 1);
                     red_torches[rti2] = red_torches[red_torch_count - 1];
                     red_torch_count -= 1;
                     continue;
@@ -583,6 +589,9 @@ pub fn main() !void {
                 if (manager.getBlockWorld(rep.x, rep.y, rep.z) == .water) {
                     _ = try manager.editAndRemesh(rep.x, rep.y, rep.z, .air);
                     particles.spawnBlockDebris(rep.x, rep.y, rep.z, .{ 0.5, 0.5, 0.5 }, 4);
+                    const pdx = @as(f32, @floatFromInt(rep.x)) - player.pos.x;
+                    const pdz = @as(f32, @floatFromInt(rep.z)) - player.pos.z;
+                    if (pdx * pdx + pdz * pdz < 144.0) _ = inventory.addItem(.redstone_repeater, 1);
                     repeaters[rpi] = repeaters[repeater_count - 1];
                     repeater_count -= 1;
                     continue;
@@ -595,6 +604,9 @@ pub fn main() !void {
                 if (manager.getBlockWorld(pl.x, pl.y, pl.z) == .water) {
                     _ = try manager.editAndRemesh(pl.x, pl.y, pl.z, .air);
                     particles.spawnBlockDebris(pl.x, pl.y, pl.z, .{ 0.6, 0.4, 0.2 }, 4);
+                    const pdx = @as(f32, @floatFromInt(pl.x)) - player.pos.x;
+                    const pdz = @as(f32, @floatFromInt(pl.z)) - player.pos.z;
+                    if (pdx * pdx + pdz * pdz < 144.0) _ = inventory.addItem(.pressure_plate, 1);
                     plates[ppi] = plates[plate_count - 1];
                     plate_count -= 1;
                     continue;
