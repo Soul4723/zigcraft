@@ -1552,7 +1552,15 @@ pub fn main() !void {
             var ti: usize = 0;
             while (ti < torch_count) {
                 const tr = &torches[ti];
-                if (manager.getBlockWorld(tr.x, tr.y, tr.z) != .torch) {
+                const cur_tb = manager.getBlockWorld(tr.x, tr.y, tr.z);
+                if (cur_tb == .water or manager.getBlockWorld(tr.x, tr.y + 1, tr.z) == .water) {
+                    _ = try manager.editAndRemesh(tr.x, tr.y, tr.z, .air);
+                    particles.spawnBlockDebris(tr.x, tr.y, tr.z, .{ 0.8, 0.6, 0.2 }, 4);
+                    torches[ti] = torches[torch_count - 1];
+                    torch_count -= 1;
+                    continue;
+                }
+                if (cur_tb != .torch) {
                     torches[ti] = torches[torch_count - 1];
                     torch_count -= 1;
                     continue;
