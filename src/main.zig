@@ -202,6 +202,10 @@ pub fn main() !void {
     var rs_cap_warned_rep = false;
     var rs_cap_warned_lamp = false;
     var rs_cap_warned_torch = false;
+    const FallSand = struct { x: i32, y: i32, z: i32, t: f32 };
+    var fallings: [32]FallSand = undefined;
+    var falling_count: usize = 0;
+    var sand_scan: u8 = 0;
     var world_time: f32 = 45.0; // Start at morning daylight
     var last_step_dist: f32 = 0.0;
 
@@ -1342,7 +1346,71 @@ pub fn main() !void {
                 fi += 1;
             }
         }
-        // Torch flame particles: nearby active torches emit flame tips
+        // Falling sand: unsupported sand drops one block per 0.15s
+        {
+            sand_scan +%= 1;
+            if (sand_scan % 10 == 0) {
+                var fiter = manager.chunks.iterator();
+                while (fiter.next()) |entry| {
+                    if (falling_count >= fallings.len) break;
+                    const fcx = entry.key_ptr.x;
+                    const fcz = entry.key_ptr.z;
+                    const fch = &entry.value_ptr.chunk;
+                    var fy: usize = 1;
+                    while (fy < 16) : (fy += 1) {
+                        var fz: usize = 0;
+                        while (fz < 16) : (fz += 1) {
+                            var fx: usize = 0;
+                            while (fx < 16) : (fx += 1) {
+                                if (fch.blocks[fy][fz][fx] != .sand) continue;
+                                if (fch.blocks[fy - 1][fz][fx] != .air) continue;
+                                const wx: i32 = fcx * 16 + @as(i32, @intCast(fx));
+                                const wy: i32 = @as(i32, @intCast(fy));
+                                const wz: i32 = fcz * 16 + @as(i32, @intCast(fz));
+                                var known = false;
+                                for (fallings[0..falling_count]) |f| {
+                                    if (f.x == wx and f.y == wy and f.z == wz) {
+                                        known = true;
+                                        break;
+                                    }
+                                }
+                                if (!known and falling_count < fallings.len) {
+                                    fallings[falling_count] = .{ .x = wx, .y = wy, .z = wz, .t = 0.0 };
+                                    falling_count += 1;
+                                }
+                                if (falling_count >= fallings.len) break;
+                            }
+                            if (falling_count >= fallings.len) break;
+                        }
+                        if (falling_count >= fallings.len) break;
+                    }
+                }
+            }
+            var fi2: usize = 0;
+            while (fi2 < falling_count) {
+                const f = &fallings[fi2];
+                if (manager.getBlockWorld(f.x, f.y, f.z) != .sand) {
+                    fallings[fi2] = fallings[falling_count - 1];
+                    falling_count -= 1;
+                    continue;
+                }
+                f.t += dt;
+                if (f.t >= 0.15) {
+                    f.t = 0.0;
+                    if (manager.getBlockWorld(f.x, f.y - 1, f.z) == .air and f.y > 0) {
+                        _ = try manager.editAndRemesh(f.x, f.y - 1, f.z, .sand);
+                        _ = try manager.editAndRemesh(f.x, f.y, f.z, .air);
+                        f.y -= 1;
+                    } else {
+                        fallings[fi2] = fallings[falling_count - 1];
+                        falling_count -= 1;
+                        continue;
+                    }
+                }
+                fi2 += 1;
+            }
+        }
+                // Torch flame particles: nearby active torches emit flame tips
         torch_puff_timer += dt;
         if (torch_puff_timer >= 0.2) {
             torch_puff_timer = 0.0;
