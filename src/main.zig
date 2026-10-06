@@ -194,7 +194,7 @@ pub fn main() !void {
     const Lamp = struct { x: i32, y: i32, z: i32, lit: bool };
     var lamps: [32]Lamp = undefined;
     var lamp_count: usize = 0;
-    const RedTorch = struct { x: i32, y: i32, z: i32, lit: bool };
+    const RedTorch = struct { x: i32, y: i32, z: i32, lit: bool, flips: [8]f32, flip_count: u8, burnout: f32 };
     var red_torches: [32]RedTorch = undefined;
     var red_torch_count: usize = 0;
     var world_time: f32 = 45.0; // Start at morning daylight
@@ -401,7 +401,7 @@ pub fn main() !void {
                                         }
                                     }
                                     if (!found and red_torch_count < red_torches.len) {
-                                        red_torches[red_torch_count] = .{ .x = wx, .y = wy, .z = wz, .lit = (rb == .redstone_torch_on) };
+                                        red_torches[red_torch_count] = .{ .x = wx, .y = wy, .z = wz, .lit = (rb == .redstone_torch_on), .flips = [_]f32{-100} ** 8, .flip_count = 0, .burnout = 0.0 };
                                         red_torch_count += 1;
                                     }
                                 },
@@ -717,14 +717,38 @@ pub fn main() !void {
                     }
                 }
 
-                // If base block is powered, torch inverts (turns OFF)
+                // Burnout: 8 flips within 3.2s -> 30s dead torch (MC clock protection)
+                if (rt.burnout > 0.0) {
+                    rt.burnout -= dt;
+                    if (rt.burnout <= 0.0) {
+                        rt.flip_count = 0;
+                        std.debug.print("torch recovered ({d},{d},{d})\n", .{ rt.x, rt.y, rt.z });
+                    }
+                    rti += 1;
+                    continue;
+                }
+                const flip_now: f32 = @floatCast(current_time);
                 if (base_powered and rt.lit) {
                     rt.lit = false;
                     _ = try manager.editAndRemesh(rt.x, rt.y, rt.z, .redstone_torch_off);
+                    rt.flips[@as(usize, rt.flip_count) % rt.flips.len] = flip_now;
+                    rt.flip_count +%= 1;
+                    if (redstone_mod.torchBurnedOut(rt.flips, flip_now)) {
+                        rt.burnout = 30.0;
+                        audio.play(.click_off, 0.5);
+                        std.debug.print("torch burned out ({d},{d},{d})\n", .{ rt.x, rt.y, rt.z });
+                    }
                 } else if (!base_powered and !rt.lit) {
                     rt.lit = true;
                     _ = try manager.editAndRemesh(rt.x, rt.y, rt.z, .redstone_torch_on);
                     particles.spawnFlame(rt.x, rt.y, rt.z, 2);
+                    rt.flips[@as(usize, rt.flip_count) % rt.flips.len] = flip_now;
+                    rt.flip_count +%= 1;
+                    if (redstone_mod.torchBurnedOut(rt.flips, flip_now)) {
+                        rt.burnout = 30.0;
+                        audio.play(.click_off, 0.5);
+                        std.debug.print("torch burned out ({d},{d},{d})\n", .{ rt.x, rt.y, rt.z });
+                    }
                 }
                 rti += 1;
             }
