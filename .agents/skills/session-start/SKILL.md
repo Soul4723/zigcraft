@@ -14,7 +14,8 @@ cat docs/STATUS.md
 cat docs/ROADMAP.md
 cat docs/architecture/OVERVIEW.md
 ls docs/sessions/           # then read the latest one
-git branch -a
+git fetch --prune origin
+git branch --show-current
 gh issue list
 gh pr list
 ```

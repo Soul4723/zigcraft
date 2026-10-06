@@ -28,6 +28,8 @@ Multiple logical changes = multiple commits. Each must build and test.
 ### 3. Open a PR (or update existing one)
 ```bash
 gh pr create --title "<type>: <title>" --body-file /tmp/pr_body.md --base main
+# If merging immediately:
+# gh pr merge --squash --delete-branch
 ```
 Or if PR exists, push updates it automatically.
 

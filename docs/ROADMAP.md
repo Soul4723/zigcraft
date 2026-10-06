@@ -55,3 +55,13 @@ Rough priority order. Completed milestones marked **[x]**.
 33. [x] **More Blocks, Ores & Underground Caves** — Coal, iron, 3D cave tunnels cutting through heightmap terrain.
 34. [x] **Block Highlight Outline** — Wireframe bounding box rendering around the aimed voxel face.
 35. [x] **Particle Effects** — Block break and placement voxel debris particles.
+
+## Phase 7: Redstone, Environmental Physics & Survival Hazards
+
+36. [x] **Redstone Mechanics** — Redstone wire signal decay (15 blocks), torches, repeaters (1-4 tick delays), levers, pressure plates, lamps with night glow, iron doors (#67-#82)
+37. [x] **Falling Block Physics** — Unsupported sand blocks drop, crush non-solid cells, deal falling damage, splash into water (#85, #90, #91, #99)
+38. [x] **Fluid Interactions** — Flowing water washes away floor redstone, torches, repeaters into drops (#92, #93, #94, #97, #98)
+39. [x] **Player Suffocation Damage** — Damage tick when player head/eyes are buried inside solid blocks (#100)
+40. [ ] **Environmental Hazards & Flora** — Cactus contact damage, campfire burn damage, sapling growth ticks
+41. [ ] **Water Flow Simulation** — Finite cellular automaton flood fill for water sources
+42. [ ] **Hostile Mob Spawning & Pathfinding** — Dark cave mob spawning, basic A* or vector avoidance of deep water / lava
