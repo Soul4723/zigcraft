@@ -1,3 +1,4 @@
+const hazard_mod = @import("world/hazard.zig");
 const std = @import("std");
 const c = @cImport({
     @cDefine("GL_GLEXT_PROTOTYPES", "1");
@@ -26,6 +27,11 @@ const window_title = "Zigcraft";
 
 var pick_manager: ?*chunk_manager_mod.ChunkManager = null;
 
+
+fn pickBlockWorld(x: i32, y: i32, z: i32) block_mod.BlockId {
+    const mgr = pick_manager orelse return .air;
+    return mgr.getBlockWorld(x, y, z);
+}
 fn pickSolid(x: i32, y: i32, z: i32) bool {
     return pick_manager.?.isSolidWorld(x, y, z);
 }
@@ -279,32 +285,14 @@ pub fn main() !void {
             const ex: i32 = @intFromFloat(@floor(eye.x));
             const ey: i32 = @intFromFloat(@floor(eye.y));
             const ez: i32 = @intFromFloat(@floor(eye.z));
-            const eye_block = manager.getBlockWorld(ex, ey, ez);
-            if (eye_block.is_solid() and eye_block != .leaves and eye_block != .glass) {
+            if (hazard_mod.checkSuffocation(manager.getBlockWorld(ex, ey, ez))) {
                 player.health = @max(0.0, player.health - 1.0 * dt);
             }
 
-            // Cactus contact damage: 1 hp/sec if player AABB intersects adjacent cactus
             const px_i: i32 = @intFromFloat(@floor(player.pos.x));
             const py_i: i32 = @intFromFloat(@floor(player.pos.y));
             const pz_i: i32 = @intFromFloat(@floor(player.pos.z));
-            var touches_cactus = false;
-            var dy_c: i32 = 0;
-            while (dy_c <= 1) : (dy_c += 1) {
-                var dx_c: i32 = -1;
-                while (dx_c <= 1) : (dx_c += 1) {
-                    var dz_c: i32 = -1;
-                    while (dz_c <= 1) : (dz_c += 1) {
-                        if (manager.getBlockWorld(px_i + dx_c, py_i + dy_c, pz_i + dz_c) == .cactus) {
-                            touches_cactus = true;
-                            break;
-                        }
-                    }
-                    if (touches_cactus) break;
-                }
-                if (touches_cactus) break;
-            }
-            if (touches_cactus) {
+            if (hazard_mod.checkCactusContact(&pickBlockWorld, px_i, py_i, pz_i)) {
                 player.health = @max(0.0, player.health - 1.0 * dt);
             }
         }
