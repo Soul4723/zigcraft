@@ -109,3 +109,15 @@ test "unpowered stays dark, source classification" {
     try std.testing.expectEqual(@as(u4, 0), s[0]);
     try std.testing.expectEqual(@as(u4, 0), s[1]);
 }
+
+/// Repeater delay in seconds for a 1-4 tick stage (each tick is 0.1s).
+pub fn repeaterDelay(stage: u2) f32 {
+    return 0.1 * @as(f32, @floatFromInt(@as(u8, stage) + 1));
+}
+
+test "repeater delay stages 0.1s to 0.4s" {
+    try std.testing.expectEqual(@as(f32, 0.1), repeaterDelay(0));
+    try std.testing.expectEqual(@as(f32, 0.2), repeaterDelay(1));
+    try std.testing.expectEqual(@as(f32, 0.3), repeaterDelay(2));
+    try std.testing.expectEqual(@as(f32, 0.4), repeaterDelay(3));
+}

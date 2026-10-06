@@ -186,7 +186,7 @@ pub fn main() !void {
     const Wire = struct { x: i32, y: i32, z: i32, powered: bool };
     var wires: [64]Wire = undefined;
     var wire_count: usize = 0;
-    const Repeater = struct { x: i32, y: i32, z: i32, powered: bool, timer: f32 };
+    const Repeater = struct { x: i32, y: i32, z: i32, powered: bool, timer: f32, stage: u2 };
     var repeaters: [32]Repeater = undefined;
     var repeater_count: usize = 0;
     const Lamp = struct { x: i32, y: i32, z: i32, lit: bool };
@@ -331,7 +331,7 @@ pub fn main() !void {
                                         }
                                     }
                                     if (!found and repeater_count < repeaters.len) {
-                                        repeaters[repeater_count] = .{ .x = wx, .y = wy, .z = wz, .powered = (rb == .repeater_on), .timer = 0.0 };
+                                        repeaters[repeater_count] = .{ .x = wx, .y = wy, .z = wz, .powered = (rb == .repeater_on), .timer = 0.0, .stage = 0 };
                                         repeater_count += 1;
                                     }
                                 },
@@ -584,9 +584,10 @@ pub fn main() !void {
                     }
                 }
 
+                const delay: f32 = redstone_mod.repeaterDelay(rep.stage);
                 if (input_powered and !rep.powered) {
                     rep.timer += dt;
-                    if (rep.timer >= 0.1) {
+                    if (rep.timer >= delay) {
                         rep.powered = true;
                         rep.timer = 0.0;
                         _ = try manager.editAndRemesh(rep.x, rep.y, rep.z, .repeater_on);
@@ -596,7 +597,7 @@ pub fn main() !void {
                     }
                 } else if (!input_powered and rep.powered) {
                     rep.timer += dt;
-                    if (rep.timer >= 0.1) {
+                    if (rep.timer >= delay) {
                         rep.powered = false;
                         rep.timer = 0.0;
                         _ = try manager.editAndRemesh(rep.x, rep.y, rep.z, .repeater_off);
@@ -1387,7 +1388,26 @@ pub fn main() !void {
             const dir_f = cam.front();
             if (pick_mod.raycast(&pickSolid, cam.position, dir_f, 5)) |hit_f| {
                 const target = manager.getBlockWorld(hit_f.x, hit_f.y, hit_f.z);
-                if (target == .lever_off or target == .lever_on) {
+                if (target == .repeater_off or target == .repeater_on) {
+                    var found_stage = false;
+                    for (repeaters[0..repeater_count]) |*rep| {
+                        if (rep.x == hit_f.x and rep.y == hit_f.y and rep.z == hit_f.z) {
+                            rep.stage +%= 1;
+                            rep.timer = 0.0;
+                            found_stage = true;
+                            audio.play(.click_on, 0.6);
+                            std.debug.print("repeater delay stage {d} ({d},{d},{d})\n", .{ @as(u8, rep.stage) + 1, hit_f.x, hit_f.y, hit_f.z });
+                            break;
+                        }
+                    }
+                    if (!found_stage and repeater_count < repeaters.len) {
+                        repeaters[repeater_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z, .powered = (target == .repeater_on), .timer = 0.0, .stage = 1 };
+                        repeater_count += 1;
+                        audio.play(.click_on, 0.6);
+                        std.debug.print("repeater delay stage 2 ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                    }
+                    flint_cooldown = 0.25;
+                } else if (target == .lever_off or target == .lever_on) {
                     const toggled: block_mod.BlockId = if (target == .lever_off) .lever_on else .lever_off;
                     if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, toggled)) {
                         if (toggled == .lever_on) audio.play(.click_on, 0.9) else audio.play(.click_off, 0.7);
