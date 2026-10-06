@@ -88,6 +88,17 @@ pub fn setUniformVec3(program: c.GLuint, name: [:0]const u8, x: f32, y: f32, z: 
     c.glUniform3f(loc, x, y, z);
 }
 
+pub fn setUniformFloat(program: c.GLuint, name: [:0]const u8, value: f32) void {
+    const loc = getUniformLocation(program, name);
+    c.glUniform1f(loc, value);
+}
+
+/// Set a vec3 array uniform (e.g. u_lamp_pos[8]) from a slice of [3]f32.
+pub fn setUniformVec3Array(program: c.GLuint, name: [:0]const u8, values: []const [3]f32) void {
+    const loc = getUniformLocation(program, name);
+    c.glUniform3fv(loc, @intCast(values.len), @ptrCast(values.ptr));
+}
+
 /// Default shader sources for a colored triangle with MVP transform.
 pub const default_vert: [:0]const u8 =
 \\#version 330 core
@@ -120,16 +131,19 @@ pub const chunk_vert: [:0]const u8 =
 \\layout (location = 3) in float aAO;
 \\layout (location = 4) in float aEmissive;
 \\uniform mat4 u_mvp;
+\\uniform vec3 u_chunk_origin;
 \\out vec2 FragTexCoord;
 \\out vec3 FragNormal;
 \\out float FragAO;
 \\out float FragEmissive;
+\\out vec3 FragWorldPos;
 \\void main() {
 \\    gl_Position = u_mvp * vec4(aPos, 1.0);
 \\    FragTexCoord = aTexCoord;
 \\    FragNormal = aNormal;
 \\    FragAO = aAO;
 \\    FragEmissive = aEmissive;
+\\    FragWorldPos = aPos + u_chunk_origin;
 \\}
 ;
 /// Wireframe box shader: position (loc 0), MVP + solid color.
@@ -183,9 +197,13 @@ pub const chunk_frag: [:0]const u8 =
 \\in vec3 FragNormal;
 \\in float FragAO;
 \\in float FragEmissive;
+\\in vec3 FragWorldPos;
 \\out vec4 FragColor;
 \\uniform sampler2D u_texture;
 \\uniform vec3 u_light_dir;
+\\uniform vec3 u_lamp_pos[8];
+\\uniform float u_lamp_count;
+\\uniform float u_night;
 \\void main() {
 \\    float diff = max(dot(normalize(FragNormal), normalize(u_light_dir)), 0.0);
 \\    float ambient = 0.35;
@@ -194,6 +212,17 @@ pub const chunk_frag: [:0]const u8 =
 \\    float sun = (ambient + 0.65 * diff) * ao_factor;
 \\    float light = mix(sun, 1.0, clamp(FragEmissive, 0.0, 1.0));
 \\    vec4 tex = texture(u_texture, FragTexCoord);
-\\    FragColor = vec4(tex.rgb * light, tex.a);
+\\    vec3 col = tex.rgb * light;
+\\    // Lit-lamp spill: warm glow, radius ~6 blocks, scaled by night
+\\    if (u_night > 0.01 && u_lamp_count > 0.5) {
+\\        float glow = 0.0;
+\\        for (int i = 0; i < 8; i++) {
+\\            if (float(i) >= u_lamp_count) break;
+\\            float d = distance(FragWorldPos, u_lamp_pos[i]);
+\\            glow += 1.0 / (1.0 + d * d * 0.35);
+\\        }
+\\        col += tex.rgb * vec3(1.0, 0.75, 0.45) * clamp(glow, 0.0, 1.5) * u_night * 0.8;
+\\    }
+\\    FragColor = vec4(col, tex.a);
 \\}
 ;

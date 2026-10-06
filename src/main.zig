@@ -817,7 +817,19 @@ pub fn main() !void {
         c.glClear(c.GL_COLOR_BUFFER_BIT | c.GL_DEPTH_BUFFER_BIT);
 
         sky.draw(mvp, cam.position, sky_top, sky_horizon);
-        const stats = manager.draw(mvp, sun_dir);
+        var lamp_spots: [8][3]f32 = [_][3]f32{.{ 0, -100, 0 }} ** 8;
+        var lamp_spot_count: usize = 0;
+        for (lamps[0..lamp_count]) |la| {
+            if (lamp_spot_count >= lamp_spots.len) break;
+            if (manager.getBlockWorld(la.x, la.y, la.z) != .redstone_lamp_on) continue;
+            const dx: f32 = @as(f32, @floatFromInt(la.x)) + 0.5 - player.pos.x;
+            const dz: f32 = @as(f32, @floatFromInt(la.z)) + 0.5 - player.pos.z;
+            if (dx * dx + dz * dz > 48.0 * 48.0) continue;
+            lamp_spots[lamp_spot_count] = .{ @as(f32, @floatFromInt(la.x)) + 0.5, @as(f32, @floatFromInt(la.y)) + 0.5, @as(f32, @floatFromInt(la.z)) + 0.5 };
+            lamp_spot_count += 1;
+        }
+        const night_factor = 1.0 - day_factor;
+        const stats = manager.draw(mvp, sun_dir, lamp_spots[0..lamp_spot_count], night_factor);
         try mob_manager.draw(mvp, sun_dir);
 
         // Update and render block debris particles

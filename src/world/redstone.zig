@@ -121,3 +121,15 @@ test "repeater delay stages 0.1s to 0.4s" {
     try std.testing.expectEqual(@as(f32, 0.3), repeaterDelay(2));
     try std.testing.expectEqual(@as(f32, 0.4), repeaterDelay(3));
 }
+
+/// Warm lamp-spill glow at distance d blocks (matches chunk frag: 1/(1+0.35 d^2)).
+pub fn lampGlow(d: f32) f32 {
+    return 1.0 / (1.0 + d * d * 0.35);
+}
+
+test "lamp glow falls to ~0.06 at 6 blocks" {
+    try std.testing.expect(lampGlow(0.0) > 0.99);
+    const g6 = lampGlow(6.0);
+    try std.testing.expect(g6 > 0.05 and g6 < 0.10);
+    try std.testing.expect(lampGlow(3.0) > lampGlow(6.0));
+}

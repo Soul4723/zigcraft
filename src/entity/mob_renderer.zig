@@ -115,6 +115,9 @@ pub const MobRenderer = struct {
         var vp = view_proj;
         shader.setUniformMat4(self.program, "u_mvp", vp.ptr());
         shader.setUniformVec3(self.program, "u_light_dir", sun_dir.x, sun_dir.y, sun_dir.z);
+        shader.setUniformVec3(self.program, "u_chunk_origin", 0, 0, 0);
+        shader.setUniformFloat(self.program, "u_lamp_count", 0);
+        shader.setUniformFloat(self.program, "u_night", 0);
 
         c.glBindVertexArray(self.vao);
         c.glDrawElements(c.GL_TRIANGLES, @intCast(indices.items.len), c.GL_UNSIGNED_INT, @ptrFromInt(0));
