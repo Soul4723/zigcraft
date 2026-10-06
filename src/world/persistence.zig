@@ -57,14 +57,14 @@ pub const Persistence = struct {
         return true;
     }
 
-    /// Repeater delay stages sidecar: `c_{x}_{z}.rsp` holds up to 32 (lx,y,lz,stage) quads.
+    /// Repeater delay stages sidecar: `c_{x}_{z}.rsp` holds up to 64 (lx,y,lz,stage) quads.
     pub fn saveRepeaterStages(self: Persistence, cx: i32, cz: i32, stages: []const [4]u8) bool {
         self.ensureDir();
         var path_buf: [256:0]u8 = undefined;
         const file_path = std.fmt.bufPrintZ(&path_buf, "{s}/c_{d}_{d}.rsp", .{ self.dir_path, cx, cz }) catch return false;
         const f = c.fopen(file_path.ptr, "wb") orelse return false;
         defer _ = c.fclose(f);
-        var count: u8 = @intCast(@min(stages.len, 32));
+        var count: u8 = @intCast(@min(stages.len, 64));
         if (c.fwrite(&count, 1, 1, f) != 1) return false;
         if (count == 0) return true;
         if (c.fwrite(stages.ptr, 4, count, f) != count) return false;

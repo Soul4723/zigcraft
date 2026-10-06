@@ -163,7 +163,7 @@ pub fn main() !void {
     var throw_cooldown: f32 = 0.0;
     var wolf_bite_cooldown: f32 = 0.0;
     const Fuse = struct { x: i32, y: i32, z: i32, t: f32 };
-    var fuses: [8]Fuse = undefined;
+    var fuses: [16]Fuse = undefined;
     var fuse_count: usize = 0;
     const Torch = struct { x: i32, y: i32, z: i32 };
     var torches: [32]Torch = undefined;
@@ -181,21 +181,21 @@ pub fn main() !void {
     var sprouts: [16]struct { x: i32, y: i32, z: i32, t: f32 } = undefined;
     var sprout_count: usize = 0;
     const Plate = struct { x: i32, y: i32, z: i32, down: bool };
-    var plates: [32]Plate = undefined;
+    var plates: [64]Plate = undefined;
     var plate_count: usize = 0;
     const Wire = struct { x: i32, y: i32, z: i32, powered: bool };
-    var wires: [64]Wire = undefined;
+    var wires: [256]Wire = undefined;
     var wire_count: usize = 0;
     const Repeater = struct { x: i32, y: i32, z: i32, powered: bool, timer: f32, stage: u2 };
-    var repeaters: [32]Repeater = undefined;
+    var repeaters: [64]Repeater = undefined;
     var repeater_count: usize = 0;
     var known_stage_chunks: [64]struct { x: i32, z: i32 } = undefined;
     var known_stage_count: usize = 0;
     const Lamp = struct { x: i32, y: i32, z: i32, lit: bool };
-    var lamps: [32]Lamp = undefined;
+    var lamps: [64]Lamp = undefined;
     var lamp_count: usize = 0;
     const RedTorch = struct { x: i32, y: i32, z: i32, lit: bool, flips: [8]f32, flip_count: u8, burnout: f32 };
-    var red_torches: [32]RedTorch = undefined;
+    var red_torches: [64]RedTorch = undefined;
     var red_torch_count: usize = 0;
     var world_time: f32 = 45.0; // Start at morning daylight
     var last_step_dist: f32 = 0.0;
@@ -276,7 +276,7 @@ pub fn main() !void {
         // Throttled to every 4th frame: ~50k block reads/frame average.
         if (frame_count % 4 == 0) {
             {
-                var snap: [32][4]i32 = undefined;
+                var snap: [64][4]i32 = undefined;
                 var sn: usize = 0;
                 for (repeaters[0..repeater_count]) |rep| {
                     if (sn >= snap.len) break;
@@ -302,7 +302,7 @@ pub fn main() !void {
                         known_stage_chunks[known_stage_count] = .{ .x = scx, .z = scz };
                         known_stage_count += 1;
                     }
-                    var staged = [_][4]i32{.{ 0, 0, 0, 0 }} ** 32;
+                    var staged = [_][4]i32{.{ 0, 0, 0, 0 }} ** 64;
                     const nstaged = manager.loadStages(scx, scz, &staged);
                     var si: usize = 0;
                     while (si < nstaged) : (si += 1) {
@@ -516,7 +516,7 @@ pub fn main() !void {
                     wi += 1;
                 }
             }
-            var strength: [64]u4 = [_]u4{0} ** 64;
+            var strength: [256]u4 = [_]u4{0} ** 256;
             var wi: usize = 0;
             while (wi < wire_count) : (wi += 1) {
                 const w = &wires[wi];
@@ -1476,7 +1476,7 @@ pub fn main() !void {
                             audio.play(.click_on, 0.6);
                             std.debug.print("repeater delay stage {d} ({d},{d},{d})\n", .{ @as(u8, rep.stage) + 1, hit_f.x, hit_f.y, hit_f.z });
                             {
-                                var snap: [32][4]i32 = undefined;
+                                var snap: [64][4]i32 = undefined;
                                 var sn: usize = 0;
                                 for (repeaters[0..repeater_count]) |sr| {
                                     if (sn >= snap.len) break;
