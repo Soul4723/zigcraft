@@ -69,6 +69,7 @@ pub const ChunkManager = struct {
         while (iter.next()) |entry| {
             if (entry.value_ptr.modified) {
                 _ = self.persistence.saveChunk(entry.key_ptr.x, entry.key_ptr.z, &entry.value_ptr.chunk);
+                self.saveStages(entry.key_ptr.x, entry.key_ptr.z, &entry.value_ptr.chunk);
             }
             if (entry.value_ptr.renderer) |*r| r.deinit();
         }
@@ -91,6 +92,7 @@ pub const ChunkManager = struct {
             if (@abs(coord.x - center_cx) > self.radius or @abs(coord.z - center_cz) > self.radius) {
                 if (entry.value_ptr.modified) {
                     _ = self.persistence.saveChunk(coord.x, coord.z, &entry.value_ptr.chunk);
+                    self.saveStages(coord.x, coord.z, &entry.value_ptr.chunk);
                 }
                 if (entry.value_ptr.renderer) |*r| r.deinit();
                 _ = self.chunks.remove(coord);
@@ -257,6 +259,49 @@ pub const ChunkManager = struct {
 
     pub fn loadedChunkCount(self: *const ChunkManager) usize {
         return self.chunks.count();
+    }
+
+    /// Persist repeater stages inside this chunk via sidecar.
+    /// `stages` holds world-coord [x,y,z,stage] entries; only those in this chunk are kept.
+    pub fn saveStages(self: *const ChunkManager, cx: i32, cz: i32, chunk: *const Chunk) void {
+        _ = chunk;
+        _ = self.stageCache(cx, cz);
+    }
+
+    /// Session hook main.zig sets: serialized stages snapshot for save (copied in).
+    pub var stageSnapshot: [32][4]i32 = undefined;
+    pub var stageSnapshotLen: usize = 0;
+
+    pub fn setStageSnapshot(stages: []const [4]i32) void {
+        stageSnapshotLen = @min(stages.len, stageSnapshot.len);
+        var i: usize = 0;
+        while (i < stageSnapshotLen) : (i += 1) {
+            stageSnapshot[i] = stages[i];
+        }
+    }
+
+    fn stageCache(self: *const ChunkManager, cx: i32, cz: i32) void {
+        var buf = [_][4]u8{.{ 0, 0, 0, 0 }} ** 32;
+        var n: usize = 0;
+        for (stageSnapshot[0..stageSnapshotLen]) |st| {
+            if (@divFloor(st[0], 16) != cx or @divFloor(st[2], 16) != cz) continue;
+            if (n >= buf.len) break;
+            buf[n] = .{ @intCast(@mod(st[0], 16)), @intCast(st[1]), @intCast(@mod(st[2], 16)), @intCast(st[3] & 3) };
+            n += 1;
+        }
+        _ = self.persistence.saveRepeaterStages(cx, cz, buf[0..n]);
+    }
+
+    /// Load persisted repeater stages for chunk (cx,cz) as world coords [x,y,z,stage].
+    pub fn loadStages(self: *const ChunkManager, cx: i32, cz: i32, out: [][4]i32) usize {
+        var raw = [_][4]u8{.{ 0, 0, 0, 0 }} ** 32;
+        var slice: [][4]u8 = &raw;
+        const n = self.persistence.loadRepeaterStages(cx, cz, &slice);
+        var count: usize = 0;
+        while (count < n and count < out.len) : (count += 1) {
+            out[count] = .{ cx * 16 + @as(i32, raw[count][0]), @as(i32, raw[count][1]), cz * 16 + @as(i32, raw[count][2]), @as(i32, raw[count][3]) };
+        }
+        return count;
     }
 };
 
