@@ -549,7 +549,35 @@ pub fn main() !void {
             }
         }
 
-        // Redstone wire power: BFS signal strength from sources (15 max, -1/wire).
+        // Water washes away redstone: wire/torch/repeater/plate/lever in water pops
+        {
+            var wri: usize = 0;
+            while (wri < wire_count) {
+                const w = &wires[wri];
+                if (manager.getBlockWorld(w.x, w.y, w.z) == .water or manager.getBlockWorld(w.x, w.y + 1, w.z) == .water) {
+                    _ = try manager.editAndRemesh(w.x, w.y, w.z, .air);
+                    particles.spawnBlockDebris(w.x, w.y, w.z, .{ 0.6, 0.1, 0.1 }, 4);
+                    wires[wri] = wires[wire_count - 1];
+                    wire_count -= 1;
+                    continue;
+                }
+                wri += 1;
+            }
+            var rti2: usize = 0;
+            while (rti2 < red_torch_count) {
+                const rt = &red_torches[rti2];
+                if (manager.getBlockWorld(rt.x, rt.y, rt.z) == .water) {
+                    _ = try manager.editAndRemesh(rt.x, rt.y, rt.z, .air);
+                    particles.spawnBlockDebris(rt.x, rt.y, rt.z, .{ 0.7, 0.2, 0.1 }, 4);
+                    red_torches[rti2] = red_torches[red_torch_count - 1];
+                    red_torch_count -= 1;
+                    continue;
+                }
+                rti2 += 1;
+            }
+        }
+
+                // Redstone wire power: BFS signal strength from sources (15 max, -1/wire).
         // Order-independent; session flags only mirror block state.
         {
             const adj_dirs = [_][3]i32{
