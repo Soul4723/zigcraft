@@ -133,3 +133,30 @@ test "lamp glow falls to ~0.06 at 6 blocks" {
     try std.testing.expect(g6 > 0.05 and g6 < 0.10);
     try std.testing.expect(lampGlow(3.0) > lampGlow(6.0));
 }
+
+/// Torch burnout: how many of the last-8 flip timestamps fall within `window` of now.
+pub fn recentFlips(flips: [8]f32, now: f32, window: f32) u8 {
+    var n: u8 = 0;
+    for (flips) |ft| {
+        if (now - ft < window) n += 1;
+    }
+    return n;
+}
+
+/// True when flip history trips burnout (8 flips within 3.2s).
+pub fn torchBurnedOut(flips: [8]f32, now: f32) bool {
+    return recentFlips(flips, now, 3.2) >= 8;
+}
+
+test "torch burnout trips on 8 rapid flips" {
+    const now: f32 = 100.0;
+    var flips = [_]f32{-100} ** 8;
+    var i: usize = 0;
+    while (i < 7) : (i += 1) {
+        flips[i] = now - @as(f32, @floatFromInt(i)) * 0.3;
+    }
+    try std.testing.expect(!torchBurnedOut(flips, now));
+    flips[7] = now - 0.1;
+    try std.testing.expect(torchBurnedOut(flips, now));
+    try std.testing.expect(!torchBurnedOut(flips, now + 10.0));
+}
