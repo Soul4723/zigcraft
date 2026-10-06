@@ -1,3 +1,4 @@
+const falling_mod = @import("world/falling_blocks.zig");
 const hazard_mod = @import("world/hazard.zig");
 const std = @import("std");
 const c = @cImport({
@@ -210,7 +211,7 @@ pub fn main() !void {
     var rs_cap_warned_rep = false;
     var rs_cap_warned_lamp = false;
     var rs_cap_warned_torch = false;
-    const FallSand = struct { x: i32, y: i32, z: i32, t: f32, dist: i32 };
+    const FallSand = falling_mod.FallSand;
     var fallings: [32]FallSand = undefined;
     var falling_count: usize = 0;
     var sand_scan: u8 = 0;
@@ -1543,51 +1544,54 @@ pub fn main() !void {
                 if (f.t >= 0.15) {
                     f.t = 0.0;
                     const below = manager.getBlockWorld(f.x, f.y - 1, f.z);
-                    if (below == .air and f.y > 0) {
-                        _ = try manager.editAndRemesh(f.x, f.y - 1, f.z, .sand);
-                        _ = try manager.editAndRemesh(f.x, f.y, f.z, .air);
-                        f.y -= 1;
-                        f.dist += 1;
-                    } else if (below == .water and f.y > 0) {
-                        // Falling sand displaces water with sand and creates splash particles
-                        _ = try manager.editAndRemesh(f.x, f.y - 1, f.z, .sand);
-                        _ = try manager.editAndRemesh(f.x, f.y, f.z, .air);
-                        f.y -= 1;
-                        f.dist += 1;
-                        particles.spawnBlockDebris(f.x, f.y, f.z, .{ 0.2, 0.45, 0.95 }, 8);
-                    } else if (!below.is_solid() and f.y > 0) {
-                        // Sand crushes torches/wires/plates/etc: pop cell, keep falling
-                        _ = try manager.editAndRemesh(f.x, f.y - 1, f.z, .sand);
-                        _ = try manager.editAndRemesh(f.x, f.y, f.z, .air);
-                        f.y -= 1;
-                        f.dist += 1;
-                        particles.spawnBlockDebris(f.x, f.y, f.z, .{ 0.8, 0.7, 0.5 }, 4);
-                    } else {
-                        // Landing: 1 dmg per 3 fallen blocks to whoever is inside
-                        if (f.dist >= 3) {
-                            const dmg: u8 = @intCast(@min(@divTrunc(f.dist, 3), 20));
-                            for (mob_manager.mobs.items, 0..) |*m, mi| {
-                                const mbx: i32 = @intFromFloat(@floor(m.pos.x));
-                                const mby: i32 = @intFromFloat(@floor(m.pos.y));
-                                const mbz: i32 = @intFromFloat(@floor(m.pos.z));
-                                if (mbx == f.x and (mby == f.y or mby == f.y + 1) and mbz == f.z) {
-                                    if (m.takeHitDmg(math.Vec3.init(0, 1, 0), dmg)) {
-                                        _ = mob_manager.mobs.swapRemove(mi);
+                    const action = falling_mod.evaluateFallingStep(below, f.y);
+                    switch (action) {
+                        .drop_into_air => {
+                            _ = try manager.editAndRemesh(f.x, f.y - 1, f.z, .sand);
+                            _ = try manager.editAndRemesh(f.x, f.y, f.z, .air);
+                            f.y -= 1;
+                            f.dist += 1;
+                        },
+                        .splash_into_water => {
+                            _ = try manager.editAndRemesh(f.x, f.y - 1, f.z, .sand);
+                            _ = try manager.editAndRemesh(f.x, f.y, f.z, .air);
+                            f.y -= 1;
+                            f.dist += 1;
+                            particles.spawnBlockDebris(f.x, f.y, f.z, .{ 0.2, 0.45, 0.95 }, 8);
+                        },
+                        .crush_non_solid => {
+                            _ = try manager.editAndRemesh(f.x, f.y - 1, f.z, .sand);
+                            _ = try manager.editAndRemesh(f.x, f.y, f.z, .air);
+                            f.y -= 1;
+                            f.dist += 1;
+                            particles.spawnBlockDebris(f.x, f.y, f.z, .{ 0.8, 0.7, 0.5 }, 4);
+                        },
+                        .land, .none => {
+                            const dmg = falling_mod.calculateImpactDamage(f.dist);
+                            if (dmg > 0) {
+                                for (mob_manager.mobs.items, 0..) |*m, mi| {
+                                    const mbx: i32 = @intFromFloat(@floor(m.pos.x));
+                                    const mby: i32 = @intFromFloat(@floor(m.pos.y));
+                                    const mbz: i32 = @intFromFloat(@floor(m.pos.z));
+                                    if (mbx == f.x and (mby == f.y or mby == f.y + 1) and mbz == f.z) {
+                                        if (m.takeHitDmg(math.Vec3.init(0, 1, 0), dmg)) {
+                                            _ = mob_manager.mobs.swapRemove(mi);
+                                        }
+                                        break;
                                     }
-                                    break;
+                                }
+                                const pbx: i32 = @intFromFloat(@floor(player.pos.x));
+                                const pby: i32 = @intFromFloat(@floor(player.pos.y));
+                                const pbz: i32 = @intFromFloat(@floor(player.pos.z));
+                                if (pbx == f.x and (pby == f.y or pby == f.y + 1) and pbz == f.z) {
+                                    player.health = @max(0.0, player.health - @as(f32, @floatFromInt(dmg)));
+                                    audio.play(.hurt, 0.8);
                                 }
                             }
-                            const pbx: i32 = @intFromFloat(@floor(player.pos.x));
-                            const pby: i32 = @intFromFloat(@floor(player.pos.y));
-                            const pbz: i32 = @intFromFloat(@floor(player.pos.z));
-                            if (pbx == f.x and (pby == f.y or pby == f.y + 1) and pbz == f.z) {
-                                player.health = @max(0.0, player.health - @as(f32, @floatFromInt(dmg)));
-                                audio.play(.hurt, 0.8);
-                            }
-                        }
-                        fallings[fi2] = fallings[falling_count - 1];
-                        falling_count -= 1;
-                        continue;
+                            fallings[fi2] = fallings[falling_count - 1];
+                            falling_count -= 1;
+                            continue;
+                        },
                     }
                 }
                 fi2 += 1;
