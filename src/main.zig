@@ -681,6 +681,15 @@ pub fn main() !void {
                         particles.spawnFlame(rep.x, rep.y, rep.z, 1);
                         audio.play(.click_on, 0.4);
                         std.debug.print("repeater powered ({d},{d},{d})\n", .{ rep.x, rep.y, rep.z });
+                        const door_dirs = [_][3]i32{ .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 }, .{ 0, 1, 0 }, .{ 0, -1, 0 } };
+                        for (door_dirs) |dd| {
+                            const db = manager.getBlockWorld(rep.x + dd[0], rep.y + dd[1], rep.z + dd[2]);
+                            if (db == .wooden_door_closed) {
+                                _ = try manager.editAndRemesh(rep.x + dd[0], rep.y + dd[1], rep.z + dd[2], .wooden_door_open);
+                            } else if (db == .iron_door_closed) {
+                                _ = try manager.editAndRemesh(rep.x + dd[0], rep.y + dd[1], rep.z + dd[2], .iron_door_open);
+                            }
+                        }
                     }
                 } else if (!input_powered and rep.powered) {
                     rep.timer += dt;
@@ -688,6 +697,15 @@ pub fn main() !void {
                         rep.powered = false;
                         rep.timer = 0.0;
                         _ = try manager.editAndRemesh(rep.x, rep.y, rep.z, .repeater_off);
+                        const door_dirs = [_][3]i32{ .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 }, .{ 0, 1, 0 }, .{ 0, -1, 0 } };
+                        for (door_dirs) |dd| {
+                            const db = manager.getBlockWorld(rep.x + dd[0], rep.y + dd[1], rep.z + dd[2]);
+                            if (db == .wooden_door_open) {
+                                _ = try manager.editAndRemesh(rep.x + dd[0], rep.y + dd[1], rep.z + dd[2], .wooden_door_closed);
+                            } else if (db == .iron_door_open) {
+                                _ = try manager.editAndRemesh(rep.x + dd[0], rep.y + dd[1], rep.z + dd[2], .iron_door_closed);
+                            }
+                        }
                     }
                 } else {
                     rep.timer = 0.0;
