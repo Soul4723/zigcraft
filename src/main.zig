@@ -11,6 +11,7 @@ const pick_mod = @import("pick.zig");
 const sky_mod = @import("sky.zig");
 const player_mod = @import("player.zig");
 const block_mod = @import("world/block.zig");
+const redstone_mod = @import("world/redstone.zig");
 const ui_mod = @import("renderer/ui.zig");
 const audio_mod = @import("audio/audio.zig");
 const texture_mod = @import("renderer/texture.zig");
@@ -479,8 +480,8 @@ pub fn main() !void {
                 const w = &wires[wi];
                 for (adj_dirs) |ad| {
                     const nb = manager.getBlockWorld(w.x + ad[0], w.y + ad[1], w.z + ad[2]);
-                    if (nb == .pressure_plate_down or nb == .lever_on or nb == .repeater_on or nb == .redstone_torch_on) {
-                        strength[wi] = 15;
+                    if (redstone_mod.isSource(nb)) {
+                        strength[wi] = redstone_mod.max_strength;
                         break;
                     }
                 }
