@@ -88,3 +88,18 @@ test "projectileBlockCoords floor conversion" {
     try std.testing.expectEqual(@as(i32, -2), coords[1]);
     try std.testing.expectEqual(@as(i32, 5), coords[2]);
 }
+
+pub fn initialVelocity(dir_x: f32, dir_y: f32, dir_z: f32) [3]f32 {
+    return .{
+        dir_x * throw_speed,
+        dir_y * throw_speed + throw_up,
+        dir_z * throw_speed,
+    };
+}
+
+test "initialVelocity calculation" {
+    const v = initialVelocity(1.0, 0.0, 0.0);
+    try std.testing.expectEqual(@as(f32, throw_speed), v[0]);
+    try std.testing.expectEqual(@as(f32, throw_up), v[1]);
+    try std.testing.expectEqual(@as(f32, 0.0), v[2]);
+}

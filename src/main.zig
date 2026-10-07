@@ -1492,7 +1492,8 @@ pub fn main() !void {
         if (!inventory_open and throw_cooldown <= 0.0 and c.glfwGetKey(window, c.GLFW_KEY_G) == c.GLFW_PRESS) {
             if (inventory.slots[selected_slot].item == .snowball and thrown_count < thrown.len) {
                 const dir_g = cam.front();
-                thrown[thrown_count] = .{ .pos = cam.position, .vel = math.Vec3.init(dir_g.x * proj_mod.throw_speed, dir_g.y * proj_mod.throw_speed + proj_mod.throw_up, dir_g.z * proj_mod.throw_speed), .life = proj_mod.throw_life };
+                const vel_g = proj_mod.initialVelocity(dir_g.x, dir_g.y, dir_g.z);
+                thrown[thrown_count] = .{ .pos = cam.position, .vel = math.Vec3.init(vel_g[0], vel_g[1], vel_g[2]), .life = proj_mod.throw_life };
                 thrown_count += 1;
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.place_block, 0.4);
