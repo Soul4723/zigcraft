@@ -68,8 +68,9 @@ pub const ChunkManager = struct {
         var iter = self.chunks.iterator();
         while (iter.next()) |entry| {
             if (entry.value_ptr.modified) {
-                _ = self.persistence.saveChunk(entry.key_ptr.x, entry.key_ptr.z, &entry.value_ptr.chunk);
-                self.saveStages(entry.key_ptr.x, entry.key_ptr.z, &entry.value_ptr.chunk);
+                self.saveModified(entry.key_ptr.*, &entry.value_ptr.chunk) catch |err| {
+                    std.debug.print("failed to save chunk ({d},{d}) during shutdown: {s}\n", .{ entry.key_ptr.x, entry.key_ptr.z, @errorName(err) });
+                };
             }
             if (entry.value_ptr.renderer) |*r| r.deinit();
         }
@@ -91,8 +92,7 @@ pub const ChunkManager = struct {
             const coord = entry.key_ptr.*;
             if (@abs(coord.x - center_cx) > self.radius or @abs(coord.z - center_cz) > self.radius) {
                 if (entry.value_ptr.modified) {
-                    _ = self.persistence.saveChunk(coord.x, coord.z, &entry.value_ptr.chunk);
-                    self.saveStages(coord.x, coord.z, &entry.value_ptr.chunk);
+                    try self.saveModified(coord, &entry.value_ptr.chunk);
                 }
                 if (entry.value_ptr.renderer) |*r| r.deinit();
                 _ = self.chunks.remove(coord);
@@ -261,15 +261,18 @@ pub const ChunkManager = struct {
         return self.chunks.count();
     }
 
-    /// Persist repeater stages inside this chunk via sidecar.
-    /// `stages` holds world-coord [x,y,z,stage] entries; only those in this chunk are kept.
-    pub fn saveStages(self: *const ChunkManager, cx: i32, cz: i32, chunk: *const Chunk) void {
-        _ = chunk;
-        _ = self.stageCache(cx, cz);
-        self.burnoutCache(cx, cz);
+    fn saveModified(self: *const ChunkManager, coord: ChunkCoord, chunk: *const Chunk) !void {
+        if (!self.persistence.saveChunk(coord.x, coord.z, chunk)) return error.ChunkSaveFailed;
+        if (!self.saveStages(coord.x, coord.z, chunk)) return error.SidecarSaveFailed;
     }
 
-    fn burnoutCache(self: *const ChunkManager, cx: i32, cz: i32) void {
+    /// Persist repeater stages and torch burnout sidecars; report any write failure.
+    pub fn saveStages(self: *const ChunkManager, cx: i32, cz: i32, chunk: *const Chunk) bool {
+        _ = chunk;
+        return self.stageCache(cx, cz) and self.burnoutCache(cx, cz);
+    }
+
+    fn burnoutCache(self: *const ChunkManager, cx: i32, cz: i32) bool {
         var buf = [_][4]u8{.{ 0, 0, 0, 0 }} ** 64;
         var n: usize = 0;
         for (burnoutSnapshot[0..burnoutSnapshotLen]) |st| {
@@ -278,7 +281,7 @@ pub const ChunkManager = struct {
             buf[n] = .{ @intCast(@mod(st[0], 16)), @intCast(st[1]), @intCast(@mod(st[2], 16)), @intCast(@min(st[3], 255)) };
             n += 1;
         }
-        _ = self.persistence.saveTorchBurnout(cx, cz, buf[0..n]);
+        return self.persistence.saveTorchBurnout(cx, cz, buf[0..n]);
     }
 
     /// Load persisted burnout entries for chunk (cx,cz) as world coords [x,y,z,secs].
@@ -317,7 +320,7 @@ pub const ChunkManager = struct {
         }
     }
 
-    fn stageCache(self: *const ChunkManager, cx: i32, cz: i32) void {
+    fn stageCache(self: *const ChunkManager, cx: i32, cz: i32) bool {
         var buf = [_][4]u8{.{ 0, 0, 0, 0 }} ** 64;
         var n: usize = 0;
         for (stageSnapshot[0..stageSnapshotLen]) |st| {
@@ -326,7 +329,7 @@ pub const ChunkManager = struct {
             buf[n] = .{ @intCast(@mod(st[0], 16)), @intCast(st[1]), @intCast(@mod(st[2], 16)), @intCast(st[3] & 3) };
             n += 1;
         }
-        _ = self.persistence.saveRepeaterStages(cx, cz, buf[0..n]);
+        return self.persistence.saveRepeaterStages(cx, cz, buf[0..n]);
     }
 
     /// Load persisted repeater stages for chunk (cx,cz) as world coords [x,y,z,stage].
@@ -422,4 +425,38 @@ test "getBlockWorld returns block id or air" {
     try std.testing.expectEqual(block_mod.BlockId.air, mgr.getBlockWorld(2, 6, 2));
     try std.testing.expectEqual(block_mod.BlockId.air, mgr.getBlockWorld(2, -1, 2));
     try std.testing.expectEqual(block_mod.BlockId.air, mgr.getBlockWorld(100, 5, 100));
+}
+
+
+test "streaming retains modified chunk when chunk or sidecar save fails" {
+    const cases = [_]struct { path: []const u8, err: anyerror }{
+        .{ .path = "c_0_0.bin", .err = error.ChunkSaveFailed },
+        .{ .path = "c_0_0.rsp", .err = error.SidecarSaveFailed },
+        .{ .path = "c_0_0.rtb", .err = error.SidecarSaveFailed },
+    };
+    for (cases) |case| {
+        var tmp = std.testing.tmpDir(.{});
+        defer tmp.cleanup();
+        try tmp.dir.createDir(std.testing.io, case.path, .default_dir);
+        var path_buf: [256:0]u8 = undefined;
+        const dir = try std.fmt.bufPrintZ(&path_buf, ".zig-cache/tmp/{s}", .{tmp.sub_path});
+        var mgr = ChunkManager{
+            .allocator = std.testing.allocator,
+            .chunks = std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80).init(std.testing.allocator),
+            .radius = 0,
+            .terrain = terrain_mod.TerrainGenerator.init(0),
+            .persistence = persistence_mod.Persistence.init(dir),
+        };
+        defer mgr.deinit();
+        var ch = Chunk.init();
+        ch.setBlock(1, 2, 3, .wood);
+        try mgr.chunks.put(.{ .x = 0, .z = 0 }, .{ .chunk = ch, .renderer = null, .dirty = false, .modified = true });
+        try std.testing.expectError(case.err, mgr.syncToCenter(10, 10, false));
+        try std.testing.expectEqual(@as(usize, 1), mgr.loadedChunkCount());
+        const retained = mgr.chunks.getPtr(.{ .x = 0, .z = 0 }).?;
+        try std.testing.expect(retained.modified);
+        try std.testing.expectEqual(block_mod.BlockId.wood, retained.chunk.getBlock(1, 2, 3));
+        // Clear only test data so teardown does not deliberately retry a failed save.
+        retained.modified = false;
+    }
 }

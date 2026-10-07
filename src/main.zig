@@ -214,6 +214,7 @@ pub fn main() !void {
     var falling_count: usize = 0;
     var sand_scan: u8 = 0;
     var flow_timer: f32 = 0.0;
+    var chunk_retry_timer: f32 = 0.0;
     var world_time: f32 = 45.0; // Start at morning daylight
     var last_step_dist: f32 = 0.0;
 
@@ -884,7 +885,16 @@ pub fn main() !void {
         }
 
         // Stream chunks dynamically around player
-        try manager.update(player.pos.x, player.pos.z);
+        chunk_retry_timer = @max(0.0, chunk_retry_timer - dt);
+        if (chunk_retry_timer == 0.0) {
+            manager.update(player.pos.x, player.pos.z) catch |err| switch (err) {
+                error.ChunkSaveFailed, error.SidecarSaveFailed => {
+                    std.debug.print("chunk streaming paused: {s}; unsaved chunks retained, retrying in 1 second\n", .{@errorName(err)});
+                    chunk_retry_timer = 1.0;
+                },
+                else => return err,
+            };
+        }
 
         // Mob spawning and physics AI tick
         const is_night_spawn = @sin(world_time) <= 0.0;
@@ -1655,7 +1665,10 @@ pub fn main() !void {
                             }
                             chunk_manager_mod.ChunkManager.setStageSnapshot(snap[0..sn]);
                             if (manager.chunks.getPtr(.{ .x = @divFloor(hit_f.x, 16), .z = @divFloor(hit_f.z, 16) })) |e| {
-                                manager.saveStages(@divFloor(hit_f.x, 16), @divFloor(hit_f.z, 16), &e.chunk);
+                                e.modified = true;
+                                if (!manager.saveStages(@divFloor(hit_f.x, 16), @divFloor(hit_f.z, 16), &e.chunk)) {
+                                    std.debug.print("failed to save repeater stage; chunk retained for retry\n", .{});
+                                }
                             }
                         }
                     }

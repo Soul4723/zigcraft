@@ -60,7 +60,7 @@ pub fn build(b: *std.Build) void {
         "src/world/chunk.zig",
         "src/world/chunk_mesh.zig",
         "src/world/terrain.zig",
-        "src/world/persistence.zig",
+        "src/world/persistence_test.zig",
         "src/chunk_manager.zig",
         "src/frustum.zig",
         "src/pick.zig",
