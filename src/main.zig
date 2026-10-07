@@ -1,3 +1,4 @@
+const interact_mod = @import("world/interact.zig");
 const wear_mod = @import("world/tool_wear.zig");
 const mining_mod = @import("world/mining.zig");
 const toast_mod = @import("renderer/toast.zig");
@@ -1431,9 +1432,9 @@ pub fn main() !void {
             mine.reset();
         }
         // Sleep on wool block at night: aim at wool + press B sets spawn, skips to dawn
-        bed_cooldown = @max(0.0, bed_cooldown - dt);
+        bed_cooldown = interact_mod.tickCooldown(bed_cooldown, dt);
         const sun_y_now = @sin(world_time);
-        if (!inventory_open and bed_cooldown <= 0.0 and c.glfwGetKey(window, c.GLFW_KEY_B) == c.GLFW_PRESS) {
+        if (!inventory_open and interact_mod.ready(bed_cooldown) and c.glfwGetKey(window, c.GLFW_KEY_B) == c.GLFW_PRESS) {
             const dir_b = cam.front();
             if (pick_mod.raycast(&pickSolid, cam.position, dir_b, 5)) |hit_b| {
                 if (manager.getBlockWorld(hit_b.x, hit_b.y, hit_b.z) == .wool) {
@@ -1446,7 +1447,7 @@ pub fn main() !void {
                     } else {
                         std.debug.print("sleep only at night\n", .{});
                     }
-                    bed_cooldown = 1.0;
+                    bed_cooldown = interact_mod.bed_cooldown;
                 }
             }
         }
@@ -1817,8 +1818,8 @@ pub fn main() !void {
             }
         }
         // F: flint spark — ignite aimed flammable block (edge triggered, 0.5s cooldown)
-        flint_cooldown = @max(0.0, flint_cooldown - dt);
-        if (!inventory_open and flint_cooldown <= 0.0 and c.glfwGetKey(window, c.GLFW_KEY_F) == c.GLFW_PRESS) {
+        flint_cooldown = interact_mod.tickCooldown(flint_cooldown, dt);
+        if (!inventory_open and interact_mod.ready(flint_cooldown) and c.glfwGetKey(window, c.GLFW_KEY_F) == c.GLFW_PRESS) {
             const dir_f = cam.front();
             if (pick_mod.raycast(&pickSolid, cam.position, dir_f, 5)) |hit_f| {
                 const target = manager.getBlockWorld(hit_f.x, hit_f.y, hit_f.z);
@@ -1853,7 +1854,7 @@ pub fn main() !void {
                         audio.play(.click_on, 0.6);
                         std.debug.print("repeater delay stage 2 ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
                     }
-                    flint_cooldown = 0.25;
+                    flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .lever_off or target == .lever_on) {
                     const toggled: block_mod.BlockId = if (target == .lever_off) .lever_on else .lever_off;
                     if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, toggled)) {
@@ -1886,24 +1887,24 @@ pub fn main() !void {
                         }
                         std.debug.print("toggled lever to {s} ({d},{d},{d})\n", .{ @tagName(toggled), hit_f.x, hit_f.y, hit_f.z });
                     }
-                    flint_cooldown = 0.25;
+                    flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .iron_door_closed or target == .iron_door_open) {
                     audio.play(.step_stone, 0.7);
                     std.debug.print("iron door locked; requires redstone signal\n", .{});
-                    flint_cooldown = 0.25;
+                    flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .wooden_door_closed or target == .wooden_door_open) {
                     const toggled: block_mod.BlockId = if (target == .wooden_door_closed) .wooden_door_open else .wooden_door_closed;
                     if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, toggled)) {
                         audio.play(.place_block, 0.9);
                         std.debug.print("toggled door to {s} ({d},{d},{d})\n", .{ @tagName(toggled), hit_f.x, hit_f.y, hit_f.z });
                     }
-                    flint_cooldown = 0.25;
+                    flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .tnt and fuse_count < fuses.len) {
                     fuses[fuse_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z, .t = 2.5 };
                     fuse_count += 1;
                     audio.play(.place_block, 0.8);
                     std.debug.print("lit TNT fuse\n", .{});
-                    flint_cooldown = 0.5;
+                    flint_cooldown = interact_mod.flint_edge_cooldown;
                 } else if (target == .chest) {
                     var k: usize = 0;
                     while (k < chest_count) : (k += 1) {
@@ -1956,7 +1957,7 @@ pub fn main() !void {
                             }
                         }
                     }
-                    flint_cooldown = 0.3;
+                    flint_cooldown = interact_mod.flint_feed_cooldown;
                 } else if (target == .furnace) {
                     // feed held item as input or fuel
                     const held_f = inventory.slots[selected_slot];
@@ -1985,7 +1986,7 @@ pub fn main() !void {
                         }
                     }
                     if (fed) audio.play(.place_block, 0.6);
-                    flint_cooldown = 0.5;
+                    flint_cooldown = interact_mod.flint_edge_cooldown;
                 } else
                 if (target.isFlammable()) {
                     particles.spawnFlame(hit_f.x, hit_f.y, hit_f.z, 14);
@@ -1995,7 +1996,7 @@ pub fn main() !void {
                         _ = inventory.addItem(drop_item, 1);
                         std.debug.print("burned {s}\n", .{@tagName(target)});
                     }
-                    flint_cooldown = 0.5;
+                    flint_cooldown = interact_mod.flint_edge_cooldown;
                 }
             }
         }
