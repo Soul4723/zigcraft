@@ -220,7 +220,7 @@ pub fn main() !void {
     var rs_cap_warned_lamp = false;
     var rs_cap_warned_torch = false;
     const FallSand = falling_mod.FallSand;
-    var fallings: [32]FallSand = undefined;
+    var fallings: [falling_mod.falling_cap]FallSand = undefined;
     var falling_count: usize = 0;
     var sand_scan: u8 = 0;
     var flow_timer: f32 = 0.0;
@@ -1420,14 +1420,7 @@ pub fn main() !void {
                                 const wx: i32 = fcx * 16 + @as(i32, @intCast(fx));
                                 const wy: i32 = @as(i32, @intCast(fy));
                                 const wz: i32 = fcz * 16 + @as(i32, @intCast(fz));
-                                var known = false;
-                                for (fallings[0..falling_count]) |f| {
-                                    if (f.x == wx and f.y == wy and f.z == wz) {
-                                        known = true;
-                                        break;
-                                    }
-                                }
-                                if (!known and falling_count < fallings.len) {
+                                if (falling_mod.findFalling(&fallings, falling_count, wx, wy, wz) == null and falling_count < fallings.len) {
                                     fallings[falling_count] = .{ .x = wx, .y = wy, .z = wz, .t = 0.0, .dist = 0 };
                                     falling_count += 1;
                                 }
@@ -1448,7 +1441,7 @@ pub fn main() !void {
                     continue;
                 }
                 f.t += dt;
-                if (f.t >= 0.15) {
+                if (f.t >= falling_mod.fall_interval) {
                     f.t = 0.0;
                     const below = manager.getBlockWorld(f.x, f.y - 1, f.z);
                     const action = falling_mod.evaluateFallingStep(below, f.y);
@@ -1477,20 +1470,14 @@ pub fn main() !void {
                             const dmg = falling_mod.calculateImpactDamage(f.dist);
                             if (dmg > 0) {
                                 for (mob_manager.mobs.items, 0..) |*m, mi| {
-                                    const mbx: i32 = @intFromFloat(@floor(m.pos.x));
-                                    const mby: i32 = @intFromFloat(@floor(m.pos.y));
-                                    const mbz: i32 = @intFromFloat(@floor(m.pos.z));
-                                    if (mbx == f.x and (mby == f.y or mby == f.y + 1) and mbz == f.z) {
+                                    if (falling_mod.isHitByBlock(m.pos.x, m.pos.y, m.pos.z, f.x, f.y, f.z)) {
                                         if (m.takeHitDmg(math.Vec3.init(0, 1, 0), dmg)) {
                                             _ = mob_manager.mobs.swapRemove(mi);
                                         }
                                         break;
                                     }
                                 }
-                                const pbx: i32 = @intFromFloat(@floor(player.pos.x));
-                                const pby: i32 = @intFromFloat(@floor(player.pos.y));
-                                const pbz: i32 = @intFromFloat(@floor(player.pos.z));
-                                if (pbx == f.x and (pby == f.y or pby == f.y + 1) and pbz == f.z) {
+                                if (falling_mod.isHitByBlock(player.pos.x, player.pos.y, player.pos.z, f.x, f.y, f.z)) {
                                     player.health = @max(0.0, player.health - @as(f32, @floatFromInt(dmg)));
                                     audio.play(.hurt, 0.8);
                                 }
