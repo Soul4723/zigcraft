@@ -48,6 +48,7 @@ pub const ItemType = enum(u8) {
     iron_door = 42,
     redstone_torch = 43,
     campfire = 44,
+    cactus = 45,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -80,6 +81,7 @@ pub const ItemType = enum(u8) {
             .iron_door => .iron_door_closed,
             .redstone_torch => .redstone_torch_on,
             .campfire => .campfire,
+            .cactus => .cactus,
             else => null,
         };
     }
@@ -118,6 +120,7 @@ pub const ItemType = enum(u8) {
             .iron_door_closed, .iron_door_open => .iron_door,
             .redstone_torch_off, .redstone_torch_on => .redstone_torch,
             .campfire => .campfire,
+            .cactus => .cactus,
         };
     }
 
@@ -185,6 +188,7 @@ pub const ItemType = enum(u8) {
             .iron_door => "Iron Door",
             .redstone_torch => "Redstone Torch",
             .campfire => "Campfire",
+            .cactus => "Cactus",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -235,6 +239,7 @@ pub const ItemType = enum(u8) {
             .iron_door => .{ 0.85, 0.85, 0.88, 0.95 },
             .redstone_torch => .{ 0.95, 0.22, 0.18, 0.95 },
             .campfire => .{ 0.95, 0.45, 0.10, 0.95 },
+            .cactus => .{ 0.15, 0.60, 0.15, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -907,4 +912,11 @@ test "pressure plate recipe: 2 wood planks horizontal -> 1 pressure plate" {
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .pressure_plate);
     try std.testing.expectEqual(inv.craft_output.count, 1);
+}
+
+test "cactus item mapping and conversion" {
+    const item = ItemType.fromBlockId(.cactus);
+    try std.testing.expectEqual(item, ItemType.cactus);
+    try std.testing.expectEqual(item.toBlockId(), .cactus);
+    try std.testing.expectEqualStrings(item.name(), "Cactus");
 }
