@@ -69,3 +69,30 @@ test "component find helpers" {
     try std.testing.expectEqual(findLamp(&lamps, 1, 3, 4, 5), @as(?usize, 0));
     try std.testing.expectEqual(findLamp(&lamps, 1, 9, 9, 9), @as(?usize, null));
 }
+
+pub const plate_door_offsets = [_][3]i32{
+    .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 },
+    .{ 1, 1, 0 }, .{ -1, 1, 0 }, .{ 0, 1, 1 }, .{ 0, 1, -1 },
+    .{ 0, 1, 0 },
+};
+
+pub fn isPosOnPlate(fx: f32, fy: f32, fz: f32, px: i32, py: i32, pz: i32, margin: f32) bool {
+    const x0 = @as(f32, @floatFromInt(px)) - margin;
+    const x1 = @as(f32, @floatFromInt(px)) + 1.0 + margin;
+    const z0 = @as(f32, @floatFromInt(pz)) - margin;
+    const z1 = @as(f32, @floatFromInt(pz)) + 1.0 + margin;
+    const y0 = @as(f32, @floatFromInt(py)) - 0.1;
+    const y1 = @as(f32, @floatFromInt(py)) + 0.6;
+    return fx >= x0 and fx <= x1 and fz >= z0 and fz <= z1 and fy >= y0 and fy <= y1;
+}
+
+test "isPosOnPlate detection" {
+    // Inside plate at (5, 10, 5) with 0.2 margin
+    try std.testing.expect(isPosOnPlate(5.5, 10.2, 5.5, 5, 10, 5, 0.2));
+    // At margin edge
+    try std.testing.expect(isPosOnPlate(4.85, 10.0, 5.0, 5, 10, 5, 0.2));
+    // Outside horizontally
+    try std.testing.expect(!isPosOnPlate(3.0, 10.0, 5.0, 5, 10, 5, 0.2));
+    // Outside vertically
+    try std.testing.expect(!isPosOnPlate(5.5, 11.0, 5.5, 5, 10, 5, 0.2));
+}
