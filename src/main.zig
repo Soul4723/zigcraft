@@ -1,3 +1,4 @@
+const smelt_mod = @import("world/smelting.zig");
 const boom_mod = @import("world/explosives.zig");
 const sapling_mod = @import("world/sapling.zig");
 const cache_mod = @import("world/component_cache.zig");
@@ -183,8 +184,8 @@ pub fn main() !void {
     const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32 };
     var thrown: [8]Thrown = undefined;
     var thrown_count: usize = 0;
-    const FurnaceJob = struct { x: i32, y: i32, z: i32, t: f32, fuel: u8, input: inventory_mod.ItemType };
-    var furnaces: [16]FurnaceJob = undefined;
+    const FurnaceJob = smelt_mod.FurnaceJob;
+    var furnaces: [smelt_mod.furnace_cap]FurnaceJob = undefined;
     var furnace_count: usize = 0;
     const Chest = struct { x: i32, y: i32, z: i32, items: [4]inventory_mod.ItemStack };
     var chests: [16]Chest = undefined;
@@ -1423,7 +1424,7 @@ pub fn main() !void {
                                             chest_count += 1;
                                         }
                                         if (is_furnace_place and furnace_count < furnaces.len) {
-                                            furnaces[furnace_count] = .{ .x = px, .y = py, .z = pz, .t = 0, .fuel = 0, .input = .none };
+                                            furnaces[furnace_count] = .{ .x = px, .y = py, .z = pz, .t = 0, .fuel = 0, .input = smelt_mod.None };
                                             furnace_count += 1;
                                         }
                                         hotbar_slot.decrement(1);
@@ -1471,20 +1472,15 @@ pub fn main() !void {
                     furnace_count -= 1;
                     continue;
                 }
-                if (f.input != .none and f.fuel > 0) {
+                if (f.input != smelt_mod.None and f.fuel > 0) {
                     f.t += dt;
-                    if (f.t >= 10.0) {
+                    if (f.t >= smelt_mod.smelt_time) {
                         f.t = 0.0;
                         f.fuel -= 1;
-                        const done: inventory_mod.ItemType = switch (f.input) {
-                            .raw_pork => .cooked_pork,
-                            .raw_mutton => .cooked_mutton,
-                            .sand => .glass,
-                            .iron_ore => .iron_ingot,
-                            else => .none,
-                        };
-                        f.input = .none;
-                        if (done != .none) {
+                        const done_tag = smelt_mod.smeltResult(f.input);
+                        f.input = smelt_mod.None;
+                        if (done_tag != smelt_mod.None) {
+                            const done: inventory_mod.ItemType = @enumFromInt(done_tag);
                             _ = inventory.addItem(done, 1);
                             audio.play(.craft_item, 0.7);
                             std.debug.print("smelted {s}\n", .{done.name()});
@@ -1986,7 +1982,7 @@ pub fn main() !void {
                         if (furnaces[k].x == hit_f.x and furnaces[k].y == hit_f.y and furnaces[k].z == hit_f.z) break;
                     }
                     if (k >= furnace_count and furnace_count < furnaces.len) {
-                        furnaces[furnace_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z, .t = 0, .fuel = 0, .input = .none };
+                        furnaces[furnace_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z, .t = 0, .fuel = 0, .input = smelt_mod.None };
                         furnace_count += 1;
                     }
                     if (k < furnaces.len and furnaces[k].x == hit_f.x and furnaces[k].y == hit_f.y and furnaces[k].z == hit_f.z) {
@@ -1994,8 +1990,8 @@ pub fn main() !void {
                             furnaces[k].fuel += 1;
                             inventory.slots[selected_slot].decrement(1);
                             fed = true;
-                        } else if (smeltable and furnaces[k].input == .none) {
-                            furnaces[k].input = held_f.item;
+                        } else if (smeltable and furnaces[k].input == smelt_mod.None) {
+                            furnaces[k].input = @intFromEnum(held_f.item);
                             inventory.slots[selected_slot].decrement(1);
                             fed = true;
                         }
