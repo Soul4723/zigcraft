@@ -1735,14 +1735,8 @@ pub fn main() !void {
                             const dy = hit_f.y + off[1];
                             const dz = hit_f.z + off[2];
                             const db = manager.getBlockWorld(dx, dy, dz);
-                            if (toggled == .lever_on and db == .wooden_door_closed) {
-                                _ = try manager.editAndRemesh(dx, dy, dz, .wooden_door_open);
-                            } else if (toggled == .lever_off and db == .wooden_door_open) {
-                                _ = try manager.editAndRemesh(dx, dy, dz, .wooden_door_closed);
-                            } else if (toggled == .lever_on and db == .iron_door_closed) {
-                                _ = try manager.editAndRemesh(dx, dy, dz, .iron_door_open);
-                            } else if (toggled == .lever_off and db == .iron_door_open) {
-                                _ = try manager.editAndRemesh(dx, dy, dz, .iron_door_closed);
+                            if (interact_mod.toggleDoor(db, toggled == .lever_on)) |new_db| {
+                                _ = try manager.editAndRemesh(dx, dy, dz, new_db);
                             }
                         }
                         std.debug.print("toggled lever to {s} ({d},{d},{d})\n", .{ @tagName(toggled), hit_f.x, hit_f.y, hit_f.z });

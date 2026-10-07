@@ -20,3 +20,24 @@ test "cooldown ticks and readiness" {
     try std.testing.expectEqual(tickCooldown(1.0, 0.4), @as(f32, 0.6));
     try std.testing.expectEqual(tickCooldown(0.2, 0.5), @as(f32, 0.0));
 }
+
+const block_mod = @import("block.zig");
+
+pub fn toggleDoor(door: block_mod.BlockId, open: bool) ?block_mod.BlockId {
+    return switch (door) {
+        .wooden_door_closed => if (open) .wooden_door_open else null,
+        .wooden_door_open => if (!open) .wooden_door_closed else null,
+        .iron_door_closed => if (open) .iron_door_open else null,
+        .iron_door_open => if (!open) .iron_door_closed else null,
+        else => null,
+    };
+}
+
+test "toggleDoor transitions" {
+    try std.testing.expectEqual(block_mod.BlockId.wooden_door_open, toggleDoor(.wooden_door_closed, true).?);
+    try std.testing.expectEqual(block_mod.BlockId.wooden_door_closed, toggleDoor(.wooden_door_open, false).?);
+    try std.testing.expectEqual(block_mod.BlockId.iron_door_open, toggleDoor(.iron_door_closed, true).?);
+    try std.testing.expectEqual(block_mod.BlockId.iron_door_closed, toggleDoor(.iron_door_open, false).?);
+    try std.testing.expectEqual(@as(?block_mod.BlockId, null), toggleDoor(.wooden_door_closed, false));
+    try std.testing.expectEqual(@as(?block_mod.BlockId, null), toggleDoor(.dirt, true));
+}
