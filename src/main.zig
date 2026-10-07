@@ -581,8 +581,7 @@ pub fn main() !void {
                     const w = &wires[wi];
                     const cur_b = manager.getBlockWorld(w.x, w.y, w.z);
                     if (cur_b != .redstone_wire_off and cur_b != .redstone_wire_on) {
-                        wires[wi] = wires[wire_count - 1];
-                        wire_count -= 1;
+                        cache_mod.swapRemove(&wires, &wire_count, wi);
                         continue;
                     }
                     wi += 1;
@@ -680,8 +679,7 @@ pub fn main() !void {
                 const rep = &repeaters[ri];
                 const cur_b = manager.getBlockWorld(rep.x, rep.y, rep.z);
                 if (cur_b != .repeater_off and cur_b != .repeater_on) {
-                    repeaters[ri] = repeaters[repeater_count - 1];
-                    repeater_count -= 1;
+                    cache_mod.swapRemove(&repeaters, &repeater_count, ri);
                     continue;
                 }
 
@@ -737,8 +735,7 @@ pub fn main() !void {
                 const la = &lamps[li];
                 const cur_b = manager.getBlockWorld(la.x, la.y, la.z);
                 if (cur_b != .redstone_lamp_off and cur_b != .redstone_lamp_on) {
-                    lamps[li] = lamps[lamp_count - 1];
-                    lamp_count -= 1;
+                    cache_mod.swapRemove(&lamps, &lamp_count, li);
                     continue;
                 }
 
@@ -767,8 +764,7 @@ pub fn main() !void {
                 const rt = &red_torches[rti];
                 const cur_b = manager.getBlockWorld(rt.x, rt.y, rt.z);
                 if (cur_b != .redstone_torch_on and cur_b != .redstone_torch_off) {
-                    red_torches[rti] = red_torches[red_torch_count - 1];
-                    red_torch_count -= 1;
+                    cache_mod.swapRemove(&red_torches, &red_torch_count, rti);
                     continue;
                 }
 
@@ -847,8 +843,7 @@ pub fn main() !void {
                     }
                 }
                 std.debug.print("sapling grew\n", .{});
-                sprouts[si] = sprouts[sprout_count - 1];
-                sprout_count -= 1;
+                cache_mod.swapRemove(&sprouts, &sprout_count, si);
             } else {
                 si += 1;
             }
@@ -1315,8 +1310,7 @@ pub fn main() !void {
             while (fi < furnace_count) {
                 const f = &furnaces[fi];
                 if (manager.getBlockWorld(f.x, f.y, f.z) != .furnace) {
-                    furnaces[fi] = furnaces[furnace_count - 1];
-                    furnace_count -= 1;
+                    cache_mod.swapRemove(&furnaces, &furnace_count, fi);
                     continue;
                 }
                 const outcome = smelt_mod.tickJob(&f.t, &f.fuel, &f.input, dt);
