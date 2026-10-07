@@ -186,3 +186,28 @@ test "water respects bottom boundary and rejected edits" {
     try std.testing.expectEqual(BlockId.air, world.getBlockWorld(3, 0, 2));
     try std.testing.expectEqual(@as(usize, 0), try step(&world, .{ 2, 20, 2 }));
 }
+
+pub const WashDebris = struct {
+    r: f32,
+    g: f32,
+    b: f32,
+};
+
+pub fn componentWashDebris(block: BlockId) ?WashDebris {
+    return switch (block) {
+        .redstone_wire_off, .redstone_wire_on => .{ .r = 0.6, .g = 0.1, .b = 0.1 },
+        .redstone_torch_off, .redstone_torch_on => .{ .r = 0.7, .g = 0.2, .b = 0.1 },
+        .repeater_off, .repeater_on => .{ .r = 0.5, .g = 0.5, .b = 0.5 },
+        .pressure_plate_up, .pressure_plate_down => .{ .r = 0.6, .g = 0.4, .b = 0.2 },
+        else => null,
+    };
+}
+
+test "componentWashDebris mapping" {
+    try std.testing.expect(componentWashDebris(.redstone_wire_on) != null);
+    try std.testing.expectEqual(@as(f32, 0.6), componentWashDebris(.redstone_wire_on).?.r);
+    try std.testing.expectEqual(@as(f32, 0.7), componentWashDebris(.redstone_torch_on).?.r);
+    try std.testing.expectEqual(@as(f32, 0.5), componentWashDebris(.repeater_off).?.r);
+    try std.testing.expectEqual(@as(f32, 0.6), componentWashDebris(.pressure_plate_up).?.r);
+    try std.testing.expect(componentWashDebris(.stone) == null);
+}

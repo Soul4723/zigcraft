@@ -520,9 +520,10 @@ pub fn main() !void {
             var wri: usize = 0;
             while (wri < wire_count) {
                 const w = &wires[wri];
-                if (fluid_mod.isWashable(manager.getBlockWorld(w.x, w.y, w.z), manager.getBlockWorld(w.x, w.y + 1, w.z))) {
+                const wb = manager.getBlockWorld(w.x, w.y, w.z);
+                if (fluid_mod.isWashable(wb, manager.getBlockWorld(w.x, w.y + 1, w.z))) {
                     _ = try manager.editAndRemesh(w.x, w.y, w.z, .air);
-                    particles.spawnBlockDebris(w.x, w.y, w.z, .{ 0.6, 0.1, 0.1 }, 4);
+                    if (fluid_mod.componentWashDebris(wb)) |deb| particles.spawnBlockDebris(w.x, w.y, w.z, .{ deb.r, deb.g, deb.b }, 4);
                     if (fluid_mod.inPickupRange(@floatFromInt(w.x), @floatFromInt(w.z), player.pos.x, player.pos.z)) _ = inventory.addItem(.redstone_dust, 1);
                     wires[wri] = wires[wire_count - 1];
                     wire_count -= 1;
@@ -535,7 +536,7 @@ pub fn main() !void {
                 const rt = &red_torches[rti2];
                 if (manager.getBlockWorld(rt.x, rt.y, rt.z) == .water) {
                     _ = try manager.editAndRemesh(rt.x, rt.y, rt.z, .air);
-                    particles.spawnBlockDebris(rt.x, rt.y, rt.z, .{ 0.7, 0.2, 0.1 }, 4);
+                    if (fluid_mod.componentWashDebris(.redstone_torch_on)) |deb| particles.spawnBlockDebris(rt.x, rt.y, rt.z, .{ deb.r, deb.g, deb.b }, 4);
                     if (fluid_mod.inPickupRange(@floatFromInt(rt.x), @floatFromInt(rt.z), player.pos.x, player.pos.z)) _ = inventory.addItem(.redstone_torch, 1);
                     red_torches[rti2] = red_torches[red_torch_count - 1];
                     red_torch_count -= 1;
@@ -548,7 +549,7 @@ pub fn main() !void {
                 const rep = &repeaters[rpi];
                 if (manager.getBlockWorld(rep.x, rep.y, rep.z) == .water) {
                     _ = try manager.editAndRemesh(rep.x, rep.y, rep.z, .air);
-                    particles.spawnBlockDebris(rep.x, rep.y, rep.z, .{ 0.5, 0.5, 0.5 }, 4);
+                    if (fluid_mod.componentWashDebris(.repeater_off)) |deb| particles.spawnBlockDebris(rep.x, rep.y, rep.z, .{ deb.r, deb.g, deb.b }, 4);
                     if (fluid_mod.inPickupRange(@floatFromInt(rep.x), @floatFromInt(rep.z), player.pos.x, player.pos.z)) _ = inventory.addItem(.redstone_repeater, 1);
                     repeaters[rpi] = repeaters[repeater_count - 1];
                     repeater_count -= 1;
@@ -561,7 +562,7 @@ pub fn main() !void {
                 const pl = &plates[ppi];
                 if (manager.getBlockWorld(pl.x, pl.y, pl.z) == .water) {
                     _ = try manager.editAndRemesh(pl.x, pl.y, pl.z, .air);
-                    particles.spawnBlockDebris(pl.x, pl.y, pl.z, .{ 0.6, 0.4, 0.2 }, 4);
+                    if (fluid_mod.componentWashDebris(.pressure_plate_up)) |deb| particles.spawnBlockDebris(pl.x, pl.y, pl.z, .{ deb.r, deb.g, deb.b }, 4);
                     if (fluid_mod.inPickupRange(@floatFromInt(pl.x), @floatFromInt(pl.z), player.pos.x, player.pos.z)) _ = inventory.addItem(.pressure_plate, 1);
                     plates[ppi] = plates[plate_count - 1];
                     plate_count -= 1;
