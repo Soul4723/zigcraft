@@ -517,7 +517,7 @@ pub fn main() !void {
             while (wri < wire_count) {
                 const w = &wires[wri];
                 const wb = manager.getBlockWorld(w.x, w.y, w.z);
-                if (fluid_mod.isWashable(wb, manager.getBlockWorld(w.x, w.y + 1, w.z))) {
+                if (fluid_mod.evaluateComponentWash(wb, manager.getBlockWorld(w.x, w.y + 1, w.z)) == .wash) {
                     _ = try manager.editAndRemesh(w.x, w.y, w.z, .air);
                     if (fluid_mod.componentWashDebris(wb)) |deb| particles.spawnBlockDebris(w.x, w.y, w.z, .{ deb.r, deb.g, deb.b }, 4);
                     if (fluid_mod.inPickupRange(@floatFromInt(w.x), @floatFromInt(w.z), player.pos.x, player.pos.z)) _ = inventory.addItem(.redstone_dust, 1);

@@ -211,3 +211,18 @@ test "componentWashDebris mapping" {
     try std.testing.expectEqual(@as(f32, 0.6), componentWashDebris(.pressure_plate_up).?.r);
     try std.testing.expect(componentWashDebris(.stone) == null);
 }
+
+pub const WashAction = enum {
+    wash,
+    keep,
+};
+
+pub fn evaluateComponentWash(cell: BlockId, above: BlockId) WashAction {
+    return if (isWashable(cell, above)) .wash else .keep;
+}
+
+test "evaluateComponentWash action" {
+    try std.testing.expectEqual(WashAction.wash, evaluateComponentWash(.water, .air));
+    try std.testing.expectEqual(WashAction.wash, evaluateComponentWash(.redstone_wire_on, .water));
+    try std.testing.expectEqual(WashAction.keep, evaluateComponentWash(.redstone_wire_on, .air));
+}
