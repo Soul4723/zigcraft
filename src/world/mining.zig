@@ -65,3 +65,21 @@ test "target keys differ per cell" {
     try std.testing.expect(targetKey(1, 2, 3) != targetKey(1, 2, 4));
     try std.testing.expectEqual(targetKey(5, 5, 5), targetKey(5, 5, 5));
 }
+
+pub const LeafBonus = struct {
+    apple: bool,
+    sapling: bool,
+};
+
+pub fn checkLeafBonuses(x: i32, y: i32, z: i32) LeafBonus {
+    return .{
+        .apple = leafAppleDrop(x, y, z),
+        .sapling = leafSaplingDrop(x, y, z),
+    };
+}
+
+test "checkLeafBonuses check" {
+    const b = checkLeafBonuses(0, 0, 0);
+    try std.testing.expectEqual(leafAppleDrop(0, 0, 0), b.apple);
+    try std.testing.expectEqual(leafSaplingDrop(0, 0, 0), b.sapling);
+}
