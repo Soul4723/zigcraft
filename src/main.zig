@@ -1424,13 +1424,11 @@ pub fn main() !void {
                     _ = try manager.editAndRemesh(tr.x, tr.y, tr.z, .air);
                     particles.spawnBlockDebris(tr.x, tr.y, tr.z, .{ 0.8, 0.6, 0.2 }, 4);
                     if (fluid_mod.inPickupRange(@floatFromInt(tr.x), @floatFromInt(tr.z), player.pos.x, player.pos.z)) _ = inventory.addItem(.torch, 1);
-                    torches[ti] = torches[torch_count - 1];
-                    torch_count -= 1;
+                    cache_mod.swapRemove(&torches, &torch_count, ti);
                     continue;
                 }
                 if (cur_tb != .torch) {
-                    torches[ti] = torches[torch_count - 1];
-                    torch_count -= 1;
+                    cache_mod.swapRemove(&torches, &torch_count, ti);
                     continue;
                 }
                 if (cache_mod.isWithinFlameDist(tr.x, tr.z, player.pos.x, player.pos.z)) {
