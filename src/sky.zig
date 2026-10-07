@@ -70,3 +70,39 @@ pub const SkyRenderer = struct {
 test "sky cube has 36 indices" {
     try std.testing.expectEqual(cube_idx.len, 36);
 }
+
+pub const day_length_scale: f32 = 0.05;
+pub const dawn_angle: f32 = 0.25132741228718347; // pi * 0.08
+
+pub fn advanceTime(t: f32, dt: f32) f32 {
+    return t + dt * day_length_scale;
+}
+
+pub fn dayFactor(sun_y: f32) f32 {
+    return @max(0.0, @min(1.0, (sun_y + 0.2) / 0.8));
+}
+
+pub fn timeState(sun_y: f32) []const u8 {
+    if (sun_y > 0.1) return "day";
+    if (sun_y > -0.1) return "dusk";
+    return "night";
+}
+
+pub fn isSleepable(sun_y: f32) bool {
+    return sun_y < 0.15;
+}
+
+test "day factor spans night to day" {
+    try std.testing.expectEqual(dayFactor(-1.0), 0.0);
+    try std.testing.expectEqual(dayFactor(1.0), 1.0);
+    const mid = dayFactor(0.2);
+    try std.testing.expect(mid > 0.4 and mid < 0.6);
+}
+
+test "time states and sleep window" {
+    try std.testing.expectEqualStrings(timeState(0.5), "day");
+    try std.testing.expectEqualStrings(timeState(0.0), "dusk");
+    try std.testing.expectEqualStrings(timeState(-0.5), "night");
+    try std.testing.expect(isSleepable(-0.5));
+    try std.testing.expect(!isSleepable(0.5));
+}
