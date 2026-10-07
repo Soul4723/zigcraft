@@ -55,3 +55,17 @@ test "toggleLever transitions" {
     try std.testing.expectEqual(block_mod.BlockId.lever_off, toggleLever(.lever_on).?);
     try std.testing.expectEqual(@as(?block_mod.BlockId, null), toggleLever(.stone));
 }
+
+pub fn toggleWoodenDoor(door: block_mod.BlockId) ?block_mod.BlockId {
+    return switch (door) {
+        .wooden_door_closed => .wooden_door_open,
+        .wooden_door_open => .wooden_door_closed,
+        else => null,
+    };
+}
+
+test "toggleWoodenDoor transitions" {
+    try std.testing.expectEqual(block_mod.BlockId.wooden_door_open, toggleWoodenDoor(.wooden_door_closed).?);
+    try std.testing.expectEqual(block_mod.BlockId.wooden_door_closed, toggleWoodenDoor(.wooden_door_open).?);
+    try std.testing.expectEqual(@as(?block_mod.BlockId, null), toggleWoodenDoor(.iron_door_closed));
+}

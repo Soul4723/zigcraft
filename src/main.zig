@@ -1646,8 +1646,7 @@ pub fn main() !void {
                     audio.play(.step_stone, 0.7);
                     std.debug.print("iron door locked; requires redstone signal\n", .{});
                     flint_cooldown = interact_mod.flint_action_cooldown;
-                } else if (target == .wooden_door_closed or target == .wooden_door_open) {
-                    const toggled: block_mod.BlockId = if (target == .wooden_door_closed) .wooden_door_open else .wooden_door_closed;
+                } else if (interact_mod.toggleWoodenDoor(target)) |toggled| {
                     if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, toggled)) {
                         audio.play(.place_block, 0.9);
                         std.debug.print("toggled door to {s} ({d},{d},{d})\n", .{ @tagName(toggled), hit_f.x, hit_f.y, hit_f.z });
