@@ -40,7 +40,7 @@ pub const MobManager = struct {
 
     /// Ensure initial population of sheep/pigs on surface land around center.
     /// Keeps spawning up to cap as mobs die or despawn.
-    pub fn ensureSpawnPopulation(self: *MobManager, chunk_manager: *const chunk_manager_mod.ChunkManager, center_x: f32, center_z: f32) !void {
+    pub fn ensureSpawnPopulation(self: *MobManager, chunk_manager: *const chunk_manager_mod.ChunkManager, center_x: f32, center_z: f32, is_night: bool) !void {
         if (self.mobs.items.len >= 6) return;
 
         var attempts: usize = 0;
@@ -72,7 +72,12 @@ pub const MobManager = struct {
                 }
                 if (wet) continue;
                 const roll = self.rng.random().float(f32);
-                const mtype: mob_mod.MobType = if (roll < 0.42) .sheep else if (roll < 0.84) .pig else .wolf;
+                const category = spawn_rules.selectMobType(roll, is_night);
+                const mtype: mob_mod.MobType = switch (category) {
+                    .sheep => .sheep,
+                    .pig => .pig,
+                    .wolf => .wolf,
+                };
                 try self.spawnMob(mtype, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
                 break;
             }
