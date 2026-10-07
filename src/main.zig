@@ -1766,15 +1766,13 @@ pub fn main() !void {
                     std.debug.print("lit TNT fuse\n", .{});
                     flint_cooldown = interact_mod.flint_edge_cooldown;
                 } else if (target == .chest) {
-                    var k: usize = 0;
-                    while (k < chest_count) : (k += 1) {
-                        if (chests[k].x == hit_f.x and chests[k].y == hit_f.y and chests[k].z == hit_f.z) break;
-                    }
-                    if (k >= chest_count and chest_count < chests.len) {
+                    var k_opt = cache_mod.findChest(&chests, chest_count, hit_f.x, hit_f.y, hit_f.z);
+                    if (k_opt == null and chest_count < chests.len) {
                         chests[chest_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z, .items = [_]inventory_mod.ItemStack{.{}} ** 4 };
+                        k_opt = chest_count;
                         chest_count += 1;
                     }
-                    if (k < chests.len and chests[k].x == hit_f.x and chests[k].y == hit_f.y and chests[k].z == hit_f.z) {
+                    if (k_opt) |k| {
                         const held_item = inventory.slots[selected_slot].item;
                         if (held_item != .none) {
                             var stored = false;
@@ -1826,15 +1824,13 @@ pub fn main() !void {
                         else => false,
                     };
                     var fed = false;
-                    var k: usize = 0;
-                    while (k < furnace_count) : (k += 1) {
-                        if (furnaces[k].x == hit_f.x and furnaces[k].y == hit_f.y and furnaces[k].z == hit_f.z) break;
-                    }
-                    if (k >= furnace_count and furnace_count < furnaces.len) {
+                    var k_opt = cache_mod.findFurnace(&furnaces, furnace_count, hit_f.x, hit_f.y, hit_f.z);
+                    if (k_opt == null and furnace_count < furnaces.len) {
                         furnaces[furnace_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z, .t = 0, .fuel = 0, .input = smelt_mod.None };
+                        k_opt = furnace_count;
                         furnace_count += 1;
                     }
-                    if (k < furnaces.len and furnaces[k].x == hit_f.x and furnaces[k].y == hit_f.y and furnaces[k].z == hit_f.z) {
+                    if (k_opt) |k| {
                         if (held_f.item == .coal and furnaces[k].fuel < 8) {
                             furnaces[k].fuel += 1;
                             inventory.slots[selected_slot].decrement(1);
