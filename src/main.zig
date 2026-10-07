@@ -1449,9 +1449,10 @@ pub fn main() !void {
                 t.life = st.life;
                 var dead = proj_mod.isExpired(t.life);
                 if (!dead) {
-                    const mbx: i32 = @intFromFloat(@floor(t.pos.x));
-                    const mby: i32 = @intFromFloat(@floor(t.pos.y));
-                    const mbz: i32 = @intFromFloat(@floor(t.pos.z));
+                    const mbc = proj_mod.projectileBlockCoords(t.pos.x, t.pos.y, t.pos.z);
+                    const mbx = mbc[0];
+                    const mby = mbc[1];
+                    const mbz = mbc[2];
                     if (pickSolid(mbx, mby, mbz)) {
                         particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.93, 0.95, 1.0 }, 6);
                         dead = true;

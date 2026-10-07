@@ -73,3 +73,18 @@ test "stepMotion updates velocity and position" {
     try std.testing.expectEqual(@as(f32, 7.0), s.pos[1]);
     try std.testing.expectEqual(@as(f32, 1.0), s.pos[2]);
 }
+
+pub fn projectileBlockCoords(px: f32, py: f32, pz: f32) [3]i32 {
+    return .{
+        @intFromFloat(@floor(px)),
+        @intFromFloat(@floor(py)),
+        @intFromFloat(@floor(pz)),
+    };
+}
+
+test "projectileBlockCoords floor conversion" {
+    const coords = projectileBlockCoords(2.8, -1.2, 5.0);
+    try std.testing.expectEqual(@as(i32, 2), coords[0]);
+    try std.testing.expectEqual(@as(i32, -2), coords[1]);
+    try std.testing.expectEqual(@as(i32, 5), coords[2]);
+}
