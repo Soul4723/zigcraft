@@ -986,7 +986,8 @@ pub fn main() !void {
         try manager.update(player.pos.x, player.pos.z);
 
         // Mob spawning and physics AI tick
-        try mob_manager.ensureSpawnPopulation(&manager, player.pos.x, player.pos.z);
+        const is_night_spawn = @sin(world_time) <= 0.0;
+        try mob_manager.ensureSpawnPopulation(&manager, player.pos.x, player.pos.z, is_night_spawn);
         mob_manager.tick(&pickSolid, player.pos, player.radius, &audio, dt);
 
         // Wolf bites: contact damage with per-second cooldown

@@ -5,6 +5,24 @@ const BlockId = block_mod.BlockId;
 pub const spawn_radius: f32 = 18.0;
 pub const deep_water_depth: i32 = 3;
 
+pub const SpawnCategory = enum {
+    sheep,
+    pig,
+    wolf,
+};
+
+pub fn selectMobType(roll: f32, is_night: bool) SpawnCategory {
+    if (is_night) {
+        if (roll < 0.60) return .wolf;
+        if (roll < 0.80) return .pig;
+        return .sheep;
+    } else {
+        if (roll < 0.42) return .sheep;
+        if (roll < 0.84) return .pig;
+        return .wolf;
+    }
+}
+
 pub fn isSpawnGround(block: BlockId) bool {
     return block == .grass or block == .dirt or block == .sand;
 }
@@ -69,4 +87,16 @@ test "safe spawn on flat grass" {
 
 test "no spawn over deep water" {
     try std.testing.expect(!isSafeSpawn(&lakeWorld, 0, 5, 0));
+}
+
+test "day vs night mob type selection" {
+    // Day distribution: 0.1 -> sheep, 0.5 -> pig, 0.9 -> wolf
+    try std.testing.expectEqual(selectMobType(0.1, false), .sheep);
+    try std.testing.expectEqual(selectMobType(0.5, false), .pig);
+    try std.testing.expectEqual(selectMobType(0.9, false), .wolf);
+
+    // Night distribution: 0.5 -> wolf, 0.7 -> pig, 0.9 -> sheep
+    try std.testing.expectEqual(selectMobType(0.5, true), .wolf);
+    try std.testing.expectEqual(selectMobType(0.7, true), .pig);
+    try std.testing.expectEqual(selectMobType(0.9, true), .sheep);
 }
