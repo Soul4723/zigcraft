@@ -174,6 +174,21 @@ pub const MobManager = struct {
     pub fn draw(self: *MobManager, view_proj: math.Mat4, sun_dir: math.Vec3) !void {
         try self.renderer.drawMobs(self.mobs.items, view_proj, sun_dir);
     }
+
+    pub fn countNearbyWolves(self: *const MobManager, center: math.Vec3, radius: f32) usize {
+        var count: usize = 0;
+        const r_sq = radius * radius;
+        for (self.mobs.items) |m| {
+            if (m.mob_type != .wolf) continue;
+            const dx = m.pos.x - center.x;
+            const dy = m.pos.y - center.y;
+            const dz = m.pos.z - center.z;
+            if (dx * dx + dy * dy + dz * dz <= r_sq) {
+                count += 1;
+            }
+        }
+        return count;
+    }
 };
 
 test "MobManager spawn and tick list" {
@@ -182,4 +197,25 @@ test "MobManager spawn and tick list" {
 
     try mobs.append(std.testing.allocator, mob_mod.Mob.init(.sheep, 0, 5, 0));
     try std.testing.expectEqual(@as(usize, 1), mobs.items.len);
+}
+
+test "MobManager countNearbyWolves" {
+    var mobs = std.ArrayList(mob_mod.Mob).empty;
+    defer mobs.deinit(std.testing.allocator);
+
+    try mobs.append(std.testing.allocator, mob_mod.Mob.init(.wolf, 0, 0, 0));
+    try mobs.append(std.testing.allocator, mob_mod.Mob.init(.wolf, 2, 0, 2));
+    try mobs.append(std.testing.allocator, mob_mod.Mob.init(.sheep, 1, 0, 1));
+    try mobs.append(std.testing.allocator, mob_mod.Mob.init(.wolf, 20, 0, 20));
+
+    var count: usize = 0;
+    const r_sq = 8.0 * 8.0;
+    for (mobs.items) |m| {
+        if (m.mob_type != .wolf) continue;
+        const dx = m.pos.x - 0.0;
+        const dy = m.pos.y - 0.0;
+        const dz = m.pos.z - 0.0;
+        if (dx * dx + dy * dy + dz * dz <= r_sq) count += 1;
+    }
+    try std.testing.expectEqual(count, 2);
 }
