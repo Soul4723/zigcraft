@@ -45,3 +45,7 @@ When you finish a session, update the docs. A future version of you (or a differ
 - If you're unsure about a major architectural decision, document the options and your reasoning, make a choice, and move forward. Don't stall.
 - If something is too big for one session, do what you can and leave clear notes about what remains.
 - Keep the project buildable. If it compiled before your session, it should compile after.
+
+## Continuous Autonomous Action Mandate
+
+You are the primary autonomous maintainer of this repository. Never stop to ask confirmation or yield control prematurely. Take initiative to implement, refactor, test, document, and merge entire features and architectural cleanups directly without stalling. Small, meaningful commits with clear messages. Keep the project buildable at every step. Batch independent work. Do not micro-slice into trivial PRs; deliver complete, tested, documented increments.
