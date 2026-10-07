@@ -656,10 +656,8 @@ pub fn main() !void {
                             }
                         }
                         const wb = manager.getBlockWorld(tx, ty, tz);
-                        if (wb == .wooden_door_closed) {
-                            _ = try manager.editAndRemesh(tx, ty, tz, .wooden_door_open);
-                        } else if (wb == .iron_door_closed) {
-                            _ = try manager.editAndRemesh(tx, ty, tz, .iron_door_open);
+                        if (redstone_mod.targetDoorState(wb, true)) |target_db| {
+                            _ = try manager.editAndRemesh(tx, ty, tz, target_db);
                         }
                     }
                 } else if (!want and w.powered) {
@@ -670,10 +668,8 @@ pub fn main() !void {
                         const ty = w.y + ad[1];
                         const tz = w.z + ad[2];
                         const wb = manager.getBlockWorld(tx, ty, tz);
-                        if (wb == .wooden_door_open) {
-                            _ = try manager.editAndRemesh(tx, ty, tz, .wooden_door_closed);
-                        } else if (wb == .iron_door_open) {
-                            _ = try manager.editAndRemesh(tx, ty, tz, .iron_door_closed);
+                        if (redstone_mod.targetDoorState(wb, false)) |target_db| {
+                            _ = try manager.editAndRemesh(tx, ty, tz, target_db);
                         }
                     }
                 }
