@@ -1,3 +1,4 @@
+const wear_mod = @import("world/tool_wear.zig");
 const mining_mod = @import("world/mining.zig");
 const toast_mod = @import("renderer/toast.zig");
 const combat_mod = @import("world/combat.zig");
@@ -161,7 +162,7 @@ pub fn main() !void {
     var e_key_down = false;
     var selected_slot: usize = 0;
     var mine = mining_mod.MineState{};
-    var tool_wear: [6]u16 = [_]u16{0} ** 6;
+    var tool_wear = wear_mod.Wear{};
 
     // Timing & Day/Night cycle
     var last_time = c.glfwGetTime();
@@ -1179,7 +1180,7 @@ pub fn main() !void {
 
         // Reset wear counters for slots not holding a damaged tool
         for (0..6) |ws| {
-            if (!inventory.slots[ws].item.isTool()) tool_wear[ws] = 0;
+            tool_wear.clearIfNotTool(ws, inventory.slots[ws].item.isTool());
         }
 
         // Mouse click handling: In-game block editing or Inventory slot clicking
@@ -1282,10 +1283,8 @@ pub fn main() !void {
                 if (hit_mob_opt) |hit_mob| {
                     mob_hit_cooldown = combat_mod.melee_cooldown;
                     if (held_weapon.isTool()) {
-                        tool_wear[selected_slot] += 1;
-                        if (tool_wear[selected_slot] >= held_weapon.maxDurability()) {
+                        if (tool_wear.use(selected_slot, held_weapon.maxDurability())) {
                             inventory.slots[selected_slot].clear();
-                            tool_wear[selected_slot] = 0;
                         }
                     }
                     const hit_sound: audio_mod.synth.SoundType = switch (hit_mob.mob_type) {
@@ -1367,10 +1366,8 @@ pub fn main() !void {
                                 }
                                 // Tools wear down one use per mined block
                                 if (held.isTool()) {
-                                    tool_wear[selected_slot] += 1;
-                                    if (tool_wear[selected_slot] >= held.maxDurability()) {
+                                    if (tool_wear.use(selected_slot, held.maxDurability())) {
                                         inventory.slots[selected_slot].clear();
-                                        tool_wear[selected_slot] = 0;
                                         std.debug.print("pickaxe broke\n", .{});
                                     }
                                 }
