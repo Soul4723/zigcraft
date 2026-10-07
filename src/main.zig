@@ -1,3 +1,4 @@
+const boom_mod = @import("world/explosives.zig");
 const sapling_mod = @import("world/sapling.zig");
 const cache_mod = @import("world/component_cache.zig");
 const fluid_mod = @import("world/fluid_wash.zig");
@@ -172,8 +173,8 @@ pub fn main() !void {
     var flint_cooldown: f32 = 0.0;
     var throw_cooldown: f32 = 0.0;
     var wolf_bite_cooldown: f32 = 0.0;
-    const Fuse = struct { x: i32, y: i32, z: i32, t: f32 };
-    var fuses: [16]Fuse = undefined;
+    const Fuse = boom_mod.Fuse;
+    var fuses: [boom_mod.fuse_cap]Fuse = undefined;
     var fuse_count: usize = 0;
     const Torch = struct { x: i32, y: i32, z: i32 };
     var torches: [32]Torch = undefined;
@@ -726,7 +727,7 @@ pub fn main() !void {
                                 }
                             }
                             if (!dup) {
-                                fuses[fuse_count] = .{ .x = tx, .y = ty, .z = tz, .t = 2.0 };
+                                fuses[fuse_count] = .{ .x = tx, .y = ty, .z = tz, .t = boom_mod.fuse_time };
                                 fuse_count += 1;
                                 audio.play(.place_block, 0.8);
                                 std.debug.print("redstone wire ignited TNT ({d},{d},{d})\n", .{ tx, ty, tz });
@@ -1749,13 +1750,13 @@ pub fn main() !void {
                     // remove TNT block itself
                     _ = try manager.editAndRemesh(ex, ey, ez, .air);
                     // explode 3-block sphere
-                    var rx: i32 = -3;
-                    while (rx <= 3) : (rx += 1) {
-                        var ry: i32 = -3;
-                        while (ry <= 3) : (ry += 1) {
-                            var rz: i32 = -3;
-                            while (rz <= 3) : (rz += 1) {
-                                if (rx * rx + ry * ry + rz * rz <= 10) {
+                    var rx: i32 = -boom_mod.blast_radius;
+                    while (rx <= boom_mod.blast_radius) : (rx += 1) {
+                        var ry: i32 = -boom_mod.blast_radius;
+                        while (ry <= boom_mod.blast_radius) : (ry += 1) {
+                            var rz: i32 = -boom_mod.blast_radius;
+                            while (rz <= boom_mod.blast_radius) : (rz += 1) {
+                                if (boom_mod.inBlast(rx, ry, rz)) {
                                     const bx = ex + rx;
                                     const by = ey + ry;
                                     const bz = ez + rz;
@@ -1771,7 +1772,7 @@ pub fn main() !void {
                                                 }
                                             }
                                             if (!already and fuse_count < fuses.len) {
-                                                fuses[fuse_count] = .{ .x = bx, .y = by, .z = bz, .t = 0.5 };
+                                                fuses[fuse_count] = .{ .x = bx, .y = by, .z = bz, .t = boom_mod.chain_fuse_time };
                                                 fuse_count += 1;
                                                 std.debug.print("chain-detonated TNT ({d},{d},{d})\n", .{ bx, by, bz });
                                             }
@@ -1804,8 +1805,8 @@ pub fn main() !void {
                         const mdy = m.pos.y - @as(f32, @floatFromInt(ey));
                         const mdz = m.pos.z - @as(f32, @floatFromInt(ez));
                         const dist_sq = mdx * mdx + mdy * mdy + mdz * mdz;
-                        if (dist_sq < 36.0) {
-                            const died = m.takeHitDmg(math.Vec3.init(mdx, mdy + 2.0, mdz), 8);
+                        if (dist_sq < boom_mod.mob_blast_radius_sq) {
+                            const died = m.takeHitDmg(math.Vec3.init(mdx, mdy + 2.0, mdz), boom_mod.mob_blast_damage);
                             if (died) {
                                 _ = mob_manager.mobs.swapRemove(mi);
                             }
@@ -1816,9 +1817,9 @@ pub fn main() !void {
                     const pdy = player.pos.y - @as(f32, @floatFromInt(ey));
                     const pdz = player.pos.z - @as(f32, @floatFromInt(ez));
                     const pdist = @sqrt(pdx * pdx + pdy * pdy + pdz * pdz);
-                    if (pdist < 7.0 and pdist > 0.1) {
-                        const blast_force = (7.0 - pdist) / 7.0;
-                        player.health = @max(0.0, player.health - blast_force * 14.0);
+                    const blast_force = boom_mod.blastFalloff(pdist);
+                    if (blast_force > 0.0) {
+                        player.health = @max(0.0, player.health - blast_force * boom_mod.player_blast_damage);
                         player.vel_y = blast_force * 12.0;
                         player.pos.x += (pdx / pdist) * blast_force * 3.0;
                         player.pos.z += (pdz / pdist) * blast_force * 3.0;
