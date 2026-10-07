@@ -1485,8 +1485,7 @@ pub fn main() !void {
                     }
                 }
                 if (dead) {
-                    thrown[ti] = thrown[thrown_count - 1];
-                    thrown_count -= 1;
+                    cache_mod.swapRemove(&thrown, &thrown_count, ti);
                 } else {
                     // trail puff
                     particles.spawnBlockDebris(@intFromFloat(@floor(t.pos.x)), @intFromFloat(@floor(t.pos.y)), @intFromFloat(@floor(t.pos.z)), .{ 0.9, 0.92, 1.0 }, 1);
