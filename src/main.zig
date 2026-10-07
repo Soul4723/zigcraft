@@ -1576,8 +1576,7 @@ pub fn main() !void {
                         player.pos.z += imp.push_z;
                         audio.play(.hurt, 1.0);
                     }
-                    fuses[fsi] = fuses[fuse_count - 1];
-                    fuse_count -= 1;
+                    cache_mod.swapRemove(&fuses, &fuse_count, fsi);
                 } else {
                     fsi += 1;
                 }
