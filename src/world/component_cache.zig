@@ -123,3 +123,16 @@ test "findChest helper" {
     try std.testing.expectEqual(findChest(&cs, 1, 1, 2, 3), @as(?usize, 0));
     try std.testing.expectEqual(findChest(&cs, 1, 9, 9, 9), @as(?usize, null));
 }
+
+pub const Furnace = struct { x: i32, y: i32, z: i32 };
+
+pub fn findFurnace(furnaces: anytype, n: usize, x: i32, y: i32, z: i32) ?usize {
+    return find2D(furnaces, n, x, y, z);
+}
+
+test "findFurnace helper" {
+    const FakeFurnace = struct { x: i32, y: i32, z: i32 };
+    var fs = [_]FakeFurnace{.{ .x = 1, .y = 2, .z = 3 }} ** 2;
+    try std.testing.expectEqual(findFurnace(&fs, 1, 1, 2, 3), @as(?usize, 0));
+    try std.testing.expectEqual(findFurnace(&fs, 1, 9, 9, 9), @as(?usize, null));
+}
