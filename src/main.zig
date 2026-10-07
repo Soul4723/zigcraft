@@ -998,13 +998,16 @@ pub fn main() !void {
                 const bdz = m.pos.z - player.pos.z;
                 const bdy = m.pos.y - player.pos.y;
                 if (combat_mod.inBiteRange(bdx, bdz, bdy)) {
-                    player.health = @max(0.0, player.health - combat_mod.wolf_bite_damage);
+                    const pack_count = mob_manager.countNearbyWolves(m.pos, entity_mod.pack_hunt.pack_rally_radius);
+                    const bonus = entity_mod.pack_hunt.packBonus(pack_count);
+                    const dmg = combat_mod.wolfDamage(combat_mod.wolf_bite_damage, bonus);
+                    player.health = @max(0.0, player.health - dmg);
                     audio.play(.hurt, 0.8);
                     // knock player slightly away
                     const bl = @max(0.5, @sqrt(bdx * bdx + bdz * bdz));
                     player.pos.x -= bdx / bl * 0.6;
                     player.pos.z -= bdz / bl * 0.6;
-                    std.debug.print("wolf bite (hp={d:.1})\n", .{player.health});
+                    std.debug.print("wolf bite (hp={d:.1}, pack={d}, bonus={d:.1})\n", .{ player.health, pack_count, bonus });
                     wolf_bite_cooldown = combat_mod.wolf_bite_cooldown;
                     break;
                 }

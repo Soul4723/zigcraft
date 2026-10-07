@@ -21,6 +21,11 @@ pub fn meleeDamage(is_sword: bool) u8 {
     return if (is_sword) sword_damage else hand_damage;
 }
 
+pub fn wolfDamage(base: f32, pack_bonus: f32) f32 {
+    return base + pack_bonus;
+}
+
+
 test "bite range box" {
     try std.testing.expect(inBiteRange(0, 0, 0));
     try std.testing.expect(inBiteRange(1.0, 0.5, 1.0));
@@ -36,4 +41,9 @@ test "cooldown ticks down and clamps" {
 test "melee damage tiers" {
     try std.testing.expectEqual(meleeDamage(true), @as(u8, 2));
     try std.testing.expectEqual(meleeDamage(false), @as(u8, 1));
+}
+
+test "wolf damage calculation with pack bonus" {
+    try std.testing.expectEqual(wolfDamage(wolf_bite_damage, 0.0), 2.0);
+    try std.testing.expectEqual(wolfDamage(wolf_bite_damage, 1.5), 3.5);
 }
