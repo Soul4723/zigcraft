@@ -863,19 +863,11 @@ pub fn main() !void {
                 const sx = sprouts[si].x;
                 const sy = sprouts[si].y;
                 const sz = sprouts[si].z;
-                var gi: i32 = 1;
-                while (gi <= sapling_mod.trunk_height) : (gi += 1) {
-                    if (manager.getBlockWorld(sx, sy + gi, sz) == .air) _ = try manager.editAndRemesh(sx, sy + gi, sz, .wood);
-                }
-                var ox: i32 = -1;
-                while (ox <= 1) : (ox += 1) {
-                    var oz: i32 = -1;
-                    while (oz <= 1) : (oz += 1) {
-                        if (ox == 0 and oz == 0) continue;
-                        if (manager.getBlockWorld(sx + ox, sy + 4, sz + oz) == .air) _ = try manager.editAndRemesh(sx + ox, sy + 4, sz + oz, .leaves);
+                for (sapling_mod.tree_structure) |tb| {
+                    if (manager.getBlockWorld(sx + tb.dx, sy + tb.dy, sz + tb.dz) == .air) {
+                        _ = try manager.editAndRemesh(sx + tb.dx, sy + tb.dy, sz + tb.dz, tb.block);
                     }
                 }
-                if (manager.getBlockWorld(sx, sapling_mod.trunkTopY(sy), sz) == .air) _ = try manager.editAndRemesh(sx, sapling_mod.trunkTopY(sy), sz, .leaves);
                 std.debug.print("sapling grew\n", .{});
                 sprouts[si] = sprouts[sprout_count - 1];
                 sprout_count -= 1;

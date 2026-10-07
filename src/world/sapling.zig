@@ -39,3 +39,43 @@ test "canPlant check" {
     try std.testing.expect(!canPlant(.grass, 1, 14)); // 14 + 2 is not < 16
     try std.testing.expect(canPlant(.grass, 1, 13)); // 13 + 2 is 15 < 16
 }
+
+pub const TreeBlockOffset = struct {
+    dx: i32,
+    dy: i32,
+    dz: i32,
+    block: BlockId,
+};
+
+pub const tree_structure: [12]TreeBlockOffset = init: {
+    var offsets: [12]TreeBlockOffset = undefined;
+    var idx: usize = 0;
+    var gi: i32 = 1;
+    while (gi <= trunk_height) : (gi += 1) {
+        offsets[idx] = .{ .dx = 0, .dy = gi, .dz = 0, .block = .wood };
+        idx += 1;
+    }
+    var ox: i32 = -1;
+    while (ox <= 1) : (ox += 1) {
+        var oz: i32 = -1;
+        while (oz <= 1) : (oz += 1) {
+            if (ox == 0 and oz == 0) continue;
+            offsets[idx] = .{ .dx = ox, .dy = trunk_height + 1, .dz = oz, .block = .leaves };
+            idx += 1;
+        }
+    }
+    offsets[idx] = .{ .dx = 0, .dy = trunk_height + 1, .dz = 0, .block = .leaves };
+    break :init offsets;
+};
+
+test "tree structure count and blocks" {
+    try std.testing.expectEqual(@as(usize, 12), tree_structure.len);
+    var wood_count: usize = 0;
+    var leaf_count: usize = 0;
+    for (tree_structure) |b| {
+        if (b.block == .wood) wood_count += 1;
+        if (b.block == .leaves) leaf_count += 1;
+    }
+    try std.testing.expectEqual(@as(usize, 3), wood_count);
+    try std.testing.expectEqual(@as(usize, 9), leaf_count);
+}
