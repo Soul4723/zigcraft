@@ -208,3 +208,12 @@ test "component creation limits" {
     try std.testing.expect(canCreateFurnace(5, 16));
     try std.testing.expect(!canCreateFurnace(16, 16));
 }
+
+pub fn canCreateTorch(torch_count: usize, max_torches: usize) bool {
+    return torch_count < max_torches;
+}
+
+test "canCreateTorch limit" {
+    try std.testing.expect(canCreateTorch(0, 32));
+    try std.testing.expect(!canCreateTorch(32, 32));
+}

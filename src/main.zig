@@ -1247,15 +1247,15 @@ pub fn main() !void {
                                         audio.play(.place_block, 0.7);
                                         const pcol = hotbar_slot.item.getColor();
                                         particles.spawnBlockDebris(px, py, pz, .{ pcol[0], pcol[1], pcol[2] }, 8);
-                                        if (place_type == .torch and torch_count < torches.len) {
+                                        if (place_type == .torch and cache_mod.canCreateTorch(torch_count, torches.len)) {
                                             torches[torch_count] = .{ .x = px, .y = py, .z = pz };
                                             torch_count += 1;
                                         }
-                                        if (place_type == .chest and chest_count < chests.len) {
+                                        if (place_type == .chest and cache_mod.canCreateChest(chest_count, chests.len)) {
                                             chests[chest_count] = .{ .x = px, .y = py, .z = pz, .items = [_]inventory_mod.ItemStack{.{}} ** 4 };
                                             chest_count += 1;
                                         }
-                                        if (is_furnace_place and furnace_count < furnaces.len) {
+                                        if (is_furnace_place and cache_mod.canCreateFurnace(furnace_count, furnaces.len)) {
                                             furnaces[furnace_count] = .{ .x = px, .y = py, .z = pz, .t = 0, .fuel = 0, .input = smelt_mod.None };
                                             furnace_count += 1;
                                         }
