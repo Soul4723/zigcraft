@@ -367,3 +367,45 @@ test "fall damage thresholds" {
     try std.testing.expect(Player.fallDamage(-20.0) > 0.0);
     try std.testing.expect(Player.fallDamage(-30.0) > Player.fallDamage(-20.0));
 }
+
+pub const WalkVectors = struct {
+    fwd: math.Vec3,
+    right: math.Vec3,
+};
+
+pub fn computeWalkVectors(cam_fwd: math.Vec3) WalkVectors {
+    const flat_f = math.Vec3.init(cam_fwd.x, 0, cam_fwd.z);
+    const flat_len = math.Vec3.len(flat_f);
+    const walk_f = if (flat_len > 0.001) flat_f.scale(1.0 / flat_len) else math.Vec3.init(0, 0, -1);
+    const walk_r = math.Vec3.normalize(math.Vec3.cross(walk_f, math.Vec3.init(0, 1, 0)));
+    return .{ .fwd = walk_f, .right = walk_r };
+}
+
+pub fn computeWishDirection(vectors: WalkVectors, w: bool, s: bool, d: bool, a: bool, blocked: bool) math.Vec3 {
+    if (blocked) return math.Vec3.init(0, 0, 0);
+    var wish = math.Vec3.init(0, 0, 0);
+    if (w) wish = math.Vec3.add(wish, vectors.fwd);
+    if (s) wish = math.Vec3.sub(wish, vectors.fwd);
+    if (d) wish = math.Vec3.add(wish, vectors.right);
+    if (a) wish = math.Vec3.sub(wish, vectors.right);
+    const len = math.Vec3.len(wish);
+    if (len > 0.001) {
+        return wish.scale(1.0 / len);
+    }
+    return math.Vec3.init(0, 0, 0);
+}
+
+test "compute walk vectors and normalized wish" {
+    const fwd = math.Vec3.init(0, -0.5, 1.0);
+    const wv = computeWalkVectors(fwd);
+    try std.testing.expectApproxEqAbs(wv.fwd.y, 0.0, 0.0001);
+    try std.testing.expect(math.Vec3.len(wv.fwd) > 0.999);
+    try std.testing.expect(math.Vec3.len(wv.right) > 0.999);
+
+    const wish_fwd = computeWishDirection(wv, true, false, false, false, false);
+    try std.testing.expectApproxEqAbs(wish_fwd.x, wv.fwd.x, 0.0001);
+    try std.testing.expectApproxEqAbs(wish_fwd.z, wv.fwd.z, 0.0001);
+
+    const wish_blocked = computeWishDirection(wv, true, false, false, false, true);
+    try std.testing.expectEqual(math.Vec3.len(wish_blocked), 0.0);
+}

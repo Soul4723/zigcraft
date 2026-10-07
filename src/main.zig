@@ -270,20 +270,14 @@ pub fn main() !void {
         }
         selected_slot = hotbar_mod.clampSlot(selected_slot);
 
-        // Keyboard input: poll each movement key and forward to camera.
-        const fwd = cam.front();
-        const flat_f = math.Vec3.init(fwd.x, 0, fwd.z);
-        const flat_len = math.Vec3.len(flat_f);
-        const walk_f = if (flat_len > 0.001) flat_f.scale(1.0 / flat_len) else math.Vec3.init(0, 0, -1);
-        const walk_r = math.Vec3.normalize(math.Vec3.cross(walk_f, math.Vec3.init(0, 1, 0)));
+        // Keyboard input: poll movement keys and calculate wish direction
+        const walk_vecs = player_mod.computeWalkVectors(cam.front());
         const walk_speed = 6.0;
-        var wish = math.Vec3.init(0, 0, 0);
-        if (c.glfwGetKey(window, c.GLFW_KEY_W) == c.GLFW_PRESS) wish = math.Vec3.add(wish, walk_f);
-        if (c.glfwGetKey(window, c.GLFW_KEY_S) == c.GLFW_PRESS) wish = math.Vec3.sub(wish, walk_f);
-        if (c.glfwGetKey(window, c.GLFW_KEY_D) == c.GLFW_PRESS) wish = math.Vec3.add(wish, walk_r);
-        if (c.glfwGetKey(window, c.GLFW_KEY_A) == c.GLFW_PRESS) wish = math.Vec3.sub(wish, walk_r);
-        const wish_len = math.Vec3.len(wish);
-        const norm_wish = if (!inventory_open and wish_len > 0.001) wish.scale(1.0 / wish_len) else math.Vec3.init(0, 0, 0);
+        const key_w = c.glfwGetKey(window, c.GLFW_KEY_W) == c.GLFW_PRESS;
+        const key_s = c.glfwGetKey(window, c.GLFW_KEY_S) == c.GLFW_PRESS;
+        const key_d = c.glfwGetKey(window, c.GLFW_KEY_D) == c.GLFW_PRESS;
+        const key_a = c.glfwGetKey(window, c.GLFW_KEY_A) == c.GLFW_PRESS;
+        const norm_wish = player_mod.computeWishDirection(walk_vecs, key_w, key_s, key_d, key_a, inventory_open);
         const jump = !inventory_open and (c.glfwGetKey(window, c.GLFW_KEY_SPACE) == c.GLFW_PRESS);
         player.tickLadder(&pickSolid, &pickLadder, norm_wish.x * walk_speed * dt, norm_wish.z * walk_speed * dt, jump, dt);
         player.tickVitals(dt);
