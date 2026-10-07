@@ -180,8 +180,8 @@ pub fn main() !void {
     const Fuse = boom_mod.Fuse;
     var fuses: [boom_mod.fuse_cap]Fuse = undefined;
     var fuse_count: usize = 0;
-    const Torch = struct { x: i32, y: i32, z: i32 };
-    var torches: [32]Torch = undefined;
+    const Torch = cache_mod.Torch;
+    var torches: [cache_mod.torch_cap]Torch = undefined;
     var torch_count: usize = 0;
     var torch_puff_timer: f32 = 0.0;
     const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32 };
@@ -191,7 +191,7 @@ pub fn main() !void {
     var furnaces: [smelt_mod.furnace_cap]FurnaceJob = undefined;
     var furnace_count: usize = 0;
     const Chest = struct { x: i32, y: i32, z: i32, items: [4]inventory_mod.ItemStack };
-    var chests: [16]Chest = undefined;
+    var chests: [cache_mod.chest_cap]Chest = undefined;
     var chest_count: usize = 0;
     var sprouts: [sapling_mod.sprout_cap]sapling_mod.Sprout = undefined;
     var sprout_count: usize = 0;

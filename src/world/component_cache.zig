@@ -4,9 +4,12 @@ pub const Plate = struct { x: i32, y: i32, z: i32, down: bool };
 pub const Wire = struct { x: i32, y: i32, z: i32, powered: bool };
 pub const Repeater = struct { x: i32, y: i32, z: i32, powered: bool, timer: f32, stage: u2 };
 pub const Lamp = struct { x: i32, y: i32, z: i32, lit: bool };
+pub const Torch = struct { x: i32, y: i32, z: i32 };
 pub const RedTorch = struct { x: i32, y: i32, z: i32, lit: bool, flips: [8]f32, flip_count: u8, burnout: f32 };
 
 pub const plate_cap: usize = 64;
+pub const torch_cap: usize = 32;
+pub const chest_cap: usize = 16;
 pub const wire_cap: usize = 256;
 pub const repeater_cap: usize = 64;
 pub const lamp_cap: usize = 64;
@@ -32,6 +35,10 @@ pub fn findRepeater(repeaters: []Repeater, n: usize, x: i32, y: i32, z: i32) ?us
     return find2D(repeaters, n, x, y, z);
 }
 
+pub fn findTorch(torches: []Torch, n: usize, x: i32, y: i32, z: i32) ?usize {
+    return find2D(torches, n, x, y, z);
+}
+
 pub fn findRedTorch(torches: []RedTorch, n: usize, x: i32, y: i32, z: i32) ?usize {
     return find2D(torches, n, x, y, z);
 }
@@ -50,4 +57,7 @@ test "component find helpers" {
     try std.testing.expectEqual(findRepeater(&reps, 1, 7, 8, 9), @as(?usize, 0));
     var rts = [_]RedTorch{.{ .x = 1, .y = 1, .z = 1, .lit = true, .flips = [_]f32{-100} ** 8, .flip_count = 0, .burnout = 0 }} ** 2;
     try std.testing.expectEqual(findRedTorch(&rts, 1, 1, 1, 1), @as(?usize, 0));
+    var torch = [_]Torch{.{ .x = 2, .y = 3, .z = 4 }} ** 2;
+    try std.testing.expectEqual(findTorch(&torch, 1, 2, 3, 4), @as(?usize, 0));
+    try std.testing.expectEqual(findTorch(&torch, 1, 9, 9, 9), @as(?usize, null));
 }
