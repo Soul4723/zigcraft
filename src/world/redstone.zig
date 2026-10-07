@@ -276,3 +276,26 @@ test "resolveLampState transitions" {
     try std.testing.expectEqual(LampUpdate.none, resolveLampState(false, false));
     try std.testing.expectEqual(LampUpdate.none, resolveLampState(true, true));
 }
+
+pub fn relaxWireStrength(
+    current_strength: u4,
+    neighbors: []const u4,
+) u4 {
+    var best = current_strength;
+    for (neighbors) |n| {
+        if (n > 1) {
+            const via = n - 1;
+            if (via > best) best = via;
+        }
+    }
+    return best;
+}
+
+test "relaxWireStrength signal decay" {
+    // Current 0, neighbor 15 -> becomes 14
+    try std.testing.expectEqual(@as(u4, 14), relaxWireStrength(0, &.{15}));
+    // Neighbor 1 -> cannot power beyond (dies at 0)
+    try std.testing.expectEqual(@as(u4, 0), relaxWireStrength(0, &.{1}));
+    // Keeps higher existing strength
+    try std.testing.expectEqual(@as(u4, 12), relaxWireStrength(12, &.{10}));
+}

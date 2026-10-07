@@ -618,9 +618,8 @@ pub fn main() !void {
                         var ni: usize = 0;
                         while (ni < wire_count) : (ni += 1) {
                             const o = &wires[ni];
-                            if (o.x == nx and o.y == ny and o.z == nz and strength[ni] > 1) {
-                                const via: u4 = strength[ni] - 1;
-                                if (via > best) best = via;
+                            if (o.x == nx and o.y == ny and o.z == nz) {
+                                best = redstone_mod.relaxWireStrength(best, &.{strength[ni]});
                                 break;
                             }
                         }

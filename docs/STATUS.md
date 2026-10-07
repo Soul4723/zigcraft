@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-07 (Session 124)
+Last updated: 2026-10-07 (Session 125)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 707 passing unit tests
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 708 passing unit tests
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -28,5 +28,5 @@ Last updated: 2026-10-07 (Session 124)
 
 ## Active State
 - Main branch stable at commit 62f64f3
-- All tests passing (707/707)
+- All tests passing (708/708)
 - Remote branches pruned clean
