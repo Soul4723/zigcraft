@@ -1,0 +1,39 @@
+const std = @import("std");
+
+pub const wolf_bite_damage: f32 = 2.0;
+pub const wolf_bite_cooldown: f32 = 1.0;
+pub const wolf_bite_range_sq: f32 = 1.44;
+pub const wolf_bite_height: f32 = 2.0;
+pub const melee_cooldown: f32 = 0.35;
+pub const melee_range: f32 = 4.0;
+pub const sword_damage: u8 = 2;
+pub const hand_damage: u8 = 1;
+
+pub fn inBiteRange(dx: f32, dz: f32, dy: f32) bool {
+    return dx * dx + dz * dz < wolf_bite_range_sq and @abs(dy) < wolf_bite_height;
+}
+
+pub fn tickCooldown(cd: f32, dt: f32) f32 {
+    return @max(0.0, cd - dt);
+}
+
+pub fn meleeDamage(is_sword: bool) u8 {
+    return if (is_sword) sword_damage else hand_damage;
+}
+
+test "bite range box" {
+    try std.testing.expect(inBiteRange(0, 0, 0));
+    try std.testing.expect(inBiteRange(1.0, 0.5, 1.0));
+    try std.testing.expect(!inBiteRange(2.0, 0, 0));
+    try std.testing.expect(!inBiteRange(0, 0, 2.5));
+}
+
+test "cooldown ticks down and clamps" {
+    try std.testing.expectEqual(tickCooldown(1.0, 0.4), @as(f32, 0.6));
+    try std.testing.expectEqual(tickCooldown(0.2, 0.5), @as(f32, 0.0));
+}
+
+test "melee damage tiers" {
+    try std.testing.expectEqual(meleeDamage(true), @as(u8, 2));
+    try std.testing.expectEqual(meleeDamage(false), @as(u8, 1));
+}
