@@ -569,3 +569,39 @@ test "cactus properties and block definition" {
     try std.testing.expectEqual(tex.x, 3);
     try std.testing.expectEqual(tex.y, 1);
 }
+
+pub const FootstepType = enum {
+    grass,
+    stone,
+    wood,
+    dirt,
+    sand,
+    snow,
+    wool,
+};
+
+pub fn footstepType(block: BlockId) FootstepType {
+    return switch (block) {
+        .grass => .grass,
+        .stone, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick => .stone,
+        .wood => .wood,
+        .dirt => .dirt,
+        .sand => .sand,
+        .snow => .snow,
+        .wool => .wool,
+        else => .grass,
+    };
+}
+
+test "footstepType block classification" {
+    try std.testing.expectEqual(FootstepType.grass, footstepType(.grass));
+    try std.testing.expectEqual(FootstepType.stone, footstepType(.stone));
+    try std.testing.expectEqual(FootstepType.stone, footstepType(.cobblestone));
+    try std.testing.expectEqual(FootstepType.stone, footstepType(.brick));
+    try std.testing.expectEqual(FootstepType.wood, footstepType(.wood));
+    try std.testing.expectEqual(FootstepType.dirt, footstepType(.dirt));
+    try std.testing.expectEqual(FootstepType.sand, footstepType(.sand));
+    try std.testing.expectEqual(FootstepType.snow, footstepType(.snow));
+    try std.testing.expectEqual(FootstepType.wool, footstepType(.wool));
+    try std.testing.expectEqual(FootstepType.grass, footstepType(.air));
+}

@@ -57,21 +57,14 @@ fn pickLadder(x: i32, y: i32, z: i32) bool {
 
 
 fn getFootstepSound(block: block_mod.BlockId) audio_mod.synth.SoundType {
-    return switch (block) {
+    return switch (block_mod.footstepType(block)) {
         .grass => .step_grass,
         .stone => .step_stone,
         .wood => .step_wood,
         .dirt => .step_dirt,
-        .cobblestone => .step_stone,
-        .coal_ore => .step_stone,
-        .iron_ore => .step_stone,
         .sand => .step_sand,
-        .glass => .step_stone,
-        .sandstone => .step_stone,
-        .brick => .step_stone,
         .snow => .step_snow,
         .wool => .step_wool,
-        else => .step_grass,
     };
 }
 
