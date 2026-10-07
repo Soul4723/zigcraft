@@ -36,3 +36,20 @@ test "blast falloff curve" {
     try std.testing.expect(mid > 0.4 and mid < 0.6);
     try std.testing.expect(blastFalloff(1.0) > blastFalloff(6.0));
 }
+
+pub fn findFuse(fuses: []const Fuse, x: i32, y: i32, z: i32) ?usize {
+    for (fuses, 0..) |f, i| {
+        if (f.x == x and f.y == y and f.z == z) return i;
+    }
+    return null;
+}
+
+test "findFuse returns index or null" {
+    const list = [_]Fuse{
+        .{ .x = 1, .y = 2, .z = 3, .t = 1.0 },
+        .{ .x = 4, .y = 5, .z = 6, .t = 2.0 },
+    };
+    try std.testing.expectEqual(@as(?usize, 0), findFuse(&list, 1, 2, 3));
+    try std.testing.expectEqual(@as(?usize, 1), findFuse(&list, 4, 5, 6));
+    try std.testing.expectEqual(@as(?usize, null), findFuse(&list, 0, 0, 0));
+}

@@ -660,14 +660,7 @@ pub fn main() !void {
                         const ty = w.y + ad[1];
                         const tz = w.z + ad[2];
                         if (manager.getBlockWorld(tx, ty, tz) == .tnt and fuse_count < fuses.len) {
-                            var dup = false;
-                            for (fuses[0..fuse_count]) |f| {
-                                if (f.x == tx and f.y == ty and f.z == tz) {
-                                    dup = true;
-                                    break;
-                                }
-                            }
-                            if (!dup) {
+                            if (boom_mod.findFuse(fuses[0..fuse_count], tx, ty, tz) == null) {
                                 fuses[fuse_count] = .{ .x = tx, .y = ty, .z = tz, .t = boom_mod.fuse_time };
                                 fuse_count += 1;
                                 audio.play(.place_block, 0.8);
@@ -1615,14 +1608,7 @@ pub fn main() !void {
                                         const old_b = manager.getBlockWorld(bx, by, bz);
                                         if (old_b == .tnt) {
                                             // Chain-detonate: light neighbor TNT with short fuse
-                                            var already = false;
-                                            for (fuses[0..fuse_count]) |f| {
-                                                if (f.x == bx and f.y == by and f.z == bz) {
-                                                    already = true;
-                                                    break;
-                                                }
-                                            }
-                                            if (!already and fuse_count < fuses.len) {
+                                            if (boom_mod.findFuse(fuses[0..fuse_count], bx, by, bz) == null and fuse_count < fuses.len) {
                                                 fuses[fuse_count] = .{ .x = bx, .y = by, .z = bz, .t = boom_mod.chain_fuse_time };
                                                 fuse_count += 1;
                                                 std.debug.print("chain-detonated TNT ({d},{d},{d})\n", .{ bx, by, bz });
