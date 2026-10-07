@@ -937,6 +937,50 @@ pub fn getMobMeatDrop(mob_type: MobType) ItemType {
     };
 }
 
+pub const BlockDrop = struct {
+    item: ItemType,
+    count: u8,
+};
+
+pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
+    if (block == .coal_ore) {
+        out[0] = .{ .item = .coal, .count = 1 };
+        out[1] = .{ .item = .cobblestone, .count = 1 };
+        return 2;
+    } else if (block == .snow) {
+        out[0] = .{ .item = .snowball, .count = 2 };
+        return 1;
+    } else {
+        const item = ItemType.fromBlockId(block);
+        if (item != .none) {
+            out[0] = .{ .item = item, .count = 1 };
+            return 1;
+        }
+        return 0;
+    }
+}
+
+test "getBlockDrops mapping" {
+    var drops: [2]BlockDrop = undefined;
+    const coal_cnt = getBlockDrops(.coal_ore, &drops);
+    try std.testing.expectEqual(@as(usize, 2), coal_cnt);
+    try std.testing.expectEqual(ItemType.coal, drops[0].item);
+    try std.testing.expectEqual(ItemType.cobblestone, drops[1].item);
+
+    const snow_cnt = getBlockDrops(.snow, &drops);
+    try std.testing.expectEqual(@as(usize, 1), snow_cnt);
+    try std.testing.expectEqual(ItemType.snowball, drops[0].item);
+    try std.testing.expectEqual(@as(u8, 2), drops[0].count);
+
+    const dirt_cnt = getBlockDrops(.dirt, &drops);
+    try std.testing.expectEqual(@as(usize, 1), dirt_cnt);
+    try std.testing.expectEqual(ItemType.dirt, drops[0].item);
+
+    const air_cnt = getBlockDrops(.air, &drops);
+    try std.testing.expectEqual(@as(usize, 0), air_cnt);
+}
+
+
 
 test "canHarvestBlock tier check" {
     // Hand blocks allow anything

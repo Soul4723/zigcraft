@@ -1229,7 +1229,6 @@ pub fn main() !void {
                                 particles.spawnBlockDebris(hit.x, hit.y, hit.z, .{ drop_col[0], drop_col[1], drop_col[2] }, 16);
                                 const held = inventory.slots[selected_slot].item;
                                 const tier_ok = inventory_mod.canHarvestBlock(held, broken_block);
-                                const drop_item = inventory_mod.ItemType.fromBlockId(broken_block);
                                 if (tier_ok) {
                                     if (broken_block == .chest) {
                                         var ci: usize = 0;
@@ -1244,13 +1243,10 @@ pub fn main() !void {
                                             }
                                         }
                                     }
-                                    if (broken_block == .coal_ore) {
-                                        _ = inventory.addItem(.coal, 1);
-                                        _ = inventory.addItem(.cobblestone, 1);
-                                    } else if (broken_block == .snow) {
-                                        _ = inventory.addItem(.snowball, 2);
-                                    } else {
-                                        _ = inventory.addItem(drop_item, 1);
+                                    var drops_buf: [2]inventory_mod.BlockDrop = undefined;
+                                    const drop_count = inventory_mod.getBlockDrops(broken_block, &drops_buf);
+                                    for (drops_buf[0..drop_count]) |d| {
+                                        _ = inventory.addItem(d.item, d.count);
                                     }
                                     if (broken_block == .leaves) {
                                         // Orchard + decay: ~1/7 leaf breaks drop an apple, ~1/12 a sapling
