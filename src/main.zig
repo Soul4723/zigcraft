@@ -1527,9 +1527,7 @@ pub fn main() !void {
                     torch_count -= 1;
                     continue;
                 }
-                const tdx = @as(f32, @floatFromInt(tr.x)) - player.pos.x;
-                const tdz = @as(f32, @floatFromInt(tr.z)) - player.pos.z;
-                if (tdx * tdx + tdz * tdz < 20.0 * 20.0) {
+                if (cache_mod.isWithinFlameDist(tr.x, tr.z, player.pos.x, player.pos.z)) {
                     particles.spawnFlame(tr.x, tr.y, tr.z, 1);
                 }
                 ti += 1;
