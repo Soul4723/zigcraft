@@ -920,3 +920,21 @@ test "cactus item mapping and conversion" {
     try std.testing.expectEqual(item.toBlockId(), .cactus);
     try std.testing.expectEqualStrings(item.name(), "Cactus");
 }
+
+pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
+    const need = block_mod.requiredTier(block);
+    if (need == .hand) return true;
+    return held == .wooden_pickaxe or held == .iron_pickaxe;
+}
+
+test "canHarvestBlock tier check" {
+    // Hand blocks allow anything
+    try std.testing.expect(canHarvestBlock(.dirt, .dirt));
+    try std.testing.expect(canHarvestBlock(.none, .wood));
+
+    // Pickaxe tier blocks
+    try std.testing.expect(canHarvestBlock(.wooden_pickaxe, .stone));
+    try std.testing.expect(canHarvestBlock(.iron_pickaxe, .stone));
+    try std.testing.expect(!canHarvestBlock(.dirt, .stone));
+    try std.testing.expect(!canHarvestBlock(.none, .iron_ore));
+}
