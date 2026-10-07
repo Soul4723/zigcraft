@@ -1525,7 +1525,7 @@ pub fn main() !void {
             while (ti < torch_count) {
                 const tr = &torches[ti];
                 const cur_tb = manager.getBlockWorld(tr.x, tr.y, tr.z);
-                if (cur_tb == .water or manager.getBlockWorld(tr.x, tr.y + 1, tr.z) == .water) {
+                if (fluid_mod.isWashable(cur_tb, manager.getBlockWorld(tr.x, tr.y + 1, tr.z))) {
                     _ = try manager.editAndRemesh(tr.x, tr.y, tr.z, .air);
                     particles.spawnBlockDebris(tr.x, tr.y, tr.z, .{ 0.8, 0.6, 0.2 }, 4);
                     if (fluid_mod.inPickupRange(@floatFromInt(tr.x), @floatFromInt(tr.z), player.pos.x, player.pos.z)) _ = inventory.addItem(.torch, 1);
