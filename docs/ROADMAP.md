@@ -62,6 +62,6 @@ Rough priority order. Completed milestones marked **[x]**.
 37. [x] **Falling Block Physics** — Unsupported sand blocks drop, crush non-solid cells, deal falling damage, splash into water (#85, #90, #91, #99)
 38. [x] **Fluid Interactions** — Flowing water washes away floor redstone, torches, repeaters into drops (#92, #93, #94, #97, #98)
 39. [x] **Player Suffocation Damage** — Damage tick when player head/eyes are buried inside solid blocks (#100)
-40. [ ] **Environmental Hazards & Flora** — Cactus contact damage, campfire burn damage, sapling growth ticks
-41. [ ] **Water Flow Simulation** — Finite cellular automaton flood fill for water sources
+40. [x] **Environmental Hazards** — Cactus contact damage, campfire burn damage (#104-#107)
+41. [ ] **Water Flow Simulation** — Finite cellular automaton flood fill for water sources (helpers started in `src/world/fluid_wash.zig`)
 42. [ ] **Hostile Mob Spawning & Pathfinding** — Dark cave mob spawning, basic A* or vector avoidance of deep water / lava

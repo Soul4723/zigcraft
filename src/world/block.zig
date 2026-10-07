@@ -42,9 +42,14 @@ pub const BlockId = enum(u8) {
     redstone_torch_off = 37,
     redstone_torch_on = 38,
     cactus = 39,
+    campfire = 40,
 
     pub fn is_solid(self: BlockId) bool {
-        return self != .air and self != .water and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on;
+        return self != .air and self != .water and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire;
+    }
+
+    pub fn is_campfire(self: BlockId) bool {
+        return self == .campfire;
     }
 
     pub fn is_cactus(self: BlockId) bool {
@@ -143,6 +148,7 @@ pub const BlockId = enum(u8) {
             .redstone_torch_off => .{ .x = 6, .y = 7 },
             .redstone_torch_on => .{ .x = 7, .y = 7 },
             .cactus => .{ .x = 3, .y = 1 },
+            .campfire => .{ .x = 4, .y = 3 },
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -199,6 +205,7 @@ pub fn hardness(block: BlockId) f32 {
         .iron_ore => 3.5,
         .iron_door_closed, .iron_door_open => 3.0,
         .cactus => 0.4,
+        .campfire => 1.0,
     };
 }
 
@@ -279,6 +286,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .redstone_torch_off = .{ .name = "redstone_torch_off", .solid = false, .transparent = true, .fluid = false },
     .redstone_torch_on = .{ .name = "redstone_torch_on", .solid = false, .transparent = true, .fluid = false },
     .cactus = .{ .name = "cactus", .solid = true, .transparent = false, .fluid = false },
+    .campfire = .{ .name = "campfire", .solid = false, .transparent = true, .fluid = false },
     .brick = .{ .name = "brick", .solid = true, .transparent = false, .fluid = false },
 });
 
@@ -545,6 +553,12 @@ test "door block properties" {
     const to = BlockId.wooden_door_open.getFaceTexture(0);
     try std.testing.expectEqual(to.x, 1);
     try std.testing.expectEqual(to.y, 6);
+}
+
+test "campfire block definition" {
+    try std.testing.expect(BlockId.campfire.is_campfire());
+    try std.testing.expect(!BlockId.campfire.is_solid());
+    try std.testing.expectEqual(hardness(BlockId.campfire), 1.0);
 }
 
 test "cactus properties and block definition" {
