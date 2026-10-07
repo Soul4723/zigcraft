@@ -59,12 +59,6 @@ fn defaultPickDurability() i32 {
     return @intCast(inventory_mod.ItemType.wooden_pickaxe.maxDurability());
 }
 
-/// True when the held item meets the block's required tool tier.
-fn blkTierOk(held: inventory_mod.ItemType, block: block_mod.BlockId) bool {
-    const need = block_mod.requiredTier(block);
-    if (need == .hand) return true;
-    return held == .wooden_pickaxe or held == .iron_pickaxe;
-}
 
 fn getFootstepSound(block: block_mod.BlockId) audio_mod.synth.SoundType {
     return switch (block) {
@@ -1245,7 +1239,7 @@ pub fn main() !void {
                                 const drop_col = inventory_mod.ItemType.fromBlockId(broken_block).getColor();
                                 particles.spawnBlockDebris(hit.x, hit.y, hit.z, .{ drop_col[0], drop_col[1], drop_col[2] }, 16);
                                 const held = inventory.slots[selected_slot].item;
-                                const tier_ok = blkTierOk(held, broken_block);
+                                const tier_ok = inventory_mod.canHarvestBlock(held, broken_block);
                                 const drop_item = inventory_mod.ItemType.fromBlockId(broken_block);
                                 if (tier_ok) {
                                     if (broken_block == .chest) {
