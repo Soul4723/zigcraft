@@ -136,3 +136,19 @@ test "findFurnace helper" {
     try std.testing.expectEqual(findFurnace(&fs, 1, 1, 2, 3), @as(?usize, 0));
     try std.testing.expectEqual(findFurnace(&fs, 1, 9, 9, 9), @as(?usize, null));
 }
+
+pub fn swapRemove(items: anytype, n: *usize, index: usize) void {
+    if (index < n.*) {
+        items[index] = items[n.* - 1];
+        n.* -= 1;
+    }
+}
+
+test "swapRemove helper" {
+    var arr = [_]i32{ 10, 20, 30, 40 };
+    var n: usize = 4;
+    swapRemove(&arr, &n, 1);
+    try std.testing.expectEqual(@as(usize, 3), n);
+    try std.testing.expectEqual(@as(i32, 40), arr[1]);
+    try std.testing.expectEqual(@as(i32, 10), arr[0]);
+}
