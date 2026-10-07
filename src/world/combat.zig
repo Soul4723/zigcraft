@@ -47,3 +47,31 @@ test "wolf damage calculation with pack bonus" {
     try std.testing.expectEqual(wolfDamage(wolf_bite_damage, 0.0), 2.0);
     try std.testing.expectEqual(wolfDamage(wolf_bite_damage, 1.5), 3.5);
 }
+
+pub const WolfAttackHit = struct {
+    damage: f32,
+    knockback_x: f32,
+    knockback_z: f32,
+};
+
+pub fn calculateWolfBite(bdx: f32, bdz: f32, pack_bonus: f32) WolfAttackHit {
+    const bl = @max(0.5, @sqrt(bdx * bdx + bdz * bdz));
+    return .{
+        .damage = wolfDamage(wolf_bite_damage, pack_bonus),
+        .knockback_x = (bdx / bl) * 0.6,
+        .knockback_z = (bdz / bl) * 0.6,
+    };
+}
+
+test "calculateWolfBite knockback and damage" {
+    const hit = calculateWolfBite(3.0, 4.0, 1.0);
+    try std.testing.expectEqual(wolf_bite_damage + 1.0, hit.damage);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.36), hit.knockback_x, 0.001);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.48), hit.knockback_z, 0.001);
+
+    // Test zero-distance clamping to 0.5 to avoid division by zero
+    const hit_zero = calculateWolfBite(0.0, 0.0, 0.0);
+    try std.testing.expectEqual(wolf_bite_damage, hit_zero.damage);
+    try std.testing.expectEqual(@as(f32, 0.0), hit_zero.knockback_x);
+    try std.testing.expectEqual(@as(f32, 0.0), hit_zero.knockback_z);
+}
