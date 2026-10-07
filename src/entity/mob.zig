@@ -1,11 +1,9 @@
 const std = @import("std");
 const math = @import("../math.zig");
 
-pub const MobType = enum {
-    sheep,
-    pig,
-    wolf,
-};
+const inventory_mod = @import("../inventory.zig");
+pub const MobType = inventory_mod.MobType;
+
 
 pub const Mob = struct {
     mob_type: MobType,
