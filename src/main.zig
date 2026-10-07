@@ -1249,15 +1249,9 @@ pub fn main() !void {
                                         _ = inventory.addItem(d.item, d.count);
                                     }
                                     if (broken_block == .leaves) {
-                                        // Orchard + decay: ~1/7 leaf breaks drop an apple, ~1/12 a sapling
-                                        if (mining_mod.leafAppleDrop(hit.x, hit.y, hit.z)) {
-                                            _ = inventory.addItem(.apple, 1);
-                                            std.debug.print("apple dropped\n", .{});
-                                        }
-                                        if (mining_mod.leafSaplingDrop(hit.x, hit.y, hit.z)) {
-                                            _ = inventory.addItem(.sapling, 1);
-                                            std.debug.print("sapling dropped\n", .{});
-                                        }
+                                        const bonus = mining_mod.checkLeafBonuses(hit.x, hit.y, hit.z);
+                                        if (bonus.apple) _ = inventory.addItem(.apple, 1);
+                                        if (bonus.sapling) _ = inventory.addItem(.sapling, 1);
                                     }
                                 } else {
                                     std.debug.print("too hard: {s} needs pickaxe\n", .{@tagName(broken_block)});
