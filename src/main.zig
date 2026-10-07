@@ -1,3 +1,4 @@
+const combat_mod = @import("world/combat.zig");
 const proj_mod = @import("world/projectile.zig");
 const smelt_mod = @import("world/smelting.zig");
 const boom_mod = @import("world/explosives.zig");
@@ -993,22 +994,22 @@ pub fn main() !void {
         mob_manager.tick(&pickSolid, player.pos, player.radius, &audio, dt);
 
         // Wolf bites: contact damage with per-second cooldown
-        wolf_bite_cooldown = @max(0.0, wolf_bite_cooldown - dt);
+        wolf_bite_cooldown = combat_mod.tickCooldown(wolf_bite_cooldown, dt);
         if (wolf_bite_cooldown <= 0.0) {
             for (mob_manager.mobs.items) |m| {
                 if (m.mob_type != .wolf) continue;
                 const bdx = m.pos.x - player.pos.x;
                 const bdz = m.pos.z - player.pos.z;
                 const bdy = m.pos.y - player.pos.y;
-                if (bdx * bdx + bdz * bdz < 1.2 * 1.2 and @abs(bdy) < 2.0) {
-                    player.health = @max(0.0, player.health - 2.0);
+                if (combat_mod.inBiteRange(bdx, bdz, bdy)) {
+                    player.health = @max(0.0, player.health - combat_mod.wolf_bite_damage);
                     audio.play(.hurt, 0.8);
                     // knock player slightly away
                     const bl = @max(0.5, @sqrt(bdx * bdx + bdz * bdz));
                     player.pos.x -= bdx / bl * 0.6;
                     player.pos.z -= bdz / bl * 0.6;
                     std.debug.print("wolf bite (hp={d:.1})\n", .{player.health});
-                    wolf_bite_cooldown = 1.0;
+                    wolf_bite_cooldown = combat_mod.wolf_bite_cooldown;
                     break;
                 }
             }
@@ -1277,12 +1278,12 @@ pub fn main() !void {
             } else {
                 // In-game: hold left to mine (timed by hardness/tool), right click place
                 const dir = cam.front();
-                mob_hit_cooldown = @max(0.0, mob_hit_cooldown - dt);
+                mob_hit_cooldown = combat_mod.tickCooldown(mob_hit_cooldown, dt);
                 const held_weapon = inventory.slots[selected_slot].item;
-                const hit_dmg: u8 = if (held_weapon == .iron_sword) 2 else 1;
-                const hit_mob_opt = if (left and mob_hit_cooldown <= 0.0) mob_manager.tryHitMobDmg(cam.position, dir, 4.0, hit_dmg) else null;
+                const hit_dmg: u8 = combat_mod.meleeDamage(held_weapon == .iron_sword);
+                const hit_mob_opt = if (left and mob_hit_cooldown <= 0.0) mob_manager.tryHitMobDmg(cam.position, dir, combat_mod.melee_range, hit_dmg) else null;
                 if (hit_mob_opt) |hit_mob| {
-                    mob_hit_cooldown = 0.35;
+                    mob_hit_cooldown = combat_mod.melee_cooldown;
                     if (held_weapon.isTool()) {
                         tool_wear[selected_slot] += 1;
                         if (tool_wear[selected_slot] >= held_weapon.maxDurability()) {
