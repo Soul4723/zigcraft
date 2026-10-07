@@ -1687,27 +1687,25 @@ pub fn main() !void {
                 const target = manager.getBlockWorld(hit_f.x, hit_f.y, hit_f.z);
                 if (target == .repeater_off or target == .repeater_on) {
                     var found_stage = false;
-                    for (repeaters[0..repeater_count]) |*rep| {
-                        if (rep.x == hit_f.x and rep.y == hit_f.y and rep.z == hit_f.z) {
-                            rep.stage +%= 1;
-                            rep.timer = 0.0;
-                            found_stage = true;
-                            audio.play(.click_on, 0.6);
-                            std.debug.print("repeater delay stage {d} ({d},{d},{d})\n", .{ @as(u8, rep.stage) + 1, hit_f.x, hit_f.y, hit_f.z });
-                            {
-                                var snap: [64][4]i32 = undefined;
-                                var sn: usize = 0;
-                                for (repeaters[0..repeater_count]) |sr| {
-                                    if (sn >= snap.len) break;
-                                    snap[sn] = .{ sr.x, sr.y, sr.z, sr.stage };
-                                    sn += 1;
-                                }
-                                chunk_manager_mod.ChunkManager.setStageSnapshot(snap[0..sn]);
-                                if (manager.chunks.getPtr(.{ .x = @divFloor(hit_f.x, 16), .z = @divFloor(hit_f.z, 16) })) |e| {
-                                    manager.saveStages(@divFloor(hit_f.x, 16), @divFloor(hit_f.z, 16), &e.chunk);
-                                }
+                    if (cache_mod.findRepeater(&repeaters, repeater_count, hit_f.x, hit_f.y, hit_f.z)) |rep_idx| {
+                        const rep = &repeaters[rep_idx];
+                        rep.stage +%= 1;
+                        rep.timer = 0.0;
+                        found_stage = true;
+                        audio.play(.click_on, 0.6);
+                        std.debug.print("repeater delay stage {d} ({d},{d},{d})\n", .{ @as(u8, rep.stage) + 1, hit_f.x, hit_f.y, hit_f.z });
+                        {
+                            var snap: [64][4]i32 = undefined;
+                            var sn: usize = 0;
+                            for (repeaters[0..repeater_count]) |sr| {
+                                if (sn >= snap.len) break;
+                                snap[sn] = .{ sr.x, sr.y, sr.z, sr.stage };
+                                sn += 1;
                             }
-                            break;
+                            chunk_manager_mod.ChunkManager.setStageSnapshot(snap[0..sn]);
+                            if (manager.chunks.getPtr(.{ .x = @divFloor(hit_f.x, 16), .z = @divFloor(hit_f.z, 16) })) |e| {
+                                manager.saveStages(@divFloor(hit_f.x, 16), @divFloor(hit_f.z, 16), &e.chunk);
+                            }
                         }
                     }
                     if (!found_stage and repeater_count < repeaters.len) {
