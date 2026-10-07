@@ -1545,8 +1545,7 @@ pub fn main() !void {
                                                     for (chests[ci].items) |citem| {
                                                         if (!citem.isEmpty()) _ = inventory.addItem(citem.item, citem.count);
                                                     }
-                                                    chests[ci] = chests[chest_count - 1];
-                                                    chest_count -= 1;
+                                                    cache_mod.swapRemove(&chests, &chest_count, ci);
                                                 }
                                             }
                                             _ = try manager.editAndRemesh(bx, by, bz, .air);
