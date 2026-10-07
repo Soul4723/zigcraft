@@ -1629,16 +1629,12 @@ pub fn main() !void {
                                             }
                                         } else if (old_b != .air) {
                                             if (old_b == .chest) {
-                                                var ci: usize = 0;
-                                                while (ci < chest_count) : (ci += 1) {
-                                                    if (chests[ci].x == bx and chests[ci].y == by and chests[ci].z == bz) {
-                                                        for (chests[ci].items) |citem| {
-                                                            if (!citem.isEmpty()) _ = inventory.addItem(citem.item, citem.count);
-                                                        }
-                                                        chests[ci] = chests[chest_count - 1];
-                                                        chest_count -= 1;
-                                                        break;
+                                                if (cache_mod.findChest(&chests, chest_count, bx, by, bz)) |ci| {
+                                                    for (chests[ci].items) |citem| {
+                                                        if (!citem.isEmpty()) _ = inventory.addItem(citem.item, citem.count);
                                                     }
+                                                    chests[ci] = chests[chest_count - 1];
+                                                    chest_count -= 1;
                                                 }
                                             }
                                             _ = try manager.editAndRemesh(bx, by, bz, .air);
