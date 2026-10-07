@@ -1353,8 +1353,7 @@ pub fn main() !void {
             while (fi2 < falling_count) {
                 const f = &fallings[fi2];
                 if (manager.getBlockWorld(f.x, f.y, f.z) != .sand) {
-                    fallings[fi2] = fallings[falling_count - 1];
-                    falling_count -= 1;
+                    cache_mod.swapRemove(&fallings, &falling_count, fi2);
                     continue;
                 }
                 f.t += dt;
@@ -1399,8 +1398,7 @@ pub fn main() !void {
                                     audio.play(.hurt, 0.8);
                                 }
                             }
-                            fallings[fi2] = fallings[falling_count - 1];
-                            falling_count -= 1;
+                            cache_mod.swapRemove(&fallings, &falling_count, fi2);
                             continue;
                         },
                     }
