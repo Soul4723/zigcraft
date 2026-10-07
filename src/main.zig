@@ -1196,12 +1196,9 @@ pub fn main() !void {
                             inventory.slots[selected_slot].clear();
                         }
                     }
-                    const hit_sound: audio_mod.synth.SoundType = switch (hit_mob.mob_type) {
-                        .sheep => .mob_baa,
-                        .pig => .mob_oink,
-                        .wolf => .mob_growl,
-                    };
-                    audio.play(hit_sound, 0.8);
+                    if (entity_mod.mob.getSound(hit_mob.mob_type)) |hit_sound| {
+                        audio.play(hit_sound, 0.8);
+                    }
                     const px: i32 = @intFromFloat(@floor(hit_mob.pos.x));
                     const py: i32 = @intFromFloat(@floor(hit_mob.pos.y));
                     const pz: i32 = @intFromFloat(@floor(hit_mob.pos.z));

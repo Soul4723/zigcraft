@@ -131,11 +131,7 @@ pub const MobManager = struct {
                     const dy = mob.pos.y - player_pos.y;
                     const dz = mob.pos.z - player_pos.z;
                     if (dx * dx + dy * dy + dz * dz < 25.0 * 25.0) {
-                        const sound: audio_mod.synth.SoundType = switch (mob.mob_type) {
-                            .sheep => .mob_baa,
-                            .pig => .mob_oink,
-                            .wolf => .mob_growl,
-                        };
+                        const sound: audio_mod.synth.SoundType = mob_mod.getSound(mob.mob_type) orelse .mob_baa;
                         a.play(sound, 0.45);
                         break;
                     }
