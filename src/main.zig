@@ -1660,7 +1660,7 @@ pub fn main() !void {
                     flint_cooldown = interact_mod.flint_edge_cooldown;
                 } else if (target == .chest) {
                     var k_opt = cache_mod.findChest(&chests, chest_count, hit_f.x, hit_f.y, hit_f.z);
-                    if (k_opt == null and chest_count < chests.len) {
+                    if (k_opt == null and cache_mod.canCreateChest(chest_count, chests.len)) {
                         chests[chest_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z, .items = [_]inventory_mod.ItemStack{.{}} ** 4 };
                         k_opt = chest_count;
                         chest_count += 1;
@@ -1718,7 +1718,7 @@ pub fn main() !void {
                     };
                     var fed = false;
                     var k_opt = cache_mod.findFurnace(&furnaces, furnace_count, hit_f.x, hit_f.y, hit_f.z);
-                    if (k_opt == null and furnace_count < furnaces.len) {
+                    if (k_opt == null and cache_mod.canCreateFurnace(furnace_count, furnaces.len)) {
                         furnaces[furnace_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z, .t = 0, .fuel = 0, .input = smelt_mod.None };
                         k_opt = furnace_count;
                         furnace_count += 1;

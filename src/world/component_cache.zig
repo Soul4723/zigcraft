@@ -193,3 +193,18 @@ test "evaluatePlateStep transitions" {
     try std.testing.expectEqual(PlateAction.none, evaluatePlateStep(false, false));
     try std.testing.expectEqual(PlateAction.none, evaluatePlateStep(true, true));
 }
+
+pub fn canCreateChest(chest_count: usize, max_chests: usize) bool {
+    return chest_count < max_chests;
+}
+
+pub fn canCreateFurnace(furnace_count: usize, max_furnaces: usize) bool {
+    return furnace_count < max_furnaces;
+}
+
+test "component creation limits" {
+    try std.testing.expect(canCreateChest(0, 16));
+    try std.testing.expect(!canCreateChest(16, 16));
+    try std.testing.expect(canCreateFurnace(5, 16));
+    try std.testing.expect(!canCreateFurnace(16, 16));
+}
