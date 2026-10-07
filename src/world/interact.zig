@@ -41,3 +41,17 @@ test "toggleDoor transitions" {
     try std.testing.expectEqual(@as(?block_mod.BlockId, null), toggleDoor(.wooden_door_closed, false));
     try std.testing.expectEqual(@as(?block_mod.BlockId, null), toggleDoor(.dirt, true));
 }
+
+pub fn toggleLever(lever: block_mod.BlockId) ?block_mod.BlockId {
+    return switch (lever) {
+        .lever_off => .lever_on,
+        .lever_on => .lever_off,
+        else => null,
+    };
+}
+
+test "toggleLever transitions" {
+    try std.testing.expectEqual(block_mod.BlockId.lever_on, toggleLever(.lever_off).?);
+    try std.testing.expectEqual(block_mod.BlockId.lever_off, toggleLever(.lever_on).?);
+    try std.testing.expectEqual(@as(?block_mod.BlockId, null), toggleLever(.stone));
+}

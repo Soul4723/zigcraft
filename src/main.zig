@@ -1616,8 +1616,7 @@ pub fn main() !void {
                         std.debug.print("repeater delay stage 2 ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
-                } else if (target == .lever_off or target == .lever_on) {
-                    const toggled: block_mod.BlockId = if (target == .lever_off) .lever_on else .lever_off;
+                } else if (interact_mod.toggleLever(target)) |toggled| {
                     if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, toggled)) {
                         if (toggled == .lever_on) {
                             audio.play(.click_on, 0.9);
