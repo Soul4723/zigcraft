@@ -402,88 +402,65 @@ pub fn main() !void {
                             const wz: i32 = rcz * 16 + @as(i32, @intCast(rz));
                             switch (rb) {
                                 .pressure_plate_up, .pressure_plate_down => {
-                                    var found = false;
-                                    for (plates[0..plate_count]) |pp| {
-                                        if (pp.x == wx and pp.y == wy and pp.z == wz) {
-                                            found = true;
-                                            break;
+                                    if (cache_mod.findPlate(&plates, plate_count, wx, wy, wz) == null) {
+                                        if (plate_count < plates.len) {
+                                            plates[plate_count] = .{ .x = wx, .y = wy, .z = wz, .down = (rb == .pressure_plate_down) };
+                                            plate_count += 1;
+                                        } else if (!rs_cap_warned_plate) {
+                                            rs_cap_warned_plate = true;
+                                            std.debug.print("redstone cap: plates full ({d}), some plates unsimulated\n", .{plates.len});
                                         }
-                                    }
-                                    if (!found and plate_count < plates.len) {
-                                        plates[plate_count] = .{ .x = wx, .y = wy, .z = wz, .down = (rb == .pressure_plate_down) };
-                                        plate_count += 1;
-                                    } else if (!found and !rs_cap_warned_plate) {
-                                        rs_cap_warned_plate = true;
-                                        std.debug.print("redstone cap: plates full ({d}), some plates unsimulated\n", .{plates.len});
                                     }
                                 },
                                 .redstone_wire_off, .redstone_wire_on => {
-                                    var found = false;
-                                    for (wires[0..wire_count]) |ww| {
-                                        if (ww.x == wx and ww.y == wy and ww.z == wz) {
-                                            found = true;
-                                            break;
+                                    if (cache_mod.findWire(&wires, wire_count, wx, wy, wz) == null) {
+                                        if (wire_count < wires.len) {
+                                            wires[wire_count] = .{ .x = wx, .y = wy, .z = wz, .powered = (rb == .redstone_wire_on) };
+                                            wire_count += 1;
+                                        } else if (!rs_cap_warned_wire) {
+                                            rs_cap_warned_wire = true;
+                                            std.debug.print("redstone cap: wires full ({d}), some wires unsimulated\n", .{wires.len});
+                                            toast.showCapWarning();
                                         }
-                                    }
-                                    if (!found and wire_count < wires.len) {
-                                        wires[wire_count] = .{ .x = wx, .y = wy, .z = wz, .powered = (rb == .redstone_wire_on) };
-                                        wire_count += 1;
-                                    } else if (!found and !rs_cap_warned_wire) {
-                                        rs_cap_warned_wire = true;
-                                        std.debug.print("redstone cap: wires full ({d}), some wires unsimulated\n", .{wires.len}); toast.showCapWarning();
                                     }
                                 },
                                 .repeater_off, .repeater_on => {
-                                    var found = false;
-                                    for (repeaters[0..repeater_count]) |*rep| {
-                                        if (rep.x == wx and rep.y == wy and rep.z == wz) {
-                                            // Do not clobber in-flight delay: only register
-                                            // repeaters already settled to their block state.
-                                            if ((rb == .repeater_on) == rep.powered) rep.timer = 0.0;
-                                            found = true;
-                                            break;
+                                    if (cache_mod.findRepeater(&repeaters, repeater_count, wx, wy, wz)) |idx| {
+                                        if ((rb == .repeater_on) == repeaters[idx].powered) repeaters[idx].timer = 0.0;
+                                    } else {
+                                        if (repeater_count < repeaters.len) {
+                                            repeaters[repeater_count] = .{ .x = wx, .y = wy, .z = wz, .powered = (rb == .repeater_on), .timer = 0.0, .stage = 0 };
+                                            repeater_count += 1;
+                                        } else if (!rs_cap_warned_rep) {
+                                            rs_cap_warned_rep = true;
+                                            std.debug.print("redstone cap: repeaters full ({d})\n", .{repeaters.len});
                                         }
-                                    }
-                                    if (!found and repeater_count < repeaters.len) {
-                                        repeaters[repeater_count] = .{ .x = wx, .y = wy, .z = wz, .powered = (rb == .repeater_on), .timer = 0.0, .stage = 0 };
-                                        repeater_count += 1;
-                                    } else if (!found and !rs_cap_warned_rep) {
-                                        rs_cap_warned_rep = true;
-                                        std.debug.print("redstone cap: repeaters full ({d})\n", .{repeaters.len});
                                     }
                                 },
                                 .redstone_lamp_off, .redstone_lamp_on => {
-                                    var found = false;
-                                    for (lamps[0..lamp_count]) |*la| {
-                                        if (la.x == wx and la.y == wy and la.z == wz) {
-                                            la.lit = (rb == .redstone_lamp_on);
-                                            found = true;
-                                            break;
+                                    if (cache_mod.findLamp(&lamps, lamp_count, wx, wy, wz)) |idx| {
+                                        lamps[idx].lit = (rb == .redstone_lamp_on);
+                                    } else {
+                                        if (lamp_count < lamps.len) {
+                                            lamps[lamp_count] = .{ .x = wx, .y = wy, .z = wz, .lit = (rb == .redstone_lamp_on) };
+                                            lamp_count += 1;
+                                        } else if (!rs_cap_warned_lamp) {
+                                            rs_cap_warned_lamp = true;
+                                            std.debug.print("redstone cap: lamps full ({d})\n", .{lamps.len});
                                         }
-                                    }
-                                    if (!found and lamp_count < lamps.len) {
-                                        lamps[lamp_count] = .{ .x = wx, .y = wy, .z = wz, .lit = (rb == .redstone_lamp_on) };
-                                        lamp_count += 1;
-                                    } else if (!found and !rs_cap_warned_lamp) {
-                                        rs_cap_warned_lamp = true;
-                                        std.debug.print("redstone cap: lamps full ({d})\n", .{lamps.len});
                                     }
                                 },
                                 .redstone_torch_off, .redstone_torch_on => {
-                                    var found = false;
-                                    for (red_torches[0..red_torch_count]) |*rt| {
-                                        if (rt.x == wx and rt.y == wy and rt.z == wz) {
-                                            rt.lit = (rb == .redstone_torch_on);
-                                            found = true;
-                                            break;
+                                    if (cache_mod.findRedTorch(&red_torches, red_torch_count, wx, wy, wz)) |idx| {
+                                        red_torches[idx].lit = (rb == .redstone_torch_on);
+                                    } else {
+                                        if (red_torch_count < red_torches.len) {
+                                            red_torches[red_torch_count] = .{ .x = wx, .y = wy, .z = wz, .lit = (rb == .redstone_torch_on), .flips = [_]f32{-100.0} ** 8, .flip_count = 0, .burnout = 0.0 };
+                                            red_torch_count += 1;
+                                        } else if (!rs_cap_warned_torch) {
+                                            rs_cap_warned_torch = true;
+                                            std.debug.print("redstone cap: torches full ({d})\n", .{red_torches.len});
                                         }
-                                    }
-                                    if (!found and red_torch_count < red_torches.len) {
-                                        red_torches[red_torch_count] = .{ .x = wx, .y = wy, .z = wz, .lit = (rb == .redstone_torch_on), .flips = [_]f32{-100} ** 8, .flip_count = 0, .burnout = 0.0 };
-                                        red_torch_count += 1;
-                                    } else if (!found and !rs_cap_warned_torch) {
-                                        rs_cap_warned_torch = true;
-                                        std.debug.print("redstone cap: torches full ({d})\n", .{red_torches.len});
                                     }
                                 },
                                 else => {},

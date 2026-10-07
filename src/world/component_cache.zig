@@ -43,6 +43,11 @@ pub fn findRedTorch(torches: []RedTorch, n: usize, x: i32, y: i32, z: i32) ?usiz
     return find2D(torches, n, x, y, z);
 }
 
+pub fn findLamp(lamps: []Lamp, n: usize, x: i32, y: i32, z: i32) ?usize {
+    return find2D(lamps, n, x, y, z);
+}
+
+
 pub fn swapRemoveLast(n: *usize) void {
     n.* -= 1;
 }
@@ -60,4 +65,7 @@ test "component find helpers" {
     var torch = [_]Torch{.{ .x = 2, .y = 3, .z = 4 }} ** 2;
     try std.testing.expectEqual(findTorch(&torch, 1, 2, 3, 4), @as(?usize, 0));
     try std.testing.expectEqual(findTorch(&torch, 1, 9, 9, 9), @as(?usize, null));
+    var lamps = [_]Lamp{.{ .x = 3, .y = 4, .z = 5, .lit = false }} ** 2;
+    try std.testing.expectEqual(findLamp(&lamps, 1, 3, 4, 5), @as(?usize, 0));
+    try std.testing.expectEqual(findLamp(&lamps, 1, 9, 9, 9), @as(?usize, null));
 }
