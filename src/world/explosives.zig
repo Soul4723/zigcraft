@@ -160,3 +160,13 @@ test "canChainFuse helper" {
     try std.testing.expect(!canChainFuse(&list, 1, 2, 3, 4));
     try std.testing.expect(!canChainFuse(&list, 2, 2, 2, 1));
 }
+
+pub fn isDetonated(fuse_timer: f32) bool {
+    return fuse_timer <= 0.0;
+}
+
+test "isDetonated check" {
+    try std.testing.expect(isDetonated(0.0));
+    try std.testing.expect(isDetonated(-0.1));
+    try std.testing.expect(!isDetonated(0.5));
+}

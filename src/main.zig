@@ -1508,7 +1508,7 @@ pub fn main() !void {
                 fu.t -= dt;
                 // fuse particles
                 particles.spawnFlame(fu.x, fu.y + 1, fu.z, 2);
-                if (fu.t <= 0.0) {
+                if (boom_mod.isDetonated(fu.t)) {
                     const ex = fu.x;
                     const ey = fu.y;
                     const ez = fu.z;
