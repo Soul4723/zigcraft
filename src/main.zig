@@ -746,15 +746,18 @@ pub fn main() !void {
                 }
 
                 const power_in = redstone_mod.isLampPowered(&pickBlockWorld, la.x, la.y, la.z);
-
-                if (power_in and !la.lit) {
-                    la.lit = true;
-                    _ = try manager.editAndRemesh(la.x, la.y, la.z, .redstone_lamp_on);
-                    particles.spawnFlame(la.x, la.y, la.z, 2);
-                    std.debug.print("lamp lit ({d},{d},{d})\n", .{ la.x, la.y, la.z });
-                } else if (!power_in and la.lit) {
-                    la.lit = false;
-                    _ = try manager.editAndRemesh(la.x, la.y, la.z, .redstone_lamp_off);
+                switch (redstone_mod.resolveLampState(la.lit, power_in)) {
+                    .turn_on => {
+                        la.lit = true;
+                        _ = try manager.editAndRemesh(la.x, la.y, la.z, .redstone_lamp_on);
+                        particles.spawnFlame(la.x, la.y, la.z, 2);
+                        std.debug.print("lamp lit ({d},{d},{d})\n", .{ la.x, la.y, la.z });
+                    },
+                    .turn_off => {
+                        la.lit = false;
+                        _ = try manager.editAndRemesh(la.x, la.y, la.z, .redstone_lamp_off);
+                    },
+                    .none => {},
                 }
                 li += 1;
             }

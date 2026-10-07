@@ -257,3 +257,22 @@ test "targetDoorState transitions" {
     // Non-doors ignored
     try std.testing.expect(targetDoorState(.stone, true) == null);
 }
+
+pub const LampUpdate = enum {
+    none,
+    turn_on,
+    turn_off,
+};
+
+pub fn resolveLampState(is_lit: bool, power_in: bool) LampUpdate {
+    if (power_in and !is_lit) return .turn_on;
+    if (!power_in and is_lit) return .turn_off;
+    return .none;
+}
+
+test "resolveLampState transitions" {
+    try std.testing.expectEqual(LampUpdate.turn_on, resolveLampState(false, true));
+    try std.testing.expectEqual(LampUpdate.turn_off, resolveLampState(true, false));
+    try std.testing.expectEqual(LampUpdate.none, resolveLampState(false, false));
+    try std.testing.expectEqual(LampUpdate.none, resolveLampState(true, true));
+}
