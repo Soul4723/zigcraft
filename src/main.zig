@@ -239,7 +239,7 @@ pub fn main() !void {
         last_time = current_time;
 
         // Advance 2-minute day/night cycle
-        world_time += dt * 0.05;
+        world_time = sky_mod.advanceTime(world_time, dt);
 
         // Toggle inventory screen with 'E' key (edge triggered)
         const e_key = c.glfwGetKey(window, c.GLFW_KEY_E) == c.GLFW_PRESS;
@@ -1054,7 +1054,7 @@ pub fn main() !void {
         const sun_dir = math.Vec3.normalize(math.Vec3.init(sun_x, @max(0.05, sun_y), 0.3));
 
         // Interpolate sky colors based on day factor
-        const day_factor = @max(0.0, @min(1.0, (sun_y + 0.2) / 0.8));
+        const day_factor = sky_mod.dayFactor(sun_y);
         const day_top = math.Vec3.init(0.25, 0.50, 0.95);
         const night_top = math.Vec3.init(0.02, 0.03, 0.08);
         const day_horizon = math.Vec3.init(0.75, 0.87, 0.95);
@@ -1167,7 +1167,7 @@ pub fn main() !void {
             const loaded = manager.loadedChunkCount();
             const mob_count = mob_manager.mobs.items.len;
             const current_item = inventory.slots[selected_slot].item;
-            const time_state = if (sun_y > 0.1) "day" else if (sun_y > -0.1) "dusk" else "night";
+            const time_state = sky_mod.timeState(sun_y);
             if (pick_mod.raycast(&pickSolid, cam.position, dir, 8)) |hit| {
                 std.debug.print("fps={d} xyz=({d},{d},{d}) time={s} slot={s} chunk=({d},{d}) loaded={d} mobs={d} drawn={d} culled={d} aim=({d},{d},{d})\n", .{ fps, px, py, pz, time_state, current_item.name(), @divFloor(px, 16), @divFloor(pz, 16), loaded, mob_count, stats.drawn, stats.culled, hit.x, hit.y, hit.z });
             } else {
@@ -1437,8 +1437,8 @@ pub fn main() !void {
             const dir_b = cam.front();
             if (pick_mod.raycast(&pickSolid, cam.position, dir_b, 5)) |hit_b| {
                 if (manager.getBlockWorld(hit_b.x, hit_b.y, hit_b.z) == .wool) {
-                    if (sun_y_now < 0.15) {
-                        world_time = std.math.pi * 0.08; // dawn
+                    if (sky_mod.isSleepable(sun_y_now)) {
+                        world_time = sky_mod.dawn_angle; // dawn
                         player.spawn_point = player.pos;
                         player.health = 20.0;
                         audio.play(.craft_item, 0.7);
