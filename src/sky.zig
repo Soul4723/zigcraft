@@ -106,3 +106,28 @@ test "time states and sleep window" {
     try std.testing.expect(isSleepable(-0.5));
     try std.testing.expect(!isSleepable(0.5));
 }
+
+pub const SleepOutcome = struct {
+    slept: bool,
+    new_world_time: f32,
+    new_health: f32,
+};
+
+pub fn trySleep(sun_y: f32, cur_time: f32, cur_health: f32) SleepOutcome {
+    if (isSleepable(sun_y)) {
+        return .{ .slept = true, .new_world_time = dawn_angle, .new_health = 20.0 };
+    }
+    return .{ .slept = false, .new_world_time = cur_time, .new_health = cur_health };
+}
+
+test "trySleep logic" {
+    const night_res = trySleep(-0.5, 3.14, 10.0);
+    try std.testing.expect(night_res.slept);
+    try std.testing.expectEqual(night_res.new_world_time, dawn_angle);
+    try std.testing.expectEqual(night_res.new_health, 20.0);
+
+    const day_res = trySleep(0.8, 1.0, 15.0);
+    try std.testing.expect(!day_res.slept);
+    try std.testing.expectEqual(day_res.new_world_time, 1.0);
+    try std.testing.expectEqual(day_res.new_health, 15.0);
+}

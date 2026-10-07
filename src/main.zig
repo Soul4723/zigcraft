@@ -1279,10 +1279,11 @@ pub fn main() !void {
             const dir_b = cam.front();
             if (pick_mod.raycast(&pickSolid, cam.position, dir_b, 5)) |hit_b| {
                 if (manager.getBlockWorld(hit_b.x, hit_b.y, hit_b.z) == .wool) {
-                    if (sky_mod.isSleepable(sun_y_now)) {
-                        world_time = sky_mod.dawn_angle; // dawn
+                    const sleep_res = sky_mod.trySleep(sun_y_now, world_time, player.health);
+                    if (sleep_res.slept) {
+                        world_time = sleep_res.new_world_time;
                         player.spawn_point = player.pos;
-                        player.health = 20.0;
+                        player.health = sleep_res.new_health;
                         audio.play(.craft_item, 0.7);
                         std.debug.print("slept; spawn set\n", .{});
                     } else {
