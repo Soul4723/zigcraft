@@ -1646,16 +1646,11 @@ pub fn main() !void {
                         }
                     }
                     // player blast damage + launch
-                    const pdx = player.pos.x - @as(f32, @floatFromInt(ex));
-                    const pdy = player.pos.y - @as(f32, @floatFromInt(ey));
-                    const pdz = player.pos.z - @as(f32, @floatFromInt(ez));
-                    const pdist = @sqrt(pdx * pdx + pdy * pdy + pdz * pdz);
-                    const blast_force = boom_mod.blastFalloff(pdist);
-                    if (blast_force > 0.0) {
-                        player.health = @max(0.0, player.health - blast_force * boom_mod.player_blast_damage);
-                        player.vel_y = blast_force * 12.0;
-                        player.pos.x += (pdx / pdist) * blast_force * 3.0;
-                        player.pos.z += (pdz / pdist) * blast_force * 3.0;
+                    if (boom_mod.calculatePlayerBlastImpulse(player.pos.x, player.pos.y, player.pos.z, ex, ey, ez)) |imp| {
+                        player.health = @max(0.0, player.health - imp.damage);
+                        player.vel_y = imp.vel_y;
+                        player.pos.x += imp.push_x;
+                        player.pos.z += imp.push_z;
                         audio.play(.hurt, 1.0);
                     }
                     fuses[fsi] = fuses[fuse_count - 1];

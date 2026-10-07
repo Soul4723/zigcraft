@@ -53,3 +53,40 @@ test "findFuse returns index or null" {
     try std.testing.expectEqual(@as(?usize, 1), findFuse(&list, 4, 5, 6));
     try std.testing.expectEqual(@as(?usize, null), findFuse(&list, 0, 0, 0));
 }
+
+pub const BlastImpulse = struct {
+    damage: f32,
+    vel_y: f32,
+    push_x: f32,
+    push_z: f32,
+};
+
+pub fn calculatePlayerBlastImpulse(player_x: f32, player_y: f32, player_z: f32, ex: i32, ey: i32, ez: i32) ?BlastImpulse {
+    const pdx = player_x - @as(f32, @floatFromInt(ex));
+    const pdy = player_y - @as(f32, @floatFromInt(ey));
+    const pdz = player_z - @as(f32, @floatFromInt(ez));
+    const pdist = @sqrt(pdx * pdx + pdy * pdy + pdz * pdz);
+    const blast_force = blastFalloff(pdist);
+    if (blast_force <= 0.0 or pdist <= 0.001) return null;
+    return BlastImpulse{
+        .damage = blast_force * player_blast_damage,
+        .vel_y = blast_force * 12.0,
+        .push_x = (pdx / pdist) * blast_force * 3.0,
+        .push_z = (pdz / pdist) * blast_force * 3.0,
+    };
+}
+
+test "player blast impulse calculation" {
+    // Player at distance 3.5m (halfway within 7m radius)
+    const imp = calculatePlayerBlastImpulse(3.5, 0.0, 0.0, 0, 0, 0);
+    try std.testing.expect(imp != null);
+    if (imp) |val| {
+        try std.testing.expect(val.damage > 0.0 and val.damage <= player_blast_damage);
+        try std.testing.expect(val.vel_y > 0.0);
+        try std.testing.expect(val.push_x > 0.0);
+        try std.testing.expectEqual(@as(f32, 0.0), val.push_z);
+    }
+
+    // Player far outside blast radius
+    try std.testing.expect(calculatePlayerBlastImpulse(10.0, 0.0, 0.0, 0, 0, 0) == null);
+}
