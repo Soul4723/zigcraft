@@ -1,3 +1,4 @@
+const hotbar_mod = @import("world/hotbar.zig");
 const interact_mod = @import("world/interact.zig");
 const wear_mod = @import("world/tool_wear.zig");
 const mining_mod = @import("world/mining.zig");
@@ -261,12 +262,13 @@ pub fn main() !void {
         e_key_down = e_key;
 
         // Hotbar selection keys 1 through 6
-        if (c.glfwGetKey(window, c.GLFW_KEY_1) == c.GLFW_PRESS) selected_slot = 0;
-        if (c.glfwGetKey(window, c.GLFW_KEY_2) == c.GLFW_PRESS) selected_slot = 1;
-        if (c.glfwGetKey(window, c.GLFW_KEY_3) == c.GLFW_PRESS) selected_slot = 2;
-        if (c.glfwGetKey(window, c.GLFW_KEY_4) == c.GLFW_PRESS) selected_slot = 3;
-        if (c.glfwGetKey(window, c.GLFW_KEY_5) == c.GLFW_PRESS) selected_slot = 4;
-        if (c.glfwGetKey(window, c.GLFW_KEY_6) == c.GLFW_PRESS) selected_slot = 5;
+        const hot_keys = [_]c_int{ c.GLFW_KEY_1, c.GLFW_KEY_2, c.GLFW_KEY_3, c.GLFW_KEY_4, c.GLFW_KEY_5, c.GLFW_KEY_6 };
+        for (hot_keys, 0..) |hk, hi| {
+            if (c.glfwGetKey(window, hk) == c.GLFW_PRESS) {
+                if (hotbar_mod.slotForKey(@intCast(hi))) |slot| selected_slot = slot;
+            }
+        }
+        selected_slot = hotbar_mod.clampSlot(selected_slot);
 
         // Keyboard input: poll each movement key and forward to camera.
         const fwd = cam.front();
