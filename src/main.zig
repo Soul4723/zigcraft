@@ -1204,11 +1204,7 @@ pub fn main() !void {
                     const pz: i32 = @intFromFloat(@floor(hit_mob.pos.z));
                     particles.spawnBlockDebris(px, py, pz, .{ 0.85, 0.2, 0.2 }, 8);
                     if (hit_mob.died) {
-                        const drop: inventory_mod.ItemType = switch (hit_mob.mob_type) {
-                            .pig => .raw_pork,
-                            .sheep => .raw_mutton,
-                            .wolf => .none,
-                        };
+                        const drop = inventory_mod.getMobMeatDrop(hit_mob.mob_type);
                         _ = inventory.addItem(drop, 1);
                         if (hit_mob.wool) _ = inventory.addItem(.wool, 1);
                         std.debug.print("killed {s}, dropped {s}\n", .{ @tagName(hit_mob.mob_type), drop.name() });
@@ -1573,11 +1569,7 @@ pub fn main() !void {
                                 audio.play(.hurt, 0.5);
                                 particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.93, 0.95, 1.0 }, 8);
                                 if (died) {
-                                    const md: inventory_mod.ItemType = switch (m.mob_type) {
-                                        .pig => .raw_pork,
-                                        .sheep => .raw_mutton,
-                                        .wolf => .none,
-                                    };
+                                    const md = inventory_mod.getMobMeatDrop(m.mob_type);
                                     const mp = m.pos;
                                     _ = mob_manager.mobs.swapRemove(mi);
                                     _ = inventory.addItem(md, 1);

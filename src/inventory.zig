@@ -927,6 +927,17 @@ pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
     return held == .wooden_pickaxe or held == .iron_pickaxe;
 }
 
+pub const MobType = enum { sheep, pig, wolf };
+
+pub fn getMobMeatDrop(mob_type: MobType) ItemType {
+    return switch (mob_type) {
+        .pig => .raw_pork,
+        .sheep => .raw_mutton,
+        .wolf => .none,
+    };
+}
+
+
 test "canHarvestBlock tier check" {
     // Hand blocks allow anything
     try std.testing.expect(canHarvestBlock(.dirt, .dirt));
