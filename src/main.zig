@@ -1524,26 +1524,28 @@ pub fn main() !void {
                                     const bx = ex + rx;
                                     const by = ey + ry;
                                     const bz = ez + rz;
-                                    if (by > 0) {
-                                        const old_b = manager.getBlockWorld(bx, by, bz);
-                                        if (old_b == .tnt) {
-                                            // Chain-detonate: light neighbor TNT with short fuse
+                                    const old_b = manager.getBlockWorld(bx, by, bz);
+                                    switch (boom_mod.evaluateBlastBlock(old_b, by)) {
+                                        .chain_tnt => {
                                             if (boom_mod.findFuse(fuses[0..fuse_count], bx, by, bz) == null and fuse_count < fuses.len) {
                                                 fuses[fuse_count] = .{ .x = bx, .y = by, .z = bz, .t = boom_mod.chain_fuse_time };
                                                 fuse_count += 1;
                                                 std.debug.print("chain-detonated TNT ({d},{d},{d})\n", .{ bx, by, bz });
                                             }
-                                        } else if (old_b != .air) {
-                                            if (old_b == .chest) {
-                                                if (cache_mod.findChest(&chests, chest_count, bx, by, bz)) |ci| {
-                                                    for (chests[ci].items) |citem| {
-                                                        if (!citem.isEmpty()) _ = inventory.addItem(citem.item, citem.count);
-                                                    }
-                                                    cache_mod.swapRemove(&chests, &chest_count, ci);
+                                        },
+                                        .destroy_chest => {
+                                            if (cache_mod.findChest(&chests, chest_count, bx, by, bz)) |ci| {
+                                                for (chests[ci].items) |citem| {
+                                                    if (!citem.isEmpty()) _ = inventory.addItem(citem.item, citem.count);
                                                 }
+                                                cache_mod.swapRemove(&chests, &chest_count, ci);
                                             }
                                             _ = try manager.editAndRemesh(bx, by, bz, .air);
-                                        }
+                                        },
+                                        .destroy_block => {
+                                            _ = try manager.editAndRemesh(bx, by, bz, .air);
+                                        },
+                                        .ignore => {},
                                     }
                                 }
                             }
