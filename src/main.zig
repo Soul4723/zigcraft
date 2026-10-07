@@ -282,14 +282,14 @@ pub fn main() !void {
             const py_i: i32 = @intFromFloat(@floor(player.pos.y));
             const pz_i: i32 = @intFromFloat(@floor(player.pos.z));
             if (hazard_mod.checkCactusContact(&pickBlockWorld, px_i, py_i, pz_i)) {
-                player.health = @max(0.0, player.health - hazard_mod.contact_rate * dt);
+                player.health = hazard_mod.applyDamageClamped(player.health, hazard_mod.contact_rate, dt);
             }
 
             // Campfire burn: standing inside or on a campfire cell burns 2 hp/sec
             const feet_b = manager.getBlockWorld(px_i, py_i, pz_i);
             const head_b = manager.getBlockWorld(px_i, py_i + 1, pz_i);
             if (hazard_mod.checkBurnContact(feet_b) or hazard_mod.checkBurnContact(head_b)) {
-                player.health = @max(0.0, player.health - hazard_mod.burn_rate * dt);
+                player.health = hazard_mod.applyDamageClamped(player.health, hazard_mod.burn_rate, dt);
             }
         }
         if (player.isDead()) {

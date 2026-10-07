@@ -65,3 +65,12 @@ test "burn hazard checks" {
     try std.testing.expectEqual(burn_rate, 2.0);
     try std.testing.expectEqual(contact_rate, 1.0);
 }
+
+pub fn applyDamageClamped(current_health: f32, rate: f32, dt: f32) f32 {
+    return @max(0.0, current_health - rate * dt);
+}
+
+test "applyDamageClamped calculation" {
+    try std.testing.expectEqual(@as(f32, 18.0), applyDamageClamped(20.0, 2.0, 1.0));
+    try std.testing.expectEqual(@as(f32, 0.0), applyDamageClamped(1.0, 5.0, 1.0));
+}
