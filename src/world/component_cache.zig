@@ -174,3 +174,22 @@ test "isTrackedRedstoneComponent filter" {
     try std.testing.expect(!isTrackedRedstoneComponent(.stone));
     try std.testing.expect(!isTrackedRedstoneComponent(.air));
 }
+
+pub const PlateAction = enum {
+    none,
+    trigger,
+    release,
+};
+
+pub fn evaluatePlateStep(is_down: bool, stepped: bool) PlateAction {
+    if (stepped and !is_down) return .trigger;
+    if (!stepped and is_down) return .release;
+    return .none;
+}
+
+test "evaluatePlateStep transitions" {
+    try std.testing.expectEqual(PlateAction.trigger, evaluatePlateStep(false, true));
+    try std.testing.expectEqual(PlateAction.release, evaluatePlateStep(true, false));
+    try std.testing.expectEqual(PlateAction.none, evaluatePlateStep(false, false));
+    try std.testing.expectEqual(PlateAction.none, evaluatePlateStep(true, true));
+}

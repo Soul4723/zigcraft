@@ -474,38 +474,38 @@ pub fn main() !void {
                     }
                 }
 
-                if (stepped and !pl.down) {
-                    pl.down = true;
-                    _ = try manager.editAndRemesh(pl.x, pl.y, pl.z, .pressure_plate_down);
-                    audio.play(.click_on, 0.85);
-
-                    // Open any adjacent wooden or iron doors
-                    for (cache_mod.plate_door_offsets) |off| {
-                        const dx = pl.x + off[0];
-                        const dy = pl.y + off[1];
-                        const dz = pl.z + off[2];
-                        const pdb = manager.getBlockWorld(dx, dy, dz);
-                        if (redstone_mod.targetDoorState(pdb, true)) |target_db| {
-                            _ = try manager.editAndRemesh(dx, dy, dz, target_db);
-                            std.debug.print("plate triggered: opened door ({d},{d},{d})\n", .{ dx, dy, dz });
+                switch (cache_mod.evaluatePlateStep(pl.down, stepped)) {
+                    .trigger => {
+                        pl.down = true;
+                        _ = try manager.editAndRemesh(pl.x, pl.y, pl.z, .pressure_plate_down);
+                        audio.play(.click_on, 0.85);
+                        for (cache_mod.plate_door_offsets) |off| {
+                            const dx = pl.x + off[0];
+                            const dy = pl.y + off[1];
+                            const dz = pl.z + off[2];
+                            const pdb = manager.getBlockWorld(dx, dy, dz);
+                            if (redstone_mod.targetDoorState(pdb, true)) |target_db| {
+                                _ = try manager.editAndRemesh(dx, dy, dz, target_db);
+                                std.debug.print("plate triggered: opened door ({d},{d},{d})\n", .{ dx, dy, dz });
+                            }
                         }
-                    }
-                } else if (!stepped and pl.down) {
-                    pl.down = false;
-                    _ = try manager.editAndRemesh(pl.x, pl.y, pl.z, .pressure_plate_up);
-                    audio.play(.click_off, 0.7);
-
-                    // Close any adjacent wooden or iron doors
-                    for (cache_mod.plate_door_offsets) |off| {
-                        const dx = pl.x + off[0];
-                        const dy = pl.y + off[1];
-                        const dz = pl.z + off[2];
-                        const pdb = manager.getBlockWorld(dx, dy, dz);
-                        if (redstone_mod.targetDoorState(pdb, false)) |target_db| {
-                            _ = try manager.editAndRemesh(dx, dy, dz, target_db);
-                            std.debug.print("plate released: closed door ({d},{d},{d})\n", .{ dx, dy, dz });
+                    },
+                    .release => {
+                        pl.down = false;
+                        _ = try manager.editAndRemesh(pl.x, pl.y, pl.z, .pressure_plate_up);
+                        audio.play(.click_off, 0.7);
+                        for (cache_mod.plate_door_offsets) |off| {
+                            const dx = pl.x + off[0];
+                            const dy = pl.y + off[1];
+                            const dz = pl.z + off[2];
+                            const pdb = manager.getBlockWorld(dx, dy, dz);
+                            if (redstone_mod.targetDoorState(pdb, false)) |target_db| {
+                                _ = try manager.editAndRemesh(dx, dy, dz, target_db);
+                                std.debug.print("plate released: closed door ({d},{d},{d})\n", .{ dx, dy, dz });
+                            }
                         }
-                    }
+                    },
+                    .none => {},
                 }
                 pi += 1;
             }
