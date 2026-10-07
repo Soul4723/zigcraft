@@ -41,3 +41,64 @@ test "smeltable check" {
     try std.testing.expect(isSmeltable(RawPork));
     try std.testing.expect(!isSmeltable(None));
 }
+
+pub const SmeltTickOutcome = struct {
+    done_item: ?u8,
+    fuel_consumed: bool,
+    reset_timer: bool,
+};
+
+pub fn tickJob(t: *f32, fuel: *u8, input: *u8, dt: f32) SmeltTickOutcome {
+    if (input.* != None and fuel.* > 0) {
+        t.* += dt;
+        if (t.* >= smelt_time) {
+            t.* = 0.0;
+            fuel.* -= 1;
+            const res = smeltResult(input.*);
+            input.* = None;
+            return .{
+                .done_item = if (res != None) res else null,
+                .fuel_consumed = true,
+                .reset_timer = true,
+            };
+        }
+        return .{
+            .done_item = null,
+            .fuel_consumed = false,
+            .reset_timer = false,
+        };
+    } else {
+        t.* = 0.0;
+        return .{
+            .done_item = null,
+            .fuel_consumed = false,
+            .reset_timer = true,
+        };
+    }
+}
+
+test "tickJob progress and completion" {
+    var t: f32 = 0.0;
+    var fuel: u8 = 2;
+    var input: u8 = RawPork;
+
+    // 5 seconds: not done
+    const r1 = tickJob(&t, &fuel, &input, 5.0);
+    try std.testing.expectEqual(@as(?u8, null), r1.done_item);
+    try std.testing.expect(!r1.fuel_consumed);
+    try std.testing.expectEqual(@as(f32, 5.0), t);
+
+    // Another 5 seconds: completes smelting
+    const r2 = tickJob(&t, &fuel, &input, 5.0);
+    try std.testing.expectEqual(@as(?u8, CookedPork), r2.done_item);
+    try std.testing.expect(r2.fuel_consumed);
+    try std.testing.expectEqual(@as(u8, 1), fuel);
+    try std.testing.expectEqual(None, input);
+    try std.testing.expectEqual(@as(f32, 0.0), t);
+
+    // No input: resets timer
+    t = 4.0;
+    const r3 = tickJob(&t, &fuel, &input, 1.0);
+    try std.testing.expectEqual(@as(?u8, null), r3.done_item);
+    try std.testing.expectEqual(@as(f32, 0.0), t);
+}

@@ -1322,22 +1322,12 @@ pub fn main() !void {
                     furnace_count -= 1;
                     continue;
                 }
-                if (f.input != smelt_mod.None and f.fuel > 0) {
-                    f.t += dt;
-                    if (f.t >= smelt_mod.smelt_time) {
-                        f.t = 0.0;
-                        f.fuel -= 1;
-                        const done_tag = smelt_mod.smeltResult(f.input);
-                        f.input = smelt_mod.None;
-                        if (done_tag != smelt_mod.None) {
-                            const done: inventory_mod.ItemType = @enumFromInt(done_tag);
-                            _ = inventory.addItem(done, 1);
-                            audio.play(.craft_item, 0.7);
-                            std.debug.print("smelted {s}\n", .{done.name()});
-                        }
-                    }
-                } else {
-                    f.t = 0.0;
+                const outcome = smelt_mod.tickJob(&f.t, &f.fuel, &f.input, dt);
+                if (outcome.done_item) |done_tag| {
+                    const done: inventory_mod.ItemType = @enumFromInt(done_tag);
+                    _ = inventory.addItem(done, 1);
+                    audio.play(.craft_item, 0.7);
+                    std.debug.print("smelted {s}\n", .{done.name()});
                 }
                 fi += 1;
             }
