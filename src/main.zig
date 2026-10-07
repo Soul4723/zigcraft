@@ -1,3 +1,4 @@
+const mining_mod = @import("world/mining.zig");
 const toast_mod = @import("renderer/toast.zig");
 const combat_mod = @import("world/combat.zig");
 const proj_mod = @import("world/projectile.zig");
@@ -159,10 +160,7 @@ pub fn main() !void {
     var inventory_open = false;
     var e_key_down = false;
     var selected_slot: usize = 0;
-    var mine_target_valid = false;
-    var mine_key: i64 = 0;
-    var mine_progress: f32 = 0.0;
-    var mine_need: f32 = 1.0;
+    var mine = mining_mod.MineState{};
     var tool_wear: [6]u16 = [_]u16{0} ** 6;
 
     // Timing & Day/Night cycle
@@ -1113,7 +1111,7 @@ pub fn main() !void {
         }
 
         if (!inventory_open) {
-            const mine_frac: f32 = if (mine_target_valid and mine_need > 0.0) mine_progress / mine_need else -1.0;
+            const mine_frac: f32 = mine.fraction();
             ui.drawHUDWithBuffs(aspect, selected_slot, &hotbar_colors, &hotbar_counts, mine_frac, player.health, player.hunger, player.regen_timer > 0.0);
             if (toast.visible()) {
                 const t_alpha = toast.tick(dt);
@@ -1310,24 +1308,20 @@ pub fn main() !void {
                         if (hit_mob.wool) _ = inventory.addItem(.wool, 1);
                         std.debug.print("killed {s}, dropped {s}\n", .{ @tagName(hit_mob.mob_type), drop.name() });
                     }
-                    mine_target_valid = false;
+                    mine.reset();
                 } else if (pick_mod.raycast(&pickSolid, cam.position, dir, 8)) |hit| {
                     if (left) {
                         const broken_block = manager.getBlockWorld(hit.x, hit.y, hit.z);
                         const held_item_now = inventory.slots[selected_slot].item;
                         const need = block_mod.mineTime(broken_block, @intFromEnum(held_item_now));
-                        const key: i64 = (@as(i64, hit.x) << 42) ^ (@as(i64, hit.y) << 21) ^ @as(i64, hit.z);
-                        if (!mine_target_valid or mine_key != key) {
-                            mine_target_valid = true;
-                            mine_key = key;
-                            mine_progress = 0.0;
-                            mine_need = @max(need, 0.001);
+                        const key: i64 = mining_mod.targetKey(hit.x, hit.y, hit.z);
+                        if (!mine.valid or mine.key != key) {
+                            mine.retarget(key, need);
                         } else {
-                            mine_progress += dt;
+                            mine.advance(dt);
                         }
-                        if (mine_progress + 0.0001 >= need and need > 0.0) {
-                            mine_target_valid = false;
-                            mine_progress = 0.0;
+                        if (mine.done(need)) {
+                            mine.reset();
                             if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .air)) {
                                 audio.play(.break_block, 0.7);
                                 const drop_col = inventory_mod.ItemType.fromBlockId(broken_block).getColor();
@@ -1359,13 +1353,11 @@ pub fn main() !void {
                                     }
                                     if (broken_block == .leaves) {
                                         // Orchard + decay: ~1/7 leaf breaks drop an apple, ~1/12 a sapling
-                                        const h: u32 = @as(u32, @bitCast(hit.x *% 31 +% hit.y *% 17 +% hit.z)) % 7;
-                                        if (h == 0) {
+                                        if (mining_mod.leafAppleDrop(hit.x, hit.y, hit.z)) {
                                             _ = inventory.addItem(.apple, 1);
                                             std.debug.print("apple dropped\n", .{});
                                         }
-                                        const sh: u32 = @as(u32, @bitCast(hit.x *% 13 +% hit.y *% 29 +% hit.z *% 7)) % 12;
-                                        if (sh == 0) {
+                                        if (mining_mod.leafSaplingDrop(hit.x, hit.y, hit.z)) {
                                             _ = inventory.addItem(.sapling, 1);
                                             std.debug.print("sapling dropped\n", .{});
                                         }
@@ -1439,9 +1431,7 @@ pub fn main() !void {
             }
         }
         if (!left) {
-            mine_target_valid = false;
-            mine_progress = 0.0;
-            mine_need = 1.0;
+            mine.reset();
         }
         // Sleep on wool block at night: aim at wool + press B sets spawn, skips to dawn
         bed_cooldown = @max(0.0, bed_cooldown - dt);
