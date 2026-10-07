@@ -377,10 +377,7 @@ pub fn main() !void {
                         var rx: usize = 0;
                         while (rx < 16) : (rx += 1) {
                             const rb = rch.blocks[ry][rz][rx];
-                            switch (rb) {
-                                .pressure_plate_up, .pressure_plate_down, .redstone_wire_off, .redstone_wire_on, .repeater_off, .repeater_on, .redstone_lamp_off, .redstone_lamp_on, .redstone_torch_off, .redstone_torch_on => {},
-                                else => continue,
-                            }
+                            if (!cache_mod.isTrackedRedstoneComponent(rb)) continue;
                             const wx: i32 = rcx * 16 + @as(i32, @intCast(rx));
                             const wy: i32 = @as(i32, @intCast(ry));
                             const wz: i32 = rcz * 16 + @as(i32, @intCast(rz));

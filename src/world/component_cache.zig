@@ -152,3 +152,25 @@ test "swapRemove helper" {
     try std.testing.expectEqual(@as(i32, 40), arr[1]);
     try std.testing.expectEqual(@as(i32, 10), arr[0]);
 }
+
+pub fn isTrackedRedstoneComponent(block: @import("block.zig").BlockId) bool {
+    return switch (block) {
+        .pressure_plate_up, .pressure_plate_down,
+        .redstone_wire_off, .redstone_wire_on,
+        .repeater_off, .repeater_on,
+        .redstone_lamp_off, .redstone_lamp_on,
+        .redstone_torch_off, .redstone_torch_on,
+        => true,
+        else => false,
+    };
+}
+
+test "isTrackedRedstoneComponent filter" {
+    try std.testing.expect(isTrackedRedstoneComponent(.pressure_plate_up));
+    try std.testing.expect(isTrackedRedstoneComponent(.redstone_wire_on));
+    try std.testing.expect(isTrackedRedstoneComponent(.repeater_off));
+    try std.testing.expect(isTrackedRedstoneComponent(.redstone_lamp_on));
+    try std.testing.expect(isTrackedRedstoneComponent(.redstone_torch_off));
+    try std.testing.expect(!isTrackedRedstoneComponent(.stone));
+    try std.testing.expect(!isTrackedRedstoneComponent(.air));
+}
