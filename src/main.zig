@@ -462,8 +462,7 @@ pub fn main() !void {
                 const pl = &plates[pi];
                 const blk = manager.getBlockWorld(pl.x, pl.y, pl.z);
                 if (blk != .pressure_plate_up and blk != .pressure_plate_down) {
-                    plates[pi] = plates[plate_count - 1];
-                    plate_count -= 1;
+                    cache_mod.swapRemove(&plates, &plate_count, pi);
                     continue;
                 }
 
