@@ -160,3 +160,65 @@ test "torch burnout trips on 8 rapid flips" {
     try std.testing.expect(torchBurnedOut(flips, now));
     try std.testing.expect(!torchBurnedOut(flips, now + 10.0));
 }
+
+pub fn isTorchBasePowered(get: *const fn (x: i32, y: i32, z: i32) BlockId, tx: i32, ty: i32, tz: i32) bool {
+    const base_y = ty - 1;
+    const adj_dirs = [_][3]i32{
+        .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 },
+        .{ 0, -1, 0 },
+    };
+    for (adj_dirs) |ad| {
+        const nb = get(tx + ad[0], base_y + ad[1], tz + ad[2]);
+        if (nb == .redstone_wire_on or nb == .lever_on or nb == .pressure_plate_down) {
+            return true;
+        }
+    }
+    return false;
+}
+
+pub fn isLampPowered(get: *const fn (x: i32, y: i32, z: i32) BlockId, lx: i32, ly: i32, lz: i32) bool {
+    const adj_dirs = [_][3]i32{
+        .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 },
+        .{ 0, 1, 0 }, .{ 0, -1, 0 },
+    };
+    for (adj_dirs) |ad| {
+        const nb = get(lx + ad[0], ly + ad[1], lz + ad[2]);
+        if (nb == .redstone_wire_on or nb == .pressure_plate_down or nb == .lever_on or nb == .repeater_on or nb == .redstone_torch_on) {
+            return true;
+        }
+    }
+    return false;
+}
+
+pub fn isRepeaterInputPowered(get: *const fn (x: i32, y: i32, z: i32) BlockId, rx: i32, ry: i32, rz: i32) bool {
+    const in_offsets = [_][3]i32{ .{ 0, 0, -1 }, .{ -1, 0, 0 }, .{ 0, -1, 0 } };
+    for (in_offsets) |io| {
+        const ib = get(rx + io[0], ry + io[1], rz + io[2]);
+        if (ib == .redstone_wire_on or ib == .lever_on or ib == .pressure_plate_down or ib == .redstone_torch_on) {
+            return true;
+        }
+    }
+    return false;
+}
+
+fn mockDetectorWorld(x: i32, y: i32, z: i32) BlockId {
+    if (x == 1 and y == 0 and z == 0) return .lever_on;
+    if (x == 10 and y == 10 and z == 10) return .redstone_torch_on;
+    if (x == 20 and y == 20 and z == 19) return .redstone_wire_on;
+    return .air;
+}
+
+test "redstone power detector helpers" {
+    // Torch at (0, 1, 0) has base block at (0, 0, 0).
+    // mockDetectorWorld has lever_on at (1, 0, 0), which is adjacent to the base block.
+    try std.testing.expect(isTorchBasePowered(&mockDetectorWorld, 0, 1, 0));
+    try std.testing.expect(!isTorchBasePowered(&mockDetectorWorld, 5, 5, 5));
+
+    // Lamp at (10, 9, 10) has redstone_torch_on above it at (10, 10, 10).
+    try std.testing.expect(isLampPowered(&mockDetectorWorld, 10, 9, 10));
+    try std.testing.expect(!isLampPowered(&mockDetectorWorld, 0, 5, 0));
+
+    // Repeater at (20, 20, 20) checks (20, 20, 19) which is repeater_on in mock world.
+    try std.testing.expect(isRepeaterInputPowered(&mockDetectorWorld, 20, 20, 20));
+    try std.testing.expect(!isRepeaterInputPowered(&mockDetectorWorld, 0, 0, 0));
+}
