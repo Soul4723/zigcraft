@@ -96,3 +96,17 @@ test "isPosOnPlate detection" {
     // Outside vertically
     try std.testing.expect(!isPosOnPlate(5.5, 11.0, 5.5, 5, 10, 5, 0.2));
 }
+
+pub const torch_flame_dist_sq: f32 = 400.0; // 20 blocks squared
+
+pub fn isWithinFlameDist(tx: i32, tz: i32, px: f32, pz: f32) bool {
+    const tdx = @as(f32, @floatFromInt(tx)) - px;
+    const tdz = @as(f32, @floatFromInt(tz)) - pz;
+    return tdx * tdx + tdz * tdz < torch_flame_dist_sq;
+}
+
+test "isWithinFlameDist check" {
+    try std.testing.expect(isWithinFlameDist(0, 0, 0.0, 0.0));
+    try std.testing.expect(isWithinFlameDist(10, 10, 0.0, 0.0));
+    try std.testing.expect(!isWithinFlameDist(25, 0, 0.0, 0.0));
+}
