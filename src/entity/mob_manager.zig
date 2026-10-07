@@ -8,6 +8,7 @@ const mob_mod = @import("mob.zig");
 const mob_renderer_mod = @import("mob_renderer.zig");
 const chunk_manager_mod = @import("../chunk_manager.zig");
 const audio_mod = @import("../audio/audio.zig");
+const spawn_rules = @import("../world/spawn_rules.zig");
 
 pub const MobManager = struct {
     allocator: std.mem.Allocator,
@@ -51,14 +52,28 @@ pub const MobManager = struct {
             var iy: i32 = 15;
             while (iy >= 1) : (iy -= 1) {
                 const ground = chunk_manager.getBlockWorld(ix, iy, iz);
-                if (ground == .grass or ground == .dirt) {
-                    if (chunk_manager.getBlockWorld(ix, iy + 1, iz) == .air and chunk_manager.getBlockWorld(ix, iy + 2, iz) == .air) {
-                        const roll = self.rng.random().float(f32);
-                        const mtype: mob_mod.MobType = if (roll < 0.42) .sheep else if (roll < 0.84) .pig else .wolf;
-                        try self.spawnMob(mtype, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
-                        break;
+                if (!spawn_rules.isSpawnGround(ground)) continue;
+                if (!spawn_rules.hasHeadroom(chunk_manager.getBlockWorld(ix, iy + 1, iz), chunk_manager.getBlockWorld(ix, iy + 2, iz))) continue;
+                var wet = false;
+                var dx: i32 = -1;
+                while (dx <= 1 and !wet) : (dx += 1) {
+                    var dz: i32 = -1;
+                    while (dz <= 1 and !wet) : (dz += 1) {
+                        var depth: i32 = 0;
+                        var dy: i32 = 0;
+                        while (dy > -4) : (dy -= 1) {
+                            if (chunk_manager.getBlockWorld(ix + dx, iy + dy, iz + dz) == .water) {
+                                depth += 1;
+                            } else break;
+                        }
+                        if (depth >= spawn_rules.deep_water_depth) wet = true;
                     }
                 }
+                if (wet) continue;
+                const roll = self.rng.random().float(f32);
+                const mtype: mob_mod.MobType = if (roll < 0.42) .sheep else if (roll < 0.84) .pig else .wolf;
+                try self.spawnMob(mtype, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
+                break;
             }
         }
     }
