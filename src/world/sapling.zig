@@ -26,3 +26,16 @@ test "trunk top sits one above trunk" {
     try std.testing.expectEqual(trunkTopY(10), 14);
     try std.testing.expectEqual(trunkTopY(0), 4);
 }
+
+pub fn canPlant(soil: BlockId, hit_ny: i32, py: i32) bool {
+    return (soil == .grass or soil == .dirt) and hit_ny == 1 and py + 2 < 16;
+}
+
+test "canPlant check" {
+    try std.testing.expect(canPlant(.grass, 1, 5));
+    try std.testing.expect(canPlant(.dirt, 1, 5));
+    try std.testing.expect(!canPlant(.stone, 1, 5));
+    try std.testing.expect(!canPlant(.grass, -1, 5));
+    try std.testing.expect(!canPlant(.grass, 1, 14)); // 14 + 2 is not < 16
+    try std.testing.expect(canPlant(.grass, 1, 13)); // 13 + 2 is 15 < 16
+}
