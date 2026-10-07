@@ -49,3 +49,27 @@ test "mobDelta calculation" {
     try std.testing.expectApproxEqAbs(d[1], 0.0, 0.001);
     try std.testing.expectApproxEqAbs(d[2], 0.0, 0.001);
 }
+
+pub const ProjectileStep = struct {
+    pos: [3]f32,
+    vel: [3]f32,
+    life: f32,
+};
+
+pub fn stepMotion(px: f32, py: f32, pz: f32, vx: f32, vy: f32, vz: f32, life: f32, dt: f32) ProjectileStep {
+    const nvy = stepVy(vy, dt);
+    return .{
+        .pos = .{ px + vx * dt, py + nvy * dt, pz + vz * dt },
+        .vel = .{ vx, nvy, vz },
+        .life = life - dt,
+    };
+}
+
+test "stepMotion updates velocity and position" {
+    const s = stepMotion(0, 10, 0, 1, 0, 2, 2.0, 0.5);
+    try std.testing.expectEqual(@as(f32, 1.5), s.life);
+    try std.testing.expectEqual(@as(f32, -6.0), s.vel[1]);
+    try std.testing.expectEqual(@as(f32, 0.5), s.pos[0]);
+    try std.testing.expectEqual(@as(f32, 7.0), s.pos[1]);
+    try std.testing.expectEqual(@as(f32, 1.0), s.pos[2]);
+}

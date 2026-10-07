@@ -1443,11 +1443,10 @@ pub fn main() !void {
             var ti: usize = 0;
             while (ti < thrown_count) {
                 var t = &thrown[ti];
-                t.life -= dt;
-                t.vel.y = proj_mod.stepVy(t.vel.y, dt);
-                t.pos.x += t.vel.x * dt;
-                t.pos.y += t.vel.y * dt;
-                t.pos.z += t.vel.z * dt;
+                const st = proj_mod.stepMotion(t.pos.x, t.pos.y, t.pos.z, t.vel.x, t.vel.y, t.vel.z, t.life, dt);
+                t.pos = math.Vec3.init(st.pos[0], st.pos[1], st.pos[2]);
+                t.vel = math.Vec3.init(st.vel[0], st.vel[1], st.vel[2]);
+                t.life = st.life;
                 var dead = proj_mod.isExpired(t.life);
                 if (!dead) {
                     const mbx: i32 = @intFromFloat(@floor(t.pos.x));
