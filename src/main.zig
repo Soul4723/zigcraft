@@ -1,3 +1,4 @@
+const toast_mod = @import("renderer/toast.zig");
 const combat_mod = @import("world/combat.zig");
 const proj_mod = @import("world/projectile.zig");
 const smelt_mod = @import("world/smelting.zig");
@@ -211,8 +212,7 @@ pub fn main() !void {
     const RedTorch = cache_mod.RedTorch;
     var red_torches: [cache_mod.red_torch_cap]RedTorch = undefined;
     var red_torch_count: usize = 0;
-    var toast_timer: f32 = 0.0;
-    var toast_color: [3]f32 = .{ 1.0, 0.8, 0.2 };
+    var toast = toast_mod.Toast{};
     var rs_cap_warned_plate = false;
     var rs_cap_warned_wire = false;
     var rs_cap_warned_rep = false;
@@ -434,7 +434,7 @@ pub fn main() !void {
                                         wire_count += 1;
                                     } else if (!found and !rs_cap_warned_wire) {
                                         rs_cap_warned_wire = true;
-                                        std.debug.print("redstone cap: wires full ({d}), some wires unsimulated\n", .{wires.len}); toast_timer = 3.0; toast_color = .{ 0.95, 0.45, 0.1 };
+                                        std.debug.print("redstone cap: wires full ({d}), some wires unsimulated\n", .{wires.len}); toast.showCapWarning();
                                     }
                                 },
                                 .repeater_off, .repeater_on => {
@@ -921,7 +921,7 @@ pub fn main() !void {
                     if (redstone_mod.torchBurnedOut(rt.flips, flip_now)) {
                         rt.burnout = 30.0;
                         audio.play(.click_off, 0.5);
-                        std.debug.print("torch burned out ({d},{d},{d})\n", .{ rt.x, rt.y, rt.z }); toast_timer = 2.5; toast_color = .{ 0.85, 0.25, 0.15 };
+                        std.debug.print("torch burned out ({d},{d},{d})\n", .{ rt.x, rt.y, rt.z }); toast.showBurnoutWarning();
                     }
                 } else if (!base_powered and !rt.lit) {
                     rt.lit = true;
@@ -940,7 +940,7 @@ pub fn main() !void {
                     if (redstone_mod.torchBurnedOut(rt.flips, flip_now)) {
                         rt.burnout = 30.0;
                         audio.play(.click_off, 0.5);
-                        std.debug.print("torch burned out ({d},{d},{d})\n", .{ rt.x, rt.y, rt.z }); toast_timer = 2.5; toast_color = .{ 0.85, 0.25, 0.15 };
+                        std.debug.print("torch burned out ({d},{d},{d})\n", .{ rt.x, rt.y, rt.z }); toast.showBurnoutWarning();
                     }
                 }
                 rti += 1;
@@ -1115,10 +1115,9 @@ pub fn main() !void {
         if (!inventory_open) {
             const mine_frac: f32 = if (mine_target_valid and mine_need > 0.0) mine_progress / mine_need else -1.0;
             ui.drawHUDWithBuffs(aspect, selected_slot, &hotbar_colors, &hotbar_counts, mine_frac, player.health, player.hunger, player.regen_timer > 0.0);
-            if (toast_timer > 0.0) {
-                toast_timer = @max(0.0, toast_timer - dt);
-                const t_alpha = @min(1.0, toast_timer);
-                ui.drawToast(aspect, t_alpha, toast_color);
+            if (toast.visible()) {
+                const t_alpha = toast.tick(dt);
+                ui.drawToast(aspect, t_alpha, toast.color);
             }
         } else {
             var main_colors: [18][4]f32 = undefined;
