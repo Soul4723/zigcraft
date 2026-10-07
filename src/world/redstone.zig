@@ -222,3 +222,38 @@ test "redstone power detector helpers" {
     try std.testing.expect(isRepeaterInputPowered(&mockDetectorWorld, 20, 20, 20));
     try std.testing.expect(!isRepeaterInputPowered(&mockDetectorWorld, 0, 0, 0));
 }
+
+pub const torch_door_dirs = [_][3]i32{
+    .{ 1, 0, 0 },
+    .{ -1, 0, 0 },
+    .{ 0, 0, 1 },
+    .{ 0, 0, -1 },
+    .{ 0, 1, 0 },
+    .{ 0, -1, 0 },
+};
+
+pub fn targetDoorState(current: BlockId, torch_lit: bool) ?BlockId {
+    if (torch_lit) {
+        if (current == .wooden_door_closed) return .wooden_door_open;
+        if (current == .iron_door_closed) return .iron_door_open;
+    } else {
+        if (current == .wooden_door_open) return .wooden_door_closed;
+        if (current == .iron_door_open) return .iron_door_closed;
+    }
+    return null;
+}
+
+test "targetDoorState transitions" {
+    // Torch ON opens closed doors
+    try std.testing.expectEqual(BlockId.wooden_door_open, targetDoorState(.wooden_door_closed, true).?);
+    try std.testing.expectEqual(BlockId.iron_door_open, targetDoorState(.iron_door_closed, true).?);
+    try std.testing.expect(targetDoorState(.wooden_door_open, true) == null);
+
+    // Torch OFF closes open doors
+    try std.testing.expectEqual(BlockId.wooden_door_closed, targetDoorState(.wooden_door_open, false).?);
+    try std.testing.expectEqual(BlockId.iron_door_closed, targetDoorState(.iron_door_open, false).?);
+    try std.testing.expect(targetDoorState(.wooden_door_closed, false) == null);
+
+    // Non-doors ignored
+    try std.testing.expect(targetDoorState(.stone, true) == null);
+}

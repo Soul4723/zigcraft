@@ -795,16 +795,13 @@ pub fn main() !void {
                     continue;
                 }
                 const flip_now: f32 = @floatCast(current_time);
-                const torch_door_dirs = [_][3]i32{ .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 }, .{ 0, 1, 0 }, .{ 0, -1, 0 } };
                 if (base_powered and rt.lit) {
                     rt.lit = false;
                     _ = try manager.editAndRemesh(rt.x, rt.y, rt.z, .redstone_torch_off);
-                    for (torch_door_dirs) |dd| {
+                    for (redstone_mod.torch_door_dirs) |dd| {
                         const db = manager.getBlockWorld(rt.x + dd[0], rt.y + dd[1], rt.z + dd[2]);
-                        if (db == .wooden_door_open) {
-                            _ = try manager.editAndRemesh(rt.x + dd[0], rt.y + dd[1], rt.z + dd[2], .wooden_door_closed);
-                        } else if (db == .iron_door_open) {
-                            _ = try manager.editAndRemesh(rt.x + dd[0], rt.y + dd[1], rt.z + dd[2], .iron_door_closed);
+                        if (redstone_mod.targetDoorState(db, false)) |target_db| {
+                            _ = try manager.editAndRemesh(rt.x + dd[0], rt.y + dd[1], rt.z + dd[2], target_db);
                         }
                     }
                     rt.flips[@as(usize, rt.flip_count) % rt.flips.len] = flip_now;
@@ -817,12 +814,10 @@ pub fn main() !void {
                 } else if (!base_powered and !rt.lit) {
                     rt.lit = true;
                     _ = try manager.editAndRemesh(rt.x, rt.y, rt.z, .redstone_torch_on);
-                    for (torch_door_dirs) |dd| {
+                    for (redstone_mod.torch_door_dirs) |dd| {
                         const db = manager.getBlockWorld(rt.x + dd[0], rt.y + dd[1], rt.z + dd[2]);
-                        if (db == .wooden_door_closed) {
-                            _ = try manager.editAndRemesh(rt.x + dd[0], rt.y + dd[1], rt.z + dd[2], .wooden_door_open);
-                        } else if (db == .iron_door_closed) {
-                            _ = try manager.editAndRemesh(rt.x + dd[0], rt.y + dd[1], rt.z + dd[2], .iron_door_open);
+                        if (redstone_mod.targetDoorState(db, true)) |target_db| {
+                            _ = try manager.editAndRemesh(rt.x + dd[0], rt.y + dd[1], rt.z + dd[2], target_db);
                         }
                     }
                     particles.spawnFlame(rt.x, rt.y, rt.z, 2);
