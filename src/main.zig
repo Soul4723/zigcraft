@@ -1555,10 +1555,8 @@ pub fn main() !void {
                     } else {
                         // mob hit test (generous radius)
                         for (mob_manager.mobs.items, 0..) |*m, mi| {
-                            const ddx = m.pos.x - t.pos.x;
-                            const ddy = (m.pos.y + 0.4) - t.pos.y;
-                            const ddz = m.pos.z - t.pos.z;
-                            if (proj_mod.hitsMob(ddx, ddy, ddz)) {
+                            const d = proj_mod.mobDelta(m.pos.x, m.pos.y, m.pos.z, t.pos.x, t.pos.y, t.pos.z);
+                            if (proj_mod.hitsMob(d[0], d[1], d[2])) {
                                 const died = m.takeHit(cam.front());
                                 audio.play(.hurt, 0.5);
                                 particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.93, 0.95, 1.0 }, 8);

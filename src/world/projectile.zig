@@ -36,3 +36,16 @@ test "mob hit radius" {
     try std.testing.expect(hitsMob(0.5, 0.5, 0.3));
     try std.testing.expect(!hitsMob(1.0, 0, 0));
 }
+
+pub const mob_hit_height_offset: f32 = 0.4;
+
+pub fn mobDelta(mx: f32, my: f32, mz: f32, px: f32, py: f32, pz: f32) [3]f32 {
+    return .{ mx - px, (my + mob_hit_height_offset) - py, mz - pz };
+}
+
+test "mobDelta calculation" {
+    const d = mobDelta(10.0, 5.0, 2.0, 10.0, 5.4, 2.0);
+    try std.testing.expectApproxEqAbs(d[0], 0.0, 0.001);
+    try std.testing.expectApproxEqAbs(d[1], 0.0, 0.001);
+    try std.testing.expectApproxEqAbs(d[2], 0.0, 0.001);
+}
