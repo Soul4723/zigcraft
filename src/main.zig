@@ -1,3 +1,4 @@
+const sapling_mod = @import("world/sapling.zig");
 const cache_mod = @import("world/component_cache.zig");
 const fluid_mod = @import("world/fluid_wash.zig");
 const falling_mod = @import("world/falling_blocks.zig");
@@ -187,7 +188,7 @@ pub fn main() !void {
     const Chest = struct { x: i32, y: i32, z: i32, items: [4]inventory_mod.ItemStack };
     var chests: [16]Chest = undefined;
     var chest_count: usize = 0;
-    var sprouts: [16]struct { x: i32, y: i32, z: i32, t: f32 } = undefined;
+    var sprouts: [sapling_mod.sprout_cap]sapling_mod.Sprout = undefined;
     var sprout_count: usize = 0;
     const Plate = cache_mod.Plate;
     var plates: [cache_mod.plate_cap]Plate = undefined;
@@ -956,12 +957,12 @@ pub fn main() !void {
         var si: usize = 0;
         while (si < sprout_count) {
             sprouts[si].t += dt;
-            if (sprouts[si].t >= 30.0) {
+            if (sapling_mod.isReady(sprouts[si].t)) {
                 const sx = sprouts[si].x;
                 const sy = sprouts[si].y;
                 const sz = sprouts[si].z;
                 var gi: i32 = 1;
-                while (gi <= 3) : (gi += 1) {
+                while (gi <= sapling_mod.trunk_height) : (gi += 1) {
                     if (manager.getBlockWorld(sx, sy + gi, sz) == .air) _ = try manager.editAndRemesh(sx, sy + gi, sz, .wood);
                 }
                 var ox: i32 = -1;
@@ -972,7 +973,7 @@ pub fn main() !void {
                         if (manager.getBlockWorld(sx + ox, sy + 4, sz + oz) == .air) _ = try manager.editAndRemesh(sx + ox, sy + 4, sz + oz, .leaves);
                     }
                 }
-                if (manager.getBlockWorld(sx, sy + 4, sz) == .air) _ = try manager.editAndRemesh(sx, sy + 4, sz, .leaves);
+                if (manager.getBlockWorld(sx, sapling_mod.trunkTopY(sy), sz) == .air) _ = try manager.editAndRemesh(sx, sapling_mod.trunkTopY(sy), sz, .leaves);
                 std.debug.print("sapling grew\n", .{});
                 sprouts[si] = sprouts[sprout_count - 1];
                 sprout_count -= 1;
