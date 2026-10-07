@@ -90,3 +90,37 @@ test "player blast impulse calculation" {
     // Player far outside blast radius
     try std.testing.expect(calculatePlayerBlastImpulse(10.0, 0.0, 0.0, 0, 0, 0) == null);
 }
+
+pub const MobBlastHit = struct {
+    damage: u8,
+    knockback: [3]f32,
+};
+
+pub fn calculateMobBlastHit(mx: f32, my: f32, mz: f32, ex: i32, ey: i32, ez: i32) ?MobBlastHit {
+    const mdx = mx - @as(f32, @floatFromInt(ex));
+    const mdy = my - @as(f32, @floatFromInt(ey));
+    const mdz = mz - @as(f32, @floatFromInt(ez));
+    const dist_sq = mdx * mdx + mdy * mdy + mdz * mdz;
+    if (dist_sq < mob_blast_radius_sq) {
+        return MobBlastHit{
+            .damage = mob_blast_damage,
+            .knockback = .{ mdx, mdy + 2.0, mdz },
+        };
+    }
+    return null;
+}
+
+test "mob blast hit calculation" {
+    // Within 6 blocks (dist_sq < 36)
+    const hit = calculateMobBlastHit(2.0, 1.0, 2.0, 0, 0, 0);
+    try std.testing.expect(hit != null);
+    if (hit) |h| {
+        try std.testing.expectEqual(mob_blast_damage, h.damage);
+        try std.testing.expectEqual(@as(f32, 2.0), h.knockback[0]);
+        try std.testing.expectEqual(@as(f32, 3.0), h.knockback[1]);
+        try std.testing.expectEqual(@as(f32, 2.0), h.knockback[2]);
+    }
+
+    // Outside blast radius
+    try std.testing.expect(calculateMobBlastHit(10.0, 0.0, 0.0, 0, 0, 0) == null);
+}

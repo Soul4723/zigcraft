@@ -1634,12 +1634,8 @@ pub fn main() !void {
                     particles.spawnBlockDebris(ex, ey, ez, .{ 1.0, 0.3, 0.1 }, 64);
                     // mob blast damage
                     for (mob_manager.mobs.items, 0..) |*m, mi| {
-                        const mdx = m.pos.x - @as(f32, @floatFromInt(ex));
-                        const mdy = m.pos.y - @as(f32, @floatFromInt(ey));
-                        const mdz = m.pos.z - @as(f32, @floatFromInt(ez));
-                        const dist_sq = mdx * mdx + mdy * mdy + mdz * mdz;
-                        if (dist_sq < boom_mod.mob_blast_radius_sq) {
-                            const died = m.takeHitDmg(math.Vec3.init(mdx, mdy + 2.0, mdz), boom_mod.mob_blast_damage);
+                        if (boom_mod.calculateMobBlastHit(m.pos.x, m.pos.y, m.pos.z, ex, ey, ez)) |h| {
+                            const died = m.takeHitDmg(math.Vec3.init(h.knockback[0], h.knockback[1], h.knockback[2]), h.damage);
                             if (died) {
                                 _ = mob_manager.mobs.swapRemove(mi);
                             }
