@@ -50,6 +50,7 @@ pub fn build(b: *std.Build) void {
         "src/world/sapling.zig",
         "src/world/explosives.zig",
         "src/world/smelting.zig",
+        "src/world/projectile.zig",
         "src/world/redstone.zig",
         "src/world/chunk.zig",
         "src/world/chunk_mesh.zig",
