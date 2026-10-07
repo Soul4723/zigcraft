@@ -347,3 +347,17 @@ test "mob takeHitDmg deals variable damage" {
     try std.testing.expect(mob.takeHitDmg(math.Vec3.init(0, 0, 1), 3));
     try std.testing.expectEqual(mob.health, 0);
 }
+
+pub fn getSound(mob_type: MobType) ?@import("../audio/synth.zig").SoundType {
+    return switch (mob_type) {
+        .sheep => .mob_baa,
+        .pig => .mob_oink,
+        .wolf => .mob_growl,
+    };
+}
+
+test "mob sound mapping" {
+    try std.testing.expectEqual(@import("../audio/synth.zig").SoundType.mob_baa, getSound(.sheep).?);
+    try std.testing.expectEqual(@import("../audio/synth.zig").SoundType.mob_oink, getSound(.pig).?);
+    try std.testing.expectEqual(@import("../audio/synth.zig").SoundType.mob_growl, getSound(.wolf).?);
+}
