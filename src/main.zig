@@ -1447,12 +1447,12 @@ pub fn main() !void {
                 t.pos = math.Vec3.init(st.pos[0], st.pos[1], st.pos[2]);
                 t.vel = math.Vec3.init(st.vel[0], st.vel[1], st.vel[2]);
                 t.life = st.life;
+                const mbc = proj_mod.projectileBlockCoords(t.pos.x, t.pos.y, t.pos.z);
+                const mbx = mbc[0];
+                const mby = mbc[1];
+                const mbz = mbc[2];
                 var dead = proj_mod.isExpired(t.life);
                 if (!dead) {
-                    const mbc = proj_mod.projectileBlockCoords(t.pos.x, t.pos.y, t.pos.z);
-                    const mbx = mbc[0];
-                    const mby = mbc[1];
-                    const mbz = mbc[2];
                     if (pickSolid(mbx, mby, mbz)) {
                         particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.93, 0.95, 1.0 }, 6);
                         dead = true;
@@ -1482,7 +1482,7 @@ pub fn main() !void {
                     cache_mod.swapRemove(&thrown, &thrown_count, ti);
                 } else {
                     // trail puff
-                    particles.spawnBlockDebris(@intFromFloat(@floor(t.pos.x)), @intFromFloat(@floor(t.pos.y)), @intFromFloat(@floor(t.pos.z)), .{ 0.9, 0.92, 1.0 }, 1);
+                    particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.9, 0.92, 1.0 }, 1);
                     ti += 1;
                 }
             }
