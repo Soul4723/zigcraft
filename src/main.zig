@@ -54,10 +54,6 @@ fn pickLadder(x: i32, y: i32, z: i32) bool {
     return mgr.getBlockWorld(x, y, z).is_ladder();
 }
 
-/// Number of blocks a fresh wooden pickaxe can mine.
-fn defaultPickDurability() i32 {
-    return @intCast(inventory_mod.ItemType.wooden_pickaxe.maxDurability());
-}
 
 
 fn getFootstepSound(block: block_mod.BlockId) audio_mod.synth.SoundType {
