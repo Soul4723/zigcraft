@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-07 (Session 084)
+Last updated: 2026-10-07 (Session 085)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 471 passing unit tests
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 472 passing unit tests
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -19,7 +19,7 @@ Last updated: 2026-10-07 (Session 084)
 - Rich block palette (Air, Stone, Dirt, Grass, Water, Wood, Leaves, Cobblestone, Coal Ore, Iron Ore, Sand, Glass, Sandstone, Bricks, Snow, Torch, Chest, TNT, Ladders, Doors, Crafting Table, Furnace, Bed, Saplings)
 - Redstone logic: Wire transmission with 15-block falloff, torches (NOT inverter with 30s burnout recovery), repeaters (1-4 tick delays), levers, pressure plates, lamps with night glow, iron doors
 - Falling sand physics: unsupported sand drops, crushes non-solid cells, inflicts falling damage, splashes into water
-- Fluid interactions: water washes floor redstone, torches, repeaters, dropping items into player inventory (helpers in `src/world/fluid_wash.zig`)
+- Fluid interactions: water washes floor redstone, torches, repeaters, dropping items into player inventory (helpers in `src/world/fluid_wash.zig`, redstone caches in `src/world/component_cache.zig`)
 - Mob system: wandering Sheep, Pigs (oink + meat drops), and hostile Wolves with tracking/attack AI
 - 24-slot inventory, hotbar HUD, 2x2 crafting grid, chest storage containers, tool mining speed & durability system
 - HUD toast warning queue for system notifications (cap overflows, redstone burnout)
