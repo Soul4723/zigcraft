@@ -8,6 +8,7 @@ const mob_mod = @import("mob.zig");
 const mob_renderer_mod = @import("mob_renderer.zig");
 const chunk_manager_mod = @import("../chunk_manager.zig");
 const audio_mod = @import("../audio/audio.zig");
+const hunt_mod = @import("pack_hunt.zig");
 const spawn_rules = @import("../world/spawn_rules.zig");
 
 pub const MobManager = struct {
@@ -86,9 +87,9 @@ pub const MobManager = struct {
                 const wdx = player_pos.x - mob.pos.x;
                 const wdz = player_pos.z - mob.pos.z;
                 const wd = @sqrt(wdx * wdx + wdz * wdz);
-                if (wd < 12.0 and wd > 0.5) {
+                if (hunt_mod.shouldHunt(wd)) {
                     mob.yaw = std.math.atan2(wdx, wdz);
-                    mob.walk_timer = 0.5;
+                    mob.walk_timer = hunt_mod.walk_pulse;
                 }
             }
             mob.tick(solid, dt, &self.rng);
