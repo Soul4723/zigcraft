@@ -1291,7 +1291,7 @@ pub fn main() !void {
                             var hotbar_slot = &inventory.slots[selected_slot];
                             if (hotbar_slot.item == .sapling) {
                                 const soil = manager.getBlockWorld(hit.x, hit.y, hit.z);
-                                if ((soil == .grass or soil == .dirt) and hit.ny == 1 and py + 2 < 16) {
+                                if (sapling_mod.canPlant(soil, hit.ny, py)) {
                                     if (manager.getBlockWorld(px, py + 1, pz) == .air and manager.getBlockWorld(px, py + 2, pz) == .air) {
                                         var ok = try manager.editAndRemesh(px, py, pz, .wood);
                                         ok = (try manager.editAndRemesh(px, py + 1, pz, .wood)) and ok;
