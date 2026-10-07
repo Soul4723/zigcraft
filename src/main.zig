@@ -529,7 +529,7 @@ pub fn main() !void {
             var rti2: usize = 0;
             while (rti2 < red_torch_count) {
                 const rt = &red_torches[rti2];
-                if (manager.getBlockWorld(rt.x, rt.y, rt.z) == .water) {
+                if (fluid_mod.evaluateComponentWash(manager.getBlockWorld(rt.x, rt.y, rt.z), .air) == .wash) {
                     _ = try manager.editAndRemesh(rt.x, rt.y, rt.z, .air);
                     if (fluid_mod.componentWashDebris(.redstone_torch_on)) |deb| particles.spawnBlockDebris(rt.x, rt.y, rt.z, .{ deb.r, deb.g, deb.b }, 4);
                     if (fluid_mod.inPickupRange(@floatFromInt(rt.x), @floatFromInt(rt.z), player.pos.x, player.pos.z)) _ = inventory.addItem(.redstone_torch, 1);
@@ -541,7 +541,7 @@ pub fn main() !void {
             var rpi: usize = 0;
             while (rpi < repeater_count) {
                 const rep = &repeaters[rpi];
-                if (manager.getBlockWorld(rep.x, rep.y, rep.z) == .water) {
+                if (fluid_mod.evaluateComponentWash(manager.getBlockWorld(rep.x, rep.y, rep.z), .air) == .wash) {
                     _ = try manager.editAndRemesh(rep.x, rep.y, rep.z, .air);
                     if (fluid_mod.componentWashDebris(.repeater_off)) |deb| particles.spawnBlockDebris(rep.x, rep.y, rep.z, .{ deb.r, deb.g, deb.b }, 4);
                     if (fluid_mod.inPickupRange(@floatFromInt(rep.x), @floatFromInt(rep.z), player.pos.x, player.pos.z)) _ = inventory.addItem(.redstone_repeater, 1);
@@ -553,7 +553,7 @@ pub fn main() !void {
             var ppi: usize = 0;
             while (ppi < plate_count) {
                 const pl = &plates[ppi];
-                if (manager.getBlockWorld(pl.x, pl.y, pl.z) == .water) {
+                if (fluid_mod.evaluateComponentWash(manager.getBlockWorld(pl.x, pl.y, pl.z), .air) == .wash) {
                     _ = try manager.editAndRemesh(pl.x, pl.y, pl.z, .air);
                     if (fluid_mod.componentWashDebris(.pressure_plate_up)) |deb| particles.spawnBlockDebris(pl.x, pl.y, pl.z, .{ deb.r, deb.g, deb.b }, 4);
                     if (fluid_mod.inPickupRange(@floatFromInt(pl.x), @floatFromInt(pl.z), player.pos.x, player.pos.z)) _ = inventory.addItem(.pressure_plate, 1);
