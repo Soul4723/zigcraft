@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-06 (Session 080)
+Last updated: 2026-10-07 (Session 112)
 
 ## Project Structure
 
@@ -34,6 +34,7 @@ zigcraft/
 │       ├── chunk.zig            # 16x16x16 chunk storage
 │       ├── chunk_mesh.zig       # Greedy chunk meshing with ambient occlusion
 │       ├── terrain.zig          # fBm heightmap terrain & cave generation
+│       ├── fluid_wash.zig       # Water wash rules and staged nearby flow ticks
 │       ├── redstone.zig         # Wire BFS logic, delay stages, power propagation
 │       └── persistence.zig      # Binary chunk serialization
 └── docs/
@@ -51,3 +52,14 @@ Module tests run through standalone targets registered in `build.zig`. Run with:
 ```bash
 zig build test --summary all
 ```
+
+## Water ticks
+
+`main.zig` dispatches `fluid_wash.step` every 0.4 seconds. The step scans the
+existing player-centered window (horizontal radius 7, vertical -3/+2, clipped
+to world height), stages up to eight distinct destinations, then applies them
+through `ChunkManager.editAndRemesh`. Reading before writing prevents new water
+from spreading again during the same tick. Downward flow takes priority;
+lateral flow accepts air over either ground or a ledge. Occupied cells remain
+unchanged. This remains a source-copy model: finite levels and drainage require
+persisted fluid metadata and remain an unfinished roadmap milestone.

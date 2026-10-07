@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-07 (Session 111)
+Last updated: 2026-10-07 (Session 112)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 664 passing unit tests
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 670 passing unit tests
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -26,6 +26,8 @@ Last updated: 2026-10-07 (Session 111)
 - HUD toast warning queue for system notifications (cap overflows, redstone burnout)
 
 ## Active State
-- Main branch stable at commit e6f89fc
-- All tests passing (664/664)
-- Remote branches pruned clean
+- Water flow fixes on `fix/water-flow-support` (code commit `3b36817`)
+- All tests passing (670/670)
+- Water spreads over solid floors and ledges; each tick stages at most eight distinct edits with no same-tick cascades
+- Finite water levels, source tracking, and drainage still pending
+- Runtime visual verification blocked here: GLFW initialization returns `GlfwInitFailed`

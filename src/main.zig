@@ -1457,37 +1457,11 @@ pub fn main() !void {
         flow_timer += dt;
         if (flow_timer >= fluid_mod.flow_tick) {
             flow_timer = 0.0;
-            const pcx: i32 = @intFromFloat(@floor(player.pos.x));
-            const pcz: i32 = @intFromFloat(@floor(player.pos.z));
-            const pcy: i32 = @intFromFloat(@floor(player.pos.y));
-            var spread: usize = 0;
-            var ox: i32 = -fluid_mod.max_spread;
-            while (ox <= fluid_mod.max_spread and spread < 8) : (ox += 1) {
-                var oz: i32 = -fluid_mod.max_spread;
-                while (oz <= fluid_mod.max_spread and spread < 8) : (oz += 1) {
-                    const wx = pcx + ox;
-                    const wz = pcz + oz;
-                    var wy: i32 = pcy + 2;
-                    while (wy >= pcy - 3 and spread < 8) : (wy -= 1) {
-                        if (manager.getBlockWorld(wx, wy, wz) != .water) continue;
-                        const below = manager.getBlockWorld(wx, wy - 1, wz);
-                        if (fluid_mod.shouldFlowDown(below) and wy > 0) {
-                            _ = try manager.editAndRemesh(wx, wy - 1, wz, .water);
-                            spread += 1;
-                            continue;
-                        }
-                        for (fluid_mod.flow_dirs) |d| {
-                            if (spread >= 8) break;
-                            const nx = wx + d.dx;
-                            const nz = wz + d.dz;
-                            if (fluid_mod.canFlowInto(manager.getBlockWorld(nx, wy, nz)) and fluid_mod.canFlowInto(manager.getBlockWorld(nx, wy - 1, nz))) {
-                                _ = try manager.editAndRemesh(nx, wy, nz, .water);
-                                spread += 1;
-                            }
-                        }
-                    }
-                }
-            }
+            _ = try fluid_mod.step(&manager, .{
+                @intFromFloat(@floor(player.pos.x)),
+                @intFromFloat(@floor(player.pos.y)),
+                @intFromFloat(@floor(player.pos.z)),
+            });
         }
                 // Torch flame particles: nearby active torches emit flame tips
         torch_puff_timer += dt;
