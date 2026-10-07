@@ -47,6 +47,7 @@ pub const ItemType = enum(u8) {
     redstone_lamp = 41,
     iron_door = 42,
     redstone_torch = 43,
+    campfire = 44,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -78,6 +79,7 @@ pub const ItemType = enum(u8) {
             .redstone_lamp => .redstone_lamp_off,
             .iron_door => .iron_door_closed,
             .redstone_torch => .redstone_torch_on,
+            .campfire => .campfire,
             else => null,
         };
     }
@@ -115,6 +117,7 @@ pub const ItemType = enum(u8) {
             .redstone_lamp_off, .redstone_lamp_on => .redstone_lamp,
             .iron_door_closed, .iron_door_open => .iron_door,
             .redstone_torch_off, .redstone_torch_on => .redstone_torch,
+            .campfire => .campfire,
         };
     }
 
@@ -181,6 +184,7 @@ pub const ItemType = enum(u8) {
             .redstone_lamp => "Redstone Lamp",
             .iron_door => "Iron Door",
             .redstone_torch => "Redstone Torch",
+            .campfire => "Campfire",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -230,6 +234,7 @@ pub const ItemType = enum(u8) {
             .redstone_lamp => .{ 0.95, 0.75, 0.35, 0.95 },
             .iron_door => .{ 0.85, 0.85, 0.88, 0.95 },
             .redstone_torch => .{ 0.95, 0.22, 0.18, 0.95 },
+            .campfire => .{ 0.95, 0.45, 0.10, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },

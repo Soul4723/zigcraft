@@ -1,3 +1,4 @@
+const fluid_mod = @import("world/fluid_wash.zig");
 const falling_mod = @import("world/falling_blocks.zig");
 const hazard_mod = @import("world/hazard.zig");
 const std = @import("std");
@@ -294,7 +295,14 @@ pub fn main() !void {
             const py_i: i32 = @intFromFloat(@floor(player.pos.y));
             const pz_i: i32 = @intFromFloat(@floor(player.pos.z));
             if (hazard_mod.checkCactusContact(&pickBlockWorld, px_i, py_i, pz_i)) {
-                player.health = @max(0.0, player.health - 1.0 * dt);
+                player.health = @max(0.0, player.health - hazard_mod.contact_rate * dt);
+            }
+
+            // Campfire burn: standing inside or on a campfire cell burns 2 hp/sec
+            const feet_b = manager.getBlockWorld(px_i, py_i, pz_i);
+            const head_b = manager.getBlockWorld(px_i, py_i + 1, pz_i);
+            if (hazard_mod.checkBurnContact(feet_b) or hazard_mod.checkBurnContact(head_b)) {
+                player.health = @max(0.0, player.health - hazard_mod.burn_rate * dt);
             }
         }
         if (player.isDead()) {
@@ -579,12 +587,10 @@ pub fn main() !void {
             var wri: usize = 0;
             while (wri < wire_count) {
                 const w = &wires[wri];
-                if (manager.getBlockWorld(w.x, w.y, w.z) == .water or manager.getBlockWorld(w.x, w.y + 1, w.z) == .water) {
+                if (fluid_mod.isWashable(manager.getBlockWorld(w.x, w.y, w.z), manager.getBlockWorld(w.x, w.y + 1, w.z))) {
                     _ = try manager.editAndRemesh(w.x, w.y, w.z, .air);
                     particles.spawnBlockDebris(w.x, w.y, w.z, .{ 0.6, 0.1, 0.1 }, 4);
-                    const pdx = @as(f32, @floatFromInt(w.x)) - player.pos.x;
-                    const pdz = @as(f32, @floatFromInt(w.z)) - player.pos.z;
-                    if (pdx * pdx + pdz * pdz < 144.0) _ = inventory.addItem(.redstone_dust, 1);
+                    if (fluid_mod.inPickupRange(@floatFromInt(w.x), @floatFromInt(w.z), player.pos.x, player.pos.z)) _ = inventory.addItem(.redstone_dust, 1);
                     wires[wri] = wires[wire_count - 1];
                     wire_count -= 1;
                     continue;
@@ -597,9 +603,7 @@ pub fn main() !void {
                 if (manager.getBlockWorld(rt.x, rt.y, rt.z) == .water) {
                     _ = try manager.editAndRemesh(rt.x, rt.y, rt.z, .air);
                     particles.spawnBlockDebris(rt.x, rt.y, rt.z, .{ 0.7, 0.2, 0.1 }, 4);
-                    const pdx = @as(f32, @floatFromInt(rt.x)) - player.pos.x;
-                    const pdz = @as(f32, @floatFromInt(rt.z)) - player.pos.z;
-                    if (pdx * pdx + pdz * pdz < 144.0) _ = inventory.addItem(.redstone_torch, 1);
+                    if (fluid_mod.inPickupRange(@floatFromInt(rt.x), @floatFromInt(rt.z), player.pos.x, player.pos.z)) _ = inventory.addItem(.redstone_torch, 1);
                     red_torches[rti2] = red_torches[red_torch_count - 1];
                     red_torch_count -= 1;
                     continue;
@@ -612,9 +616,7 @@ pub fn main() !void {
                 if (manager.getBlockWorld(rep.x, rep.y, rep.z) == .water) {
                     _ = try manager.editAndRemesh(rep.x, rep.y, rep.z, .air);
                     particles.spawnBlockDebris(rep.x, rep.y, rep.z, .{ 0.5, 0.5, 0.5 }, 4);
-                    const pdx = @as(f32, @floatFromInt(rep.x)) - player.pos.x;
-                    const pdz = @as(f32, @floatFromInt(rep.z)) - player.pos.z;
-                    if (pdx * pdx + pdz * pdz < 144.0) _ = inventory.addItem(.redstone_repeater, 1);
+                    if (fluid_mod.inPickupRange(@floatFromInt(rep.x), @floatFromInt(rep.z), player.pos.x, player.pos.z)) _ = inventory.addItem(.redstone_repeater, 1);
                     repeaters[rpi] = repeaters[repeater_count - 1];
                     repeater_count -= 1;
                     continue;
@@ -627,9 +629,7 @@ pub fn main() !void {
                 if (manager.getBlockWorld(pl.x, pl.y, pl.z) == .water) {
                     _ = try manager.editAndRemesh(pl.x, pl.y, pl.z, .air);
                     particles.spawnBlockDebris(pl.x, pl.y, pl.z, .{ 0.6, 0.4, 0.2 }, 4);
-                    const pdx = @as(f32, @floatFromInt(pl.x)) - player.pos.x;
-                    const pdz = @as(f32, @floatFromInt(pl.z)) - player.pos.z;
-                    if (pdx * pdx + pdz * pdz < 144.0) _ = inventory.addItem(.pressure_plate, 1);
+                    if (fluid_mod.inPickupRange(@floatFromInt(pl.x), @floatFromInt(pl.z), player.pos.x, player.pos.z)) _ = inventory.addItem(.pressure_plate, 1);
                     plates[ppi] = plates[plate_count - 1];
                     plate_count -= 1;
                     continue;
@@ -1608,9 +1608,7 @@ pub fn main() !void {
                 if (cur_tb == .water or manager.getBlockWorld(tr.x, tr.y + 1, tr.z) == .water) {
                     _ = try manager.editAndRemesh(tr.x, tr.y, tr.z, .air);
                     particles.spawnBlockDebris(tr.x, tr.y, tr.z, .{ 0.8, 0.6, 0.2 }, 4);
-                    const pdx = @as(f32, @floatFromInt(tr.x)) - player.pos.x;
-                    const pdz = @as(f32, @floatFromInt(tr.z)) - player.pos.z;
-                    if (pdx * pdx + pdz * pdz < 144.0) _ = inventory.addItem(.torch, 1);
+                    if (fluid_mod.inPickupRange(@floatFromInt(tr.x), @floatFromInt(tr.z), player.pos.x, player.pos.z)) _ = inventory.addItem(.torch, 1);
                     torches[ti] = torches[torch_count - 1];
                     torch_count -= 1;
                     continue;

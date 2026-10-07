@@ -44,6 +44,7 @@ pub fn build(b: *std.Build) void {
         "src/world/block.zig",
         "src/world/hazard.zig",
         "src/world/falling_blocks.zig",
+        "src/world/fluid_wash.zig",
         "src/world/redstone.zig",
         "src/world/chunk.zig",
         "src/world/chunk_mesh.zig",
