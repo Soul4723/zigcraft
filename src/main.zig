@@ -721,16 +721,7 @@ pub fn main() !void {
                     continue;
                 }
 
-                // Check power input from south/west (-Z, -X) adjacent blocks
-                var input_powered = false;
-                const in_offsets = [_][3]i32{ .{ 0, 0, -1 }, .{ -1, 0, 0 }, .{ 0, -1, 0 } };
-                for (in_offsets) |io| {
-                    const ib = manager.getBlockWorld(rep.x + io[0], rep.y + io[1], rep.z + io[2]);
-                    if (ib == .redstone_wire_on or ib == .lever_on or ib == .pressure_plate_down or ib == .redstone_torch_on) {
-                        input_powered = true;
-                        break;
-                    }
-                }
+                const input_powered = redstone_mod.isRepeaterInputPowered(&pickBlockWorld, rep.x, rep.y, rep.z);
 
                 const delay: f32 = redstone_mod.repeaterDelay(rep.stage);
                 if (input_powered and !rep.powered) {
@@ -787,18 +778,7 @@ pub fn main() !void {
                     continue;
                 }
 
-                var power_in = false;
-                const adj_dirs = [_][3]i32{
-                    .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 },
-                    .{ 0, 1, 0 }, .{ 0, -1, 0 },
-                };
-                for (adj_dirs) |ad| {
-                    const nb = manager.getBlockWorld(la.x + ad[0], la.y + ad[1], la.z + ad[2]);
-                    if (nb == .redstone_wire_on or nb == .pressure_plate_down or nb == .lever_on or nb == .repeater_on or nb == .redstone_torch_on) {
-                        power_in = true;
-                        break;
-                    }
-                }
+                const power_in = redstone_mod.isLampPowered(&pickBlockWorld, la.x, la.y, la.z);
 
                 if (power_in and !la.lit) {
                     la.lit = true;
@@ -825,21 +805,7 @@ pub fn main() !void {
                     continue;
                 }
 
-                // Base block directly below the torch
-                const base_y = rt.y - 1;
-                // Base block receives power from adjacent wires or levers
-                var base_powered = false;
-                const adj_dirs = [_][3]i32{
-                    .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 },
-                    .{ 0, -1, 0 },
-                };
-                for (adj_dirs) |ad| {
-                    const nb = manager.getBlockWorld(rt.x + ad[0], base_y + ad[1], rt.z + ad[2]);
-                    if (nb == .redstone_wire_on or nb == .lever_on or nb == .pressure_plate_down) {
-                        base_powered = true;
-                        break;
-                    }
-                }
+                const base_powered = redstone_mod.isTorchBasePowered(&pickBlockWorld, rt.x, rt.y, rt.z);
 
                 // Burnout: 8 flips within 3.2s -> 30s dead torch (MC clock protection)
                 if (rt.burnout > 0.0) {
