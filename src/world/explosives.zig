@@ -149,3 +149,14 @@ test "evaluateBlastBlock classification" {
     try std.testing.expectEqual(BlastBlockAction.destroy_chest, evaluateBlastBlock(.chest, 5));
     try std.testing.expectEqual(BlastBlockAction.destroy_block, evaluateBlastBlock(.dirt, 5));
 }
+
+pub fn canChainFuse(fuses: []const Fuse, x: i32, y: i32, z: i32, max_fuses: usize) bool {
+    return findFuse(fuses, x, y, z) == null and fuses.len < max_fuses;
+}
+
+test "canChainFuse helper" {
+    const list = [_]Fuse{.{ .x = 1, .y = 2, .z = 3, .t = 1.0 }};
+    try std.testing.expect(canChainFuse(&list, 2, 2, 2, 4));
+    try std.testing.expect(!canChainFuse(&list, 1, 2, 3, 4));
+    try std.testing.expect(!canChainFuse(&list, 2, 2, 2, 1));
+}

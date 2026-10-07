@@ -1528,7 +1528,7 @@ pub fn main() !void {
                                     const old_b = manager.getBlockWorld(bx, by, bz);
                                     switch (boom_mod.evaluateBlastBlock(old_b, by)) {
                                         .chain_tnt => {
-                                            if (boom_mod.findFuse(fuses[0..fuse_count], bx, by, bz) == null and fuse_count < fuses.len) {
+                                            if (boom_mod.canChainFuse(fuses[0..fuse_count], bx, by, bz, fuses.len)) {
                                                 fuses[fuse_count] = .{ .x = bx, .y = by, .z = bz, .t = boom_mod.chain_fuse_time };
                                                 fuse_count += 1;
                                                 std.debug.print("chain-detonated TNT ({d},{d},{d})\n", .{ bx, by, bz });
