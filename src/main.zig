@@ -483,26 +483,11 @@ pub fn main() !void {
                     continue;
                 }
 
-                // Check if player is standing within plate bounds:
-                // plate is at (pl.x, pl.y, pl.z), foot pos (player.pos.x, player.pos.y, player.pos.z)
-                var stepped = false;
-                const fx = player.pos.x;
-                const fy = player.pos.y;
-                const fz = player.pos.z;
-                if (fx >= @as(f32, @floatFromInt(pl.x)) - 0.2 and fx <= @as(f32, @floatFromInt(pl.x)) + 1.2 and
-                    fz >= @as(f32, @floatFromInt(pl.z)) - 0.2 and fz <= @as(f32, @floatFromInt(pl.z)) + 1.2 and
-                    fy >= @as(f32, @floatFromInt(pl.y)) - 0.1 and fy <= @as(f32, @floatFromInt(pl.y)) + 0.6)
-                {
-                    stepped = true;
-                }
-
-                // Also check any mob standing on it
+                // Check if player or any mob is standing within plate bounds
+                var stepped = cache_mod.isPosOnPlate(player.pos.x, player.pos.y, player.pos.z, pl.x, pl.y, pl.z, 0.2);
                 if (!stepped) {
                     for (mob_manager.mobs.items) |m| {
-                        if (m.pos.x >= @as(f32, @floatFromInt(pl.x)) - 0.3 and m.pos.x <= @as(f32, @floatFromInt(pl.x)) + 1.3 and
-                            m.pos.z >= @as(f32, @floatFromInt(pl.z)) - 0.3 and m.pos.z <= @as(f32, @floatFromInt(pl.z)) + 1.3 and
-                            m.pos.y >= @as(f32, @floatFromInt(pl.y)) - 0.1 and m.pos.y <= @as(f32, @floatFromInt(pl.y)) + 0.6)
-                        {
+                        if (cache_mod.isPosOnPlate(m.pos.x, m.pos.y, m.pos.z, pl.x, pl.y, pl.z, 0.3)) {
                             stepped = true;
                             break;
                         }
@@ -514,13 +499,8 @@ pub fn main() !void {
                     _ = try manager.editAndRemesh(pl.x, pl.y, pl.z, .pressure_plate_down);
                     audio.play(.click_on, 0.85);
 
-                    // Open any adjacent wooden doors (within Manhattan dist 1 horizontal or 1 above/below)
-                    const adj_offsets = [_][3]i32{
-                        .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 },
-                        .{ 1, 1, 0 }, .{ -1, 1, 0 }, .{ 0, 1, 1 }, .{ 0, 1, -1 },
-                        .{ 0, 1, 0 },
-                    };
-                    for (adj_offsets) |off| {
+                    // Open any adjacent wooden or iron doors
+                    for (cache_mod.plate_door_offsets) |off| {
                         const dx = pl.x + off[0];
                         const dy = pl.y + off[1];
                         const dz = pl.z + off[2];
@@ -538,13 +518,8 @@ pub fn main() !void {
                     _ = try manager.editAndRemesh(pl.x, pl.y, pl.z, .pressure_plate_up);
                     audio.play(.click_off, 0.7);
 
-                    // Close any adjacent wooden doors
-                    const adj_offsets = [_][3]i32{
-                        .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 },
-                        .{ 1, 1, 0 }, .{ -1, 1, 0 }, .{ 0, 1, 1 }, .{ 0, 1, -1 },
-                        .{ 0, 1, 0 },
-                    };
-                    for (adj_offsets) |off| {
+                    // Close any adjacent wooden or iron doors
+                    for (cache_mod.plate_door_offsets) |off| {
                         const dx = pl.x + off[0];
                         const dy = pl.y + off[1];
                         const dz = pl.z + off[2];
