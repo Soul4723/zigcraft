@@ -26,3 +26,30 @@ test "pickup range" {
     try std.testing.expect(inPickupRange(11, 0, 0, 0));
     try std.testing.expect(!inPickupRange(13, 0, 0, 0));
 }
+
+pub const flow_tick: f32 = 0.4;
+pub const max_spread: i32 = 7;
+
+pub const FlowDir = struct { dx: i32, dz: i32 };
+pub const flow_dirs = [_]FlowDir{ .{ .dx = 1, .dz = 0 }, .{ .dx = -1, .dz = 0 }, .{ .dx = 0, .dz = 1 }, .{ .dx = 0, .dz = -1 } };
+
+pub fn canFlowInto(cell: BlockId) bool {
+    return cell == .air;
+}
+
+pub fn shouldFlowDown(below: BlockId) bool {
+    return below == .air;
+}
+
+test "flow targets air only" {
+    try std.testing.expect(canFlowInto(.air));
+    try std.testing.expect(!canFlowInto(.water));
+    try std.testing.expect(!canFlowInto(.stone));
+    try std.testing.expect(!canFlowInto(.torch));
+}
+
+test "flow prefers falling straight down" {
+    try std.testing.expect(shouldFlowDown(.air));
+    try std.testing.expect(!shouldFlowDown(.water));
+    try std.testing.expect(!shouldFlowDown(.stone));
+}
