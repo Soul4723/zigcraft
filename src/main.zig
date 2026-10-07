@@ -1190,8 +1190,7 @@ pub fn main() !void {
                                             for (chests[ci].items) |citem| {
                                                 if (!citem.isEmpty()) _ = inventory.addItem(citem.item, citem.count);
                                             }
-                                            chests[ci] = chests[chest_count - 1];
-                                            chest_count -= 1;
+                                            cache_mod.swapRemove(&chests, &chest_count, ci);
                                         }
                                     }
                                     var drops_buf: [2]inventory_mod.BlockDrop = undefined;
