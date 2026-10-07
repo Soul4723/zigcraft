@@ -110,3 +110,16 @@ test "isWithinFlameDist check" {
     try std.testing.expect(isWithinFlameDist(10, 10, 0.0, 0.0));
     try std.testing.expect(!isWithinFlameDist(25, 0, 0.0, 0.0));
 }
+
+pub const Chest = struct { x: i32, y: i32, z: i32 };
+
+pub fn findChest(chests: anytype, n: usize, x: i32, y: i32, z: i32) ?usize {
+    return find2D(chests, n, x, y, z);
+}
+
+test "findChest helper" {
+    const FakeChest = struct { x: i32, y: i32, z: i32 };
+    var cs = [_]FakeChest{.{ .x = 1, .y = 2, .z = 3 }} ** 2;
+    try std.testing.expectEqual(findChest(&cs, 1, 1, 2, 3), @as(?usize, 0));
+    try std.testing.expectEqual(findChest(&cs, 1, 9, 9, 9), @as(?usize, null));
+}

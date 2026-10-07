@@ -1231,16 +1231,12 @@ pub fn main() !void {
                                 const tier_ok = inventory_mod.canHarvestBlock(held, broken_block);
                                 if (tier_ok) {
                                     if (broken_block == .chest) {
-                                        var ci: usize = 0;
-                                        while (ci < chest_count) : (ci += 1) {
-                                            if (chests[ci].x == hit.x and chests[ci].y == hit.y and chests[ci].z == hit.z) {
-                                                for (chests[ci].items) |citem| {
-                                                    if (!citem.isEmpty()) _ = inventory.addItem(citem.item, citem.count);
-                                                }
-                                                chests[ci] = chests[chest_count - 1];
-                                                chest_count -= 1;
-                                                break;
+                                        if (cache_mod.findChest(&chests, chest_count, hit.x, hit.y, hit.z)) |ci| {
+                                            for (chests[ci].items) |citem| {
+                                                if (!citem.isEmpty()) _ = inventory.addItem(citem.item, citem.count);
                                             }
+                                            chests[ci] = chests[chest_count - 1];
+                                            chest_count -= 1;
                                         }
                                     }
                                     var drops_buf: [2]inventory_mod.BlockDrop = undefined;
