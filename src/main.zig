@@ -1724,14 +1724,18 @@ pub fn main() !void {
                         furnace_count += 1;
                     }
                     if (k_opt) |k| {
-                        if (held_f.item == .coal and furnaces[k].fuel < 8) {
-                            furnaces[k].fuel += 1;
-                            inventory.slots[selected_slot].decrement(1);
-                            fed = true;
-                        } else if (smeltable and furnaces[k].input == smelt_mod.None) {
-                            furnaces[k].input = @intFromEnum(held_f.item);
-                            inventory.slots[selected_slot].decrement(1);
-                            fed = true;
+                        switch (smelt_mod.evaluateFurnaceFeed(held_f.item == .coal, smeltable, furnaces[k].fuel, furnaces[k].input)) {
+                            .add_fuel => {
+                                furnaces[k].fuel += 1;
+                                inventory.slots[selected_slot].decrement(1);
+                                fed = true;
+                            },
+                            .set_input => {
+                                furnaces[k].input = @intFromEnum(held_f.item);
+                                inventory.slots[selected_slot].decrement(1);
+                                fed = true;
+                            },
+                            .none => {},
                         }
                     }
                     if (fed) audio.play(.place_block, 0.6);

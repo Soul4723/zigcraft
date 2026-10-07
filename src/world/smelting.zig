@@ -102,3 +102,23 @@ test "tickJob progress and completion" {
     try std.testing.expectEqual(@as(?u8, null), r3.done_item);
     try std.testing.expectEqual(@as(f32, 0.0), t);
 }
+
+pub const FeedAction = enum {
+    add_fuel,
+    set_input,
+    none,
+};
+
+pub fn evaluateFurnaceFeed(is_coal: bool, is_smeltable_input: bool, current_fuel: u8, current_input: u8) FeedAction {
+    if (is_coal and current_fuel < 8) return .add_fuel;
+    if (is_smeltable_input and current_input == None) return .set_input;
+    return .none;
+}
+
+test "evaluateFurnaceFeed actions" {
+    try std.testing.expectEqual(FeedAction.add_fuel, evaluateFurnaceFeed(true, false, 0, None));
+    try std.testing.expectEqual(FeedAction.none, evaluateFurnaceFeed(true, false, 8, None));
+    try std.testing.expectEqual(FeedAction.set_input, evaluateFurnaceFeed(false, true, 2, None));
+    try std.testing.expectEqual(FeedAction.none, evaluateFurnaceFeed(false, true, 2, RawPork));
+    try std.testing.expectEqual(FeedAction.none, evaluateFurnaceFeed(false, false, 2, None));
+}
