@@ -123,7 +123,22 @@ pub const Player = struct {
             self.vel_y -= 25.0 * clamped_dt;
             if (self.vel_y < -30.0) self.vel_y = -30.0;
         }
+        const was_airborne = !self.on_ground;
+        const fall_speed = self.vel_y;
         self.pos.y = collideAxis(self.pos, self.radius, self.height, solid, self.vel_y * clamped_dt, Axis.y, &self.vel_y, &self.on_ground);
+        if (was_airborne and self.on_ground) {
+            const dmg = fallDamage(fall_speed);
+            if (dmg > 0.0) self.health = @max(0.0, self.health - dmg);
+        }
+    }
+
+    pub const safe_fall_speed: f32 = 12.0;
+    pub const fall_damage_scale: f32 = 1.5;
+
+    pub fn fallDamage(impact_vy: f32) f32 {
+        const excess = -impact_vy - safe_fall_speed;
+        if (excess <= 0.0) return 0.0;
+        return excess * fall_damage_scale;
     }
 
     pub fn tick(self: *Player, solid: *const fn (x: i32, y: i32, z: i32) bool, move_x: f32, move_z: f32, jump: bool, dt: f32) void {
@@ -344,4 +359,11 @@ test "player climbs ladder when jumping" {
     var p = Player.init(0.5, 1.0, 0.5);
     p.tickLadder(&dummySolid, &testLadder, 0, 0, true, 0.05);
     try std.testing.expect(p.vel_y > 0.0);
+}
+
+test "fall damage thresholds" {
+    try std.testing.expectEqual(Player.fallDamage(0.0), 0.0);
+    try std.testing.expectEqual(Player.fallDamage(-12.0), 0.0);
+    try std.testing.expect(Player.fallDamage(-20.0) > 0.0);
+    try std.testing.expect(Player.fallDamage(-30.0) > Player.fallDamage(-20.0));
 }
