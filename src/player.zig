@@ -71,17 +71,23 @@ pub const Player = struct {
         self.spawn_point = self.pos;
     }
 
+    pub const hunger_drain: f32 = 0.05;
+    pub const regen_rate: f32 = 0.8;
+    pub const passive_heal_rate: f32 = 0.4;
+    pub const starve_rate: f32 = 0.5;
+    pub const heal_hunger_threshold: f32 = 14.0;
+
     /// Passive drain: hunger falls over time, health regen/suffer follows.
     pub fn tickVitals(self: *Player, dt: f32) void {
         self.regen_timer = @max(0.0, self.regen_timer - dt);
         if (self.regen_timer > 0.0 and self.health < 20.0) {
-            self.health = @min(20.0, self.health + dt * 0.8);
+            self.health = @min(20.0, self.health + dt * regen_rate);
         }
-        self.hunger = @max(0.0, self.hunger - dt * 0.05);
-        if (self.hunger > 14.0 and self.health < 20.0) {
-            self.health = @min(20.0, self.health + dt * 0.4);
+        self.hunger = @max(0.0, self.hunger - dt * hunger_drain);
+        if (self.hunger > heal_hunger_threshold and self.health < 20.0) {
+            self.health = @min(20.0, self.health + dt * passive_heal_rate);
         } else if (self.hunger <= 0.0 and self.health > 0.0) {
-            self.health = @max(0.0, self.health - dt * 0.5);
+            self.health = @max(0.0, self.health - dt * starve_rate);
         }
     }
 
