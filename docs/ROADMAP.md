@@ -65,3 +65,8 @@ Rough priority order. Completed milestones marked **[x]**.
 40. [x] **Environmental Hazards** — Cactus contact damage, campfire burn damage (#104-#107)
 41. [x] **Water Flow Simulation** — Finite levels with lateral decay, film drainage, persistence v2, shallow-water mesh heights, and non-source depletion (#150, #155, #157).
 42. [x] **Hostile Mob Spawning & Pathfinding** — Cave wolf spawns (#153), water avoidance steering (#152), unified spawn safety (#149), and bounded A* obstacle pathfinding (#158).
+
+## Phase 8: Survival Depth & Environmental Physics
+
+43. [~] **Water Physics & Swimming** — Buoyancy, reduced gravity in water, jump swimming, water drag, water fall damage dampening (#159).
+44. [ ] **Oxygen & Drowning Hazard** — Oxygen depletion underwater, drowning damage tick when depleted, oxygen recovery on surface, breath bar on HUD.

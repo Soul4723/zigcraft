@@ -268,7 +268,7 @@ pub fn main() !void {
         const key_a = c.glfwGetKey(window, c.GLFW_KEY_A) == c.GLFW_PRESS;
         const norm_wish = player_mod.computeWishDirection(walk_vecs, key_w, key_s, key_d, key_a, inventory_open);
         const jump = !inventory_open and (c.glfwGetKey(window, c.GLFW_KEY_SPACE) == c.GLFW_PRESS);
-        player.tickLadder(&pickSolid, &pickLadder, norm_wish.x * walk_speed * dt, norm_wish.z * walk_speed * dt, jump, dt);
+        player.tickPhysics(&pickSolid, &pickLadder, &pickFluid, norm_wish.x * walk_speed * dt, norm_wish.z * walk_speed * dt, jump, dt);
         player.tickVitals(dt);
         if (player.pos.y < -30.0) {
             // Fell out of world: damage through vitals path

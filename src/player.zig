@@ -13,6 +13,7 @@ pub const Player = struct {
     saturation: f32,
     spawn_point: math.Vec3,
     regen_timer: f32,
+    in_water: bool,
 
     pub fn init(x: f32, y: f32, z: f32) Player {
         return .{
@@ -27,6 +28,7 @@ pub const Player = struct {
             .saturation = 5.0,
             .spawn_point = math.Vec3.init(x, y, z),
             .regen_timer = 0.0,
+            .in_water = false,
         };
     }
 
@@ -68,6 +70,7 @@ pub const Player = struct {
         self.hunger = 20.0;
         self.saturation = 5.0;
         self.regen_timer = 0.0;
+        self.in_water = false;
         self.spawn_point = self.pos;
     }
 
@@ -95,15 +98,24 @@ pub const Player = struct {
         return math.Vec3.init(self.pos.x, self.pos.y + 1.62, self.pos.z);
     }
 
-    /// Advance physics by dt. Optional `ladder` fn detects climbing.
-    pub fn tickLadder(self: *Player, solid: *const fn (x: i32, y: i32, z: i32) bool, ladder: ?*const fn (x: i32, y: i32, z: i32) bool, move_x: f32, move_z: f32, jump: bool, dt: f32) void {
+    pub const water_horizontal_speed_scale: f32 = 0.65;
+    pub const water_sink_speed: f32 = -2.5;
+    pub const water_swim_speed: f32 = 3.5;
+    pub const water_drag_rate: f32 = 8.0;
+
+    /// Advance physics by dt. Optional `ladder` detects climbing; `fluid` detects water buoyancy/swimming.
+    pub fn tickPhysics(self: *Player, solid: *const fn (x: i32, y: i32, z: i32) bool, ladder: ?*const fn (x: i32, y: i32, z: i32) bool, fluid: ?*const fn (x: i32, y: i32, z: i32) bool, move_x: f32, move_z: f32, jump: bool, dt: f32) void {
         const clamped_dt = @min(dt, 0.05);
         const on_ladder = if (ladder) |l| isInsideLadder(self.pos, self.radius, self.height, l) else false;
+        self.in_water = if (fluid) |f| isInsideWater(self.pos, self.radius, self.height, f) else false;
         const old_x = self.pos.x;
         const old_z = self.pos.z;
 
-        self.pos.x = moveAxis(self.pos, self.radius, self.height, solid, move_x, .x);
-        self.pos.z = moveAxis(self.pos, self.radius, self.height, solid, move_z, .z);
+        const effective_move_x = if (self.in_water) move_x * water_horizontal_speed_scale else move_x;
+        const effective_move_z = if (self.in_water) move_z * water_horizontal_speed_scale else move_z;
+
+        self.pos.x = moveAxis(self.pos, self.radius, self.height, solid, effective_move_x, .x);
+        self.pos.z = moveAxis(self.pos, self.radius, self.height, solid, effective_move_z, .z);
 
         if (self.on_ground) {
             const dx = self.pos.x - old_x;
@@ -115,6 +127,16 @@ pub const Player = struct {
             // Ladders: gravity halted; jump climbs up, quiet slide down
             self.vel_y = if (jump) 4.5 else 0.0;
             self.on_ground = false;
+        } else if (self.in_water) {
+            // Water: vertical drag dampens falls; holding jump swims up; otherwise sinks slowly
+            self.vel_y *= @max(0.0, 1.0 - water_drag_rate * clamped_dt);
+            if (jump) {
+                self.vel_y = water_swim_speed;
+                self.on_ground = false;
+            } else {
+                self.vel_y -= 6.0 * clamped_dt;
+                if (self.vel_y < water_sink_speed) self.vel_y = water_sink_speed;
+            }
         } else {
             if (jump and self.on_ground) {
                 self.vel_y = 8.0;
@@ -124,12 +146,16 @@ pub const Player = struct {
             if (self.vel_y < -30.0) self.vel_y = -30.0;
         }
         const was_airborne = !self.on_ground;
-        const fall_speed = self.vel_y;
+        const fall_speed = if (self.in_water) 0.0 else self.vel_y;
         self.pos.y = collideAxis(self.pos, self.radius, self.height, solid, self.vel_y * clamped_dt, Axis.y, &self.vel_y, &self.on_ground);
         if (was_airborne and self.on_ground) {
             const dmg = fallDamage(fall_speed);
             if (dmg > 0.0) self.health = @max(0.0, self.health - dmg);
         }
+    }
+
+    pub fn tickLadder(self: *Player, solid: *const fn (x: i32, y: i32, z: i32) bool, ladder: ?*const fn (x: i32, y: i32, z: i32) bool, move_x: f32, move_z: f32, jump: bool, dt: f32) void {
+        self.tickPhysics(solid, ladder, null, move_x, move_z, jump, dt);
     }
 
     pub const safe_fall_speed: f32 = 12.0;
@@ -331,7 +357,7 @@ test "golden apple heals and regens" {
     try std.testing.expect(p.health > 16.0);
 }
 
-fn isInsideLadder(pos: math.Vec3, radius: f32, height: f32, ladder: *const fn (x: i32, y: i32, z: i32) bool) bool {
+fn isInsideBlock(pos: math.Vec3, radius: f32, height: f32, check_fn: *const fn (x: i32, y: i32, z: i32) bool) bool {
     const min_y: i32 = @intFromFloat(@floor(pos.y));
     const max_y: i32 = @intFromFloat(@floor(pos.y + height));
     var yb = min_y;
@@ -340,11 +366,19 @@ fn isInsideLadder(pos: math.Vec3, radius: f32, height: f32, ladder: *const fn (x
             for ([2]f32{ pos.z - radius, pos.z + radius }) |sz| {
                 const xb: i32 = @intFromFloat(@floor(sx));
                 const zb: i32 = @intFromFloat(@floor(sz));
-                if (ladder(xb, yb, zb)) return true;
+                if (check_fn(xb, yb, zb)) return true;
             }
         }
     }
     return false;
+}
+
+pub fn isInsideLadder(pos: math.Vec3, radius: f32, height: f32, ladder: *const fn (x: i32, y: i32, z: i32) bool) bool {
+    return isInsideBlock(pos, radius, height, ladder);
+}
+
+pub fn isInsideWater(pos: math.Vec3, radius: f32, height: f32, fluid: *const fn (x: i32, y: i32, z: i32) bool) bool {
+    return isInsideBlock(pos, radius, height, fluid);
 }
 
 fn dummySolid(x: i32, y: i32, z: i32) bool {
@@ -355,6 +389,33 @@ fn testLadder(x: i32, y: i32, z: i32) bool {
     _ = x; _ = z;
     return y >= 1 and y <= 3;
 }
+fn testWater(x: i32, y: i32, z: i32) bool {
+    _ = x; _ = z;
+    return y >= 1 and y <= 6;
+}
+
+test "player swimming buoyancy sinks slowly and swims up on jump" {
+    var p = Player.init(0.5, 3.0, 0.5);
+    // Sink slowly without jump
+    p.tickPhysics(&dummySolid, null, &testWater, 0, 0, false, 0.05);
+    try std.testing.expect(p.in_water);
+    try std.testing.expect(p.vel_y >= Player.water_sink_speed);
+    try std.testing.expect(p.vel_y < 0.0);
+
+    // Swim upward on jump
+    p.tickPhysics(&dummySolid, null, &testWater, 0, 0, true, 0.05);
+    try std.testing.expectEqual(p.vel_y, Player.water_swim_speed);
+}
+
+test "water absorbs fall impact damage" {
+    var p = Player.init(0.5, 2.0, 0.5);
+    p.vel_y = -25.0; // High lethal falling speed
+    p.tickPhysics(&dummySolid, null, &testWater, 0, 0, false, 0.05);
+    try std.testing.expect(p.in_water);
+    // Health is not damaged by hard landing in water
+    try std.testing.expectEqual(p.health, 20.0);
+}
+
 test "player climbs ladder when jumping" {
     var p = Player.init(0.5, 1.0, 0.5);
     p.tickLadder(&dummySolid, &testLadder, 0, 0, true, 0.05);
