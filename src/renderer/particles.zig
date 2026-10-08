@@ -149,6 +149,31 @@ pub const ParticleSystem = struct {
         }
     }
 
+    /// Spawn rising translucent underwater bubbles around a 3D position
+    pub fn spawnBubble(self: *ParticleSystem, pos: [3]f32, count: usize) void {
+        var i: usize = 0;
+        while (i < count) : (i += 1) {
+            if (self.count >= MAX_PARTICLES) return;
+            const seed_val = @as(u32, @intCast(self.count *% 37 +% i *% 19 +% 7));
+            const jx = @as(f32, @floatFromInt(seed_val % 21)) / 50.0 - 0.2;
+            const jz = @as(f32, @floatFromInt((seed_val / 21) % 21)) / 50.0 - 0.2;
+            const jy = @as(f32, @floatFromInt((seed_val / 441) % 21)) / 50.0 - 0.2;
+            self.particles[self.count] = .{
+                .x = pos[0] + jx,
+                .y = pos[1] + jy,
+                .z = pos[2] + jz,
+                .vx = jx * 0.5,
+                .vy = 0.8 + @as(f32, @floatFromInt(seed_val % 10)) * 0.05,
+                .vz = jz * 0.5,
+                .life = 0.8,
+                .max_life = 0.8,
+                .color = .{ 0.65, 0.85, 0.98 },
+                .size = 0.045,
+            };
+            self.count += 1;
+        }
+    }
+
     pub fn tick(self: *ParticleSystem, dt: f32) void {
         var i: usize = 0;
         const gravity: f32 = 18.0;
@@ -161,7 +186,13 @@ pub const ParticleSystem = struct {
                 self.count -= 1;
                 continue;
             }
-            p.vy -= gravity * dt;
+            // Bubbles float upward against gravity; normal debris falls downward
+            const is_bubble = (p.color[0] > 0.6 and p.color[1] > 0.8 and p.color[2] > 0.9);
+            if (is_bubble) {
+                p.vy = @min(1.5, p.vy + 1.0 * dt);
+            } else {
+                p.vy -= gravity * dt;
+            }
             p.x += p.vx * dt;
             p.y += p.vy * dt;
             p.z += p.vz * dt;
@@ -263,4 +294,23 @@ test "particle capacity limit clamped at MAX_PARTICLES" {
     };
     ps.spawnBlockDebris(0, 0, 0, .{ 1, 1, 1 }, 300);
     try std.testing.expectEqual(ps.count, MAX_PARTICLES);
+}
+
+test "bubble particle buoyancy and life" {
+    var ps = ParticleSystem{
+        .particles = undefined,
+        .count = 0,
+        .vao = 0,
+        .vbo = 0,
+        .program = 0,
+    };
+    ps.spawnBubble(.{ 1.0, 2.0, 3.0 }, 4);
+    try std.testing.expectEqual(ps.count, 4);
+    const initial_y = ps.particles[0].y;
+    // Tick forward 0.2s: bubbles rise upward
+    ps.tick(0.2);
+    try std.testing.expect(ps.particles[0].y > initial_y);
+    // Tick forward 1.0s: bubbles expire
+    ps.tick(1.0);
+    try std.testing.expectEqual(ps.count, 0);
 }

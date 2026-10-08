@@ -71,3 +71,4 @@ Rough priority order. Completed milestones marked **[x]**.
 43. [x] **Water Physics & Swimming** — Buoyancy, reduced gravity in water, jump swimming, water drag, water fall damage dampening (#159).
 44. [x] **Oxygen & Drowning Hazard** — Oxygen depletion underwater, drowning damage tick when depleted, oxygen recovery on surface, breath bar on HUD (#160).
 45. [x] **Underwater Visual Effects** — Blue ambient tinting, distance depth fog, aquatic sky dome colors when submerged (#161).
+46. [x] **Underwater Bubble Particles** — Buoyant bubble particles trailing while swimming and bursting on drowning damage (#162).
