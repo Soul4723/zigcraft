@@ -473,10 +473,14 @@ pub fn main() !void {
                 const pox = px_i + p_dx;
                 const poy = py_i + p_dy;
                 const poz = pz_i + p_dz;
-                if (manager.getBlockWorld(pox, poy, poz) == .nether_portal) {
+                const near_b = manager.getBlockWorld(pox, poy, poz);
+                if (near_b == .nether_portal) {
                     const po_pos = [3]f32{ @as(f32, @floatFromInt(pox)) + 0.5, @as(f32, @floatFromInt(poy)) + 0.5, @as(f32, @floatFromInt(poz)) + 0.5 };
                     particles.spawnPortalParticles(po_pos, 4);
                     audio.playAt(.portal_hum, po_pos, .{ player.pos.x, player.pos.y, player.pos.z }, 0.75, 18.0);
+                } else if (near_b == .glowstone) {
+                    const gl_pos = [3]f32{ @as(f32, @floatFromInt(pox)) + 0.5, @as(f32, @floatFromInt(poy)) + 0.5, @as(f32, @floatFromInt(poz)) + 0.5 };
+                    particles.spawnGlowstoneShimmer(gl_pos, 3);
                 }
             }
         }

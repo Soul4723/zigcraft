@@ -102,3 +102,4 @@ Rough priority order. Completed milestones marked **[x]**.
 74. [x] **Nether Ambient Winds & Subterranean Drone Audio** — Synthesized ominous cavern winds, 55Hz subterranean rumble, and whistling breath audio (`.nether_wind`) (#192).
 75. [x] **Nether Glowstone Stalactites & Magma Fissure Deposits** — Luminous ceiling glowstone clusters (`glowstone`, emissive 1.0) and shoreline magma block veins in Nether terrain generation (#193).
 76. [x] **Nether Glowstone Dynamic Warm Ambient Light Spill** — Point illumination spill from hanging glowstone clusters onto cavern surfaces in Nether darkness (#194).
+77. [x] **Nether Glowstone Shimmer & Glittering Dust Particles** — Radiant golden-amber sparkle glints and buoyant luminous dust (`spawnGlowstoneShimmer`) emitted by active glowstone (#195).

@@ -386,6 +386,44 @@ pub const ParticleSystem = struct {
         }
     }
 
+    /// Spawn radiant golden-amber shimmer sparkle particles drifting from glowing glowstone clusters
+    pub fn spawnGlowstoneShimmer(self: *ParticleSystem, pos: [3]f32, count: usize) void {
+        var i: usize = 0;
+        var seed: u32 = @as(u32, @bitCast(@as(i32, @intFromFloat(pos[0] * 64.0)))) *% 37 +%
+            @as(u32, @bitCast(@as(i32, @intFromFloat(pos[1] * 64.0)))) *% 29 +%
+            @as(u32, @bitCast(@as(i32, @intFromFloat(pos[2] * 64.0)))) *% 19 +%
+            @as(u32, @intCast(self.count));
+        while (i < count and self.count < MAX_PARTICLES) : (i += 1) {
+            seed = seed *% 1103515245 +% 12345;
+            const rx = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            seed = seed *% 1103515245 +% 12345;
+            const ry = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            seed = seed *% 1103515245 +% 12345;
+            const rz = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+
+            // Radiant golden-yellow amber with bright crystalline specular core
+            const is_glint = (rx > 0.7);
+            const col = if (is_glint)
+                [3]f32{ 1.0, 0.96, 0.70 }
+            else
+                [3]f32{ 0.98, 0.82 + 0.12 * ry, 0.28 };
+
+            self.particles[self.count] = .{
+                .x = pos[0] + (rx - 0.5) * 0.9,
+                .y = pos[1] - 0.1 - ry * 0.4,
+                .z = pos[2] + (rz - 0.5) * 0.9,
+                .vx = (rx - 0.5) * 0.35,
+                .vy = -0.25 - ry * 0.45, // Gentle downward drift as radiant dust falls
+                .vz = (rz - 0.5) * 0.35,
+                .life = 0.7 + 0.4 * ry,
+                .max_life = 0.7 + 0.4 * ry,
+                .color = col,
+                .size = if (is_glint) 0.05 else 0.035,
+            };
+            self.count += 1;
+        }
+    }
+
     /// Spawn drifting Nether ash / cinder particles falling and drifting in the Nether atmosphere.
     pub fn spawnNetherAsh(self: *ParticleSystem, pos: [3]f32, count: usize) void {
         var i: usize = 0;
@@ -473,6 +511,7 @@ pub const ParticleSystem = struct {
             const is_smoke = (p.color[0] < 0.35 and p.color[1] < 0.35 and p.color[2] < 0.35); // Dark smoke
             const is_portal = (p.color[0] > 0.6 and p.color[1] < 0.3 and p.color[2] > 0.8); // Purple ethereal
             const is_ash = (p.max_life >= 1.5 and p.color[0] < 0.9 and p.color[1] < 0.5 and p.color[2] < 0.45); // Nether ash flake
+            const is_shimmer = (p.color[0] > 0.95 and p.color[1] > 0.8 and p.color[2] > 0.25); // Golden shimmer sparkle
             if (is_bubble) {
                 p.vy = @min(1.5, p.vy + 1.0 * dt);
             } else if (is_ember or is_smoke) {
@@ -485,6 +524,11 @@ pub const ParticleSystem = struct {
                 // Slow ambient downward settling with horizontal air drift
                 p.vy = @max(-0.9, p.vy - 0.4 * dt);
                 p.vx += 0.05 * dt;
+            } else if (is_shimmer) {
+                // Weightless glittering float with gentle deceleration
+                p.vy = @max(-0.4, p.vy * 0.96);
+                p.vx = p.vx * 0.96;
+                p.vz = p.vz * 0.96;
             } else {
                 p.vy -= gravity * dt;
             }
@@ -784,4 +828,26 @@ test "spawnNetherAsh particle distribution and gentle settling tick" {
     const initial_vy = ps.particles[0].vy;
     ps.tick(0.1);
     try std.testing.expect(ps.particles[0].vy > initial_vy - 1.0);
+}
+
+test "spawnGlowstoneShimmer particle properties and gentle floating physics" {
+    var ps = ParticleSystem{
+        .particles = undefined,
+        .count = 0,
+        .vao = 0,
+        .vbo = 0,
+        .program = 0,
+    };
+    ps.spawnGlowstoneShimmer(.{ 10.0, 15.0, 20.0 }, 4);
+    try std.testing.expectEqual(ps.count, 4);
+    for (ps.particles[0..4]) |p| {
+        // Radiant golden-yellow color (high red and green)
+        try std.testing.expect(p.color[0] >= 0.95);
+        try std.testing.expect(p.color[1] >= 0.8);
+        try std.testing.expect(p.vy < 0.0);
+    }
+    const initial_vy = ps.particles[0].vy;
+    ps.tick(0.1);
+    // Does not fall with heavy gravity (-18 m/s^2)
+    try std.testing.expect(ps.particles[0].vy > initial_vy - 0.5);
 }
