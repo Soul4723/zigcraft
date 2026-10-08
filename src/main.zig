@@ -216,6 +216,7 @@ pub fn main() !void {
     var lava_ambient_timer: f32 = 0.0;
     var burn_sizzle_cooldown: f32 = 0.0;
     var portal_ambient_timer: f32 = 0.0;
+    var nether_ambient_timer: f32 = 0.0;
     var portal_transit = portal_mod.PortalTransitState{};
     var portal_flash_timer: f32 = 0.0;
     var chunk_retry_timer: f32 = 0.0;
@@ -449,9 +450,16 @@ pub fn main() !void {
                 });
             }
 
-            // In Nether dimension: emit ambient falling ash flakes and cinder particles around player
+            // In Nether dimension: emit ambient falling ash flakes, cinder particles, and subterranean wind drone
             if (manager.is_nether) {
                 particles.spawnNetherAsh(.{ player.pos.x, player.pos.y, player.pos.z }, 2);
+                nether_ambient_timer += dt;
+                if (nether_ambient_timer >= 4.0) {
+                    nether_ambient_timer = 0.0;
+                    audio.play(.nether_wind, 0.65);
+                }
+            } else {
+                nether_ambient_timer = 0.0;
             }
 
             // Periodic ambient nether portal hum and particle swirl around player
