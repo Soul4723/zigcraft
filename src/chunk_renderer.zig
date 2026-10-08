@@ -110,7 +110,7 @@ pub const ChunkRenderer = struct {
         night: f32 = 0.0,
     };
 
-    pub fn draw(self: *ChunkRenderer, mvp_ptr: [*c]const f32, sun_dir: math.Vec3, chunk_origin: [3]f32, lamp_light: LampLight) void {
+    pub fn draw(self: *ChunkRenderer, mvp_ptr: [*c]const f32, sun_dir: math.Vec3, chunk_origin: [3]f32, lamp_light: LampLight, cam_pos: math.Vec3, is_underwater: bool) void {
         if (self.index_count == 0) return;
         c.glEnable(c.GL_BLEND);
         c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
@@ -124,6 +124,8 @@ pub const ChunkRenderer = struct {
         shader.setUniformVec3Array(self.program, "u_lamp_pos", lamp_light.positions[0..]);
         shader.setUniformFloat(self.program, "u_lamp_count", @floatFromInt(lamp_light.count));
         shader.setUniformFloat(self.program, "u_night", lamp_light.night);
+        shader.setUniformFloat(self.program, "u_underwater", if (is_underwater) 1.0 else 0.0);
+        shader.setUniformVec3(self.program, "u_cam_pos", cam_pos.x, cam_pos.y, cam_pos.z);
         c.glBindVertexArray(self.vao);
         c.glDrawElements(c.GL_TRIANGLES, @intCast(self.index_count), c.GL_UNSIGNED_INT, @ptrFromInt(0));
         c.glDisable(c.GL_BLEND);

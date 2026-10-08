@@ -76,7 +76,7 @@ pub const MobRenderer = struct {
     }
 
     /// Render all active mobs
-    pub fn drawMobs(self: *MobRenderer, mobs: []const mob_mod.Mob, view_proj: math.Mat4, sun_dir: math.Vec3) !void {
+    pub fn drawMobs(self: *MobRenderer, mobs: []const mob_mod.Mob, view_proj: math.Mat4, sun_dir: math.Vec3, cam_pos: math.Vec3, is_underwater: bool) !void {
         if (mobs.len == 0) return;
 
         var vertices = std.ArrayList(MobVertex).empty;
@@ -118,6 +118,8 @@ pub const MobRenderer = struct {
         shader.setUniformVec3(self.program, "u_chunk_origin", 0, 0, 0);
         shader.setUniformFloat(self.program, "u_lamp_count", 0);
         shader.setUniformFloat(self.program, "u_night", 0);
+        shader.setUniformFloat(self.program, "u_underwater", if (is_underwater) 1.0 else 0.0);
+        shader.setUniformVec3(self.program, "u_cam_pos", cam_pos.x, cam_pos.y, cam_pos.z);
 
         c.glBindVertexArray(self.vao);
         c.glDrawElements(c.GL_TRIANGLES, @intCast(indices.items.len), c.GL_UNSIGNED_INT, @ptrFromInt(0));
