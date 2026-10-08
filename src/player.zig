@@ -17,6 +17,8 @@ pub const Player = struct {
     in_boat: bool,
     water_entry_speed: f32,
     oxygen: f32,
+    on_soulsand: bool = false,
+    in_bubble_column: bool = false,
 
     pub fn init(x: f32, y: f32, z: f32) Player {
         return .{
@@ -108,6 +110,8 @@ pub const Player = struct {
 
         pub const boat_horizontal_speed_scale: f32 = 2.2;
     pub const water_horizontal_speed_scale: f32 = 0.65;
+    pub const soulsand_horizontal_speed_scale: f32 = 0.40; // Soul sand slow drag
+    pub const bubble_column_lift_speed: f32 = 6.5; // Upward bubble elevator surge
     pub const water_sink_speed: f32 = -2.5;
     pub const water_current_push_speed: f32 = 1.4;
     pub const water_swim_speed: f32 = 3.5;
@@ -127,7 +131,16 @@ pub const Player = struct {
         const old_x = self.pos.x;
         const old_z = self.pos.z;
 
-        const speed_scale = if (self.in_boat and self.in_water) boat_horizontal_speed_scale else if (self.in_water) water_horizontal_speed_scale else 1.0;
+        // Check floor block under player for soul sand drag
+
+        const speed_scale = if (self.in_boat and self.in_water)
+            boat_horizontal_speed_scale
+        else if (self.in_water)
+            water_horizontal_speed_scale
+        else if (self.on_soulsand)
+            soulsand_horizontal_speed_scale
+        else
+            1.0;
         var effective_move_x = move_x * speed_scale;
         var effective_move_z = move_z * speed_scale;
 
@@ -162,7 +175,11 @@ pub const Player = struct {
         } else if (self.in_water) {
             // Water: vertical drag dampens falls; holding jump swims up; otherwise sinks slowly
             self.vel_y *= @max(0.0, 1.0 - water_drag_rate * clamped_dt);
-            if (jump) {
+            if (self.in_bubble_column) {
+                // Upward bubble column surge pushes player rapidly to surface
+                self.vel_y = @max(self.vel_y, bubble_column_lift_speed);
+                self.on_ground = false;
+            } else if (jump) {
                 self.vel_y = water_swim_speed;
                 self.on_ground = false;
             } else {
@@ -574,4 +591,29 @@ test "player boat water cruising and floatation speed" {
     try std.testing.expect(p.pos.x > 0.5 + 1.0 * Player.water_horizontal_speed_scale * 0.9);
     // Boat lifts player upward in water
     try std.testing.expect(p.vel_y > 0.0);
+}
+
+test "player soul sand speed drag deceleration" {
+    var p = Player.init(0.5, 2.0, 0.5);
+    p.on_ground = true;
+    p.on_soulsand = true;
+    const Mock = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return false; }
+    };
+    p.tickPhysics(Mock.solid, null, null, 1.0, 0.0, false, 0.05);
+    // Player speed reduced to 40% (0.40) on soul sand
+    try std.testing.expectApproxEqAbs(@as(f32, 0.5 + 1.0 * Player.soulsand_horizontal_speed_scale), p.pos.x, 0.001);
+}
+
+test "player soul sand bubble column upward surge" {
+    var p = Player.init(0.5, 2.0, 0.5);
+    p.in_bubble_column = true;
+    const Mock = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return false; }
+        fn water(_: i32, _: i32, _: i32) bool { return true; }
+    };
+    p.tickPhysics(Mock.solid, null, Mock.water, 0.0, 0.0, false, 0.05);
+    try std.testing.expect(p.in_water);
+    // Bubble column propels player upwards >= 6.5 m/s
+    try std.testing.expect(p.vel_y >= 6.0);
 }

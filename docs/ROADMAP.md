@@ -85,3 +85,4 @@ Rough priority order. Completed milestones marked **[x]**.
 57. [x] **Nether Portal Frame Detection & Activation** — 2x3 obsidian frame detection (along X or Z axis), flint ignition activation, portal block rendering, ambient choir drone hum, and ethereal purple swirling particles (#175).
 58. [x] **Portal Transit & Dimension Shift Mechanics** — Sustained portal dwell charge (3s), 8:1 Overworld/Nether spatial coordinate scaling, post-warp immunity cooldown (4s), swirling portal charge particles, and synthesized vortex warp audio (#176).
 59. [x] **Nether Dimension World Generation** — Netherrack cavern ceilings & floors, vast lava seas at y<=4, and soul sand shorelines (#177).
+60. [x] **Soul Sand Drag & Bubble Column Elevator Physics** — 40% movement deceleration drag on soul sand, vertical bubble elevator surge (6.5 m/s) in water above soul sand, and continuous bubble stream particles (#178).
