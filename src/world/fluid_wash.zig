@@ -61,13 +61,17 @@ const max_edits = 8;
 /// World provides getBlockWorld, getWaterLevel, setWaterLevel, and editAndRemesh;
 /// edit failures propagate.
 ///
-/// Levels bound lateral spread: downward flow keeps the source level, lateral
-/// flow decrements by one, and level-0 films evaporate instead of spreading.
+/// Levels bound lateral spread: level-7 cells are infinite sources (sea, placed
+/// water); flowing water spends one unit per tick it spreads and level-0 films
+/// evaporate. Falling moves the whole cell down. Cells resupplied the same tick
+/// skip depletion, so connected bodies hold their level.
 pub fn step(world: anytype, center: [3]i32) !usize {
     var edits: [max_edits]FlowEdit = undefined;
     var count: usize = 0;
     var drains: [max_edits]Cell = undefined;
     var drain_count: usize = 0;
+    var depletes: [max_edits]Cell = undefined;
+    var deplete_count: usize = 0;
     var x = center[0] - max_spread;
     while (x <= center[0] + max_spread and count < edits.len) : (x += 1) {
         var z = center[2] - max_spread;
@@ -77,19 +81,27 @@ pub fn step(world: anytype, center: [3]i32) !usize {
                 if (world.getBlockWorld(x, y, z) != .water) continue;
                 const level: u4 = world.getWaterLevel(x, y, z);
                 if (y > 0 and shouldFlowDown(world.getBlockWorld(x, y - 1, z))) {
+                    // Falling moves the water down; the cell above empties.
                     queueLevel(&edits, &count, .{ .x = x, .y = y - 1, .z = z }, level);
+                    queueDrain(&drains, &drain_count, .{ .x = x, .y = y, .z = z });
                     continue;
                 }
                 if (level == 0) {
                     queueDrain(&drains, &drain_count, .{ .x = x, .y = y, .z = z });
                     continue;
                 }
+                var spread = false;
                 for (flow_dirs) |dir| {
                     const nx = x + dir.dx;
                     const nz = z + dir.dz;
                     if (canFlowInto(world.getBlockWorld(nx, y, nz))) {
                         queueLevel(&edits, &count, .{ .x = nx, .y = y, .z = nz }, level - 1);
+                        spread = true;
                     }
+                }
+                // Level-7 sources are infinite; flowing water spends one unit per spread.
+                if (spread and level < 7) {
+                    queueDeplete(&depletes, &deplete_count, .{ .x = x, .y = y, .z = z });
                 }
             }
         }
@@ -103,6 +115,28 @@ pub fn step(world: anytype, center: [3]i32) !usize {
     }
     for (drains[0..drain_count]) |cell| {
         if (try world.editAndRemesh(cell.x, cell.y, cell.z, .air)) changed += 1;
+    }
+    for (depletes[0..deplete_count]) |cell| {
+        // Skip cells that received water this tick (mutual top-up).
+        var topped = false;
+        for (edits[0..count]) |edit| {
+            if (std.meta.eql(edit.cell, cell)) {
+                topped = true;
+                break;
+            }
+        }
+        if (topped) continue;
+        if (world.getBlockWorld(cell.x, cell.y, cell.z) != .water) continue;
+        const cur: u4 = world.getWaterLevel(cell.x, cell.y, cell.z);
+        switch (evaluateDeplete(false, cur).action) {
+            .keep => {},
+            .to_air => {
+                if (try world.editAndRemesh(cell.x, cell.y, cell.z, .air)) changed += 1;
+            },
+            .to_level => {
+                if (world.setWaterLevel(cell.x, cell.y, cell.z, cur - 1)) changed += 1;
+            },
+        }
     }
     return changed;
 }
@@ -129,6 +163,28 @@ fn queueLevel(edits: *[max_edits]FlowEdit, count: *usize, cell: Cell, level: u4)
 
 fn queueDrain(drains: *[max_edits]Cell, count: *usize, cell: Cell) void {
     queue(drains, count, cell);
+}
+
+fn queueDeplete(depletes: *[max_edits]Cell, count: *usize, cell: Cell) void {
+    queue(depletes, count, cell);
+}
+
+pub const DepleteAction = enum { to_air, to_level, keep };
+
+pub const DepleteOutcome = struct { action: DepleteAction, level: u4 };
+
+pub fn evaluateDeplete(received_topup: bool, level: u4) DepleteOutcome {
+    if (received_topup) return .{ .action = .keep, .level = level };
+    if (level == 0) return .{ .action = .to_air, .level = 0 };
+    return .{ .action = .to_level, .level = level - 1 };
+}
+
+test "evaluateDeplete outcomes" {
+    try std.testing.expectEqual(DepleteAction.keep, evaluateDeplete(true, 5).action);
+    try std.testing.expectEqual(DepleteAction.to_air, evaluateDeplete(false, 0).action);
+    const d = evaluateDeplete(false, 4);
+    try std.testing.expectEqual(DepleteAction.to_level, d.action);
+    try std.testing.expectEqual(@as(u4, 3), d.level);
 }
 
 const TestWorld = struct {
@@ -189,8 +245,10 @@ test "water falls before spreading and descends one cell per tick" {
     world.setWater(2, 2, 2, 5);
     world.blocks[1][2][2] = .air;
     world.blocks[0][2][2] = .air;
-    try std.testing.expectEqual(@as(usize, 1), try step(&world, .{ 2, 2, 2 }));
+    // Move = 1 edit below (water) + 1 edit above (drained to air).
+    try std.testing.expectEqual(@as(usize, 2), try step(&world, .{ 2, 2, 2 }));
     try std.testing.expectEqual(BlockId.water, world.getBlockWorld(2, 1, 2));
+    try std.testing.expectEqual(BlockId.air, world.getBlockWorld(2, 2, 2));
     try std.testing.expectEqual(BlockId.air, world.getBlockWorld(2, 0, 2));
     try std.testing.expectEqual(BlockId.air, world.getBlockWorld(3, 2, 2));
 }
@@ -237,6 +295,23 @@ test "water respects bottom boundary and rejected edits" {
     try std.testing.expectEqual(@as(usize, 0), try step(&world, .{ 2, 0, 2 }));
     try std.testing.expectEqual(BlockId.air, world.getBlockWorld(3, 0, 2));
     try std.testing.expectEqual(@as(usize, 0), try step(&world, .{ 2, 20, 2 }));
+}
+
+test "flowing non-source water depletes when spreading" {
+    var world = TestWorld{};
+    world.blocks[1] = @splat(@splat(.air));
+    // Level 3 spreads laterally to 4 neighbors and spends 1 unit (drops to 2).
+    world.setWater(2, 1, 2, 3);
+    _ = try step(&world, .{ 2, 1, 2 });
+    try std.testing.expectEqual(@as(u4, 2), world.getWaterLevel(2, 1, 2));
+}
+
+test "level seven sources remain full when spreading" {
+    var world = TestWorld{};
+    world.blocks[1] = @splat(@splat(.air));
+    world.setWater(2, 1, 2, 7);
+    _ = try step(&world, .{ 2, 1, 2 });
+    try std.testing.expectEqual(@as(u4, 7), world.getWaterLevel(2, 1, 2));
 }
 
 test "lateral spread decrements level" {
