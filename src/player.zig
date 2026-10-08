@@ -103,6 +103,7 @@ pub const Player = struct {
 
     pub const water_horizontal_speed_scale: f32 = 0.65;
     pub const water_sink_speed: f32 = -2.5;
+    pub const water_current_push_speed: f32 = 1.4;
     pub const water_swim_speed: f32 = 3.5;
     pub const water_drag_rate: f32 = 8.0;
 
@@ -114,8 +115,19 @@ pub const Player = struct {
         const old_x = self.pos.x;
         const old_z = self.pos.z;
 
-        const effective_move_x = if (self.in_water) move_x * water_horizontal_speed_scale else move_x;
-        const effective_move_z = if (self.in_water) move_z * water_horizontal_speed_scale else move_z;
+        var effective_move_x = if (self.in_water) move_x * water_horizontal_speed_scale else move_x;
+        var effective_move_z = if (self.in_water) move_z * water_horizontal_speed_scale else move_z;
+
+        // Water current push: if inside water, compute lateral flow gradient and push player
+        if (self.in_water and fluid != null) {
+            const f = fluid.?;
+            const px_i: i32 = @intFromFloat(@floor(self.pos.x));
+            const py_i: i32 = @intFromFloat(@floor(self.pos.y + 0.2));
+            const pz_i: i32 = @intFromFloat(@floor(self.pos.z));
+            const cur = computeWaterFlowVector(px_i, py_i, pz_i, f);
+            effective_move_x += cur[0] * water_current_push_speed * clamped_dt;
+            effective_move_z += cur[1] * water_current_push_speed * clamped_dt;
+        }
 
         self.pos.x = moveAxis(self.pos, self.radius, self.height, solid, effective_move_x, .x);
         self.pos.z = moveAxis(self.pos, self.radius, self.height, solid, effective_move_z, .z);
@@ -472,4 +484,42 @@ test "compute walk vectors and normalized wish" {
 
     const wish_blocked = computeWishDirection(wv, true, false, false, false, true);
     try std.testing.expectEqual(math.Vec3.len(wish_blocked), 0.0);
+}
+
+/// Compute lateral water flow vector based on open boundaries.
+pub fn computeWaterFlowVector(x: i32, y: i32, z: i32, is_fluid: *const fn (x: i32, y: i32, z: i32) bool) [2]f32 {
+    if (!is_fluid(x, y, z)) return .{ 0.0, 0.0 };
+    var px: f32 = 0.0;
+    var pz: f32 = 0.0;
+    const dirs = [_][2]i32{ .{ 1, 0 }, .{ -1, 0 }, .{ 0, 1 }, .{ 0, -1 } };
+    for (dirs) |d| {
+        if (!is_fluid(x + d[0], y, z + d[1])) {
+            px += @floatFromInt(d[0]);
+            pz += @floatFromInt(d[1]);
+        }
+    }
+    const len_sq = px * px + pz * pz;
+    if (len_sq > 0.0001) {
+        const len = @sqrt(len_sq);
+        return .{ px / len, pz / len };
+    }
+    return .{ 0.0, 0.0 };
+}
+
+test "player water current lateral push" {
+    var p = Player.init(0.5, 5.0, 0.5);
+    const Mock = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return false; }
+        fn water(x: i32, y: i32, z: i32) bool {
+            // Water at x <= 0 and current cell (0, 5, 0), open to east (+x > 0)
+            return x <= 0 and y == 5 and z == 0;
+        }
+    };
+
+    // Before tick in water: pos.x is 0.5
+    try std.testing.expectEqual(@as(f32, 0.5), p.pos.x);
+    // Tick with zero player movement input (move_x=0, move_z=0)
+    p.tickPhysics(Mock.solid, null, Mock.water, 0.0, 0.0, false, 0.05);
+    // Water current should push player towards east (+X)
+    try std.testing.expect(p.pos.x > 0.5);
 }

@@ -381,3 +381,52 @@ test "evaluateComponentWash action" {
     try std.testing.expectEqual(WashAction.wash, evaluateComponentWash(.redstone_wire_on, .water));
     try std.testing.expectEqual(WashAction.keep, evaluateComponentWash(.redstone_wire_on, .air));
 }
+
+/// Compute horizontal water current push vector at world cell (x, y, z).
+/// Returns Vec2{ dx, dz } indicating direction and strength of current push.
+/// Water flows towards adjacent empty / lower cells away from water sources.
+pub fn computeWaterCurrent(x: i32, y: i32, z: i32, is_fluid_fn: *const fn (x: i32, y: i32, z: i32) bool) [2]f32 {
+    if (!is_fluid_fn(x, y, z)) return .{ 0.0, 0.0 };
+
+    var push_x: f32 = 0.0;
+    var push_z: f32 = 0.0;
+
+    // Check 4 horizontal neighbors: if neighbor is open/non-water, current pushes towards it.
+    // If neighbor is water, it doesn't attract current; if neighbor is solid, it resists.
+    for (flow_dirs) |dir| {
+        const nx = x + dir.dx;
+        const nz = z + dir.dz;
+        if (!is_fluid_fn(nx, y, nz)) {
+            push_x += @as(f32, @floatFromInt(dir.dx));
+            push_z += @as(f32, @floatFromInt(dir.dz));
+        }
+    }
+
+    const len_sq = push_x * push_x + push_z * push_z;
+    if (len_sq > 0.0001) {
+        const len = @sqrt(len_sq);
+        return .{ push_x / len, push_z / len };
+    }
+    return .{ 0.0, 0.0 };
+}
+
+test "computeWaterCurrent zero in air or uniform water" {
+    const Mock = struct {
+        fn mockAllAir(_: i32, _: i32, _: i32) bool { return false; }
+        fn mockAllWater(_: i32, _: i32, _: i32) bool { return true; }
+        fn mockFlowEast(x: i32, _: i32, _: i32) bool { return x <= 0; }
+    };
+
+    const zero = computeWaterCurrent(0, 0, 0, Mock.mockAllAir);
+    try std.testing.expectEqual(@as(f32, 0.0), zero[0]);
+    try std.testing.expectEqual(@as(f32, 0.0), zero[1]);
+
+    const uniform = computeWaterCurrent(0, 0, 0, Mock.mockAllWater);
+    try std.testing.expectEqual(@as(f32, 0.0), uniform[0]);
+    try std.testing.expectEqual(@as(f32, 0.0), uniform[1]);
+
+    // East neighbor (+X = 1) is air, cell (0, 0, 0) is water -> current pushes east
+    const east_flow = computeWaterCurrent(0, 0, 0, Mock.mockFlowEast);
+    try std.testing.expect(east_flow[0] > 0.9);
+    try std.testing.expectEqual(@as(f32, 0.0), east_flow[1]);
+}
