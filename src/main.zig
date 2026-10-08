@@ -1668,26 +1668,14 @@ pub fn main() !void {
                     if (k_opt) |k| {
                         const held_item = inventory.slots[selected_slot].item;
                         if (held_item != .none) {
-                            var stored = false;
-                            for (&chests[k].items) |*cslot| {
-                                if (cslot.item == held_item and cslot.count < 64) {
+                            if (cache_mod.findDepositSlot(&chests[k].items, held_item)) |slot_idx| {
+                                var cslot = &chests[k].items[slot_idx];
+                                if (cslot.isEmpty()) {
+                                    cslot.* = .{ .item = held_item, .count = 1 };
+                                } else {
                                     cslot.count += 1;
-                                    inventory.slots[selected_slot].decrement(1);
-                                    stored = true;
-                                    break;
                                 }
-                            }
-                            if (!stored) {
-                                for (&chests[k].items) |*cslot| {
-                                    if (cslot.isEmpty()) {
-                                        cslot.* = .{ .item = held_item, .count = 1 };
-                                        inventory.slots[selected_slot].decrement(1);
-                                        stored = true;
-                                        break;
-                                    }
-                                }
-                            }
-                            if (stored) {
+                                inventory.slots[selected_slot].decrement(1);
                                 audio.play(.place_block, 0.7);
                                 std.debug.print("deposited {s} into chest\n", .{held_item.name()});
                             }

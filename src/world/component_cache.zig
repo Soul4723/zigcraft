@@ -217,3 +217,31 @@ test "canCreateTorch limit" {
     try std.testing.expect(canCreateTorch(0, 32));
     try std.testing.expect(!canCreateTorch(32, 32));
 }
+
+pub fn findDepositSlot(slots: anytype, item: anytype) ?usize {
+    for (slots, 0..) |s, i| {
+        if (s.item == item and s.count < 64) return i;
+    }
+    for (slots, 0..) |s, i| {
+        if (s.isEmpty()) return i;
+    }
+    return null;
+}
+
+test "findDepositSlot searches matching then empty" {
+    const Slot = struct {
+        item: u8,
+        count: u8,
+        pub fn isEmpty(self: @This()) bool {
+            return self.count == 0;
+        }
+    };
+    var slots = [_]Slot{
+        .{ .item = 1, .count = 64 },
+        .{ .item = 2, .count = 10 },
+        .{ .item = 0, .count = 0 },
+    };
+    try std.testing.expectEqual(@as(?usize, 1), findDepositSlot(&slots, @as(u8, 2)));
+    try std.testing.expectEqual(@as(?usize, 2), findDepositSlot(&slots, @as(u8, 1)));
+    try std.testing.expectEqual(@as(?usize, 2), findDepositSlot(&slots, @as(u8, 3)));
+}
