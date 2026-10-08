@@ -56,6 +56,7 @@ pub const ItemType = enum(u8) {
     soul_sand = 50,
     magma = 51,
     fire_resistance_potion = 52,
+    glowstone = 53,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -94,6 +95,7 @@ pub const ItemType = enum(u8) {
             .netherrack => .netherrack,
             .soul_sand => .soul_sand,
             .magma => .magma,
+            .glowstone => .glowstone,
             else => null,
         };
     }
@@ -139,6 +141,7 @@ pub const ItemType = enum(u8) {
             .netherrack => .netherrack,
             .soul_sand => .soul_sand,
             .magma => .magma,
+            .glowstone => .glowstone,
         };
     }
 
@@ -214,6 +217,7 @@ pub const ItemType = enum(u8) {
             .soul_sand => "Soul Sand",
             .magma => "Magma Block",
             .fire_resistance_potion => "Fire Resistance Potion",
+            .glowstone => "Glowstone",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -272,6 +276,7 @@ pub const ItemType = enum(u8) {
             .soul_sand => .{ 0.45, 0.32, 0.25, 0.95 },
             .magma => .{ 0.92, 0.42, 0.12, 0.95 },
             .fire_resistance_potion => .{ 0.95, 0.50, 0.10, 0.90 },
+            .glowstone => .{ 0.98, 0.85, 0.35, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -838,6 +843,13 @@ test "furnace recipe: 4 stone -> furnace" {
     inv.craft_grid[3] = .{ .item = .stone, .count = 1 };
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .furnace);
+}
+
+test "glowstone block item properties and drop" {
+    const item = ItemType.glowstone;
+    try std.testing.expectEqual(item.toBlockId(), .glowstone);
+    try std.testing.expectEqual(item.name(), "Glowstone");
+    try std.testing.expectEqual(ItemType.fromBlockId(.glowstone), .glowstone);
 }
 
 test "fire resistance potion recipe: magma + apple or glass" {

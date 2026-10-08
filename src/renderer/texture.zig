@@ -110,6 +110,24 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         const n = hash2(x, y, 83) % 12;
         return .{ 182 + @as(u8, @intCast(n)), 138 + @as(u8, @intCast(n / 2)), 80, 255 };
     }
+    // Magma Block (4, 2): scorched obsidian crust with glowing molten lava fissures
+    if (tile_x == 4 and tile_y == 2) {
+        const fissure = ((x + y * 2) % 5 == 0) or ((x * 2 + y) % 7 == 0);
+        if (fissure) {
+            const hot = (x * 3 + y * 5) % 11 < 4;
+            if (hot) return .{ 255, 230, 90, 255 }; // incandescent yellow heat
+            return .{ 238, 92, 20, 255 }; // molten lava orange
+        }
+        const n = hash2(x, y, 179) % 24;
+        return .{ 45 + @as(u8, @intCast(n)), 22 + @as(u8, @intCast(n / 3)), 20, 255 }; // dark scorched basalt
+    }
+    // Glowstone (5, 2): radiant crystalline golden-amber luminous mineral
+    if (tile_x == 5 and tile_y == 2) {
+        const crystal = (hash2(x, y, 193) % 7 == 0);
+        if (crystal) return .{ 255, 250, 180, 255 }; // bright specular glint
+        const n = hash2(x, y, 194) % 32;
+        return .{ 245 + @as(u8, @intCast(n / 4)), 185 + @as(u8, @intCast(n)), 75 + @as(u8, @intCast(n / 2)), 255 };
+    }
     if (tile_x == 0 and tile_y == 3) {
         const cx = x / 4;
         const cy = y / 4;

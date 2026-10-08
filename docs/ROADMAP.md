@@ -100,3 +100,4 @@ Rough priority order. Completed milestones marked **[x]**.
 72. [x] **Nether Ambient Ash & Cinder Flake Particles** — Atmospheric drifting ash flakes and floating cinder embers (`spawnNetherAsh`) across Nether caverns (#190).
 73. [x] **Nether Dimension Ambient Fog & Atmospheric Sky Palette** — Cavernous crimson sky dome, fiery horizon clear color, and distance depth fog shader transitions (`u_nether`, `calculateNetherFog`) (#191).
 74. [x] **Nether Ambient Winds & Subterranean Drone Audio** — Synthesized ominous cavern winds, 55Hz subterranean rumble, and whistling breath audio (`.nether_wind`) (#192).
+75. [x] **Nether Glowstone Stalactites & Magma Fissure Deposits** — Luminous ceiling glowstone clusters (`glowstone`, emissive 1.0) and shoreline magma block veins in Nether terrain generation (#193).

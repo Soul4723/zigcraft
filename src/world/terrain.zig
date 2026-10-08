@@ -407,6 +407,19 @@ pub const NetherGenerator = struct {
         return s > 0.0;
     }
 
+    /// Check if world column (wx, wz) is a magma fissure deposit
+    fn isMagma(self: NetherGenerator, wx: i32, wz: i32) bool {
+        const m = valueNoise2D(self.seed +% 0x7A6D19B4, wx, wz, 0.08);
+        return m < -0.1;
+    }
+
+    /// Check if ceiling location (wx, wy, wz) has a hanging glowstone stalactite cluster
+    fn isGlowstone(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
+        if (wy < 9 or wy > 12) return false;
+        const g = valueNoise2D(self.seed +% 0x6100570E, wx + wy * 3, wz - wy * 2, 0.15);
+        return g > 0.42;
+    }
+
     /// Generate Nether chunk with subterranean cavern, lava ocean, and soul sand deposits
     pub fn generateChunk(self: NetherGenerator, chunk: *Chunk, cx: i32, cz: i32) void {
         var lz: usize = 0;
@@ -424,8 +437,14 @@ pub const NetherGenerator = struct {
                         // Bedrock-like ceiling top and floor bottom
                         if (y == 0 or y == SIZE - 1) {
                             chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .netherrack);
+                        } else if (y >= 10 and self.isGlowstone(wx, @intCast(y), wz)) {
+                            // Ceiling hanging glowstone cluster
+                            chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .glowstone);
                         } else if (y <= 5 and is_soul) {
                             chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .soul_sand);
+                        } else if (y <= 5 and self.isMagma(wx, wz)) {
+                            // Subterranean magma fissure vein near lava seas
+                            chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .magma);
                         } else {
                             chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .netherrack);
                         }
@@ -449,9 +468,13 @@ test "NetherGenerator fills netherrack, lava sea, and soul sand" {
     var chunk = Chunk.init();
     nether_gen.generateChunk(&chunk, 0, 0);
 
+
+
     var has_netherrack = false;
     var has_lava = false;
     var has_soul_sand = false;
+    var has_magma = false;
+    var has_glowstone = false;
 
     var lz: usize = 0;
     while (lz < SIZE) : (lz += 1) {
@@ -463,6 +486,8 @@ test "NetherGenerator fills netherrack, lava sea, and soul sand" {
                 if (b == .netherrack) has_netherrack = true;
                 if (b == .lava) has_lava = true;
                 if (b == .soul_sand) has_soul_sand = true;
+                if (b == .magma) has_magma = true;
+                if (b == .glowstone) has_glowstone = true;
             }
         }
     }
@@ -470,4 +495,6 @@ test "NetherGenerator fills netherrack, lava sea, and soul sand" {
     try std.testing.expect(has_netherrack);
     try std.testing.expect(has_lava);
     try std.testing.expect(has_soul_sand);
+    try std.testing.expect(has_magma);
+    try std.testing.expect(has_glowstone);
 }
