@@ -8,6 +8,7 @@ const mob_mod = @import("mob.zig");
 const mob_renderer_mod = @import("mob_renderer.zig");
 const chunk_manager_mod = @import("../chunk_manager.zig");
 const audio_mod = @import("../audio/audio.zig");
+const pathfind_mod = @import("pathfind.zig");
 const hunt_mod = @import("pack_hunt.zig");
 const spawn_rules = @import("../world/spawn_rules.zig");
 
@@ -87,7 +88,34 @@ pub const MobManager = struct {
                 const wdz = player_pos.z - mob.pos.z;
                 const wd = @sqrt(wdx * wdx + wdz * wdz);
                 if (hunt_mod.shouldHunt(wd)) {
-                    mob.yaw = std.math.atan2(wdx, wdz);
+                    // Try A* path around obstacles; fall back to line-of-sight
+                    const start_x: i32 = @intFromFloat(@floor(mob.pos.x));
+                    const start_z: i32 = @intFromFloat(@floor(mob.pos.z));
+                    const target_x: i32 = @intFromFloat(@floor(player_pos.x));
+                    const target_z: i32 = @intFromFloat(@floor(player_pos.z));
+                    const base_y: i32 = @intFromFloat(@floor(mob.pos.y));
+
+                    const WalkCtx = struct {
+                        s: *const fn (x: i32, y: i32, z: i32) bool,
+                        f: *const fn (x: i32, y: i32, z: i32) bool,
+                        y: i32,
+
+                        fn isWalkable(ctx: *const @This(), x: i32, z: i32) bool {
+                            // Needs solid floor (at base_y or base_y-1) and clear headroom
+                            const has_floor = ctx.s(x, ctx.y, z) or ctx.s(x, ctx.y - 1, z);
+                            if (!has_floor) return false;
+                            if (ctx.s(x, ctx.y + 1, z) or ctx.s(x, ctx.y + 2, z)) return false;
+                            if (ctx.f(x, ctx.y, z)) return false; // avoid water
+                            return true;
+                        }
+                    };
+                    const walk_ctx = WalkCtx{ .s = solid, .f = fluid, .y = base_y };
+
+                    if (pathfind_mod.findNextStep(start_x, start_z, target_x, target_z, &walk_ctx, WalkCtx.isWalkable)) |step| {
+                        mob.yaw = step.toYaw();
+                    } else {
+                        mob.yaw = std.math.atan2(wdx, wdz);
+                    }
                     mob.walk_timer = hunt_mod.walk_pulse;
                 }
             }
@@ -192,6 +220,45 @@ test "MobManager spawn and tick list" {
 
     try mobs.append(std.testing.allocator, mob_mod.Mob.init(.sheep, 0, 5, 0));
     try std.testing.expectEqual(@as(usize, 1), mobs.items.len);
+}
+
+test "wolf hunt A* steers around obstacle wall" {
+    const mob = mob_mod.Mob.init(.wolf, 0.5, 1.0, 0.5);
+    const player_pos = math.Vec3.init(3.5, 1.0, 0.5); // Target is east at (+3, 0)
+
+    // Solid world: flat floor at y=0, vertical obstacle block at (1, 1, 0) blocking direct path
+    const TestWorld = struct {
+        fn solid(x: i32, y: i32, z: i32) bool {
+            if (y <= 0) return true; // flat ground
+            // 2-block high wall at (1, 0) blocks headroom so wolf cannot step over
+            if (x == 1 and (y == 1 or y == 2) and z == 0) return true;
+            return false;
+        }
+        fn fluid(_: i32, _: i32, _: i32) bool {
+            return false;
+        }
+    };
+
+    const wdx = player_pos.x - mob.pos.x;
+    const wdz = player_pos.z - mob.pos.z;
+    const wd = @sqrt(wdx * wdx + wdz * wdz);
+    try std.testing.expect(hunt_mod.shouldHunt(wd));
+
+    // Pathfind around the wall: should not head straight east (yaw ~ pi/2)
+    const WalkCtx = struct {
+        fn isWalkable(_: *const @This(), x: i32, z: i32) bool {
+            const has_floor = TestWorld.solid(x, 1, z) or TestWorld.solid(x, 0, z);
+            if (!has_floor) return false;
+            if (TestWorld.solid(x, 2, z) or TestWorld.solid(x, 3, z)) return false;
+            return true;
+        }
+    };
+    const ctx = WalkCtx{};
+    const step = pathfind_mod.findNextStep(0, 0, 3, 0, &ctx, WalkCtx.isWalkable);
+    try std.testing.expect(step != null);
+    // Should divert North (+Z) or South (-Z), not walk into blocked (1, 0)
+    try std.testing.expect(step.?.dx == 0);
+    try std.testing.expect(step.?.dz == 1 or step.?.dz == -1);
 }
 
 test "MobManager countNearbyWolves" {
