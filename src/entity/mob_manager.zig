@@ -52,25 +52,7 @@ pub const MobManager = struct {
 
             var iy: i32 = 15;
             while (iy >= 1) : (iy -= 1) {
-                const ground = chunk_manager.getBlockWorld(ix, iy, iz);
-                if (!spawn_rules.isSpawnGround(ground)) continue;
-                if (!spawn_rules.hasHeadroom(chunk_manager.getBlockWorld(ix, iy + 1, iz), chunk_manager.getBlockWorld(ix, iy + 2, iz))) continue;
-                var wet = false;
-                var dx: i32 = -1;
-                while (dx <= 1 and !wet) : (dx += 1) {
-                    var dz: i32 = -1;
-                    while (dz <= 1 and !wet) : (dz += 1) {
-                        var depth: i32 = 0;
-                        var dy: i32 = 0;
-                        while (dy > -4) : (dy -= 1) {
-                            if (chunk_manager.getBlockWorld(ix + dx, iy + dy, iz + dz) == .water) {
-                                depth += 1;
-                            } else break;
-                        }
-                        if (depth >= spawn_rules.deep_water_depth) wet = true;
-                    }
-                }
-                if (wet) continue;
+                if (!spawn_rules.isSafeSpawn(chunk_manager, ix, iy, iz)) continue;
                 const roll = self.rng.random().float(f32);
                 const category = spawn_rules.selectMobType(roll, is_night);
                 const mtype: mob_mod.MobType = switch (category) {

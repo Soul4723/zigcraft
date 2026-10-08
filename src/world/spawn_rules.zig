@@ -31,48 +31,52 @@ pub fn hasHeadroom(head1: BlockId, head2: BlockId) bool {
     return head1 == .air and head2 == .air;
 }
 
-pub fn waterDepthAt(get: *const fn (x: i32, y: i32, z: i32) BlockId, x: i32, y: i32, z: i32) i32 {
+pub fn waterDepthAt(world: anytype, x: i32, y: i32, z: i32) i32 {
     var depth: i32 = 0;
     var dy: i32 = 0;
     while (dy > -8) : (dy -= 1) {
-        if (get(x, y + dy, z) == .water) {
+        if (world.getBlockWorld(x, y + dy, z) == .water) {
             depth += 1;
         } else break;
     }
     return depth;
 }
 
-pub fn isSafeSpawn(get: *const fn (x: i32, y: i32, z: i32) BlockId, x: i32, y: i32, z: i32) bool {
-    const ground = get(x, y, z);
+pub fn isSafeSpawn(world: anytype, x: i32, y: i32, z: i32) bool {
+    const ground = world.getBlockWorld(x, y, z);
     if (!isSpawnGround(ground)) return false;
-    if (!hasHeadroom(get(x, y + 1, z), get(x, y + 2, z))) return false;
-    if (waterDepthAt(get, x, y, z) >= deep_water_depth) return false;
+    if (!hasHeadroom(world.getBlockWorld(x, y + 1, z), world.getBlockWorld(x, y + 2, z))) return false;
+    if (waterDepthAt(world, x, y, z) >= deep_water_depth) return false;
     var dx: i32 = -1;
     while (dx <= 1) : (dx += 1) {
         var dz: i32 = -1;
         while (dz <= 1) : (dz += 1) {
             if (dx == 0 and dz == 0) continue;
-            if (waterDepthAt(get, x + dx, y, z + dz) >= deep_water_depth) return false;
+            if (waterDepthAt(world, x + dx, y, z + dz) >= deep_water_depth) return false;
         }
     }
     return true;
 }
 
-fn flatWorld(x: i32, y: i32, z: i32) BlockId {
-    _ = x;
-    _ = z;
-    if (y == 5) return .grass;
-    if (y > 5) return .air;
-    return .dirt;
-}
+const FlatWorld = struct {
+    pub fn getBlockWorld(_: @This(), x: i32, y: i32, z: i32) BlockId {
+        _ = x;
+        _ = z;
+        if (y == 5) return .grass;
+        if (y > 5) return .air;
+        return .dirt;
+    }
+};
 
-fn lakeWorld(x: i32, y: i32, z: i32) BlockId {
-    _ = x;
-    _ = z;
-    if (y == 5) return .water;
-    if (y > 5) return .air;
-    return .dirt;
-}
+const LakeWorld = struct {
+    pub fn getBlockWorld(_: @This(), x: i32, y: i32, z: i32) BlockId {
+        _ = x;
+        _ = z;
+        if (y == 5) return .water;
+        if (y > 5) return .air;
+        return .dirt;
+    }
+};
 
 test "spawn ground classification" {
     try std.testing.expect(isSpawnGround(.grass));
@@ -82,11 +86,27 @@ test "spawn ground classification" {
 }
 
 test "safe spawn on flat grass" {
-    try std.testing.expect(isSafeSpawn(&flatWorld, 0, 5, 0));
+    try std.testing.expect(isSafeSpawn(FlatWorld{}, 0, 5, 0));
 }
 
 test "no spawn over deep water" {
-    try std.testing.expect(!isSafeSpawn(&lakeWorld, 0, 5, 0));
+    try std.testing.expect(!isSafeSpawn(LakeWorld{}, 0, 5, 0));
+}
+
+test "deep water scan reaches below mob manager old four-cell window" {
+    const DeepLake = struct {
+        pub fn getBlockWorld(_: @This(), x: i32, y: i32, z: i32) BlockId {
+            _ = x;
+            _ = z;
+            if (y >= 1 and y <= 5) return .water;
+            if (y == 0) return .grass;
+            if (y > 5) return .air;
+            return .dirt;
+        }
+    };
+    // Five-deep water at spawn column: old inline 4-deep scan missed it, unified scan rejects it.
+    try std.testing.expectEqual(@as(i32, 5), waterDepthAt(DeepLake{}, 0, 5, 0));
+    try std.testing.expect(!isSafeSpawn(DeepLake{}, 0, 0, 0));
 }
 
 test "day vs night mob type selection" {
