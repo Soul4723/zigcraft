@@ -183,6 +183,39 @@ pub const ParticleSystem = struct {
         }
     }
 
+
+    /// Spawn a forward-drifting cloud of breath mist / gasping droplets.
+    pub fn spawnBreathMist(self: *ParticleSystem, pos: [3]f32, look_dir: [3]f32, count: usize) void {
+        var i: usize = 0;
+        var seed: u32 = @as(u32, @bitCast(@as(i32, @intFromFloat(pos[0] * 50.0)))) *% 19 +%
+            @as(u32, @bitCast(@as(i32, @intFromFloat(pos[1] * 50.0)))) *% 13 +%
+            @as(u32, @bitCast(@as(i32, @intFromFloat(pos[2] * 50.0)))) +%
+            @as(u32, @intCast(self.count));
+        while (i < count and self.count < MAX_PARTICLES) : (i += 1) {
+            seed = seed *% 1103515245 +% 12345;
+            const rx = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            seed = seed *% 1103515245 +% 12345;
+            const ry = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            seed = seed *% 1103515245 +% 12345;
+            const rz = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+
+            const spread = 0.25;
+            self.particles[self.count] = .{
+                .x = pos[0] + (rx - 0.5) * spread,
+                .y = pos[1] + (ry - 0.5) * spread,
+                .z = pos[2] + (rz - 0.5) * spread,
+                .vx = look_dir[0] * 1.5 + (rx - 0.5) * 0.8,
+                .vy = look_dir[1] * 1.5 + 0.3 + ry * 0.4,
+                .vz = look_dir[2] * 1.5 + (rz - 0.5) * 0.8,
+                .life = 0.45 + 0.2 * ry,
+                .max_life = 0.45 + 0.2 * ry,
+                .color = .{ 0.88, 0.94, 1.0 },
+                .size = 0.04 + 0.03 * rx,
+            };
+            self.count += 1;
+        }
+    }
+
     /// Spawn rising translucent underwater bubbles around a 3D position
     pub fn spawnBubble(self: *ParticleSystem, pos: [3]f32, count: usize) void {
         var i: usize = 0;
@@ -365,6 +398,27 @@ test "water splash particles spawn and vertical burst" {
     ps.tick(0.1);
     try std.testing.expect(ps.particles[0].y > 10.0);
     // After 1.0s, short-lived droplets expire
+    ps.tick(1.0);
+    try std.testing.expectEqual(ps.count, 0);
+}
+
+test "spawnBreathMist forward direction and mist color" {
+    var ps = ParticleSystem{
+        .particles = undefined,
+        .count = 0,
+        .vao = 0,
+        .vbo = 0,
+        .program = 0,
+    };
+    ps.spawnBreathMist(.{ 0.0, 1.6, 0.0 }, .{ 0.0, 0.0, 1.0 }, 6);
+    try std.testing.expectEqual(ps.count, 6);
+    // Forward velocity along Z > 0
+    try std.testing.expect(ps.particles[0].vz > 0.5);
+    // Pale mist color
+    try std.testing.expect(ps.particles[0].color[0] > 0.8);
+    try std.testing.expect(ps.particles[0].color[1] > 0.9);
+    ps.tick(0.1);
+    try std.testing.expect(ps.particles[0].z > 0.0);
     ps.tick(1.0);
     try std.testing.expectEqual(ps.count, 0);
 }

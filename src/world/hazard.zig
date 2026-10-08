@@ -31,6 +31,13 @@ pub fn tickOxygen(oxygen: f32, is_underwater: bool, dt: f32) f32 {
     }
 }
 
+
+/// Check if surfacing from underwater warrants a breath gasp and droplet puff.
+/// Returns true when player was submerged, has now surfaced, and oxygen had depleted below threshold (<= 10.0).
+pub fn shouldGaspOnSurface(was_underwater: bool, is_underwater: bool, current_oxygen: f32) bool {
+    return was_underwater and !is_underwater and current_oxygen <= 10.0;
+}
+
 pub fn calculateDrowningDamage(oxygen: f32, dt: f32) f32 {
     if (oxygen <= 0.0) {
         return drown_rate * dt;
@@ -121,4 +128,16 @@ pub fn applyDamageClamped(current_health: f32, rate: f32, dt: f32) f32 {
 test "applyDamageClamped calculation" {
     try std.testing.expectEqual(@as(f32, 18.0), applyDamageClamped(20.0, 2.0, 1.0));
     try std.testing.expectEqual(@as(f32, 0.0), applyDamageClamped(1.0, 5.0, 1.0));
+}
+
+test "surface gasp trigger logic" {
+    // Surfacing with low oxygen -> triggers gasp
+    try std.testing.expect(shouldGaspOnSurface(true, false, 5.0));
+    try std.testing.expect(shouldGaspOnSurface(true, false, 10.0));
+    // Surfacing with near-full oxygen -> no gasp
+    try std.testing.expect(!shouldGaspOnSurface(true, false, 14.0));
+    // Still underwater -> no gasp
+    try std.testing.expect(!shouldGaspOnSurface(true, true, 2.0));
+    // Already surfaced earlier -> no gasp
+    try std.testing.expect(!shouldGaspOnSurface(false, false, 2.0));
 }

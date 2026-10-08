@@ -288,6 +288,11 @@ pub fn main() !void {
             const is_underwater = hazard_mod.checkDrowning(eye_block);
             if (is_underwater and !was_eye_underwater) {
                 audio.play(.underwater_submerge, 0.7);
+            } else if (hazard_mod.shouldGaspOnSurface(was_eye_underwater, is_underwater, player.oxygen)) {
+                // Surfaced with low oxygen: play splash gasp audio and emit mist droplets
+                audio.play(.splash, 0.85);
+                const front = cam.front();
+                particles.spawnBreathMist(.{ eye.x, eye.y - 0.1, eye.z }, .{ front.x, front.y, front.z }, 8);
             }
             was_eye_underwater = is_underwater;
 
