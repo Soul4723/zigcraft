@@ -386,6 +386,44 @@ pub const ParticleSystem = struct {
         }
     }
 
+    /// Spawn drifting Nether ash / cinder particles falling and drifting in the Nether atmosphere.
+    pub fn spawnNetherAsh(self: *ParticleSystem, pos: [3]f32, count: usize) void {
+        var i: usize = 0;
+        var seed: u32 = @as(u32, @bitCast(@as(i32, @intFromFloat(pos[0] * 48.0)))) *% 43 +%
+            @as(u32, @bitCast(@as(i32, @intFromFloat(pos[1] * 48.0)))) *% 29 +%
+            @as(u32, @bitCast(@as(i32, @intFromFloat(pos[2] * 48.0)))) *% 17 +%
+            @as(u32, @intCast(self.count));
+        while (i < count and self.count < MAX_PARTICLES) : (i += 1) {
+            seed = seed *% 1103515245 +% 12345;
+            const rx = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            seed = seed *% 1103515245 +% 12345;
+            const ry = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            seed = seed *% 1103515245 +% 12345;
+            const rz = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+
+            // Mostly dark grey ash flakes; occasional dim cinder ember flake
+            const is_cinder = (rx > 0.82);
+            const col = if (is_cinder)
+                [3]f32{ 0.88, 0.35 + 0.2 * ry, 0.12 }
+            else
+                [3]f32{ 0.38 + 0.15 * rx, 0.28 + 0.12 * ry, 0.26 + 0.12 * rz };
+
+            self.particles[self.count] = .{
+                .x = pos[0] + (rx - 0.5) * 16.0,
+                .y = pos[1] + 2.0 + ry * 5.0,
+                .z = pos[2] + (rz - 0.5) * 16.0,
+                .vx = (rx - 0.5) * 0.9 + 0.3,
+                .vy = -0.5 - ry * 0.6,
+                .vz = (rz - 0.5) * 0.9,
+                .life = 1.8 + 1.2 * ry,
+                .max_life = 1.8 + 1.2 * ry,
+                .color = col,
+                .size = if (is_cinder) 0.04 else 0.05 + 0.03 * rx,
+            };
+            self.count += 1;
+        }
+    }
+
     /// Spawn orbital vortex ring of ethereal particles circling player during portal charge
     pub fn spawnPortalVortex(self: *ParticleSystem, center: [3]f32, radius: f32, count: usize, time_offset: f32) void {
         var i: usize = 0;
@@ -434,6 +472,7 @@ pub const ParticleSystem = struct {
             const is_ember = (p.color[0] > 0.9 and p.color[2] < 0.2); // Fiery orange/yellow
             const is_smoke = (p.color[0] < 0.35 and p.color[1] < 0.35 and p.color[2] < 0.35); // Dark smoke
             const is_portal = (p.color[0] > 0.6 and p.color[1] < 0.3 and p.color[2] > 0.8); // Purple ethereal
+            const is_ash = (p.max_life >= 1.5 and p.color[0] < 0.9 and p.color[1] < 0.5 and p.color[2] < 0.45); // Nether ash flake
             if (is_bubble) {
                 p.vy = @min(1.5, p.vy + 1.0 * dt);
             } else if (is_ember or is_smoke) {
@@ -442,6 +481,10 @@ pub const ParticleSystem = struct {
             } else if (is_portal) {
                 // Weightless swirling drift
                 p.vy = p.vy * 0.98;
+            } else if (is_ash) {
+                // Slow ambient downward settling with horizontal air drift
+                p.vy = @max(-0.9, p.vy - 0.4 * dt);
+                p.vx += 0.05 * dt;
             } else {
                 p.vy -= gravity * dt;
             }
@@ -720,4 +763,25 @@ test "spawnPortalParticles purple color and weightless drift" {
     try std.testing.expectEqual(ps.count, 4);
     ps.tick(1.5);
     try std.testing.expectEqual(ps.count, 0);
+}
+
+test "spawnNetherAsh particle distribution and gentle settling tick" {
+    var ps = ParticleSystem{
+        .particles = undefined,
+        .count = 0,
+        .vao = 0,
+        .vbo = 0,
+        .program = 0,
+    };
+    ps.spawnNetherAsh(.{ 20.0, 10.0, 20.0 }, 6);
+    try std.testing.expectEqual(ps.count, 6);
+    for (ps.particles[0..6]) |p| {
+        // Slow downward drift initial velocity
+        try std.testing.expect(p.vy < 0.0);
+        try std.testing.expect(p.life >= 1.5);
+    }
+    // Tick: ash particles must not plummet with heavy gravity (18 m/s^2)
+    const initial_vy = ps.particles[0].vy;
+    ps.tick(0.1);
+    try std.testing.expect(ps.particles[0].vy > initial_vy - 1.0);
 }

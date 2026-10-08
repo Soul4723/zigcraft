@@ -97,3 +97,4 @@ Rough priority order. Completed milestones marked **[x]**.
 69. [x] **Portal Disorient Camera Wobble & Tilt** — Camera roll disorientation oscillation (`viewMatrixWithRoll`) scaling with transit dwell charge (#187).
 70. [x] **Portal Transit HUD Vignette Overlay** — Full-screen peripheral purple overlay vignette (`drawPortalVignette`) scaling with portal dwell charge (#188).
 71. [x] **Portal Warp Dimensional Flash Overlay** — Full-screen vibrant purple dimensional stabilization flash (`drawPortalFlash`) decaying upon portal exit warp (#189).
+72. [x] **Nether Ambient Ash & Cinder Flake Particles** — Atmospheric drifting ash flakes and floating cinder embers (`spawnNetherAsh`) across Nether caverns (#190).

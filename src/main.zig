@@ -449,6 +449,11 @@ pub fn main() !void {
                 });
             }
 
+            // In Nether dimension: emit ambient falling ash flakes and cinder particles around player
+            if (manager.is_nether) {
+                particles.spawnNetherAsh(.{ player.pos.x, player.pos.y, player.pos.z }, 2);
+            }
+
             // Periodic ambient nether portal hum and particle swirl around player
             portal_ambient_timer += dt;
             if (portal_ambient_timer >= 0.3) {
