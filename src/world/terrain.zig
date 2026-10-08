@@ -420,6 +420,13 @@ pub const NetherGenerator = struct {
         return g > 0.42;
     }
 
+    /// Check if netherrack subterranean wall contains an embedded nether quartz ore vein
+    fn isQuartzOre(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
+        if (wy < 2 or wy > 13) return false;
+        const q = valueNoise2D(self.seed +% 0x8C339F21, wx + wy * 2, wz - wy * 2, 0.12);
+        return q > 0.25;
+    }
+
     /// Generate Nether chunk with subterranean cavern, lava ocean, and soul sand deposits
     pub fn generateChunk(self: NetherGenerator, chunk: *Chunk, cx: i32, cz: i32) void {
         var lz: usize = 0;
@@ -445,6 +452,9 @@ pub const NetherGenerator = struct {
                         } else if (y <= 5 and self.isMagma(wx, wz)) {
                             // Subterranean magma fissure vein near lava seas
                             chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .magma);
+                        } else if (self.isQuartzOre(wx, @intCast(y), wz)) {
+                            // Subterranean nether quartz ore vein embedded in netherrack
+                            chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .nether_quartz_ore);
                         } else {
                             chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .netherrack);
                         }
@@ -475,6 +485,7 @@ test "NetherGenerator fills netherrack, lava sea, and soul sand" {
     var has_soul_sand = false;
     var has_magma = false;
     var has_glowstone = false;
+    var has_quartz_ore = false;
 
     var lz: usize = 0;
     while (lz < SIZE) : (lz += 1) {
@@ -488,6 +499,7 @@ test "NetherGenerator fills netherrack, lava sea, and soul sand" {
                 if (b == .soul_sand) has_soul_sand = true;
                 if (b == .magma) has_magma = true;
                 if (b == .glowstone) has_glowstone = true;
+                if (b == .nether_quartz_ore) has_quartz_ore = true;
             }
         }
     }
@@ -497,4 +509,5 @@ test "NetherGenerator fills netherrack, lava sea, and soul sand" {
     try std.testing.expect(has_soul_sand);
     try std.testing.expect(has_magma);
     try std.testing.expect(has_glowstone);
+    try std.testing.expect(has_quartz_ore);
 }

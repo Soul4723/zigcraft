@@ -104,3 +104,4 @@ Rough priority order. Completed milestones marked **[x]**.
 76. [x] **Nether Glowstone Dynamic Warm Ambient Light Spill** — Point illumination spill from hanging glowstone clusters onto cavern surfaces in Nether darkness (#194).
 77. [x] **Nether Glowstone Shimmer & Glittering Dust Particles** — Radiant golden-amber sparkle glints and buoyant luminous dust (`spawnGlowstoneShimmer`) emitted by active glowstone (#195).
 78. [x] **Nether Glowstone Crystalline Bell Chime Audio Synthesis** — Multi-harmonic pure bell chimes (880/1760/2640Hz) with 3D spatial attenuation (`.glowstone_chime`) (#196).
+79. [x] **Nether Quartz Ore Veins & Mineral Harvesting** — Crystalline quartz ore veins embedded in netherrack (`nether_quartz_ore`), pickaxe harvest requirements, and raw quartz drops (`nether_quartz`) (#197).

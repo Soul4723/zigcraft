@@ -128,6 +128,19 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         const n = hash2(x, y, 194) % 32;
         return .{ 245 + @as(u8, @intCast(n / 4)), 185 + @as(u8, @intCast(n)), 75 + @as(u8, @intCast(n / 2)), 255 };
     }
+    // Nether Quartz Ore (6, 2): jagged crimson netherrack matrix embedded with crystalline white quartz veins
+    if (tile_x == 6 and tile_y == 2) {
+        const quartz_vein = ((x + y * 3) % 5 == 0 and x >= 3 and x <= 13) or ((x * 2 + y) % 7 == 0 and y >= 2 and y <= 14);
+        if (quartz_vein) {
+            const specular = hash2(x, y, 201) % 6 == 0;
+            if (specular) return .{ 255, 255, 255, 255 }; // gleaming crystal glint
+            const n = hash2(x, y, 202) % 20;
+            return .{ 235 + @as(u8, @intCast(n)), 230 + @as(u8, @intCast(n)), 235 + @as(u8, @intCast(n / 2)), 255 };
+        }
+        // Crimson netherrack background
+        const n = hash2(x, y, 203) % 25;
+        return .{ 115 + @as(u8, @intCast(n)), 32 + @as(u8, @intCast(n / 3)), 32 + @as(u8, @intCast(n / 3)), 255 };
+    }
     if (tile_x == 0 and tile_y == 3) {
         const cx = x / 4;
         const cy = y / 4;

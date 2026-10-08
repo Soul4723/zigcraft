@@ -57,6 +57,8 @@ pub const ItemType = enum(u8) {
     magma = 51,
     fire_resistance_potion = 52,
     glowstone = 53,
+    nether_quartz_ore = 54,
+    nether_quartz = 55,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -96,6 +98,7 @@ pub const ItemType = enum(u8) {
             .soul_sand => .soul_sand,
             .magma => .magma,
             .glowstone => .glowstone,
+            .nether_quartz_ore => .nether_quartz_ore,
             else => null,
         };
     }
@@ -142,6 +145,7 @@ pub const ItemType = enum(u8) {
             .soul_sand => .soul_sand,
             .magma => .magma,
             .glowstone => .glowstone,
+            .nether_quartz_ore => .nether_quartz,
         };
     }
 
@@ -218,6 +222,8 @@ pub const ItemType = enum(u8) {
             .magma => "Magma Block",
             .fire_resistance_potion => "Fire Resistance Potion",
             .glowstone => "Glowstone",
+            .nether_quartz_ore => "Nether Quartz Ore",
+            .nether_quartz => "Nether Quartz",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -277,6 +283,8 @@ pub const ItemType = enum(u8) {
             .magma => .{ 0.92, 0.42, 0.12, 0.95 },
             .fire_resistance_potion => .{ 0.95, 0.50, 0.10, 0.90 },
             .glowstone => .{ 0.98, 0.85, 0.35, 0.95 },
+            .nether_quartz_ore => .{ 0.75, 0.28, 0.28, 0.95 },
+            .nether_quartz => .{ 0.95, 0.95, 0.98, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -843,6 +851,17 @@ test "furnace recipe: 4 stone -> furnace" {
     inv.craft_grid[3] = .{ .item = .stone, .count = 1 };
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .furnace);
+}
+
+test "nether quartz ore drops and item conversion" {
+    const ore = ItemType.nether_quartz_ore;
+    try std.testing.expectEqual(ore.toBlockId(), .nether_quartz_ore);
+    try std.testing.expectEqual(ore.name(), "Nether Quartz Ore");
+    // Mining nether quartz ore yields raw nether quartz crystal
+    try std.testing.expectEqual(ItemType.fromBlockId(.nether_quartz_ore), .nether_quartz);
+    const quartz = ItemType.nether_quartz;
+    try std.testing.expectEqual(quartz.name(), "Nether Quartz");
+    try std.testing.expectEqual(quartz.toBlockId(), null);
 }
 
 test "glowstone block item properties and drop" {
