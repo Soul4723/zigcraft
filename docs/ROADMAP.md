@@ -78,3 +78,4 @@ Rough priority order. Completed milestones marked **[x]**.
 50. [x] **Spatial Audio Distance Attenuation** — 3D positioned audio rolloff for mob calls, plate triggers, and distant explosions (#168).
 51. [x] **Surface Breath Recovery & Gasp Mist** — Breath recovery gasp mist puff and audio trigger upon surfacing with low oxygen (#169).
 52. [x] **Entity Swimming Floatation & Head Bobbing** — Mob water paddle buoyancy physics and snout-elevating head bob mesh rendering (#170).
+53. [x] **Boat Crafting & Water Surface Navigation** — Wooden boat crafting recipe, water boarding/dismounting, surface hydroplaning, and cruising speed scale (#171).

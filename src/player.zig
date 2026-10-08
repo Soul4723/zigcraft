@@ -14,6 +14,7 @@ pub const Player = struct {
     spawn_point: math.Vec3,
     regen_timer: f32,
     in_water: bool,
+    in_boat: bool,
     water_entry_speed: f32,
     oxygen: f32,
 
@@ -31,6 +32,7 @@ pub const Player = struct {
             .spawn_point = math.Vec3.init(x, y, z),
             .regen_timer = 0.0,
             .in_water = false,
+            .in_boat = false,
             .water_entry_speed = 0.0,
             .oxygen = 15.0,
         };
@@ -75,6 +77,7 @@ pub const Player = struct {
         self.saturation = 5.0;
         self.regen_timer = 0.0;
         self.in_water = false;
+        self.in_boat = false;
         self.oxygen = 15.0;
         self.spawn_point = self.pos;
     }
@@ -103,6 +106,7 @@ pub const Player = struct {
         return math.Vec3.init(self.pos.x, self.pos.y + 1.62, self.pos.z);
     }
 
+        pub const boat_horizontal_speed_scale: f32 = 2.2;
     pub const water_horizontal_speed_scale: f32 = 0.65;
     pub const water_sink_speed: f32 = -2.5;
     pub const water_current_push_speed: f32 = 1.4;
@@ -123,8 +127,9 @@ pub const Player = struct {
         const old_x = self.pos.x;
         const old_z = self.pos.z;
 
-        var effective_move_x = if (self.in_water) move_x * water_horizontal_speed_scale else move_x;
-        var effective_move_z = if (self.in_water) move_z * water_horizontal_speed_scale else move_z;
+        const speed_scale = if (self.in_boat and self.in_water) boat_horizontal_speed_scale else if (self.in_water) water_horizontal_speed_scale else 1.0;
+        var effective_move_x = move_x * speed_scale;
+        var effective_move_z = move_z * speed_scale;
 
         // Water current push: if inside water, compute lateral flow gradient and push player
         if (self.in_water and fluid != null) {
@@ -149,6 +154,10 @@ pub const Player = struct {
         if (on_ladder) {
             // Ladders: gravity halted; jump climbs up, quiet slide down
             self.vel_y = if (jump) 4.5 else 0.0;
+            self.on_ground = false;
+        } else if (self.in_boat and self.in_water) {
+            // Boat cruising: floats on surface, buoyant upward force counters sink
+            self.vel_y = @min(1.0, self.vel_y + 12.0 * clamped_dt);
             self.on_ground = false;
         } else if (self.in_water) {
             // Water: vertical drag dampens falls; holding jump swims up; otherwise sinks slowly
@@ -548,4 +557,21 @@ test "player water entry landing impact speed recorded" {
     }
     try std.testing.expect(p.in_water);
     try std.testing.expect(p.water_entry_speed > 9.0);
+}
+
+test "player boat water cruising and floatation speed" {
+    var p = Player.init(0.5, 2.0, 0.5);
+    p.in_boat = true;
+    const Mock = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return false; }
+        fn water(_: i32, _: i32, _: i32) bool { return true; }
+    };
+    // Tick with forward movement 1.0
+    p.tickPhysics(Mock.solid, null, Mock.water, 1.0, 0.0, false, 0.05);
+    try std.testing.expect(p.in_water);
+    try std.testing.expect(p.in_boat);
+    // Boat movement scale (2.2) is higher than normal water scale (0.65)
+    try std.testing.expect(p.pos.x > 0.5 + 1.0 * Player.water_horizontal_speed_scale * 0.9);
+    // Boat lifts player upward in water
+    try std.testing.expect(p.vel_y > 0.0);
 }

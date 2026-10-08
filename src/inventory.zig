@@ -49,6 +49,7 @@ pub const ItemType = enum(u8) {
     redstone_torch = 43,
     campfire = 44,
     cactus = 45,
+    boat = 46,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -189,6 +190,7 @@ pub const ItemType = enum(u8) {
             .redstone_torch => "Redstone Torch",
             .campfire => "Campfire",
             .cactus => "Cactus",
+            .boat => "Wooden Boat",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -240,6 +242,7 @@ pub const ItemType = enum(u8) {
             .redstone_torch => .{ 0.95, 0.22, 0.18, 0.95 },
             .campfire => .{ 0.95, 0.45, 0.10, 0.95 },
             .cactus => .{ 0.15, 0.60, 0.15, 0.95 },
+            .boat => .{ 0.70, 0.48, 0.25, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -382,6 +385,17 @@ pub const Inventory = struct {
         if (non_empty == 4) {
             if (g0 == .wood_planks and g1 == .wood_planks and g2 == .wood_planks and g3 == .wood_planks) {
                 self.craft_output = .{ .item = .crafting_bench, .count = 1 };
+                return;
+            }
+        }
+
+        
+        // Recipe 31: 3 Wood Planks in U-shape (top-left, bottom-left, bottom-right OR top-right, bottom-left, bottom-right) -> 1 Boat
+        if (non_empty == 3) {
+            if ((g0 == .wood_planks and g2 == .wood_planks and g3 == .wood_planks and g1 == .none) or
+                (g1 == .wood_planks and g2 == .wood_planks and g3 == .wood_planks and g0 == .none))
+            {
+                self.craft_output = .{ .item = .boat, .count = 1 };
                 return;
             }
         }
@@ -992,4 +1006,21 @@ test "canHarvestBlock tier check" {
     try std.testing.expect(canHarvestBlock(.iron_pickaxe, .stone));
     try std.testing.expect(!canHarvestBlock(.dirt, .stone));
     try std.testing.expect(!canHarvestBlock(.none, .iron_ore));
+}
+
+test "crafting wooden boat recipe" {
+    var inv = Inventory.init();
+    // g0=wood_planks, g2=wood_planks, g3=wood_planks, g1=none
+    inv.craft_grid[0] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .none, .count = 0 };
+    inv.craft_grid[2] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .wood_planks, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.boat, inv.craft_output.item);
+    try std.testing.expectEqual(@as(u8, 1), inv.craft_output.count);
+
+    var cursor = ItemStack{};
+    _ = inv.takeCraftResult(&cursor);
+    try std.testing.expectEqual(ItemType.boat, cursor.item);
+    try std.testing.expectEqual(@as(u8, 1), cursor.count);
 }

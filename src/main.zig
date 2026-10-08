@@ -269,6 +269,14 @@ pub fn main() !void {
         const key_d = c.glfwGetKey(window, c.GLFW_KEY_D) == c.GLFW_PRESS;
         const key_a = c.glfwGetKey(window, c.GLFW_KEY_A) == c.GLFW_PRESS;
         const norm_wish = player_mod.computeWishDirection(walk_vecs, key_w, key_s, key_d, key_a, inventory_open);
+        const key_shift = c.glfwGetKey(window, c.GLFW_KEY_LEFT_SHIFT) == c.GLFW_PRESS;
+        if (player.in_boat and key_shift) {
+            // Dismount boat: recover boat into inventory or drop
+            player.in_boat = false;
+            _ = inventory.addItem(.boat, 1);
+            audio.play(.click_off, 0.6);
+            std.debug.print("dismounted boat\n", .{});
+        }
         const jump = !inventory_open and (c.glfwGetKey(window, c.GLFW_KEY_SPACE) == c.GLFW_PRESS);
         player.tickPhysics(&pickSolid, &pickLadder, &pickFluid, norm_wish.x * walk_speed * dt, norm_wish.z * walk_speed * dt, jump, dt);
         player.tickVitals(dt);
@@ -1301,6 +1309,16 @@ pub fn main() !void {
                                             std.debug.print("planted sapling\n", .{});
                                         }
                                     }
+                                }
+                            } else if (!hotbar_slot.isEmpty() and hotbar_slot.item == .boat) {
+                                // Deploy boat into water or board boat
+                                const target_block = manager.getBlockWorld(hit.x, hit.y, hit.z);
+                                if (target_block == .water or pickFluid(px, py, pz)) {
+                                    hotbar_slot.decrement(1);
+                                    player.in_boat = true;
+                                    audio.play(.splash, 0.75);
+                                    particles.spawnWaterSplash(.{ player.pos.x, player.pos.y, player.pos.z }, 10);
+                                    std.debug.print("boarded wooden boat\n", .{});
                                 }
                             } else if (!hotbar_slot.isEmpty()) {
                                 if (hotbar_slot.item.toBlockId()) |place_type| {
