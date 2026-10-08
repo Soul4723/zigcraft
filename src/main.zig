@@ -1244,6 +1244,7 @@ pub fn main() !void {
                                 if (hotbar_slot.item.toBlockId()) |place_type| {
                                     const is_furnace_place = place_type == .furnace;
                                     if (try manager.editAndRemesh(px, py, pz, place_type)) {
+                                        if (place_type == .water) _ = manager.setWaterLevel(px, py, pz, 7);
                                         audio.play(.place_block, 0.7);
                                         const pcol = hotbar_slot.item.getColor();
                                         particles.spawnBlockDebris(px, py, pz, .{ pcol[0], pcol[1], pcol[2] }, 8);

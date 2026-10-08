@@ -160,11 +160,12 @@ pub const TerrainGenerator = struct {
                         chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), b);
                     }
                 }
-                // Water filling up to SEA_LEVEL
+                // Water filling up to SEA_LEVEL (full sources)
                 if (h < SEA_LEVEL) {
                     var wy = h + 1;
                     while (wy <= SEA_LEVEL) : (wy += 1) {
                         chunk.setBlock(@intCast(lx), @intCast(wy), @intCast(lz), .water);
+                        chunk.setLevel(@intCast(lx), @intCast(wy), @intCast(lz), 7);
                     }
                 }
             }
