@@ -427,6 +427,36 @@ pub const NetherGenerator = struct {
         return q > 0.25;
     }
 
+    /// Check if cavern location (wx, wy, wz) intersects a monumental Nether fortress bridge structure
+    pub fn isFortress(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
+        _ = self;
+        if (wy < 4 or wy > 8) return false;
+        const cell_size: i32 = 48;
+        const gx = @mod(wx, cell_size);
+        const gz = @mod(wz, cell_size);
+
+        // Bridges run along X (gz around 22..25) and along Z (gx around 22..25)
+        const in_span_x = (gz >= 22 and gz <= 25);
+        const in_span_z = (gx >= 22 and gz >= 18 and gz <= 29 and gx <= 25); // Cross-junction intersection
+
+        if (in_span_x) {
+            // Main bridge walkway at y = 7
+            if (wy == 7) return true;
+            // Bridge safety balustrades on northern/southern perimeter at y = 8
+            if (wy == 8 and (gz == 22 or gz == 25)) return true;
+            // Heavy architectural bridge support pillars extending down to cavern floor
+            if (wy < 7 and (@mod(gx, 12) <= 1) and (gz == 22 or gz == 25)) return true;
+        }
+
+        if (in_span_z) {
+            if (wy == 7) return true;
+            if (wy == 8 and (gx == 22 or gx == 25)) return true;
+            if (wy < 7 and (@mod(gz, 12) <= 1) and (gx == 22 or gx == 25)) return true;
+        }
+
+        return false;
+    }
+
     /// Generate Nether chunk with subterranean cavern, lava ocean, and soul sand deposits
     pub fn generateChunk(self: NetherGenerator, chunk: *Chunk, cx: i32, cz: i32) void {
         var lz: usize = 0;
@@ -458,6 +488,9 @@ pub const NetherGenerator = struct {
                         } else {
                             chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .netherrack);
                         }
+                    } else if (self.isFortress(wx, @intCast(y), wz)) {
+                        // Monumental Nether Fortress masonry bridge crossing open cavern
+                        chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .nether_brick);
                     } else {
                         // Open cavern space: lava sea up to SEA_LEVEL - 1 (y <= 4)
                         if (y <= 4) {
@@ -510,4 +543,26 @@ test "NetherGenerator fills netherrack, lava sea, and soul sand" {
     try std.testing.expect(has_magma);
     try std.testing.expect(has_glowstone);
     try std.testing.expect(has_quartz_ore);
+}
+
+test "NetherGenerator generates nether fortress ruins" {
+    const nether_gen = NetherGenerator.init(12345);
+    var chunk = Chunk.init();
+    // Chunk (1, 1) covers wx 16..31, wz 16..31 which contains the fortress cross-span at 22..25
+    nether_gen.generateChunk(&chunk, 1, 1);
+
+    var has_fortress = false;
+    var lz: usize = 0;
+    while (lz < SIZE) : (lz += 1) {
+        var lx: usize = 0;
+        while (lx < SIZE) : (lx += 1) {
+            var y: usize = 0;
+            while (y < SIZE) : (y += 1) {
+                if (chunk.getBlock(@intCast(lx), @intCast(y), @intCast(lz)) == .nether_brick) {
+                    has_fortress = true;
+                }
+            }
+        }
+    }
+    try std.testing.expect(has_fortress);
 }

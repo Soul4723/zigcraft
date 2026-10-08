@@ -108,3 +108,4 @@ Rough priority order. Completed milestones marked **[x]**.
 80. [x] **Block of Quartz Crafting & Architectural Masonry** — 2x2 crafting recipe (4 nether quartz -> block of quartz), beveled marble texture, and building block mechanics (`quartz_block`) (#198).
 81. [x] **Quartz Pillars & Chiseled Quartz Architectural Blocks** — Fluted columns (`quartz_pillar`), ceremonial glyph medallions (`chiseled_quartz_block`), and vertical stacking crafting recipes (#199).
 82. [x] **Nether Bricks Crafting & Fortress Masonry** — 2x2 Netherrack masonry recipe (4 netherrack -> 4 nether bricks), dark purplish fiery running-bond texture atlas tile, and wooden pickaxe harvesting (#200).
+83. [x] **Nether Fortress Procedural Ruins Generation** — Periodic cavern cross-spans, monumental bridges at y=7, perimeter safety balustrades (y=8), and heavy support pillars extending to cavern floors (#201).
