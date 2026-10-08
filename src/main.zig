@@ -49,6 +49,11 @@ fn pickSolid(x: i32, y: i32, z: i32) bool {
     return pick_manager.?.isSolidWorld(x, y, z);
 }
 
+fn pickFluid(x: i32, y: i32, z: i32) bool {
+    const mgr = pick_manager orelse return false;
+    return mgr.getBlockWorld(x, y, z) == .water;
+}
+
 fn pickLadder(x: i32, y: i32, z: i32) bool {
     const mgr = pick_manager orelse return false;
     return mgr.getBlockWorld(x, y, z).is_ladder();
@@ -853,7 +858,7 @@ pub fn main() !void {
         // Mob spawning and physics AI tick
         const is_night_spawn = @sin(world_time) <= 0.0;
         try mob_manager.ensureSpawnPopulation(&manager, player.pos.x, player.pos.z, is_night_spawn);
-        mob_manager.tick(&pickSolid, player.pos, player.radius, &audio, dt);
+        mob_manager.tick(&pickSolid, &pickFluid, player.pos, player.radius, &audio, dt);
 
         // Wolf bites: contact damage with per-second cooldown
         wolf_bite_cooldown = combat_mod.tickCooldown(wolf_bite_cooldown, dt);

@@ -84,7 +84,7 @@ pub const MobManager = struct {
         }
     }
 
-    pub fn tick(self: *MobManager, solid: *const fn (x: i32, y: i32, z: i32) bool, player_pos: math.Vec3, player_radius: f32, audio: ?*audio_mod.AudioSystem, dt: f32) void {
+    pub fn tick(self: *MobManager, solid: *const fn (x: i32, y: i32, z: i32) bool, fluid: *const fn (x: i32, y: i32, z: i32) bool, player_pos: math.Vec3, player_radius: f32, audio: ?*audio_mod.AudioSystem, dt: f32) void {
         var idx: usize = 0;
         while (idx < self.mobs.items.len) {
             var mob = &self.mobs.items[idx];
@@ -97,7 +97,7 @@ pub const MobManager = struct {
                     mob.walk_timer = hunt_mod.walk_pulse;
                 }
             }
-            mob.tick(solid, dt, &self.rng);
+            mob.tick(solid, fluid, dt, &self.rng);
 
             const dx0 = mob.pos.x - player_pos.x;
             const dz0 = mob.pos.z - player_pos.z;
