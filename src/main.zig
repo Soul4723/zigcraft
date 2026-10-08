@@ -419,8 +419,11 @@ pub fn main() !void {
             // Check if player is standing inside a nether portal block
             const in_portal = (feet_b == .nether_portal or head_b == .nether_portal);
             if (in_portal) {
-                // Emit continuous swirls while charging transit
+                // Emit continuous swirls and accelerating orbital vortex ring while charging transit
                 particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 2);
+                const charge_frac = portal_transit.inside_timer / portal_mod.PORTAL_TRIGGER_TIME;
+                const ring_radius = 1.0 - 0.3 * charge_frac;
+                particles.spawnPortalVortex(.{ player.pos.x, player.pos.y + 0.9, player.pos.z }, ring_radius, 4, @floatCast(current_time));
             }
             if (portal_transit.tick(in_portal, dt)) {
                 // Dimension warp triggered!

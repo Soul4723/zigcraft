@@ -93,3 +93,4 @@ Rough priority order. Completed milestones marked **[x]**.
 65. [x] **Burn Sparks & Hot Surface Debris Particles** — Upward spraying brilliant fiery sparks (`spawnBurnSparks`) on magma and campfire contact (#183).
 66. [x] **Fire Resistance Status Effect & Potion Crafting** — Fire resistance potion recipe (magma + apple/glass), 3-minute buff (`180s`), and complete immunity to lava, magma, and campfire burn hazards (#184).
 67. [x] **Fire Resistance HUD Indicator Bar** — Dynamic amber-gold status effect progress bar above player health on HUD (#185).
+68. [x] **Nether Portal Orbital Vortex Particle Ring** — Contracting swirling particle vortex ring (`spawnPortalVortex`) during transit dwell charge (#186).

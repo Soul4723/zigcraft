@@ -386,6 +386,37 @@ pub const ParticleSystem = struct {
         }
     }
 
+    /// Spawn orbital vortex ring of ethereal particles circling player during portal charge
+    pub fn spawnPortalVortex(self: *ParticleSystem, center: [3]f32, radius: f32, count: usize, time_offset: f32) void {
+        var i: usize = 0;
+        while (i < count and self.count < MAX_PARTICLES) : (i += 1) {
+            const frac = @as(f32, @floatFromInt(i)) / @as(f32, @floatFromInt(count));
+            const angle = frac * std.math.pi * 2.0 + time_offset * 3.5;
+            const r = radius + 0.08 * @sin(frac * 12.0);
+            const px = center[0] + @cos(angle) * r;
+            const pz = center[2] + @sin(angle) * r;
+            const py = center[1] + (frac - 0.5) * 1.4;
+
+            // Tangential orbital velocity + upward lift
+            const tang_x = -@sin(angle) * 2.2;
+            const tang_z = @cos(angle) * 2.2;
+
+            self.particles[self.count] = .{
+                .x = px,
+                .y = py,
+                .z = pz,
+                .vx = tang_x,
+                .vy = 0.8 + 0.4 * frac,
+                .vz = tang_z,
+                .life = 0.45,
+                .max_life = 0.45,
+                .color = .{ 0.82, 0.20, 0.96 },
+                .size = 0.05,
+            };
+            self.count += 1;
+        }
+    }
+
     pub fn tick(self: *ParticleSystem, dt: f32) void {
         var i: usize = 0;
         const gravity: f32 = 18.0;
@@ -643,6 +674,30 @@ test "spawnBurnSparks fiery spark coloring and upward spray" {
         // Red component dominant
         try std.testing.expect(p.color[0] >= 0.9);
         try std.testing.expect(p.vy > 0.0);
+    }
+}
+
+test "spawnPortalVortex orbital ring coordinate and velocity distribution" {
+    var ps = ParticleSystem{
+        .particles = undefined,
+        .count = 0,
+        .vao = 0,
+        .vbo = 0,
+        .program = 0,
+    };
+    ps.spawnPortalVortex(.{ 5.0, 10.0, 15.0 }, 1.2, 8, 0.0);
+    try std.testing.expectEqual(ps.count, 8);
+    for (ps.particles[0..8]) |p| {
+        // Ethereal purple color
+        try std.testing.expect(p.color[0] >= 0.8);
+        try std.testing.expect(p.color[2] >= 0.9);
+        // Upward lift
+        try std.testing.expect(p.vy >= 0.8);
+        // Position within orbital radius roughly
+        const dx = p.x - 5.0;
+        const dz = p.z - 15.0;
+        const dist = @sqrt(dx * dx + dz * dz);
+        try std.testing.expectApproxEqAbs(@as(f32, 1.2), dist, 0.15);
     }
 }
 
