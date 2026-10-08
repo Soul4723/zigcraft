@@ -91,10 +91,60 @@ fn getBlockSafe(
     return .air;
 }
 
+fn levelAtSafe(
+    chunk: *const Chunk,
+    neighbors: ?*const [6]?*const Chunk,
+    x: i32,
+    y: i32,
+    z: i32,
+) u4 {
+    const size: i32 = @intCast(SIZE);
+    if (x >= 0 and x < size and y >= 0 and y < size and z >= 0 and z < size) {
+        return chunk.getLevel(@intCast(x), @intCast(y), @intCast(z));
+    }
+    if (y < 0 or y >= size) return 0;
+    if (neighbors) |nbs| {
+        if ((x < 0 or x >= size) and (z >= 0 and z < size)) {
+            const n_idx: usize = if (x < 0) 5 else 4;
+            const lx: usize = if (x < 0) @as(usize, @intCast(size - 1)) else 0;
+            if (nbs[n_idx]) |neighbor| {
+                return neighbor.getLevel(@intCast(lx), @intCast(y), @intCast(z));
+            }
+        } else if ((z < 0 or z >= size) and (x >= 0 and x < size)) {
+            const n_idx: usize = if (z < 0) 2 else 3;
+            const lz: usize = if (z < 0) @as(usize, @intCast(size - 1)) else 0;
+            if (nbs[n_idx]) |neighbor| {
+                return neighbor.getLevel(@intCast(x), @intCast(y), @intCast(lz));
+            }
+        }
+    }
+    return 0;
+}
+
+/// Rendered surface height of water level 0..7 as fraction of block.
+/// Full sources sit just below the top face to avoid z-fighting; films sink lower.
+pub fn waterSurfaceHeight(level: u4) f32 {
+    return switch (level) {
+        7 => 0.9,
+        6 => 0.8,
+        5 => 0.7,
+        4 => 0.6,
+        3 => 0.5,
+        2 => 0.4,
+        else => 0.3,
+    };
+}
+
 fn shouldRenderFace(my_block: BlockId, adj: BlockId) bool {
     if (my_block == .air) return false;
     if (my_block == .water) return adj != .water;
     return adj.is_transparent();
+}
+
+/// Water-vs-water faces render only when surfaces sit at different heights.
+fn shouldRenderWaterFace(my_level: u4, adj: BlockId, adj_level: u4) bool {
+    if (adj != .water) return true;
+    return waterSurfaceHeight(my_level) != waterSurfaceHeight(adj_level);
 }
 
 /// Calculate vertex Ambient Occlusion factor (0.0 to 1.0) by sampling 2 side neighbors and 1 corner neighbor.
@@ -134,6 +184,8 @@ pub fn generateMesh(
         while (slice < size) : (slice += 1) {
             var mask: [SIZE][SIZE]BlockId = undefined;
             for (&mask) |*row| @memset(row, .air);
+            var mask_level: [SIZE][SIZE]u4 = undefined;
+            for (&mask_level) |*row| @memset(row, 0);
 
             var v: usize = 0;
             while (v < size) : (v += 1) {
@@ -150,7 +202,14 @@ pub fn generateMesh(
                     const n_pos = [3]i32{ pos[0] + dir[0], pos[1] + dir[1], pos[2] + dir[2] };
                     const adj = getBlockSafe(chunk, neighbors, n_pos[0], n_pos[1], n_pos[2]);
 
-                    if (shouldRenderFace(block, adj)) {
+                    if (block == .water) {
+                        const my_level: u4 = chunk.getLevel(@intCast(pos[0]), @intCast(pos[1]), @intCast(pos[2]));
+                        const adj_level: u4 = levelAtSafe(chunk, neighbors, n_pos[0], n_pos[1], n_pos[2]);
+                        if (shouldRenderWaterFace(my_level, adj, adj_level)) {
+                            mask[v][u] = block;
+                            mask_level[v][u] = my_level;
+                        }
+                    } else if (shouldRenderFace(block, adj)) {
                         mask[v][u] = block;
                     }
                 }
@@ -212,6 +271,24 @@ pub fn generateMesh(
                     c3[d] = d_coord;
                     c3[u_axis] = u_f;
                     c3[v_axis] = v_f + fh;
+
+                    // Shallow water surfaces sit below the block top.
+                    if (block == .water) {
+                        const surface = slice_f + waterSurfaceHeight(mask_level[v][u]);
+                        if (d == 1 and dir[d] > 0) {
+                            c0[d] = surface;
+                            c1[d] = surface;
+                            c2[d] = surface;
+                            c3[d] = surface;
+                        } else if (d != 1) {
+                            // Side faces: lower verts on the top edge to the surface.
+                            const top_y = slice_f + 1.0;
+                            if (c0[1] == top_y) c0[1] = surface;
+                            if (c1[1] == top_y) c1[1] = surface;
+                            if (c2[1] == top_y) c2[1] = surface;
+                            if (c3[1] == top_y) c3[1] = surface;
+                        }
+                    }
 
                     // Calculate Ambient Occlusion for each 4 corners
                     const n_d: i32 = @as(i32, @intCast(slice)) + dir[d];
@@ -296,6 +373,51 @@ pub fn generateMesh(
         .vertices = try vertices.toOwnedSlice(allocator),
         .indices = try indices.toOwnedSlice(allocator),
     };
+}
+
+test "waterSurfaceHeight sinks with level" {
+    try std.testing.expectApproxEqAbs(waterSurfaceHeight(7), 0.9, 0.001);
+    try std.testing.expectApproxEqAbs(waterSurfaceHeight(0), 0.3, 0.001);
+    try std.testing.expect(waterSurfaceHeight(2) < waterSurfaceHeight(5));
+}
+
+test "shallow water top face sits below full source" {
+    var chunk = Chunk.init();
+    chunk.setBlock(7, 7, 7, .water);
+    chunk.setLevel(7, 7, 7, 7);
+    var full_mesh = try generateMesh(std.testing.allocator, &chunk, null);
+    defer full_mesh.deinit(std.testing.allocator);
+
+    var shallow = Chunk.init();
+    shallow.setBlock(7, 7, 7, .water);
+    shallow.setLevel(7, 7, 7, 2);
+    var shallow_mesh = try generateMesh(std.testing.allocator, &shallow, null);
+    defer shallow_mesh.deinit(std.testing.allocator);
+
+    const topY = struct {
+        fn maxTopY(mesh: Mesh) f32 {
+            var top: f32 = 0;
+            for (mesh.vertices) |v| {
+                // Top faces have +Y normals.
+                if (v.normal[1] > 0.5 and v.position[1] > top) top = v.position[1];
+            }
+            return top;
+        }
+    }.maxTopY;
+    try std.testing.expectApproxEqAbs(topY(full_mesh), 7.9, 0.001);
+    try std.testing.expectApproxEqAbs(topY(shallow_mesh), 7.4, 0.001);
+}
+
+test "adjacent water levels render a step face" {
+    var chunk = Chunk.init();
+    chunk.setBlock(7, 7, 7, .water);
+    chunk.setLevel(7, 7, 7, 7);
+    chunk.setBlock(8, 7, 7, .water);
+    chunk.setLevel(8, 7, 7, 1);
+    var mesh = try generateMesh(std.testing.allocator, &chunk, null);
+    defer mesh.deinit(std.testing.allocator);
+    // Two top quads (8 verts) + shared step side quad (4 verts) = 12+ verts.
+    try std.testing.expect(mesh.vertices.len >= 12);
 }
 
 test "empty chunk produces no mesh" {
