@@ -291,25 +291,9 @@ pub fn main() !void {
         player.on_soulsand = (floor_blk == .soul_sand);
 
         // Detect bubble column: water cell with soul sand (upward) or magma (downward whirlpool) underneath
-        var in_bubble_col = false;
-        var in_whirl = false;
-        if (manager.getBlockWorld(f_px, @intFromFloat(@floor(player.pos.y)), f_pz) == .water) {
-            var by = @as(i32, @intFromFloat(@floor(player.pos.y)));
-            while (by >= 0) : (by -= 1) {
-                const b_sub = manager.getBlockWorld(f_px, by, f_pz);
-                if (b_sub == .soul_sand) {
-                    in_bubble_col = true;
-                    break;
-                } else if (b_sub == .magma) {
-                    in_whirl = true;
-                    break;
-                } else if (b_sub != .water) {
-                    break;
-                }
-            }
-        }
-        player.in_bubble_column = in_bubble_col;
-        player.in_whirlpool = in_whirl;
+        const p_col_type = hazard_mod.detectBubbleColumn(&pickBlockWorld, f_px, @intFromFloat(@floor(player.pos.y)), f_pz);
+        player.in_bubble_column = (p_col_type == .upward);
+        player.in_whirlpool = (p_col_type == .downward);
         if (player.in_bubble_column) {
             particles.spawnBubble(.{ player.pos.x, player.pos.y + 0.3, player.pos.z }, 3);
         } else if (player.in_whirlpool) {
@@ -1021,7 +1005,7 @@ pub fn main() !void {
         // Mob spawning and physics AI tick
         const is_night_spawn = @sin(world_time) <= 0.0;
         try mob_manager.ensureSpawnPopulation(&manager, player.pos.x, player.pos.z, is_night_spawn);
-        mob_manager.tick(&pickSolid, &pickFluid, player.pos, player.radius, &audio, dt);
+        mob_manager.tick(&pickSolid, &pickFluid, &pickBlockWorld, player.pos, player.radius, &audio, dt);
 
         // Wolf bites: contact damage with per-second cooldown
         wolf_bite_cooldown = combat_mod.tickCooldown(wolf_bite_cooldown, dt);

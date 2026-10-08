@@ -56,6 +56,25 @@ pub fn checkBurnContact(block: BlockId) bool {
     return block == .campfire or block == .tnt or block == .magma;
 }
 
+pub const BubbleColumnType = enum {
+    none,
+    upward,   // soul sand elevator
+    downward, // magma whirlpool
+};
+
+/// Scan downward through contiguous water column from start_y to detect bubble source (soul sand or magma)
+pub fn detectBubbleColumn(is_block_at_fn: *const fn (x: i32, y: i32, z: i32) BlockId, x: i32, start_y: i32, z: i32) BubbleColumnType {
+    if (is_block_at_fn(x, start_y, z) != .water) return .none;
+    var by = start_y;
+    while (by >= 0) : (by -= 1) {
+        const b = is_block_at_fn(x, by, z);
+        if (b == .soul_sand) return .upward;
+        if (b == .magma) return .downward;
+        if (b != .water) return .none;
+    }
+    return .none;
+}
+
 pub fn checkCactusContact(is_block_at_fn: *const fn (x: i32, y: i32, z: i32) BlockId, px: i32, py: i32, pz: i32) bool {
     var dy: i32 = 0;
     while (dy <= 1) : (dy += 1) {
@@ -154,4 +173,22 @@ test "lava contact hazard check" {
     try std.testing.expect(!checkLavaHazard(.water));
     try std.testing.expect(!checkLavaHazard(.air));
     try std.testing.expectEqual(@as(f32, 8.0), lava_burn_rate);
+}
+
+fn mockColumnWorld(x: i32, y: i32, z: i32) BlockId {
+    _ = z;
+    if (x == 0) {
+        if (y == 0) return .soul_sand;
+        if (y <= 5) return .water;
+    } else if (x == 1) {
+        if (y == 0) return .magma;
+        if (y <= 5) return .water;
+    }
+    return .air;
+}
+
+test "detectBubbleColumn identifies soul sand and magma columns" {
+    try std.testing.expectEqual(BubbleColumnType.upward, detectBubbleColumn(&mockColumnWorld, 0, 4, 0));
+    try std.testing.expectEqual(BubbleColumnType.downward, detectBubbleColumn(&mockColumnWorld, 1, 4, 0));
+    try std.testing.expectEqual(BubbleColumnType.none, detectBubbleColumn(&mockColumnWorld, 2, 4, 0));
 }

@@ -16,6 +16,9 @@ pub fn steerAroundWater(yaw: f32, pos_x: f32, pos_y: f32, pos_z: f32, fluid: *co
 }
 
 pub const Mob = struct {
+    pub const bubble_column_lift_speed: f32 = 6.5;
+    pub const whirlpool_pull_speed: f32 = -7.0;
+
     mob_type: MobType,
     pos: math.Vec3, // base / feet position
     vel: math.Vec3,
@@ -31,6 +34,8 @@ pub const Mob = struct {
     wants_sound: bool,
     health: u8,
     in_water: bool,
+    in_bubble_column: bool,
+    in_whirlpool: bool,
 
     pub fn init(mob_type: MobType, x: f32, y: f32, z: f32) Mob {
         const w: f32 = switch (mob_type) {
@@ -64,6 +69,8 @@ pub const Mob = struct {
             .wants_sound = false,
             .health = if (mob_type == .wolf) 5 else 3,
             .in_water = false,
+            .in_bubble_column = false,
+            .in_whirlpool = false,
         };
     }
 
@@ -148,9 +155,18 @@ pub const Mob = struct {
         }
 
         if (self.in_water) {
-            // Water swimming buoyancy: float upward / paddle towards surface
-            self.vel.y = @min(1.8, self.vel.y + 8.0 * clamped_dt);
-            self.on_ground = false;
+            if (self.in_whirlpool) {
+                // Downward magma whirlpool drag sucks mob to floor
+                self.vel.y = @min(self.vel.y, whirlpool_pull_speed);
+            } else if (self.in_bubble_column) {
+                // Upward soul sand bubble column surge launches mob upward
+                self.vel.y = @max(self.vel.y, bubble_column_lift_speed);
+                self.on_ground = false;
+            } else {
+                // Water swimming buoyancy: float upward / paddle towards surface
+                self.vel.y = @min(1.8, self.vel.y + 8.0 * clamped_dt);
+                self.on_ground = false;
+            }
         } else {
             self.vel.y -= 25.0 * clamped_dt;
             if (self.vel.y < -30.0) self.vel.y = -30.0;
@@ -457,4 +473,30 @@ test "mob water buoyancy floatation" {
         mob.tick(Mock.solid, Mock.water, 0.05, &rng);
     }
     try std.testing.expect(mob.vel.y > 0.0);
+}
+
+test "mob soul sand bubble column upward surge" {
+    var mob = Mob.init(.pig, 0.5, 2.0, 0.5);
+    mob.in_bubble_column = true;
+    const Mock = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return false; }
+        fn water(_: i32, _: i32, _: i32) bool { return true; }
+    };
+    var rng = std.Random.DefaultPrng.init(42);
+    mob.tick(Mock.solid, Mock.water, 0.05, &rng);
+    try std.testing.expect(mob.in_water);
+    try std.testing.expect(mob.vel.y >= Mob.bubble_column_lift_speed);
+}
+
+test "mob magma whirlpool downward drag" {
+    var mob = Mob.init(.pig, 0.5, 4.0, 0.5);
+    mob.in_whirlpool = true;
+    const Mock = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return false; }
+        fn water(_: i32, _: i32, _: i32) bool { return true; }
+    };
+    var rng = std.Random.DefaultPrng.init(42);
+    mob.tick(Mock.solid, Mock.water, 0.05, &rng);
+    try std.testing.expect(mob.in_water);
+    try std.testing.expect(mob.vel.y <= Mob.whirlpool_pull_speed);
 }

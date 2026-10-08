@@ -11,6 +11,8 @@ const audio_mod = @import("../audio/audio.zig");
 const pathfind_mod = @import("pathfind.zig");
 const hunt_mod = @import("pack_hunt.zig");
 const spawn_rules = @import("../world/spawn_rules.zig");
+const block_mod = @import("../world/block.zig");
+const hazard_mod = @import("../world/hazard.zig");
 
 pub const MobManager = struct {
     allocator: std.mem.Allocator,
@@ -79,7 +81,7 @@ pub const MobManager = struct {
         }
     }
 
-    pub fn tick(self: *MobManager, solid: *const fn (x: i32, y: i32, z: i32) bool, fluid: *const fn (x: i32, y: i32, z: i32) bool, player_pos: math.Vec3, player_radius: f32, audio: ?*audio_mod.AudioSystem, dt: f32) void {
+    pub fn tick(self: *MobManager, solid: *const fn (x: i32, y: i32, z: i32) bool, fluid: *const fn (x: i32, y: i32, z: i32) bool, block_at: ?*const fn (x: i32, y: i32, z: i32) block_mod.BlockId, player_pos: math.Vec3, player_radius: f32, audio: ?*audio_mod.AudioSystem, dt: f32) void {
         var idx: usize = 0;
         while (idx < self.mobs.items.len) {
             var mob = &self.mobs.items[idx];
@@ -118,6 +120,14 @@ pub const MobManager = struct {
                     }
                     mob.walk_timer = hunt_mod.walk_pulse;
                 }
+            }
+            if (block_at) |bat| {
+                const mx: i32 = @intFromFloat(@floor(mob.pos.x));
+                const my: i32 = @intFromFloat(@floor(mob.pos.y));
+                const mz: i32 = @intFromFloat(@floor(mob.pos.z));
+                const col_type = hazard_mod.detectBubbleColumn(bat, mx, my, mz);
+                mob.in_bubble_column = (col_type == .upward);
+                mob.in_whirlpool = (col_type == .downward);
             }
             mob.tick(solid, fluid, dt, &self.rng);
 
@@ -280,4 +290,45 @@ test "MobManager countNearbyWolves" {
         if (dx * dx + dy * dy + dz * dz <= r_sq) count += 1;
     }
     try std.testing.expectEqual(count, 2);
+}
+
+test "MobManager bubble column lift and whirlpool suction" {
+    var mm = MobManager{
+        .allocator = std.testing.allocator,
+        .mobs = std.ArrayList(mob_mod.Mob).empty,
+        .renderer = undefined,
+        .rng = std.Random.DefaultPrng.init(42),
+        .ambient_timer = 5.0,
+    };
+    defer mm.mobs.deinit(std.testing.allocator);
+
+    // Spawn one mob in soul sand bubble column, one in magma whirlpool
+    try mm.spawnMob(.pig, 0.5, 3.0, 0.5);
+    try mm.spawnMob(.sheep, 10.5, 3.0, 0.5);
+
+    const MockWorld = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return false; }
+        fn fluid(_: i32, _: i32, _: i32) bool { return true; }
+        fn block(x: i32, y: i32, z: i32) block_mod.BlockId {
+            _ = z;
+            if (x == 0) {
+                if (y == 0) return .soul_sand;
+                return .water;
+            } else if (x == 10) {
+                if (y == 0) return .magma;
+                return .water;
+            }
+            return .air;
+        }
+    };
+
+    mm.tick(MockWorld.solid, MockWorld.fluid, MockWorld.block, math.Vec3.init(50, 0, 0), 0.4, null, 0.05);
+
+    try std.testing.expect(mm.mobs.items[0].in_bubble_column);
+    try std.testing.expect(!mm.mobs.items[0].in_whirlpool);
+    try std.testing.expect(mm.mobs.items[0].vel.y >= mob_mod.Mob.bubble_column_lift_speed);
+
+    try std.testing.expect(!mm.mobs.items[1].in_bubble_column);
+    try std.testing.expect(mm.mobs.items[1].in_whirlpool);
+    try std.testing.expect(mm.mobs.items[1].vel.y <= mob_mod.Mob.whirlpool_pull_speed);
 }
