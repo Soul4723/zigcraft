@@ -68,5 +68,5 @@ Rough priority order. Completed milestones marked **[x]**.
 
 ## Phase 8: Survival Depth & Environmental Physics
 
-43. [~] **Water Physics & Swimming** — Buoyancy, reduced gravity in water, jump swimming, water drag, water fall damage dampening (#159).
-44. [ ] **Oxygen & Drowning Hazard** — Oxygen depletion underwater, drowning damage tick when depleted, oxygen recovery on surface, breath bar on HUD.
+43. [x] **Water Physics & Swimming** — Buoyancy, reduced gravity in water, jump swimming, water drag, water fall damage dampening (#159).
+44. [x] **Oxygen & Drowning Hazard** — Oxygen depletion underwater, drowning damage tick when depleted, oxygen recovery on surface, breath bar on HUD (#160).

@@ -14,6 +14,7 @@ pub const Player = struct {
     spawn_point: math.Vec3,
     regen_timer: f32,
     in_water: bool,
+    oxygen: f32,
 
     pub fn init(x: f32, y: f32, z: f32) Player {
         return .{
@@ -29,6 +30,7 @@ pub const Player = struct {
             .spawn_point = math.Vec3.init(x, y, z),
             .regen_timer = 0.0,
             .in_water = false,
+            .oxygen = 15.0,
         };
     }
 
@@ -71,6 +73,7 @@ pub const Player = struct {
         self.saturation = 5.0;
         self.regen_timer = 0.0;
         self.in_water = false;
+        self.oxygen = 15.0;
         self.spawn_point = self.pos;
     }
 
