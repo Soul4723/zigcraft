@@ -214,6 +214,7 @@ pub fn main() !void {
     var sand_scan: u8 = 0;
     var flow_timer: f32 = 0.0;
     var lava_ambient_timer: f32 = 0.0;
+    var burn_sizzle_cooldown: f32 = 0.0;
     var portal_ambient_timer: f32 = 0.0;
     var portal_transit = portal_mod.PortalTransitState{};
     var chunk_retry_timer: f32 = 0.0;
@@ -363,14 +364,23 @@ pub fn main() !void {
                 player.health = hazard_mod.applyDamageClamped(player.health, hazard_mod.contact_rate, dt);
             }
 
-            // Campfire burn: standing inside or on a campfire cell burns 2 hp/sec
+            // Campfire / magma / lava contact burn hazard
             const feet_b = manager.getBlockWorld(px_i, py_i, pz_i);
             const head_b = manager.getBlockWorld(px_i, py_i + 1, pz_i);
+            burn_sizzle_cooldown = @max(0.0, burn_sizzle_cooldown - dt);
             if (hazard_mod.checkLavaHazard(feet_b) or hazard_mod.checkLavaHazard(head_b)) {
                 player.health = hazard_mod.applyDamageClamped(player.health, hazard_mod.lava_burn_rate, dt);
                 particles.spawnFlame(px_i, py_i, pz_i, 3);
+                if (burn_sizzle_cooldown <= 0.0) {
+                    audio.play(.burn_sizzle, 0.7);
+                    burn_sizzle_cooldown = 0.5;
+                }
             } else if (hazard_mod.checkBurnContact(feet_b) or hazard_mod.checkBurnContact(head_b)) {
                 player.health = hazard_mod.applyDamageClamped(player.health, hazard_mod.burn_rate, dt);
+                if (burn_sizzle_cooldown <= 0.0) {
+                    audio.play(.burn_sizzle, 0.6);
+                    burn_sizzle_cooldown = 0.6;
+                }
             }
 
             // Periodic ambient lava bubbling and smoke ember emission around player

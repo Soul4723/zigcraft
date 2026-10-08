@@ -24,6 +24,7 @@ pub const SoundType = enum {
     lava_bubble,
     portal_hum,
     portal_warp,
+    burn_sizzle,
 };
 
 pub const SAMPLE_RATE: u32 = 44100;
@@ -89,6 +90,7 @@ pub const AudioMixer = struct {
             .lava_bubble => SAMPLE_RATE / 4, // ~250ms low simmering bubbling hiss
             .portal_hum => SAMPLE_RATE / 2, // ~500ms mystical otherworldly choir drone
             .portal_warp => SAMPLE_RATE * 3 / 4, // ~750ms sweeping dimension portal vortex whoosh
+            .burn_sizzle => SAMPLE_RATE / 3, // ~330ms fiery contact hiss & burning crackle
         };
 
         slot.?.* = .{
@@ -334,6 +336,14 @@ pub const AudioMixer = struct {
                 const env = @sin(progress * std.math.pi);
                 return (tone + whoosh) * env * 0.8;
             },
+            .burn_sizzle => {
+                // Burning contact hiss: searing high-frequency white noise + steam sizzle flutter (800-2400Hz)
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const hiss = (rng.random().float(f32) * 2.0 - 1.0) * 0.65;
+                const flutter = 0.7 + 0.3 * @sin(t * 120.0);
+                const crackle = if (rng.random().float(f32) < 0.15) (rng.random().float(f32) * 2.0 - 1.0) * 0.4 else 0.0;
+                return (hiss * flutter + crackle) * envelope * 0.75;
+            },
         }
     }
 };
@@ -365,7 +375,7 @@ test "AudioMixer play voice produces non-zero samples" {
 
 test "AudioMixer all sound types render without overflow or crash" {
     var mixer = AudioMixer.init();
-    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp };
+    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle };
     for (sounds) |snd| {
         mixer.play(snd, 1.0);
     }
@@ -377,4 +387,19 @@ test "AudioMixer all sound types render without overflow or crash" {
         if (s > max_val) max_val = s;
     }
     try std.testing.expect(max_val > 0);
+}
+
+test "AudioMixer burn_sizzle sound synthesizes properly" {
+    var mixer = AudioMixer.init();
+    mixer.play(.burn_sizzle, 0.7);
+    var buf: [512]i16 = undefined;
+    mixer.render(&buf);
+    var has_audio = false;
+    for (buf) |s| {
+        if (s != 0) {
+            has_audio = true;
+            break;
+        }
+    }
+    try std.testing.expect(has_audio);
 }

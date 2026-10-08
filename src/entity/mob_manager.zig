@@ -133,9 +133,17 @@ pub const MobManager = struct {
                 const floor_b = bat(mx, @intFromFloat(@floor(mob.pos.y - 0.1)), mz);
                 const body_b = bat(mx, my, mz);
                 if (hazard_mod.checkBurnContact(floor_b) or hazard_mod.checkBurnContact(body_b) or hazard_mod.checkLavaHazard(floor_b) or hazard_mod.checkLavaHazard(body_b)) {
+                    const prev_hp = mob.health;
                     if (mob.applyBurnTick(dt)) {
+                        if (audio) |a| {
+                            a.playAt(.burn_sizzle, .{ mob.pos.x, mob.pos.y, mob.pos.z }, .{ player_pos.x, player_pos.y, player_pos.z }, 0.6, 20.0);
+                        }
                         _ = self.mobs.swapRemove(idx);
                         continue;
+                    } else if (mob.health < prev_hp) {
+                        if (audio) |a| {
+                            a.playAt(.burn_sizzle, .{ mob.pos.x, mob.pos.y, mob.pos.z }, .{ player_pos.x, player_pos.y, player_pos.z }, 0.5, 18.0);
+                        }
                     }
                 }
             }
