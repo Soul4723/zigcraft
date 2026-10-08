@@ -41,8 +41,21 @@ pub const Camera = struct {
     }
 
     pub fn viewMatrix(self: Camera) Mat4 {
+        return self.viewMatrixWithRoll(0.0);
+    }
+
+    pub fn viewMatrixWithRoll(self: Camera, roll_rad: f32) Mat4 {
         const target = Vec3.add(self.position, self.front());
-        return Mat4.lookAt(self.position, target, Vec3.init(0, 1, 0));
+        if (roll_rad == 0.0) {
+            return Mat4.lookAt(self.position, target, Vec3.init(0, 1, 0));
+        }
+        const base_up = Vec3.init(0, 1, 0);
+        const r = self.right();
+        const rolled_up = Vec3.normalize(Vec3.add(
+            Vec3.scale(base_up, @cos(roll_rad)),
+            Vec3.scale(r, @sin(roll_rad)),
+        ));
+        return Mat4.lookAt(self.position, target, rolled_up);
     }
 
     pub fn projectionMatrix(self: Camera, aspect: f32) Mat4 {
@@ -97,6 +110,15 @@ test "camera right vector" {
     const cam = Camera.init();
     const r = cam.right();
     try std.testing.expectApproxEqAbs(r.x, 1.0, 0.001);
+}
+
+test "camera viewMatrixWithRoll tilt calculation" {
+    const cam = Camera.init();
+    const standard = cam.viewMatrix();
+    const rolled = cam.viewMatrixWithRoll(0.12);
+    try std.testing.expectApproxEqAbs(standard.data[0][0], rolled.data[0][0], 0.05);
+    // Tilted camera shifts right-vector Y axis
+    try std.testing.expect(@abs(rolled.data[0][1] - standard.data[0][1]) > 0.05);
 }
 
 test "camera view matrix" {

@@ -94,3 +94,4 @@ Rough priority order. Completed milestones marked **[x]**.
 66. [x] **Fire Resistance Status Effect & Potion Crafting** — Fire resistance potion recipe (magma + apple/glass), 3-minute buff (`180s`), and complete immunity to lava, magma, and campfire burn hazards (#184).
 67. [x] **Fire Resistance HUD Indicator Bar** — Dynamic amber-gold status effect progress bar above player health on HUD (#185).
 68. [x] **Nether Portal Orbital Vortex Particle Ring** — Contracting swirling particle vortex ring (`spawnPortalVortex`) during transit dwell charge (#186).
+69. [x] **Portal Disorient Camera Wobble & Tilt** — Camera roll disorientation oscillation (`viewMatrixWithRoll`) scaling with transit dwell charge (#187).

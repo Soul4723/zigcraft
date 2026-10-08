@@ -1078,10 +1078,14 @@ pub fn main() !void {
         const mouse_norm_x: f32 = @as(f32, @floatCast(xpos / @as(f64, @floatFromInt(win_w)))) * 2.0 - 1.0;
         const mouse_norm_y: f32 = 1.0 - @as(f32, @floatCast(ypos / @as(f64, @floatFromInt(win_h)))) * 2.0;
 
-        // Build MVP: projection * view
+        // Build MVP: projection * view with portal dwell roll disorientation wobble
         const aspect: f32 = 1280.0 / 720.0;
         const proj = cam.projectionMatrix(aspect);
-        const view = cam.viewMatrix();
+        const portal_roll: f32 = if (portal_transit.inside_timer > 0.0)
+            @sin(@as(f32, @floatCast(current_time)) * 5.0) * (portal_transit.inside_timer / portal_mod.PORTAL_TRIGGER_TIME) * 0.12
+        else
+            0.0;
+        const view = cam.viewMatrixWithRoll(portal_roll);
         const mvp = math.Mat4.mul(proj, view);
 
         // Calculate celestial orbit: sun direction and sky dome colors

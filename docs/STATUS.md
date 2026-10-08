@@ -1,16 +1,16 @@
 # Project Status
 
-Last updated: 2026-10-08 (Session 186)
+Last updated: 2026-10-08 (Session 187)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 919 passing unit tests
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 920 passing unit tests
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
 - Axis-aligned bounding box (AABB) collision and voxel step snapping
 - Suffocation damage mechanics (when player eye position is inside solid blocks)
 - Player fall damage on hard landings
-- Environmental hazards: Cactus contact damage (1 hp/sec), campfire burn (2 hp/sec), lava contact burn (8 hp/sec), water-lava contact crystallization (obsidian / cobblestone), ambient lava bubbling sound & ember smoke emission, Nether portal frame detection & activation, portal transit charge (3s) with orbital vortex particle ring (1.0 -> 0.7m radius), 8:1 Overworld/Nether coordinate warp, and synthesized warp audio, Nether dimension world generation, Soul sand drag & elevator lift, Magma blocks with contact heat hazard (2 hp/s) and downward water whirlpool vortex drag (-7.0 m/s), Mob bubble column physics with upward soul sand launch (6.5 m/s) and magma whirlpool downward suction (-7.0 m/s), Mob contact heat hazards (magma blocks, campfire, lava dealing 1 hp/s with flinching hop, death removal, and synthesized searing contact burn audio sizzle/hiss, fiery contact spark bursts on magma/campfire stepping, and Fire Resistance Potion buff (180s complete immunity to lava, magma, and campfire burn damage with dynamic amber-gold HUD status indicator bar))
+- Environmental hazards: Cactus contact damage (1 hp/sec), campfire burn (2 hp/sec), lava contact burn (8 hp/sec), water-lava contact crystallization (obsidian / cobblestone), ambient lava bubbling sound & ember smoke emission, Nether portal frame detection & activation, portal transit charge (3s) with orbital vortex particle ring (1.0 -> 0.7m radius), camera roll disorientation wobble, 8:1 Overworld/Nether coordinate warp, and synthesized warp audio, Nether dimension world generation, Soul sand drag & elevator lift, Magma blocks with contact heat hazard (2 hp/s) and downward water whirlpool vortex drag (-7.0 m/s), Mob bubble column physics with upward soul sand launch (6.5 m/s) and magma whirlpool downward suction (-7.0 m/s), Mob contact heat hazards (magma blocks, campfire, lava dealing 1 hp/s with flinching hop, death removal, and synthesized searing contact burn audio sizzle/hiss, fiery contact spark bursts on magma/campfire stepping, and Fire Resistance Potion buff (180s complete immunity to lava, magma, and campfire burn damage with dynamic amber-gold HUD status indicator bar))
 - Procedural audio synthesizer via ALSA with 3D spatial attenuation & distance rolloff: footsteps (grass, stone, wood, dirt, sand), block break/place, mob sounds
 - 16x16x16 chunk data structures, greedy mesher with Ambient Occlusion (AO)
 - Dynamic chunk streaming manager (load/unload radius around player) with frustum culling
@@ -28,5 +28,5 @@ Last updated: 2026-10-08 (Session 186)
 
 ## Active State
 - Main branch stable at commit 2d11bd3 (Phase 8: Survival Depth & Environmental Physics, Milestones 43-48)
-- All tests passing (919/919 tests across 83 test steps)
+- All tests passing (920/920 tests across 83 test steps)
 - Remote and local branches pruned clean
