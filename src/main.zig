@@ -215,6 +215,8 @@ pub fn main() !void {
     var chunk_retry_timer: f32 = 0.0;
     var world_time: f32 = 45.0; // Start at morning daylight
     var last_step_dist: f32 = 0.0;
+    var was_in_water: bool = false;
+    var was_eye_underwater: bool = false;
 
     // Mouse tracking
     var last_x: f64 = @floatFromInt(window_width / 2);
@@ -284,6 +286,16 @@ pub fn main() !void {
                 player.health = @max(0.0, player.health - 1.0 * dt);
             }
             const is_underwater = hazard_mod.checkDrowning(eye_block);
+            if (is_underwater and !was_eye_underwater) {
+                audio.play(.underwater_submerge, 0.7);
+            }
+            was_eye_underwater = is_underwater;
+
+            if (player.in_water != was_in_water) {
+                audio.play(.splash, 0.6);
+                was_in_water = player.in_water;
+            }
+
             player.oxygen = hazard_mod.tickOxygen(player.oxygen, is_underwater, dt);
             const drown_dmg = hazard_mod.calculateDrowningDamage(player.oxygen, dt);
             if (drown_dmg > 0.0) {

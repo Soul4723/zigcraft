@@ -18,6 +18,8 @@ pub const SoundType = enum {
     mob_growl,
     click_on,
     click_off,
+    splash,
+    underwater_submerge,
 };
 
 pub const SAMPLE_RATE: u32 = 44100;
@@ -77,6 +79,8 @@ pub const AudioMixer = struct {
             .mob_growl => SAMPLE_RATE / 2, // ~500ms
             .craft_item => SAMPLE_RATE / 6, // ~166ms
             .click_on, .click_off => SAMPLE_RATE / 20, // ~50ms mechanical click
+            .splash => SAMPLE_RATE / 4, // ~250ms bubbly splash burst
+            .underwater_submerge => SAMPLE_RATE / 3, // ~330ms deep water plunge
         };
 
         slot.?.* = .{
@@ -267,6 +271,24 @@ pub const AudioMixer = struct {
                 const tone = @sin(t * freq * 2.0 * std.math.pi) * 0.4;
                 return (noise + tone) * envelope * 0.55;
             },
+            .splash => {
+                // Water splash: bubbly pitch-drop sine wave modulated by churning white noise
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const bubble_freq: f32 = 360.0 * (1.0 - progress * 0.6) + 40.0 * @sin(t * 80.0);
+                const tone = @sin(t * bubble_freq * 2.0 * std.math.pi) * 0.6;
+                const noise = (rng.random().float(f32) * 2.0 - 1.0) * 0.5;
+                const foam = @sin(progress * std.math.pi);
+                return (tone + noise * foam) * envelope * 0.7;
+            },
+            .underwater_submerge => {
+                // Submerge thud: low frequency resonant swell (80Hz down to 40Hz)
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const freq: f32 = 90.0 * (1.0 - progress * 0.5);
+                const tone = @sin(t * freq * 2.0 * std.math.pi) * 0.8;
+                const sub = @sin(t * (freq * 0.5) * 2.0 * std.math.pi) * 0.4;
+                const noise = (rng.random().float(f32) * 2.0 - 1.0) * 0.15 * (1.0 - progress);
+                return (tone + sub + noise) * envelope * 0.75;
+            },
         }
     }
 };
@@ -298,7 +320,7 @@ test "AudioMixer play voice produces non-zero samples" {
 
 test "AudioMixer all sound types render without overflow or crash" {
     var mixer = AudioMixer.init();
-    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .click_on, .click_off };
+    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .click_on, .click_off, .splash, .underwater_submerge };
     for (sounds) |snd| {
         mixer.play(snd, 1.0);
     }
