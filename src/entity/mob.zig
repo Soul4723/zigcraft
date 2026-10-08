@@ -99,8 +99,30 @@ pub const Mob = struct {
             self.anim_time = 0.0;
         }
 
-        const move_dist_x = (wish_x + self.vel.x) * clamped_dt;
-        const move_dist_z = (wish_z + self.vel.z) * clamped_dt;
+        // Water current push on mobs
+        var cur_x: f32 = 0.0;
+        var cur_z: f32 = 0.0;
+        const mx_i: i32 = @intFromFloat(@floor(self.pos.x));
+        const my_i: i32 = @intFromFloat(@floor(self.pos.y));
+        const mz_i: i32 = @intFromFloat(@floor(self.pos.z));
+        if (fluid(mx_i, my_i, mz_i)) {
+            const dirs = [_][2]i32{ .{ 1, 0 }, .{ -1, 0 }, .{ 0, 1 }, .{ 0, -1 } };
+            for (dirs) |d| {
+                if (!fluid(mx_i + d[0], my_i, mz_i + d[1])) {
+                    cur_x += @floatFromInt(d[0]);
+                    cur_z += @floatFromInt(d[1]);
+                }
+            }
+            const clen_sq = cur_x * cur_x + cur_z * cur_z;
+            if (clen_sq > 0.0001) {
+                const clen = @sqrt(clen_sq);
+                cur_x = (cur_x / clen) * 1.2;
+                cur_z = (cur_z / clen) * 1.2;
+            }
+        }
+
+        const move_dist_x = (wish_x + self.vel.x + cur_x) * clamped_dt;
+        const move_dist_z = (wish_z + self.vel.z + cur_z) * clamped_dt;
         self.vel.x *= @max(0.0, 1.0 - 10.0 * clamped_dt);
         self.vel.z *= @max(0.0, 1.0 - 10.0 * clamped_dt);
 
@@ -391,4 +413,19 @@ test "mob sound mapping" {
     try std.testing.expectEqual(@import("../audio/synth.zig").SoundType.mob_baa, getSound(.sheep).?);
     try std.testing.expectEqual(@import("../audio/synth.zig").SoundType.mob_oink, getSound(.pig).?);
     try std.testing.expectEqual(@import("../audio/synth.zig").SoundType.mob_growl, getSound(.wolf).?);
+}
+
+test "mob water current push" {
+    var mob = Mob.init(.sheep, 0.5, 2.0, 0.5);
+    mob.walk_timer = 0.0; // Idle, not walking
+    var rng = std.Random.DefaultPrng.init(1234);
+    const Mock = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return false; }
+        fn water(x: i32, y: i32, z: i32) bool {
+            // Water at x <= 0 and current cell (0, 2, 0), open east
+            return x <= 0 and y == 2 and z == 0;
+        }
+    };
+    mob.tick(Mock.solid, Mock.water, 0.05, &rng);
+    try std.testing.expect(mob.pos.x > 0.5);
 }
