@@ -1127,9 +1127,15 @@ pub fn main() !void {
         );
         const cam_underwater = (cam_block == .water);
 
+        // Dimension atmosphere palettes
+        const nether_sky_top = math.Vec3.init(0.18, 0.04, 0.04);
+        const nether_sky_horizon = math.Vec3.init(0.32, 0.08, 0.06);
+
         // Render world
         if (cam_underwater) {
             c.glClearColor(0.08, 0.28, 0.58, 1.0);
+        } else if (manager.is_nether) {
+            c.glClearColor(0.24, 0.06, 0.05, 1.0);
         } else {
             c.glClearColor(0.1, 0.1, 0.1, 1.0);
         }
@@ -1139,6 +1145,8 @@ pub fn main() !void {
             const water_deep = math.Vec3.init(0.04, 0.14, 0.32);
             const water_hzn = math.Vec3.init(0.08, 0.28, 0.58);
             sky.draw(mvp, cam.position, water_deep, water_hzn);
+        } else if (manager.is_nether) {
+            sky.draw(mvp, cam.position, nether_sky_top, nether_sky_horizon);
         } else {
             sky.draw(mvp, cam.position, sky_top, sky_horizon);
         }
@@ -1155,7 +1163,7 @@ pub fn main() !void {
         }
         const night_factor = 1.0 - day_factor;
         const stats = manager.draw(mvp, sun_dir, lamp_spots[0..lamp_spot_count], night_factor, cam.position, cam_underwater);
-        try mob_manager.draw(mvp, sun_dir, cam.position, cam_underwater);
+        try mob_manager.draw(mvp, sun_dir, cam.position, cam_underwater, manager.is_nether);
 
         // Update and render block debris particles
         particles.tick(dt);

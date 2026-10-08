@@ -222,8 +222,8 @@ pub const MobManager = struct {
         return self.tryHitMobDmg(origin, dir, max_dist, 1);
     }
 
-    pub fn draw(self: *MobManager, view_proj: math.Mat4, sun_dir: math.Vec3, cam_pos: math.Vec3, is_underwater: bool) !void {
-        try self.renderer.drawMobs(self.mobs.items, view_proj, sun_dir, cam_pos, is_underwater);
+    pub fn draw(self: *MobManager, view_proj: math.Mat4, sun_dir: math.Vec3, cam_pos: math.Vec3, is_underwater: bool, is_nether: bool) !void {
+        try self.renderer.drawMobs(self.mobs.items, view_proj, sun_dir, cam_pos, is_underwater, is_nether);
     }
 
     pub fn countNearbyWolves(self: *const MobManager, center: math.Vec3, radius: f32) usize {

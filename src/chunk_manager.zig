@@ -191,7 +191,7 @@ pub const ChunkManager = struct {
             while (li < lamp_light.count) : (li += 1) {
                 lamp_light.positions[li] = lamp_spots[li];
             }
-            renderer.draw(mvp.ptr(), sun_dir, .{ ox, 0, oz }, lamp_light, cam_pos, is_underwater);
+            renderer.draw(mvp.ptr(), sun_dir, .{ ox, 0, oz }, lamp_light, cam_pos, is_underwater, self.is_nether);
             stats.drawn += 1;
         }
         return stats;

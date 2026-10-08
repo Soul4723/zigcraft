@@ -98,3 +98,4 @@ Rough priority order. Completed milestones marked **[x]**.
 70. [x] **Portal Transit HUD Vignette Overlay** — Full-screen peripheral purple overlay vignette (`drawPortalVignette`) scaling with portal dwell charge (#188).
 71. [x] **Portal Warp Dimensional Flash Overlay** — Full-screen vibrant purple dimensional stabilization flash (`drawPortalFlash`) decaying upon portal exit warp (#189).
 72. [x] **Nether Ambient Ash & Cinder Flake Particles** — Atmospheric drifting ash flakes and floating cinder embers (`spawnNetherAsh`) across Nether caverns (#190).
+73. [x] **Nether Dimension Ambient Fog & Atmospheric Sky Palette** — Cavernous crimson sky dome, fiery horizon clear color, and distance depth fog shader transitions (`u_nether`, `calculateNetherFog`) (#191).
