@@ -95,3 +95,4 @@ Rough priority order. Completed milestones marked **[x]**.
 67. [x] **Fire Resistance HUD Indicator Bar** — Dynamic amber-gold status effect progress bar above player health on HUD (#185).
 68. [x] **Nether Portal Orbital Vortex Particle Ring** — Contracting swirling particle vortex ring (`spawnPortalVortex`) during transit dwell charge (#186).
 69. [x] **Portal Disorient Camera Wobble & Tilt** — Camera roll disorientation oscillation (`viewMatrixWithRoll`) scaling with transit dwell charge (#187).
+70. [x] **Portal Transit HUD Vignette Overlay** — Full-screen peripheral purple overlay vignette (`drawPortalVignette`) scaling with portal dwell charge (#188).

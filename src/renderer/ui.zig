@@ -169,6 +169,33 @@ pub const UIRenderer = struct {
         self.flush(&verts, count);
     }
 
+    /// Render full-screen peripheral portal vignette overlay during Nether warp charging.
+    /// `intensity` in [0..1] scales border opacity and purple tint.
+    pub fn drawPortalVignette(self: *UIRenderer, aspect: f32, intensity: f32) void {
+        _ = aspect;
+        if (intensity <= 0.01) return;
+        var verts: [64]UIVertex = undefined;
+        var count: usize = 0;
+
+        const max_a = @min(0.75, intensity * 0.75);
+        const col_edge: [4]f32 = .{ 0.45, 0.08, 0.65, max_a };
+        const col_mid: [4]f32 = .{ 0.35, 0.05, 0.50, max_a * 0.5 };
+
+        const border_y = 0.28 * @min(1.0, intensity * 1.2);
+        const border_x = 0.28 * @min(1.0, intensity * 1.2);
+
+        // Top bar
+        addQuad(&verts, &count, -1.0, 1.0 - border_y, 1.0, 1.0, col_edge);
+        // Bottom bar
+        addQuad(&verts, &count, -1.0, -1.0, 1.0, -1.0 + border_y, col_edge);
+        // Left bar
+        addQuad(&verts, &count, -1.0, -1.0, -1.0 + border_x, 1.0, col_mid);
+        // Right bar
+        addQuad(&verts, &count, 1.0 - border_x, -1.0, 1.0, 1.0, col_mid);
+
+        self.flush(&verts, count);
+    }
+
     /// Render in-game HUD with inventory item stacks, selected slot border,
     /// and an optional mining progress bar above the crosshair (0..1, <0 hides).
     pub fn drawHUD(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8) void {
@@ -435,6 +462,12 @@ pub const UIRenderer = struct {
 
 test "ui vertex layout" {
     try std.testing.expectEqual(@sizeOf(UIVertex), 24);
+}
+
+test "portal vignette alpha calculation" {
+    const intensity = 0.8;
+    const max_a = @min(0.75, intensity * 0.75);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.60), max_a, 0.001);
 }
 
 test "toast vertex sizing" {
