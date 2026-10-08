@@ -279,8 +279,15 @@ pub fn main() !void {
             const ex: i32 = @intFromFloat(@floor(eye.x));
             const ey: i32 = @intFromFloat(@floor(eye.y));
             const ez: i32 = @intFromFloat(@floor(eye.z));
-            if (hazard_mod.checkSuffocation(manager.getBlockWorld(ex, ey, ez))) {
+            const eye_block = manager.getBlockWorld(ex, ey, ez);
+            if (hazard_mod.checkSuffocation(eye_block)) {
                 player.health = @max(0.0, player.health - 1.0 * dt);
+            }
+            const is_underwater = hazard_mod.checkDrowning(eye_block);
+            player.oxygen = hazard_mod.tickOxygen(player.oxygen, is_underwater, dt);
+            const drown_dmg = hazard_mod.calculateDrowningDamage(player.oxygen, dt);
+            if (drown_dmg > 0.0) {
+                player.health = @max(0.0, player.health - drown_dmg);
             }
 
             const px_i: i32 = @intFromFloat(@floor(player.pos.x));
@@ -982,7 +989,7 @@ pub fn main() !void {
 
         if (!inventory_open) {
             const mine_frac: f32 = mine.fraction();
-            ui.drawHUDWithBuffs(aspect, selected_slot, &hotbar_colors, &hotbar_counts, mine_frac, player.health, player.hunger, player.regen_timer > 0.0);
+            ui.drawHUDWithBuffs(aspect, selected_slot, &hotbar_colors, &hotbar_counts, mine_frac, player.health, player.hunger, player.regen_timer > 0.0, player.oxygen);
             if (toast.visible()) {
                 const t_alpha = toast.tick(dt);
                 ui.drawToast(aspect, t_alpha, toast.color);

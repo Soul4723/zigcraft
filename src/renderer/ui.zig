@@ -176,18 +176,18 @@ pub const UIRenderer = struct {
     }
 
     pub fn drawHUDWithVitals(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32) void {
-        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, health, hunger, false);
+        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, health, hunger, false, 15.0);
     }
 
-    pub fn drawHUDWithBuffs(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool) void {
-        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, health, hunger, regen);
+    pub fn drawHUDWithBuffs(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool, oxygen: f32) void {
+        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, health, hunger, regen, oxygen);
     }
 
     pub fn drawHUDWithProgress(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32) void {
-        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, 20.0, 20.0, false);
+        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, 20.0, 20.0, false, 15.0);
     }
 
-    pub fn drawHUDWithProgressVitals(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool) void {
+    pub fn drawHUDWithProgressVitals(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool, oxygen: f32) void {
         var verts: [1024]UIVertex = undefined;
         var count: usize = 0;
 
@@ -254,6 +254,14 @@ pub const UIRenderer = struct {
             addBorderedRect(&verts, &count, gbx0, by0, gbx0 + bw, by0 + bh, 0.0015, .{ 0.1, 0.07, 0.03, 0.9 }, .{ 0.25, 0.15, 0.05, 0.9 });
             const gfill = bw * @min(1.0, @max(0.0, hunger / 20.0));
             addQuad(&verts, &count, gbx0 + 0.0015, by0 + 0.0015, gbx0 + 0.0015 + gfill, by0 + bh - 0.0015, .{ 0.95, 0.6, 0.15, 1.0 });
+
+            // Oxygen bar above hunger when submerged / oxygen < 15.0
+            if (oxygen < 15.0) {
+                const oby0 = by0 - 0.015;
+                addBorderedRect(&verts, &count, gbx0, oby0, gbx0 + bw, oby0 + bh, 0.0015, .{ 0.03, 0.07, 0.12, 0.9 }, .{ 0.08, 0.18, 0.30, 0.9 });
+                const ofill = bw * @min(1.0, @max(0.0, oxygen / 15.0));
+                addQuad(&verts, &count, gbx0 + 0.0015, oby0 + 0.0015, gbx0 + 0.0015 + ofill, oby0 + bh - 0.0015, .{ 0.2, 0.6, 0.95, 1.0 });
+            }
         }
 
         // Mining progress bar above crosshair
