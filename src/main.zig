@@ -1166,7 +1166,7 @@ pub fn main() !void {
 
         if (!inventory_open) {
             const mine_frac: f32 = mine.fraction();
-            ui.drawHUDWithBuffs(aspect, selected_slot, &hotbar_colors, &hotbar_counts, mine_frac, player.health, player.hunger, player.regen_timer > 0.0, player.oxygen);
+            ui.drawHUDWithBuffs(aspect, selected_slot, &hotbar_colors, &hotbar_counts, mine_frac, player.health, player.hunger, player.regen_timer > 0.0, player.oxygen, player.fire_resistance_timer);
             if (toast.visible()) {
                 const t_alpha = toast.tick(dt);
                 ui.drawToast(aspect, t_alpha, toast.color);

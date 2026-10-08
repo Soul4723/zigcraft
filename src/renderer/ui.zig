@@ -179,15 +179,15 @@ pub const UIRenderer = struct {
         self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, health, hunger, false, 15.0);
     }
 
-    pub fn drawHUDWithBuffs(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool, oxygen: f32) void {
-        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, health, hunger, regen, oxygen);
+    pub fn drawHUDWithBuffs(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool, oxygen: f32, fire_res_timer: f32) void {
+        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, health, hunger, regen, oxygen, fire_res_timer);
     }
 
     pub fn drawHUDWithProgress(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32) void {
-        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, 20.0, 20.0, false, 15.0);
+        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, 20.0, 20.0, false, 15.0, 0.0);
     }
 
-    pub fn drawHUDWithProgressVitals(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool, oxygen: f32) void {
+    pub fn drawHUDWithProgressVitals(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool, oxygen: f32, fire_res_timer: f32) void {
         var verts: [1024]UIVertex = undefined;
         var count: usize = 0;
 
@@ -261,6 +261,14 @@ pub const UIRenderer = struct {
                 addBorderedRect(&verts, &count, gbx0, oby0, gbx0 + bw, oby0 + bh, 0.0015, .{ 0.03, 0.07, 0.12, 0.9 }, .{ 0.08, 0.18, 0.30, 0.9 });
                 const ofill = bw * @min(1.0, @max(0.0, oxygen / 15.0));
                 addQuad(&verts, &count, gbx0 + 0.0015, oby0 + 0.0015, gbx0 + 0.0015 + ofill, oby0 + bh - 0.0015, .{ 0.2, 0.6, 0.95, 1.0 });
+            }
+
+            // Fire Resistance status effect indicator bar above health (golden flame amber)
+            if (fire_res_timer > 0.0) {
+                const fby0 = by0 - 0.015;
+                addBorderedRect(&verts, &count, hbx0, fby0, hbx0 + bw, fby0 + bh, 0.0015, .{ 0.15, 0.08, 0.02, 0.9 }, .{ 0.28, 0.14, 0.04, 0.9 });
+                const ffill = bw * @min(1.0, @max(0.0, fire_res_timer / 180.0));
+                addQuad(&verts, &count, hbx0 + 0.0015, fby0 + 0.0015, hbx0 + 0.0015 + ffill, fby0 + bh - 0.0015, .{ 1.0, 0.55, 0.12, 1.0 });
             }
         }
 
