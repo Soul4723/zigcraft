@@ -54,6 +54,8 @@ pub const BlockId = enum(u8) {
     quartz_block = 49,
     quartz_pillar = 50,
     chiseled_quartz_block = 51,
+    // ponytail: Nether masonry ceiling; upgrade when adding red nether bricks and cracked nether bricks.
+    nether_brick = 52,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal;
@@ -178,6 +180,7 @@ pub const BlockId = enum(u8) {
                 else => .{ .x = 6, .y = 3 }, // Fluted column vertical sides
             },
             .chiseled_quartz_block => .{ .x = 7, .y = 3 }, // Carved glyph medallion relief
+            .nether_brick => .{ .x = 4, .y = 1 }, // Dark fiery running-bond nether masonry
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -246,6 +249,7 @@ pub fn hardness(block: BlockId) f32 {
         .quartz_block => 1.2,
         .quartz_pillar => 1.2,
         .chiseled_quartz_block => 1.2,
+        .nether_brick => 2.0,
     };
 }
 
@@ -257,7 +261,7 @@ pub const ToolTier = enum(u8) {
 
 pub fn requiredTier(block: BlockId) ToolTier {
     return switch (block) {
-        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block => .wooden,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick => .wooden,
         else => .hand,
     };
 }
@@ -267,13 +271,13 @@ pub fn requiredTier(block: BlockId) ToolTier {
 pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
     if (held_tool_id == TOOL_IRON_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block => 4.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick => 4.0,
             else => 2.0,
         };
     }
     if (held_tool_id == TOOL_WOODEN_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block => 3.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick => 3.0,
             else => 1.5,
         };
     }
@@ -339,6 +343,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .quartz_block = .{ .name = "quartz_block", .solid = true, .transparent = false, .fluid = false },
     .quartz_pillar = .{ .name = "quartz_pillar", .solid = true, .transparent = false, .fluid = false },
     .chiseled_quartz_block = .{ .name = "chiseled_quartz_block", .solid = true, .transparent = false, .fluid = false },
+    .nether_brick = .{ .name = "nether_brick", .solid = true, .transparent = false, .fluid = false },
 });
 
 test "block is_solid" {
@@ -634,7 +639,7 @@ pub const FootstepType = enum {
 pub fn footstepType(block: BlockId) FootstepType {
     return switch (block) {
         .grass => .grass,
-        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick => .stone,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick => .stone,
         .wood => .wood,
         .dirt => .dirt,
         .sand => .sand,
@@ -665,4 +670,19 @@ test "lava fluid and obsidian hardness properties" {
     try std.testing.expect(!BlockId.obsidian.is_fluid());
     try std.testing.expectEqual(@as(f32, 15.0), hardness(.obsidian));
     try std.testing.expectEqual(ToolTier.wooden, requiredTier(.obsidian));
+}
+
+test "nether brick block properties and textures" {
+    try std.testing.expect(BlockId.nether_brick.is_solid());
+    try std.testing.expect(!BlockId.nether_brick.is_transparent());
+    try std.testing.expect(!BlockId.nether_brick.is_fluid());
+    try std.testing.expectEqual(hardness(.nether_brick), 2.0);
+    try std.testing.expectEqual(requiredTier(.nether_brick), .wooden);
+    try std.testing.expectEqual(toolMultiplier(TOOL_WOODEN_PICKAXE, .nether_brick), 3.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_IRON_PICKAXE, .nether_brick), 4.0);
+    try std.testing.expectEqual(footstepType(.nether_brick), .stone);
+
+    const tex = BlockId.nether_brick.getFaceTexture(0);
+    try std.testing.expectEqual(tex.x, 4);
+    try std.testing.expectEqual(tex.y, 1);
 }

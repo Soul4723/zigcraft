@@ -78,6 +78,19 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         if (n < 45) return .{ 52, 130, 34, 255 };
         return .{ 34, 105, 26, 255 };
     }
+    // Nether Bricks (4, 1): dark fiery purplish-crimson running-bond brickwork with dark mortar
+    if (tile_x == 4 and tile_y == 1) {
+        const row = y / 4;
+        const is_horiz_mortar = (y % 4 == 0);
+        const shift: usize = if (row % 2 == 1) 4 else 0;
+        const is_vert_mortar = ((x + shift) % 8 == 0);
+        if (is_horiz_mortar or is_vert_mortar) {
+            return .{ 25, 8, 12, 255 }; // deep dark charred mortar seam
+        }
+        const n = hash2(x, y, 221) % 22;
+        const shade: u8 = @as(u8, @intCast(n));
+        return .{ 68 + shade, 20 + shade / 3, 28 + shade / 3, 255 };
+    }
     if (tile_x == 0 and tile_y == 2) {
         const n = hash2(x, y, 71) % 15;
         const wc: u8 = 225 + @as(u8, @intCast(n));
@@ -802,4 +815,18 @@ test "grass side fringe green on top, dirt at bottom" {
         const bot = tilePixel(1, 0, xx, 15);
         try std.testing.expect(bot[0] > bot[1]);
     }
+}
+
+test "nether brick atlas texture generation" {
+    // Mortar line is dark charred purplish seam
+    const mortar = tilePixel(4, 1, 0, 0);
+    try std.testing.expectEqual(mortar[0], 25);
+    try std.testing.expectEqual(mortar[1], 8);
+    try std.testing.expectEqual(mortar[2], 12);
+    try std.testing.expectEqual(mortar[3], 255);
+
+    // Brick interior has dark reddish fiery shade
+    const interior = tilePixel(4, 1, 2, 2);
+    try std.testing.expect(interior[0] >= 68);
+    try std.testing.expectEqual(interior[3], 255);
 }
