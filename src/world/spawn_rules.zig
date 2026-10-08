@@ -42,6 +42,19 @@ pub fn waterDepthAt(world: anytype, x: i32, y: i32, z: i32) i32 {
     return depth;
 }
 
+/// Cave spawn: stone floor, headroom, and no sky access above (darkness proxy).
+/// World provides getBlockWorld; max_y bounds the upward scan.
+pub fn isCaveSpawn(world: anytype, x: i32, y: i32, z: i32, max_y: i32) bool {
+    const ground = world.getBlockWorld(x, y, z);
+    if (ground != .stone and ground != .cobblestone and ground != .dirt) return false;
+    if (!hasHeadroom(world.getBlockWorld(x, y + 1, z), world.getBlockWorld(x, y + 2, z))) return false;
+    var up = y + 3;
+    while (up <= max_y) : (up += 1) {
+        if (world.getBlockWorld(x, up, z) == .air) return false;
+    }
+    return true;
+}
+
 pub fn isSafeSpawn(world: anytype, x: i32, y: i32, z: i32) bool {
     const ground = world.getBlockWorld(x, y, z);
     if (!isSpawnGround(ground)) return false;
@@ -77,6 +90,36 @@ const LakeWorld = struct {
         return .dirt;
     }
 };
+
+const CaveWorld = struct {
+    pub fn getBlockWorld(_: @This(), x: i32, y: i32, z: i32) BlockId {
+        _ = x;
+        _ = z;
+        // Stone floor at y=3, air pocket y=4-5, solid rock above.
+        if (y == 3) return .stone;
+        if (y == 4 or y == 5) return .air;
+        return .stone;
+    }
+};
+
+const OpenPitWorld = struct {
+    pub fn getBlockWorld(_: @This(), x: i32, y: i32, z: i32) BlockId {
+        _ = x;
+        _ = z;
+        if (y == 3) return .stone;
+        if (y == 4 or y == 5) return .air;
+        if (y > 5) return .air;
+        return .stone;
+    }
+};
+
+test "cave spawn needs stone floor, headroom, and cover" {
+    try std.testing.expect(isCaveSpawn(CaveWorld{}, 0, 3, 0, 15));
+    // Sky visible above -> not a cave.
+    try std.testing.expect(!isCaveSpawn(OpenPitWorld{}, 0, 3, 0, 15));
+    // Wrong floor.
+    try std.testing.expect(!isCaveSpawn(CaveWorld{}, 0, 4, 0, 15));
+}
 
 test "spawn ground classification" {
     try std.testing.expect(isSpawnGround(.grass));

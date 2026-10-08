@@ -38,7 +38,7 @@ pub const MobManager = struct {
         try self.mobs.append(self.allocator, mob_mod.Mob.init(mob_type, x, y, z));
     }
 
-    /// Ensure initial population of sheep/pigs on surface land around center.
+    /// Ensure surface population plus dark-cave wolves around center.
     /// Keeps spawning up to cap as mobs die or despawn.
     pub fn ensureSpawnPopulation(self: *MobManager, chunk_manager: *const chunk_manager_mod.ChunkManager, center_x: f32, center_z: f32, is_night: bool) !void {
         if (self.mobs.items.len >= 6) return;
@@ -63,6 +63,18 @@ pub const MobManager = struct {
                 try self.spawnMob(mtype, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
                 break;
             }
+        }
+
+        // Cave pass: dark hollows spawn wolves even by day, up to a shared cap.
+        var cave_attempts: usize = 0;
+        while (self.mobs.items.len < 8 and cave_attempts < 6) : (cave_attempts += 1) {
+            const rx = center_x + (self.rng.random().float(f32) * 36.0 - 18.0);
+            const rz = center_z + (self.rng.random().float(f32) * 36.0 - 18.0);
+            const ix: i32 = @intFromFloat(@floor(rx));
+            const iz: i32 = @intFromFloat(@floor(rz));
+            const iy: i32 = 1 + @as(i32, @intFromFloat(self.rng.random().float(f32) * 10.0));
+            if (!spawn_rules.isCaveSpawn(chunk_manager, ix, iy, iz, 15)) continue;
+            try self.spawnMob(.wolf, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
         }
     }
 
