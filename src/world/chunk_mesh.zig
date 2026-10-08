@@ -274,7 +274,9 @@ pub fn generateMesh(
 
                     // Shallow water surfaces sit below the block top.
                     if (block == .water) {
-                        const surface = slice_f + waterSurfaceHeight(mask_level[v][u]);
+                        // Cell Y along whichever axis is vertical here.
+                        const cell_y: f32 = if (d == 1) slice_f else if (u_axis == 1) u_f else v_f;
+                        const surface = cell_y + waterSurfaceHeight(mask_level[v][u]);
                         if (d == 1 and dir[d] > 0) {
                             c0[d] = surface;
                             c1[d] = surface;
@@ -282,7 +284,7 @@ pub fn generateMesh(
                             c3[d] = surface;
                         } else if (d != 1) {
                             // Side faces: lower verts on the top edge to the surface.
-                            const top_y = slice_f + 1.0;
+                            const top_y = cell_y + 1.0;
                             if (c0[1] == top_y) c0[1] = surface;
                             if (c1[1] == top_y) c1[1] = surface;
                             if (c2[1] == top_y) c2[1] = surface;
@@ -406,6 +408,22 @@ test "shallow water top face sits below full source" {
     }.maxTopY;
     try std.testing.expectApproxEqAbs(topY(full_mesh), 7.9, 0.001);
     try std.testing.expectApproxEqAbs(topY(shallow_mesh), 7.4, 0.001);
+}
+
+test "side step drops to shallower surface" {
+    var chunk = Chunk.init();
+    chunk.setBlock(7, 7, 7, .water);
+    chunk.setLevel(7, 7, 7, 7);
+    chunk.setBlock(8, 7, 7, .water);
+    chunk.setLevel(8, 7, 7, 1);
+    var mesh = try generateMesh(std.testing.allocator, &chunk, null);
+    defer mesh.deinit(std.testing.allocator);
+    // Side verts at the shared edge must sit at or below the full surface (7.9).
+    for (mesh.vertices) |vert| {
+        if (vert.normal[1] == 0.0) {
+            try std.testing.expect(vert.position[1] <= 7.901);
+        }
+    }
 }
 
 test "adjacent water levels render a step face" {
