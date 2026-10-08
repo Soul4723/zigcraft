@@ -204,7 +204,9 @@ fn appendBox(
 }
 
 pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVertex), inds: *std.ArrayList(u32), mob: mob_mod.Mob) !void {
-    const leg_swing = @sin(mob.anim_time) * 0.12;
+    const leg_swing = if (mob.in_water) @sin(mob.anim_time * 2.5) * 0.08 else @sin(mob.anim_time) * 0.12;
+    // Head bobs up and down when swimming to keep snout out of water
+    const head_bob_y: f32 = if (mob.in_water) 0.08 + @sin(mob.anim_time * 4.0) * 0.04 else 0.0;
 
     switch (mob.mob_type) {
         .sheep => {
@@ -229,7 +231,7 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
                 allocator,
                 verts,
                 inds,
-                math.Vec3.init(0, 0.65, 0.45),
+                math.Vec3.init(0, 0.65 + head_bob_y, 0.45),
                 math.Vec3.init(0.35, 0.35, 0.35),
                 mob.yaw,
                 mob.pos,
@@ -305,7 +307,7 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
                 allocator,
                 verts,
                 inds,
-                math.Vec3.init(0, 0.52, 0.42),
+                math.Vec3.init(0, 0.52 + head_bob_y, 0.42),
                 math.Vec3.init(0.34, 0.32, 0.34),
                 mob.yaw,
                 mob.pos,
@@ -318,7 +320,7 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
                 allocator,
                 verts,
                 inds,
-                math.Vec3.init(0, 0.48, 0.61),
+                math.Vec3.init(0, 0.48 + head_bob_y, 0.61),
                 math.Vec3.init(0.16, 0.10, 0.08),
                 mob.yaw,
                 mob.pos,
@@ -379,9 +381,9 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
             // 1. Body: lean 0.42 x 0.38 x 0.72 at (0, 0.42, 0)
             try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.42, 0), math.Vec3.init(0.42, 0.38, 0.72), mob.yaw, mob.pos, uv_fur, uv_fur);
             // 2. Head: 0.30 cube forward-up at (0, 0.62, 0.44)
-            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.62, 0.44), math.Vec3.init(0.30, 0.30, 0.30), mob.yaw, mob.pos, uv_face, uv_fur);
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.62 + head_bob_y, 0.44), math.Vec3.init(0.30, 0.30, 0.30), mob.yaw, mob.pos, uv_face, uv_fur);
             // 3. Snout: 0.14 x 0.10 x 0.12 at (0, 0.56, 0.62)
-            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.56, 0.62), math.Vec3.init(0.14, 0.10, 0.12), mob.yaw, mob.pos, uv_face, uv_fur);
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.56 + head_bob_y, 0.62), math.Vec3.init(0.14, 0.10, 0.12), mob.yaw, mob.pos, uv_face, uv_fur);
             // 4. Tail: angled 0.10 x 0.10 x 0.30 at back (0, 0.52, -0.46)
             try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.52, -0.46), math.Vec3.init(0.10, 0.10, 0.30), mob.yaw, mob.pos, uv_fur, uv_fur);
             // 5-8. Tall legs (0.32 high)
@@ -414,4 +416,29 @@ test "appendMobMesh generates correct vertex and index counts" {
     try appendMobMesh(std.testing.allocator, &verts, &inds, pig);
     try std.testing.expectEqual(@as(usize, 168), verts.items.len);
     try std.testing.expectEqual(@as(usize, 252), inds.items.len);
+}
+
+test "appendMobMesh water swimming head bob elevates head" {
+    var verts_land = std.ArrayList(MobVertex).empty;
+    defer verts_land.deinit(std.testing.allocator);
+    var inds_land = std.ArrayList(u32).empty;
+    defer inds_land.deinit(std.testing.allocator);
+
+    var mob_land = mob_mod.Mob.init(.sheep, 0, 0, 0);
+    mob_land.in_water = false;
+    try appendMobMesh(std.testing.allocator, &verts_land, &inds_land, mob_land);
+
+    var verts_water = std.ArrayList(MobVertex).empty;
+    defer verts_water.deinit(std.testing.allocator);
+    var inds_water = std.ArrayList(u32).empty;
+    defer inds_water.deinit(std.testing.allocator);
+
+    var mob_water = mob_mod.Mob.init(.sheep, 0, 0, 0);
+    mob_water.in_water = true;
+    try appendMobMesh(std.testing.allocator, &verts_water, &inds_water, mob_water);
+
+    // Vertex count remains consistent (6 boxes * 24 vertices = 144 verts)
+    try std.testing.expectEqual(verts_land.items.len, verts_water.items.len);
+    // Head vertices (box 2, indices 24..48) have higher Y in water
+    try std.testing.expect(verts_water.items[24].pos[1] > verts_land.items[24].pos[1]);
 }

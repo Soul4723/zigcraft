@@ -30,6 +30,7 @@ pub const Mob = struct {
     change_dir_timer: f32,
     wants_sound: bool,
     health: u8,
+    in_water: bool,
 
     pub fn init(mob_type: MobType, x: f32, y: f32, z: f32) Mob {
         const w: f32 = switch (mob_type) {
@@ -62,6 +63,7 @@ pub const Mob = struct {
             .change_dir_timer = 2.0,
             .wants_sound = false,
             .health = if (mob_type == .wolf) 5 else 3,
+            .in_water = false,
         };
     }
 
@@ -99,13 +101,14 @@ pub const Mob = struct {
             self.anim_time = 0.0;
         }
 
-        // Water current push on mobs
+        // Water detection & current push on mobs
         var cur_x: f32 = 0.0;
         var cur_z: f32 = 0.0;
         const mx_i: i32 = @intFromFloat(@floor(self.pos.x));
-        const my_i: i32 = @intFromFloat(@floor(self.pos.y));
+        const my_i: i32 = @intFromFloat(@floor(self.pos.y + 0.1));
         const mz_i: i32 = @intFromFloat(@floor(self.pos.z));
-        if (fluid(mx_i, my_i, mz_i)) {
+        self.in_water = fluid(mx_i, my_i, mz_i);
+        if (self.in_water) {
             const dirs = [_][2]i32{ .{ 1, 0 }, .{ -1, 0 }, .{ 0, 1 }, .{ 0, -1 } };
             for (dirs) |d| {
                 if (!fluid(mx_i + d[0], my_i, mz_i + d[1])) {
@@ -144,8 +147,14 @@ pub const Mob = struct {
             }
         }
 
-        self.vel.y -= 25.0 * clamped_dt;
-        if (self.vel.y < -30.0) self.vel.y = -30.0;
+        if (self.in_water) {
+            // Water swimming buoyancy: float upward / paddle towards surface
+            self.vel.y = @min(1.8, self.vel.y + 8.0 * clamped_dt);
+            self.on_ground = false;
+        } else {
+            self.vel.y -= 25.0 * clamped_dt;
+            if (self.vel.y < -30.0) self.vel.y = -30.0;
+        }
 
         var dummy_v = self.vel.y;
         self.pos.y = collideAxis(self.pos, half_w, self.height, solid, self.vel.y * clamped_dt, .y, &dummy_v, &self.on_ground);
@@ -428,4 +437,24 @@ test "mob water current push" {
     };
     mob.tick(Mock.solid, Mock.water, 0.05, &rng);
     try std.testing.expect(mob.pos.x > 0.5);
+}
+
+test "mob water buoyancy floatation" {
+    var mob = Mob.init(.sheep, 0.5, 2.0, 0.5);
+    mob.vel.y = -2.0;
+    const Mock = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return false; }
+        fn water(_: i32, _: i32, _: i32) bool { return true; }
+    };
+    var rng = std.Random.DefaultPrng.init(42);
+    // Mob inside water should gain positive vertical buoyant lift
+    mob.tick(Mock.solid, Mock.water, 0.05, &rng);
+    try std.testing.expect(mob.in_water);
+    try std.testing.expect(mob.vel.y > -2.0);
+    // Several ticks: mob velocity becomes positive / floats
+    var i: usize = 0;
+    while (i < 20) : (i += 1) {
+        mob.tick(Mock.solid, Mock.water, 0.05, &rng);
+    }
+    try std.testing.expect(mob.vel.y > 0.0);
 }
