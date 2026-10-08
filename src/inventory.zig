@@ -55,6 +55,7 @@ pub const ItemType = enum(u8) {
     netherrack = 49,
     soul_sand = 50,
     magma = 51,
+    fire_resistance_potion = 52,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -212,6 +213,7 @@ pub const ItemType = enum(u8) {
             .netherrack => "Netherrack",
             .soul_sand => "Soul Sand",
             .magma => "Magma Block",
+            .fire_resistance_potion => "Fire Resistance Potion",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -269,6 +271,7 @@ pub const ItemType = enum(u8) {
             .netherrack => .{ 0.65, 0.18, 0.18, 0.95 },
             .soul_sand => .{ 0.45, 0.32, 0.25, 0.95 },
             .magma => .{ 0.92, 0.42, 0.12, 0.95 },
+            .fire_resistance_potion => .{ 0.95, 0.50, 0.10, 0.90 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -608,6 +611,17 @@ pub const Inventory = struct {
             }
         }
 
+        // Recipe 32: Fire Resistance Potion: 1 Magma + 1 Apple (or 1 Magma + 1 Glass) in 2x2 (non_empty == 2)
+        if (non_empty == 2) {
+            const has_magma = (g0 == .magma or g1 == .magma or g2 == .magma or g3 == .magma);
+            const has_catalyst = (g0 == .apple or g1 == .apple or g2 == .apple or g3 == .apple or
+                g0 == .glass or g1 == .glass or g2 == .glass or g3 == .glass);
+            if (has_magma and has_catalyst) {
+                self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
         // Recipe 13: Golden Apple: 2 apples + 1 iron ingot + 1 coal (full 2x2, any layout)
         {
             var apples: u8 = 0;
@@ -824,6 +838,19 @@ test "furnace recipe: 4 stone -> furnace" {
     inv.craft_grid[3] = .{ .item = .stone, .count = 1 };
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .furnace);
+}
+
+test "fire resistance potion recipe: magma + apple or glass" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .magma, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .apple, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .fire_resistance_potion);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .fire_resistance_potion);
 }
 
 test "golden apple recipe: 2 apples + ingot + coal" {

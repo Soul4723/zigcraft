@@ -91,3 +91,4 @@ Rough priority order. Completed milestones marked **[x]**.
 63. [x] **Mob Contact Heat Hazard & Damage Ticks** — Magma block, campfire, and lava contact heat damage (1 hp/s) and death removal for mobs (#181).
 64. [x] **Burn Sizzle & Scald Audio Synthesis** — High-frequency burning contact sizzle/hiss synthesizer (`.burn_sizzle`) with 3D attenuation for players and entities (#182).
 65. [x] **Burn Sparks & Hot Surface Debris Particles** — Upward spraying brilliant fiery sparks (`spawnBurnSparks`) on magma and campfire contact (#183).
+66. [x] **Fire Resistance Status Effect & Potion Crafting** — Fire resistance potion recipe (magma + apple/glass), 3-minute buff (`180s`), and complete immunity to lava, magma, and campfire burn hazards (#184).

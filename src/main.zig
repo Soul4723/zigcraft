@@ -364,23 +364,30 @@ pub fn main() !void {
                 player.health = hazard_mod.applyDamageClamped(player.health, hazard_mod.contact_rate, dt);
             }
 
-            // Campfire / magma / lava contact burn hazard
+            // Campfire / magma / lava contact burn hazard (negated by fire resistance immunity)
             const feet_b = manager.getBlockWorld(px_i, py_i, pz_i);
             const head_b = manager.getBlockWorld(px_i, py_i + 1, pz_i);
             burn_sizzle_cooldown = @max(0.0, burn_sizzle_cooldown - dt);
-            if (hazard_mod.checkLavaHazard(feet_b) or hazard_mod.checkLavaHazard(head_b)) {
-                player.health = hazard_mod.applyDamageClamped(player.health, hazard_mod.lava_burn_rate, dt);
+            const is_in_lava = hazard_mod.checkLavaHazard(feet_b) or hazard_mod.checkLavaHazard(head_b);
+            const is_in_burn = hazard_mod.checkBurnContact(feet_b) or hazard_mod.checkBurnContact(head_b);
+
+            if (is_in_lava) {
                 particles.spawnFlame(px_i, py_i, pz_i, 3);
-                if (burn_sizzle_cooldown <= 0.0) {
-                    audio.play(.burn_sizzle, 0.7);
-                    burn_sizzle_cooldown = 0.5;
+                if (!player.isFireImmune()) {
+                    player.health = hazard_mod.applyDamageClamped(player.health, hazard_mod.lava_burn_rate, dt);
+                    if (burn_sizzle_cooldown <= 0.0) {
+                        audio.play(.burn_sizzle, 0.7);
+                        burn_sizzle_cooldown = 0.5;
+                    }
                 }
-            } else if (hazard_mod.checkBurnContact(feet_b) or hazard_mod.checkBurnContact(head_b)) {
-                player.health = hazard_mod.applyDamageClamped(player.health, hazard_mod.burn_rate, dt);
+            } else if (is_in_burn) {
                 particles.spawnBurnSparks(.{ player.pos.x, player.pos.y, player.pos.z }, 2);
-                if (burn_sizzle_cooldown <= 0.0) {
-                    audio.play(.burn_sizzle, 0.6);
-                    burn_sizzle_cooldown = 0.6;
+                if (!player.isFireImmune()) {
+                    player.health = hazard_mod.applyDamageClamped(player.health, hazard_mod.burn_rate, dt);
+                    if (burn_sizzle_cooldown <= 0.0) {
+                        audio.play(.burn_sizzle, 0.6);
+                        burn_sizzle_cooldown = 0.6;
+                    }
                 }
             }
 
@@ -1999,7 +2006,13 @@ pub fn main() !void {
                 .raw_pork, .raw_mutton => false,
                 else => null,
             };
-            if (held_eat.item == .golden_apple) {
+            if (held_eat.item == .fire_resistance_potion) {
+                player.drinkFireResistance();
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.8);
+                particles.spawnBurnSparks(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 8);
+                std.debug.print("drank fire resistance potion (timer={d:.1}s)\n", .{player.fire_resistance_timer});
+            } else if (held_eat.item == .golden_apple) {
                 player.eatGolden();
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.8);

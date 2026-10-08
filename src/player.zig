@@ -20,6 +20,7 @@ pub const Player = struct {
     on_soulsand: bool = false,
     in_bubble_column: bool = false,
     in_whirlpool: bool = false,
+    fire_resistance_timer: f32 = 0.0,
 
     pub fn init(x: f32, y: f32, z: f32) Player {
         return .{
@@ -39,6 +40,15 @@ pub const Player = struct {
             .water_entry_speed = 0.0,
             .oxygen = 15.0,
         };
+    }
+
+    /// Fire Resistance Potion: grants 3 minutes (180s) of complete immunity to fire, lava, and magma heat.
+    pub fn drinkFireResistance(self: *Player) void {
+        self.fire_resistance_timer = 180.0;
+    }
+
+    pub fn isFireImmune(self: Player) bool {
+        return self.fire_resistance_timer > 0.0;
     }
 
     /// Golden apple: instant heal + regen timer.
@@ -93,6 +103,7 @@ pub const Player = struct {
 
     /// Passive drain: hunger falls over time, health regen/suffer follows.
     pub fn tickVitals(self: *Player, dt: f32) void {
+        self.fire_resistance_timer = @max(0.0, self.fire_resistance_timer - dt);
         self.regen_timer = @max(0.0, self.regen_timer - dt);
         if (self.regen_timer > 0.0 and self.health < 20.0) {
             self.health = @min(20.0, self.health + dt * regen_rate);
@@ -634,4 +645,20 @@ test "player magma whirlpool downward drag" {
     try std.testing.expect(p.in_water);
     // Whirlpool pulls player downwards <= -7.0 m/s
     try std.testing.expect(p.vel_y <= -6.5);
+}
+
+test "player fire resistance duration and immunity" {
+    var p = Player.init(0, 0, 0);
+    try std.testing.expect(!p.isFireImmune());
+    p.drinkFireResistance();
+    try std.testing.expect(p.isFireImmune());
+    try std.testing.expectEqual(@as(f32, 180.0), p.fire_resistance_timer);
+
+    p.tickVitals(60.0);
+    try std.testing.expect(p.isFireImmune());
+    try std.testing.expectEqual(@as(f32, 120.0), p.fire_resistance_timer);
+
+    p.tickVitals(120.0);
+    try std.testing.expect(!p.isFireImmune());
+    try std.testing.expectEqual(@as(f32, 0.0), p.fire_resistance_timer);
 }
