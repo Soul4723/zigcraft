@@ -215,6 +215,7 @@ pub fn main() !void {
     var flow_timer: f32 = 0.0;
     var lava_ambient_timer: f32 = 0.0;
     var portal_ambient_timer: f32 = 0.0;
+    var portal_transit = portal_mod.PortalTransitState{};
     var chunk_retry_timer: f32 = 0.0;
     var world_time: f32 = 45.0; // Start at morning daylight
     var last_step_dist: f32 = 0.0;
@@ -377,6 +378,33 @@ pub fn main() !void {
                         audio.playAt(snd_type, l_pos, .{ player.pos.x, player.pos.y, player.pos.z }, 0.7, 16.0);
                     }
                 }
+            }
+
+            // Check if player is standing inside a nether portal block
+            const in_portal = (feet_b == .nether_portal or head_b == .nether_portal);
+            if (in_portal) {
+                // Emit continuous swirls while charging transit
+                particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 2);
+            }
+            if (portal_transit.tick(in_portal, dt)) {
+                // Dimension warp triggered!
+                const warp_target = portal_mod.PortalTransitState.calculateWarpPosition(
+                    if (portal_transit.current_dim == .nether) .overworld else .nether,
+                    player.pos.x,
+                    player.pos.y,
+                    player.pos.z,
+                );
+                player.pos.x = warp_target[0];
+                player.pos.z = warp_target[2];
+                // Burst effects and audio warp
+                particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 1.0, player.pos.z }, 24);
+                audio.play(.portal_warp, 1.0);
+                std.debug.print("dimension transit: warped to {s} at ({d:.1}, {d:.1}, {d:.1}\n", .{
+                    @tagName(portal_transit.current_dim),
+                    player.pos.x,
+                    player.pos.y,
+                    player.pos.z,
+                });
             }
 
             // Periodic ambient nether portal hum and particle swirl around player

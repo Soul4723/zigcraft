@@ -23,6 +23,7 @@ pub const SoundType = enum {
     lava_pop,
     lava_bubble,
     portal_hum,
+    portal_warp,
 };
 
 pub const SAMPLE_RATE: u32 = 44100;
@@ -87,6 +88,7 @@ pub const AudioMixer = struct {
             .lava_pop => SAMPLE_RATE / 10, // ~100ms quick fiery pop/snap
             .lava_bubble => SAMPLE_RATE / 4, // ~250ms low simmering bubbling hiss
             .portal_hum => SAMPLE_RATE / 2, // ~500ms mystical otherworldly choir drone
+            .portal_warp => SAMPLE_RATE * 3 / 4, // ~750ms sweeping dimension portal vortex whoosh
         };
 
         slot.?.* = .{
@@ -323,6 +325,15 @@ pub const AudioMixer = struct {
                 const ether_whisper = (rng.random().float(f32) * 2.0 - 1.0) * 0.1 * @sin(progress * std.math.pi);
                 return (tone + ether_whisper) * @sin(progress * std.math.pi) * 0.6;
             },
+            .portal_warp => {
+                // Nether teleport warp: rising & falling frequency vortex sweep with resonant white-noise rush
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const freq = 120.0 + 380.0 * @sin(progress * std.math.pi * 0.8);
+                const tone = @sin(t * freq * 2.0 * std.math.pi) * 0.7;
+                const whoosh = (rng.random().float(f32) * 2.0 - 1.0) * 0.3 * @sin(progress * std.math.pi);
+                const env = @sin(progress * std.math.pi);
+                return (tone + whoosh) * env * 0.8;
+            },
         }
     }
 };
@@ -354,7 +365,7 @@ test "AudioMixer play voice produces non-zero samples" {
 
 test "AudioMixer all sound types render without overflow or crash" {
     var mixer = AudioMixer.init();
-    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum };
+    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp };
     for (sounds) |snd| {
         mixer.play(snd, 1.0);
     }

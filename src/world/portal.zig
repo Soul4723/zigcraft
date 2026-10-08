@@ -229,3 +229,92 @@ test "activatePortalFrame fills 2x3 interior cells" {
         try std.testing.expectEqual(BlockId.nether_portal, b);
     }
 }
+
+pub const Dimension = enum(u8) {
+    overworld = 0,
+    nether = 1,
+};
+
+pub const PORTAL_TRIGGER_TIME: f32 = 3.0; // 3 seconds standing inside portal to warp
+pub const PORTAL_COOLDOWN_TIME: f32 = 4.0; // 4 seconds post-warp immunity
+
+pub const PortalTransitState = struct {
+    inside_timer: f32 = 0.0,
+    cooldown_timer: f32 = 0.0,
+    current_dim: Dimension = .overworld,
+
+    /// Update standing inside portal. Returns true if dimension shift triggers!
+    pub fn tick(self: *PortalTransitState, in_portal: bool, dt: f32) bool {
+        self.cooldown_timer = @max(0.0, self.cooldown_timer - dt);
+
+        if (!in_portal) {
+            // Decaying transit charge when player leaves portal frame
+            self.inside_timer = @max(0.0, self.inside_timer - dt * 2.0);
+            return false;
+        }
+
+        if (self.cooldown_timer > 0.0) {
+            return false; // Still on cooldown after previous teleport
+        }
+
+        self.inside_timer += dt;
+        if (self.inside_timer >= PORTAL_TRIGGER_TIME) {
+            // Trigger teleportation and toggle dimension!
+            self.inside_timer = 0.0;
+            self.cooldown_timer = PORTAL_COOLDOWN_TIME;
+            self.current_dim = if (self.current_dim == .overworld) .nether else .overworld;
+            return true;
+        }
+
+        return false;
+    }
+
+    /// Calculate coordinate warp between Overworld and Nether (8:1 spatial ratio)
+    pub fn calculateWarpPosition(from_dim: Dimension, px: f32, py: f32, pz: f32) [3]f32 {
+        if (from_dim == .overworld) {
+            // Overworld to Nether: scale coordinates down by 8x (keep Y level)
+            return .{ px / 8.0, py, pz / 8.0 };
+        } else {
+            // Nether to Overworld: scale coordinates up by 8x
+            return .{ px * 8.0, py, pz * 8.0 };
+        }
+    }
+};
+
+test "PortalTransitState requires sustained contact and triggers dimension warp" {
+    var state = PortalTransitState{};
+    try std.testing.expectEqual(Dimension.overworld, state.current_dim);
+
+    // 1 second inside portal: not triggered yet
+    try std.testing.expect(!state.tick(true, 1.0));
+    try std.testing.expectEqual(Dimension.overworld, state.current_dim);
+    try std.testing.expect(state.inside_timer >= 1.0);
+
+    // Step out of portal: inside_timer decays
+    _ = state.tick(false, 0.5);
+    try std.testing.expect(state.inside_timer < 1.0);
+
+    // Re-enter and sustain 3.0 seconds: triggers dimension warp!
+    _ = state.tick(true, 1.5);
+    _ = state.tick(true, 1.0);
+    const triggered = state.tick(true, 0.6); // Total >= 3.0s
+    try std.testing.expect(triggered);
+    try std.testing.expectEqual(Dimension.nether, state.current_dim);
+    try std.testing.expect(state.cooldown_timer > 0.0);
+
+    // While on cooldown, sustained standing does not re-trigger immediately
+    try std.testing.expect(!state.tick(true, 1.0));
+    try std.testing.expectEqual(Dimension.nether, state.current_dim);
+}
+
+test "PortalTransitState coordinate scaling 8:1 ratio" {
+    const nether_pos = PortalTransitState.calculateWarpPosition(.overworld, 160.0, 64.0, -80.0);
+    try std.testing.expectEqual(@as(f32, 20.0), nether_pos[0]);
+    try std.testing.expectEqual(@as(f32, 64.0), nether_pos[1]);
+    try std.testing.expectEqual(@as(f32, -10.0), nether_pos[2]);
+
+    const overworld_pos = PortalTransitState.calculateWarpPosition(.nether, 20.0, 64.0, -10.0);
+    try std.testing.expectEqual(@as(f32, 160.0), overworld_pos[0]);
+    try std.testing.expectEqual(@as(f32, 64.0), overworld_pos[1]);
+    try std.testing.expectEqual(@as(f32, -80.0), overworld_pos[2]);
+}
