@@ -74,3 +74,4 @@ Rough priority order. Completed milestones marked **[x]**.
 46. [x] **Underwater Bubble Particles** — Buoyant bubble particles trailing while swimming and bursting on drowning damage (#162).
 47. [x] **Underwater Submersion Audio & Splash Sounds** — Synthesized splash on water entry/exit and resonant submerge plunge thud (#163).
 48. [x] **Water Current Push Physics** — Lateral current velocity pushing players and mobs towards downstream open edges (#164).
+49. [x] **Water Splash Particle Bursts** — Upward velocity-scaled droplet spray on water entry and falling block splash (#167).

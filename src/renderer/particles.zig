@@ -149,6 +149,40 @@ pub const ParticleSystem = struct {
         }
     }
 
+
+    /// Spawn a spray/burst of water splash particles erupting upward and outward.
+    pub fn spawnWaterSplash(self: *ParticleSystem, pos: [3]f32, count: usize) void {
+        var i: usize = 0;
+        var seed: u32 = @as(u32, @bitCast(@as(i32, @intFromFloat(pos[0] * 100.0)))) *% 31 +%
+            @as(u32, @bitCast(@as(i32, @intFromFloat(pos[1] * 100.0)))) *% 17 +%
+            @as(u32, @bitCast(@as(i32, @intFromFloat(pos[2] * 100.0)))) +%
+            @as(u32, @intCast(self.count));
+        while (i < count and self.count < MAX_PARTICLES) : (i += 1) {
+            seed = seed *% 1103515245 +% 12345;
+            const rx = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            seed = seed *% 1103515245 +% 12345;
+            const ry = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            seed = seed *% 1103515245 +% 12345;
+            const rz = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+
+            const shade = 0.85 + 0.3 * rx;
+            const col = [3]f32{ 0.25 * shade, 0.55 * shade, 0.95 * shade };
+            self.particles[self.count] = .{
+                .x = pos[0] + (rx - 0.5) * 0.4,
+                .y = pos[1] + 0.05 + ry * 0.2,
+                .z = pos[2] + (rz - 0.5) * 0.4,
+                .vx = (rx - 0.5) * 3.6,
+                .vy = 2.4 + ry * 2.8,
+                .vz = (rz - 0.5) * 3.6,
+                .life = 0.35 + 0.25 * ry,
+                .max_life = 0.35 + 0.25 * ry,
+                .color = col,
+                .size = 0.05 + 0.03 * rx,
+            };
+            self.count += 1;
+        }
+    }
+
     /// Spawn rising translucent underwater bubbles around a 3D position
     pub fn spawnBubble(self: *ParticleSystem, pos: [3]f32, count: usize) void {
         var i: usize = 0;
@@ -311,6 +345,26 @@ test "bubble particle buoyancy and life" {
     ps.tick(0.2);
     try std.testing.expect(ps.particles[0].y > initial_y);
     // Tick forward 1.0s: bubbles expire
+    ps.tick(1.0);
+    try std.testing.expectEqual(ps.count, 0);
+}
+
+test "water splash particles spawn and vertical burst" {
+    var ps = ParticleSystem{
+        .particles = undefined,
+        .count = 0,
+        .vao = 0,
+        .vbo = 0,
+        .program = 0,
+    };
+    ps.spawnWaterSplash(.{ 5.0, 10.0, 15.0 }, 8);
+    try std.testing.expectEqual(ps.count, 8);
+    try std.testing.expect(ps.particles[0].vy > 2.0);
+    // Water splash has distinct blueish tint
+    try std.testing.expect(ps.particles[0].color[2] > ps.particles[0].color[0]);
+    ps.tick(0.1);
+    try std.testing.expect(ps.particles[0].y > 10.0);
+    // After 1.0s, short-lived droplets expire
     ps.tick(1.0);
     try std.testing.expectEqual(ps.count, 0);
 }

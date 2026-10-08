@@ -14,6 +14,7 @@ pub const Player = struct {
     spawn_point: math.Vec3,
     regen_timer: f32,
     in_water: bool,
+    water_entry_speed: f32,
     oxygen: f32,
 
     pub fn init(x: f32, y: f32, z: f32) Player {
@@ -30,6 +31,7 @@ pub const Player = struct {
             .spawn_point = math.Vec3.init(x, y, z),
             .regen_timer = 0.0,
             .in_water = false,
+            .water_entry_speed = 0.0,
             .oxygen = 15.0,
         };
     }
@@ -111,7 +113,13 @@ pub const Player = struct {
     pub fn tickPhysics(self: *Player, solid: *const fn (x: i32, y: i32, z: i32) bool, ladder: ?*const fn (x: i32, y: i32, z: i32) bool, fluid: ?*const fn (x: i32, y: i32, z: i32) bool, move_x: f32, move_z: f32, jump: bool, dt: f32) void {
         const clamped_dt = @min(dt, 0.05);
         const on_ladder = if (ladder) |l| isInsideLadder(self.pos, self.radius, self.height, l) else false;
-        self.in_water = if (fluid) |f| isInsideWater(self.pos, self.radius, self.height, f) else false;
+        const now_in_water = if (fluid) |f| isInsideWater(self.pos, self.radius, self.height, f) else false;
+        if (now_in_water and !self.in_water) {
+            self.water_entry_speed = -self.vel_y;
+        } else if (!now_in_water) {
+            self.water_entry_speed = 0.0;
+        }
+        self.in_water = now_in_water;
         const old_x = self.pos.x;
         const old_z = self.pos.z;
 
@@ -522,4 +530,22 @@ test "player water current lateral push" {
     p.tickPhysics(Mock.solid, null, Mock.water, 0.0, 0.0, false, 0.05);
     // Water current should push player towards east (+X)
     try std.testing.expect(p.pos.x > 0.5);
+}
+
+test "player water entry landing impact speed recorded" {
+    var p = Player.init(0.5, 6.0, 0.5);
+    p.vel_y = -10.0;
+    const Mock = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return false; }
+        fn water(_: i32, y: i32, _: i32) bool { return y <= 4; }
+    };
+    try std.testing.expectEqual(@as(f32, 0.0), p.water_entry_speed);
+    // Step 1: falls from 6.0 towards water
+    p.tickPhysics(Mock.solid, null, Mock.water, 0.0, 0.0, false, 0.05);
+    // Continue falling until inside water
+    while (!p.in_water) {
+        p.tickPhysics(Mock.solid, null, Mock.water, 0.0, 0.0, false, 0.05);
+    }
+    try std.testing.expect(p.in_water);
+    try std.testing.expect(p.water_entry_speed > 9.0);
 }

@@ -292,7 +292,14 @@ pub fn main() !void {
             was_eye_underwater = is_underwater;
 
             if (player.in_water != was_in_water) {
-                audio.play(.splash, 0.6);
+                const splash_vol: f32 = if (player.in_water and player.water_entry_speed > 6.0) 0.9 else 0.6;
+                audio.play(.splash, splash_vol);
+                if (player.in_water) {
+                    const splash_count = fluid_mod.calculateSplashParticleCount(player.water_entry_speed);
+                    if (splash_count > 0) {
+                        particles.spawnWaterSplash(.{ player.pos.x, player.pos.y, player.pos.z }, splash_count);
+                    }
+                }
                 was_in_water = player.in_water;
             }
 
@@ -1420,7 +1427,7 @@ pub fn main() !void {
                             _ = try manager.editAndRemesh(f.x, f.y, f.z, .air);
                             f.y -= 1;
                             f.dist += 1;
-                            particles.spawnBlockDebris(f.x, f.y, f.z, .{ 0.2, 0.45, 0.95 }, 8);
+                            particles.spawnWaterSplash(.{ @as(f32, @floatFromInt(f.x)) + 0.5, @as(f32, @floatFromInt(f.y)), @as(f32, @floatFromInt(f.z)) + 0.5 }, 12);
                         },
                         .crush_non_solid => {
                             _ = try manager.editAndRemesh(f.x, f.y - 1, f.z, .sand);

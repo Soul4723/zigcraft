@@ -430,3 +430,20 @@ test "computeWaterCurrent zero in air or uniform water" {
     try std.testing.expect(east_flow[0] > 0.9);
     try std.testing.expectEqual(@as(f32, 0.0), east_flow[1]);
 }
+
+/// Calculate water splash burst count and velocity based on downward impact velocity.
+/// Speed is negative (falling downward) or absolute impact speed.
+pub fn calculateSplashParticleCount(fall_speed: f32) usize {
+    const spd = @abs(fall_speed);
+    if (spd < 2.0) return 0;
+    if (spd < 6.0) return 6;
+    if (spd < 12.0) return 14;
+    return 24;
+}
+
+test "calculateSplashParticleCount tiers" {
+    try std.testing.expectEqual(@as(usize, 0), calculateSplashParticleCount(1.5));
+    try std.testing.expectEqual(@as(usize, 6), calculateSplashParticleCount(-3.0));
+    try std.testing.expectEqual(@as(usize, 14), calculateSplashParticleCount(-8.0));
+    try std.testing.expectEqual(@as(usize, 24), calculateSplashParticleCount(-16.0));
+}
