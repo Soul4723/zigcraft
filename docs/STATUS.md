@@ -27,6 +27,6 @@ Last updated: 2026-10-08 (Session 161)
 - HUD toast warning queue for system notifications (cap overflows, redstone burnout)
 
 ## Active State
-- Main branch stable at commit 62f64f3
-- All tests passing (708/708)
-- Remote branches pruned clean
+- Main branch stable at commit 2d11bd3 (Phase 8: Survival Depth & Environmental Physics, Milestones 43-48)
+- All tests passing (823/823 tests across 81 test steps)
+- Remote and local branches pruned clean
