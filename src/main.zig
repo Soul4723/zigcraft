@@ -288,6 +288,13 @@ pub fn main() !void {
             const drown_dmg = hazard_mod.calculateDrowningDamage(player.oxygen, dt);
             if (drown_dmg > 0.0) {
                 player.health = @max(0.0, player.health - drown_dmg);
+                // Drowning gasp emits bubble burst
+                particles.spawnBubble(.{ eye.x, eye.y, eye.z }, 4);
+            } else if (player.in_water and (norm_wish.x != 0 or norm_wish.z != 0 or jump)) {
+                // Swimming trail bubbles
+                if (@as(u32, @intFromFloat(current_time * 12.0)) % 4 == 0) {
+                    particles.spawnBubble(.{ player.pos.x, player.pos.y + 0.6, player.pos.z }, 1);
+                }
             }
 
             const px_i: i32 = @intFromFloat(@floor(player.pos.x));
