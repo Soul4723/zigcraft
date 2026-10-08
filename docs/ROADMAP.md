@@ -63,5 +63,5 @@ Rough priority order. Completed milestones marked **[x]**.
 38. [x] **Fluid Interactions** — Flowing water washes away floor redstone, torches, repeaters into drops (#92, #93, #94, #97, #98)
 39. [x] **Player Suffocation Damage** — Damage tick when player head/eyes are buried inside solid blocks (#100)
 40. [x] **Environmental Hazards** — Cactus contact damage, campfire burn damage (#104-#107)
-41. [~] **Water Flow Simulation** — Finite levels with lateral decay, film drainage, persistence v2, and shallow-water mesh heights (#150, #151). Remaining: pressure/volume model beyond extent bounding.
-42. [~] **Hostile Mob Spawning & Pathfinding** — Cave wolf spawns (#153), water avoidance steering (#152), unified spawn safety (#149). Remaining: full A* pathfinding.
+41. [x] **Water Flow Simulation** — Finite levels with lateral decay, film drainage, persistence v2, shallow-water mesh heights, and non-source depletion (#150, #155, #157).
+42. [x] **Hostile Mob Spawning & Pathfinding** — Cave wolf spawns (#153), water avoidance steering (#152), unified spawn safety (#149), and bounded A* obstacle pathfinding (#158).
