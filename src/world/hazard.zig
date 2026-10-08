@@ -53,7 +53,7 @@ pub fn checkLavaHazard(block: BlockId) bool {
 }
 
 pub fn checkBurnContact(block: BlockId) bool {
-    return block == .campfire or block == .tnt;
+    return block == .campfire or block == .tnt or block == .magma;
 }
 
 pub fn checkCactusContact(is_block_at_fn: *const fn (x: i32, y: i32, z: i32) BlockId, px: i32, py: i32, pz: i32) bool {

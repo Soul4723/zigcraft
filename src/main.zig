@@ -290,8 +290,9 @@ pub fn main() !void {
         const floor_blk = manager.getBlockWorld(f_px, f_py, f_pz);
         player.on_soulsand = (floor_blk == .soul_sand);
 
-        // Detect bubble column: water cell with soul sand underneath
+        // Detect bubble column: water cell with soul sand (upward) or magma (downward whirlpool) underneath
         var in_bubble_col = false;
+        var in_whirl = false;
         if (manager.getBlockWorld(f_px, @intFromFloat(@floor(player.pos.y)), f_pz) == .water) {
             var by = @as(i32, @intFromFloat(@floor(player.pos.y)));
             while (by >= 0) : (by -= 1) {
@@ -299,14 +300,20 @@ pub fn main() !void {
                 if (b_sub == .soul_sand) {
                     in_bubble_col = true;
                     break;
+                } else if (b_sub == .magma) {
+                    in_whirl = true;
+                    break;
                 } else if (b_sub != .water) {
                     break;
                 }
             }
         }
         player.in_bubble_column = in_bubble_col;
+        player.in_whirlpool = in_whirl;
         if (player.in_bubble_column) {
             particles.spawnBubble(.{ player.pos.x, player.pos.y + 0.3, player.pos.z }, 3);
+        } else if (player.in_whirlpool) {
+            particles.spawnBubble(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 4);
         }
 
         player.tickPhysics(&pickSolid, &pickLadder, &pickFluid, norm_wish.x * walk_speed * dt, norm_wish.z * walk_speed * dt, jump, dt);

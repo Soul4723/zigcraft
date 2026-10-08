@@ -19,6 +19,7 @@ pub const Player = struct {
     oxygen: f32,
     on_soulsand: bool = false,
     in_bubble_column: bool = false,
+    in_whirlpool: bool = false,
 
     pub fn init(x: f32, y: f32, z: f32) Player {
         return .{
@@ -112,6 +113,7 @@ pub const Player = struct {
     pub const water_horizontal_speed_scale: f32 = 0.65;
     pub const soulsand_horizontal_speed_scale: f32 = 0.40; // Soul sand slow drag
     pub const bubble_column_lift_speed: f32 = 6.5; // Upward bubble elevator surge
+    pub const whirlpool_pull_speed: f32 = -7.0; // Downward magma whirlpool pull
     pub const water_sink_speed: f32 = -2.5;
     pub const water_current_push_speed: f32 = 1.4;
     pub const water_swim_speed: f32 = 3.5;
@@ -175,7 +177,10 @@ pub const Player = struct {
         } else if (self.in_water) {
             // Water: vertical drag dampens falls; holding jump swims up; otherwise sinks slowly
             self.vel_y *= @max(0.0, 1.0 - water_drag_rate * clamped_dt);
-            if (self.in_bubble_column) {
+            if (self.in_whirlpool) {
+                // Downward magma whirlpool drags player down to seafloor
+                self.vel_y = @min(self.vel_y, whirlpool_pull_speed);
+            } else if (self.in_bubble_column) {
                 // Upward bubble column surge pushes player rapidly to surface
                 self.vel_y = @max(self.vel_y, bubble_column_lift_speed);
                 self.on_ground = false;
@@ -616,4 +621,17 @@ test "player soul sand bubble column upward surge" {
     try std.testing.expect(p.in_water);
     // Bubble column propels player upwards >= 6.5 m/s
     try std.testing.expect(p.vel_y >= 6.0);
+}
+
+test "player magma whirlpool downward drag" {
+    var p = Player.init(0.5, 5.0, 0.5);
+    p.in_whirlpool = true;
+    const Mock = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return false; }
+        fn water(_: i32, _: i32, _: i32) bool { return true; }
+    };
+    p.tickPhysics(Mock.solid, null, Mock.water, 0.0, 0.0, false, 0.05);
+    try std.testing.expect(p.in_water);
+    // Whirlpool pulls player downwards <= -7.0 m/s
+    try std.testing.expect(p.vel_y <= -6.5);
 }

@@ -48,6 +48,7 @@ pub const BlockId = enum(u8) {
     nether_portal = 43,
     netherrack = 44,
     soul_sand = 45,
+    magma = 46,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal;
@@ -85,6 +86,7 @@ pub const BlockId = enum(u8) {
             .repeater_on => 0.6,
             .lava => 1.0,
             .nether_portal => 0.85,
+            .magma => 0.7,
             else => 0.0,
         };
     }
@@ -161,6 +163,7 @@ pub const BlockId = enum(u8) {
             .nether_portal => .{ .x = 2, .y = 6 }, // Ethereal purple portal vortex tile
             .netherrack => .{ .x = 3, .y = 3 }, // Craggy crimson nether stone
             .soul_sand => .{ .x = 2, .y = 1 }, // Dark gritty soul sediment
+            .magma => .{ .x = 4, .y = 2 }, // Scorched glowing obsidian fissures
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -223,6 +226,7 @@ pub fn hardness(block: BlockId) f32 {
         .nether_portal => 0.0,
         .netherrack => 0.4,
         .soul_sand => 0.5,
+        .magma => 0.5,
     };
 }
 
@@ -310,6 +314,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .nether_portal = .{ .name = "nether_portal", .solid = false, .transparent = true, .fluid = false },
     .netherrack = .{ .name = "netherrack", .solid = true, .transparent = false, .fluid = false },
     .soul_sand = .{ .name = "soul_sand", .solid = true, .transparent = false, .fluid = false },
+    .magma = .{ .name = "magma", .solid = true, .transparent = false, .fluid = false },
 });
 
 test "block is_solid" {
