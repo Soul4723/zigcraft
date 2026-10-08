@@ -42,6 +42,7 @@ pub fn build(b: *std.Build) void {
     // Modules that can be tested in isolation (root at src/ or self-contained)
     const test_files = [_][]const u8{
         "src/world/block.zig",
+        "src/world/portal.zig",
         "src/world/hazard.zig",
         "src/world/falling_blocks.zig",
         "src/world/fluid_wash.zig",

@@ -12,6 +12,7 @@ const cache_mod = @import("world/component_cache.zig");
 const fluid_mod = @import("world/fluid_wash.zig");
 const falling_mod = @import("world/falling_blocks.zig");
 const hazard_mod = @import("world/hazard.zig");
+const portal_mod = @import("world/portal.zig");
 const std = @import("std");
 const c = @cImport({
     @cDefine("GL_GLEXT_PROTOTYPES", "1");
@@ -213,6 +214,7 @@ pub fn main() !void {
     var sand_scan: u8 = 0;
     var flow_timer: f32 = 0.0;
     var lava_ambient_timer: f32 = 0.0;
+    var portal_ambient_timer: f32 = 0.0;
     var chunk_retry_timer: f32 = 0.0;
     var world_time: f32 = 45.0; // Start at morning daylight
     var last_step_dist: f32 = 0.0;
@@ -374,6 +376,24 @@ pub fn main() !void {
                         const snd_type: audio_mod.synth.SoundType = if ((l_seed & 1) == 0) .lava_pop else .lava_bubble;
                         audio.playAt(snd_type, l_pos, .{ player.pos.x, player.pos.y, player.pos.z }, 0.7, 16.0);
                     }
+                }
+            }
+
+            // Periodic ambient nether portal hum and particle swirl around player
+            portal_ambient_timer += dt;
+            if (portal_ambient_timer >= 0.3) {
+                portal_ambient_timer = 0.0;
+                const p_seed = @as(u32, @intFromFloat(current_time * 80.0)) ^ @as(u32, @bitCast(px_i *% 19 +% pz_i));
+                const p_dx: i32 = @as(i32, @intCast(p_seed % 17)) - 8;
+                const p_dz: i32 = @as(i32, @intCast((p_seed / 17) % 17)) - 8;
+                const p_dy: i32 = @as(i32, @intCast((p_seed / 289) % 9)) - 4;
+                const pox = px_i + p_dx;
+                const poy = py_i + p_dy;
+                const poz = pz_i + p_dz;
+                if (manager.getBlockWorld(pox, poy, poz) == .nether_portal) {
+                    const po_pos = [3]f32{ @as(f32, @floatFromInt(pox)) + 0.5, @as(f32, @floatFromInt(poy)) + 0.5, @as(f32, @floatFromInt(poz)) + 0.5 };
+                    particles.spawnPortalParticles(po_pos, 4);
+                    audio.playAt(.portal_hum, po_pos, .{ player.pos.x, player.pos.y, player.pos.z }, 0.75, 18.0);
                 }
             }
         }
@@ -1864,6 +1884,41 @@ pub fn main() !void {
                         }
                     }
                     if (fed) audio.play(.place_block, 0.6);
+                    flint_cooldown = interact_mod.flint_edge_cooldown;
+                } else
+                if (target == .obsidian) {
+                    // Check if adjacent open face is inside a valid 2x3 nether portal frame
+                    const adj_inside = [_][3]i32{
+                        .{ hit_f.x, hit_f.y + 1, hit_f.z },
+                        .{ hit_f.x + 1, hit_f.y, hit_f.z },
+                        .{ hit_f.x - 1, hit_f.y, hit_f.z },
+                        .{ hit_f.x, hit_f.y, hit_f.z + 1 },
+                        .{ hit_f.x, hit_f.y, hit_f.z - 1 },
+                    };
+                    var activated = false;
+                    for (adj_inside) |cpos| {
+                        if (portal_mod.detectPortalFrame(&pickBlockWorld, cpos[0], cpos[1], cpos[2])) |frame| {
+                            var h: i32 = 0;
+                            while (h < frame.height) : (h += 1) {
+                                var w: i32 = 0;
+                                while (w < frame.width) : (w += 1) {
+                                    const cx = if (frame.axis == .x_axis) frame.interior_min_x + w else frame.interior_min_x;
+                                    const cy = frame.interior_min_y + h;
+                                    const cz = if (frame.axis == .z_axis) frame.interior_min_z + w else frame.interior_min_z;
+                                    _ = try manager.editAndRemesh(cx, cy, cz, .nether_portal);
+                                    particles.spawnPortalParticles(.{ @as(f32, @floatFromInt(cx)) + 0.5, @as(f32, @floatFromInt(cy)) + 0.5, @as(f32, @floatFromInt(cz)) + 0.5 }, 5);
+                                }
+                            }
+                            audio.play(.portal_hum, 0.9);
+                            std.debug.print("activated nether portal frame ({d}x{d}) at ({d},{d},{d})\n", .{ frame.width, frame.height, frame.interior_min_x, frame.interior_min_y, frame.interior_min_z });
+                            activated = true;
+                            break;
+                        }
+                    }
+                    if (!activated) {
+                        particles.spawnFlame(hit_f.x, hit_f.y, hit_f.z, 4);
+                        audio.play(.click_on, 0.5);
+                    }
                     flint_cooldown = interact_mod.flint_edge_cooldown;
                 } else
                 if (target.isFlammable()) {

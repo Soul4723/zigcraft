@@ -316,6 +316,40 @@ pub const ParticleSystem = struct {
         }
     }
 
+    /// Spawn mystical swirling purple portal particles inside a portal frame
+    pub fn spawnPortalParticles(self: *ParticleSystem, pos: [3]f32, count: usize) void {
+        var i: usize = 0;
+        var seed: u32 = @as(u32, @bitCast(@as(i32, @intFromFloat(pos[0] * 32.0)))) *% 37 +%
+            @as(u32, @bitCast(@as(i32, @intFromFloat(pos[1] * 32.0)))) *% 29 +%
+            @as(u32, @bitCast(@as(i32, @intFromFloat(pos[2] * 32.0)))) *% 17 +%
+            @as(u32, @intCast(self.count));
+        while (i < count and self.count < MAX_PARTICLES) : (i += 1) {
+            seed = seed *% 1103515245 +% 12345;
+            const rx = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            seed = seed *% 1103515245 +% 12345;
+            const ry = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            seed = seed *% 1103515245 +% 12345;
+            const rz = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+
+            // Vibrant ethereal purple / magenta hue
+            const col = [3]f32{ 0.7 + 0.25 * rx, 0.15 + 0.1 * ry, 0.9 + 0.1 * rz };
+
+            self.particles[self.count] = .{
+                .x = pos[0] + (rx - 0.5) * 0.8,
+                .y = pos[1] + (ry - 0.5) * 1.2,
+                .z = pos[2] + (rz - 0.5) * 0.8,
+                .vx = (rx - 0.5) * 0.5,
+                .vy = (ry - 0.3) * 0.8,
+                .vz = (rz - 0.5) * 0.5,
+                .life = 0.6 + 0.4 * ry,
+                .max_life = 0.6 + 0.4 * ry,
+                .color = col,
+                .size = 0.05 + 0.03 * rx,
+            };
+            self.count += 1;
+        }
+    }
+
     pub fn tick(self: *ParticleSystem, dt: f32) void {
         var i: usize = 0;
         const gravity: f32 = 18.0;
@@ -332,11 +366,15 @@ pub const ParticleSystem = struct {
             const is_bubble = (p.color[0] > 0.6 and p.color[1] > 0.8 and p.color[2] > 0.9);
             const is_ember = (p.color[0] > 0.9 and p.color[2] < 0.2); // Fiery orange/yellow
             const is_smoke = (p.color[0] < 0.35 and p.color[1] < 0.35 and p.color[2] < 0.35); // Dark smoke
+            const is_portal = (p.color[0] > 0.6 and p.color[1] < 0.3 and p.color[2] > 0.8); // Purple ethereal
             if (is_bubble) {
                 p.vy = @min(1.5, p.vy + 1.0 * dt);
             } else if (is_ember or is_smoke) {
                 // Thermal lift: rising gently
                 p.vy = @max(0.2, p.vy - 3.0 * dt);
+            } else if (is_portal) {
+                // Weightless swirling drift
+                p.vy = p.vy * 0.98;
             } else {
                 p.vy -= gravity * dt;
             }
@@ -551,6 +589,27 @@ test "spawnLavaEmber rising embers and smoke coloring" {
     ps.tick(0.1);
     try std.testing.expect(ps.particles[0].y > initial_y);
     // Expire after 1.5s
+    ps.tick(1.5);
+    try std.testing.expectEqual(ps.count, 0);
+}
+
+test "spawnPortalParticles purple color and weightless drift" {
+    var ps = ParticleSystem{
+        .particles = undefined,
+        .count = 0,
+        .vao = 0,
+        .vbo = 0,
+        .program = 0,
+    };
+    ps.spawnPortalParticles(.{ 10.0, 5.0, 20.0 }, 4);
+    try std.testing.expectEqual(ps.count, 4);
+    // Purple color: high red & blue, low green
+    try std.testing.expect(ps.particles[0].color[0] >= 0.6);
+    try std.testing.expect(ps.particles[0].color[1] <= 0.3);
+    try std.testing.expect(ps.particles[0].color[2] >= 0.8);
+
+    ps.tick(0.1);
+    try std.testing.expectEqual(ps.count, 4);
     ps.tick(1.5);
     try std.testing.expectEqual(ps.count, 0);
 }

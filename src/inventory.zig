@@ -128,6 +128,7 @@ pub const ItemType = enum(u8) {
             .cactus => .cactus,
             .lava => .lava_bucket,
             .obsidian => .obsidian,
+            .nether_portal => .none,
         };
     }
 

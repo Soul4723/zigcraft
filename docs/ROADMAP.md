@@ -82,3 +82,4 @@ Rough priority order. Completed milestones marked **[x]**.
 54. [x] **Boat Wake & Bow Spray Particles** — Foaming lateral wake spread and forward spray particles when cruising in wooden boat (#172).
 55. [x] **Lava Mechanics & Obsidian Reactions** — Lava liquid fluid, high heat burn damage (8 hp/s), glowing emissive light, and water-lava contact crystallization into obsidian/cobblestone (#173).
 56. [x] **Lava Bubbling Audio & Smoke Ember Particles** — Synthesized lava pop/bubble sounds with 3D spatial attenuation, rising fiery embers and dark smoke particles (#174).
+57. [x] **Nether Portal Frame Detection & Activation** — 2x3 obsidian frame detection (along X or Z axis), flint ignition activation, portal block rendering, ambient choir drone hum, and ethereal purple swirling particles (#175).

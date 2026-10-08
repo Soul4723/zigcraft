@@ -45,9 +45,10 @@ pub const BlockId = enum(u8) {
     campfire = 40,
     lava = 41,
     obsidian = 42,
+    nether_portal = 43,
 
     pub fn is_solid(self: BlockId) bool {
-        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire;
+        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal;
     }
 
     pub fn is_campfire(self: BlockId) bool {
@@ -67,7 +68,7 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_transparent(self: BlockId) bool {
-        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on;
+        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal;
     }
 
     /// 0.0 = lit by sun only. 1.0 = full glow even at midnight.
@@ -81,6 +82,7 @@ pub const BlockId = enum(u8) {
             .redstone_wire_on => 0.7,
             .repeater_on => 0.6,
             .lava => 1.0,
+            .nether_portal => 0.85,
             else => 0.0,
         };
     }
@@ -154,6 +156,7 @@ pub const BlockId = enum(u8) {
             .campfire => .{ .x = 4, .y = 3 },
             .lava => .{ .x = 5, .y = 3 },
             .obsidian => .{ .x = 1, .y = 2 },
+            .nether_portal => .{ .x = 2, .y = 6 }, // Ethereal purple portal vortex tile
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -213,6 +216,7 @@ pub fn hardness(block: BlockId) f32 {
         .campfire => 1.0,
         .lava => 0.0,
         .obsidian => 15.0,
+        .nether_portal => 0.0,
     };
 }
 
@@ -297,6 +301,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .brick = .{ .name = "brick", .solid = true, .transparent = false, .fluid = false },
     .lava = .{ .name = "lava", .solid = false, .transparent = true, .fluid = true },
     .obsidian = .{ .name = "obsidian", .solid = true, .transparent = false, .fluid = false },
+    .nether_portal = .{ .name = "nether_portal", .solid = false, .transparent = true, .fluid = false },
 });
 
 test "block is_solid" {

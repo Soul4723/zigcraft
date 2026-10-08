@@ -22,6 +22,7 @@ pub const SoundType = enum {
     underwater_submerge,
     lava_pop,
     lava_bubble,
+    portal_hum,
 };
 
 pub const SAMPLE_RATE: u32 = 44100;
@@ -85,6 +86,7 @@ pub const AudioMixer = struct {
             .underwater_submerge => SAMPLE_RATE / 3, // ~330ms deep water plunge
             .lava_pop => SAMPLE_RATE / 10, // ~100ms quick fiery pop/snap
             .lava_bubble => SAMPLE_RATE / 4, // ~250ms low simmering bubbling hiss
+            .portal_hum => SAMPLE_RATE / 2, // ~500ms mystical otherworldly choir drone
         };
 
         slot.?.* = .{
@@ -310,6 +312,17 @@ pub const AudioMixer = struct {
                 const hiss = (rng.random().float(f32) * 2.0 - 1.0) * 0.25 * @sin(progress * std.math.pi);
                 return (tone + hiss) * envelope * 0.65;
             },
+            .portal_hum => {
+                // Nether portal hum: resonant dual-frequency choir drone (~146Hz / 220Hz) with eerie tremolo
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const tremolo = 0.7 + 0.3 * @sin(t * 18.0);
+                const p1 = t * 146.83 * 2.0 * std.math.pi; // D3 fundamental
+                const p2 = t * 220.00 * 2.0 * std.math.pi; // A3 harmonic fifth
+                const p3 = t * 293.66 * 2.0 * std.math.pi; // D4 octave
+                const tone = (@sin(p1) * 0.6 + @sin(p2) * 0.3 + @sin(p3) * 0.15) * tremolo;
+                const ether_whisper = (rng.random().float(f32) * 2.0 - 1.0) * 0.1 * @sin(progress * std.math.pi);
+                return (tone + ether_whisper) * @sin(progress * std.math.pi) * 0.6;
+            },
         }
     }
 };
@@ -341,7 +354,7 @@ test "AudioMixer play voice produces non-zero samples" {
 
 test "AudioMixer all sound types render without overflow or crash" {
     var mixer = AudioMixer.init();
-    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble };
+    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum };
     for (sounds) |snd| {
         mixer.play(snd, 1.0);
     }
