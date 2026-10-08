@@ -154,7 +154,7 @@ pub const MobManager = struct {
                     const dz = mob.pos.z - player_pos.z;
                     if (dx * dx + dy * dy + dz * dz < 25.0 * 25.0) {
                         const sound: audio_mod.synth.SoundType = mob_mod.getSound(mob.mob_type) orelse .mob_baa;
-                        a.play(sound, 0.45);
+                        a.playAt(sound, .{ mob.pos.x, mob.pos.y, mob.pos.z }, .{ player_pos.x, player_pos.y, player_pos.z }, 0.6, 25.0);
                         break;
                     }
                 }

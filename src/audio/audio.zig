@@ -59,6 +59,27 @@ pub const AudioSystem = struct {
         self.enabled = false;
     }
 
+
+    /// Calculate distance-based volume attenuation factor [0.0, 1.0].
+    /// Linear rolloff from min_dist (full volume) to max_dist (silent).
+    pub fn calculateAttenuation(distance: f32, min_dist: f32, max_dist: f32) f32 {
+        if (distance <= min_dist) return 1.0;
+        if (distance >= max_dist) return 0.0;
+        return (max_dist - distance) / (max_dist - min_dist);
+    }
+
+    /// Play a sound positioned in 3D world space relative to listener.
+    pub fn playAt(self: *AudioSystem, sound: synth.SoundType, sound_pos: [3]f32, listener_pos: [3]f32, base_volume: f32, max_dist: f32) void {
+        const dx = sound_pos[0] - listener_pos[0];
+        const dy = sound_pos[1] - listener_pos[1];
+        const dz = sound_pos[2] - listener_pos[2];
+        const dist = @sqrt(dx * dx + dy * dy + dz * dz);
+        const atten = calculateAttenuation(dist, 2.0, max_dist);
+        if (atten > 0.01) {
+            self.play(sound, base_volume * atten);
+        }
+    }
+
     pub fn play(self: *AudioSystem, sound: synth.SoundType, volume: f32) void {
         self.mixer.play(sound, volume);
     }
@@ -99,4 +120,40 @@ test "AudioSystem struct can be instantiated safely with mock or real device" {
     sys.play(.step_grass, 0.5);
     sys.update();
     try std.testing.expect(!sys.enabled);
+}
+
+test "sound attenuation calculations and rolloff" {
+    // Within min_dist -> full volume factor
+    try std.testing.expectEqual(@as(f32, 1.0), AudioSystem.calculateAttenuation(1.0, 2.0, 16.0));
+    try std.testing.expectEqual(@as(f32, 1.0), AudioSystem.calculateAttenuation(2.0, 2.0, 16.0));
+
+    // Beyond max_dist -> zero volume factor
+    try std.testing.expectEqual(@as(f32, 0.0), AudioSystem.calculateAttenuation(16.0, 2.0, 16.0));
+    try std.testing.expectEqual(@as(f32, 0.0), AudioSystem.calculateAttenuation(25.0, 2.0, 16.0));
+
+    // Halfway between 2.0 and 16.0 (dist=9.0) -> 0.5 factor
+    try std.testing.expectApproxEqAbs(@as(f32, 0.5), AudioSystem.calculateAttenuation(9.0, 2.0, 16.0), 0.001);
+}
+
+test "AudioSystem playAt attenuates sound volume" {
+    var sys = AudioSystem{
+        .pcm_handle = null,
+        .mixer = synth.AudioMixer.init(),
+        .enabled = false,
+        .buffer = undefined,
+    };
+    // Close sound: should activate voice with high volume
+    sys.playAt(.mob_baa, .{ 1.0, 0.0, 0.0 }, .{ 0.0, 0.0, 0.0 }, 1.0, 16.0);
+    try std.testing.expect(sys.mixer.voices[0].active);
+    try std.testing.expectEqual(@as(f32, 1.0), sys.mixer.voices[0].volume);
+
+    // Distant sound (>16m away): should be ignored/silent
+    var sys2 = AudioSystem{
+        .pcm_handle = null,
+        .mixer = synth.AudioMixer.init(),
+        .enabled = false,
+        .buffer = undefined,
+    };
+    sys2.playAt(.mob_baa, .{ 30.0, 0.0, 0.0 }, .{ 0.0, 0.0, 0.0 }, 1.0, 16.0);
+    try std.testing.expect(!sys2.mixer.voices[0].active);
 }

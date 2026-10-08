@@ -75,3 +75,4 @@ Rough priority order. Completed milestones marked **[x]**.
 47. [x] **Underwater Submersion Audio & Splash Sounds** — Synthesized splash on water entry/exit and resonant submerge plunge thud (#163).
 48. [x] **Water Current Push Physics** — Lateral current velocity pushing players and mobs towards downstream open edges (#164).
 49. [x] **Water Splash Particle Bursts** — Upward velocity-scaled droplet spray on water entry and falling block splash (#167).
+50. [x] **Spatial Audio Distance Attenuation** — 3D positioned audio rolloff for mob calls, plate triggers, and distant explosions (#168).

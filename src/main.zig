@@ -516,7 +516,7 @@ pub fn main() !void {
                     .trigger => {
                         pl.down = true;
                         _ = try manager.editAndRemesh(pl.x, pl.y, pl.z, .pressure_plate_down);
-                        audio.play(.click_on, 0.85);
+                        audio.playAt(.click_on, .{ @as(f32, @floatFromInt(pl.x)) + 0.5, @as(f32, @floatFromInt(pl.y)) + 0.1, @as(f32, @floatFromInt(pl.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.85, 20.0);
                         for (cache_mod.plate_door_offsets) |off| {
                             const dx = pl.x + off[0];
                             const dy = pl.y + off[1];
@@ -531,7 +531,7 @@ pub fn main() !void {
                     .release => {
                         pl.down = false;
                         _ = try manager.editAndRemesh(pl.x, pl.y, pl.z, .pressure_plate_up);
-                        audio.play(.click_off, 0.7);
+                        audio.playAt(.click_off, .{ @as(f32, @floatFromInt(pl.x)) + 0.5, @as(f32, @floatFromInt(pl.y)) + 0.1, @as(f32, @floatFromInt(pl.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.7, 20.0);
                         for (cache_mod.plate_door_offsets) |off| {
                             const dx = pl.x + off[0];
                             const dy = pl.y + off[1];
@@ -1209,7 +1209,7 @@ pub fn main() !void {
                         }
                     }
                     if (entity_mod.mob.getSound(hit_mob.mob_type)) |hit_sound| {
-                        audio.play(hit_sound, 0.8);
+                        audio.playAt(hit_sound, .{ hit_mob.pos.x, hit_mob.pos.y, hit_mob.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
                     }
                     const px: i32 = @intFromFloat(@floor(hit_mob.pos.x));
                     const py: i32 = @intFromFloat(@floor(hit_mob.pos.y));
@@ -1610,7 +1610,7 @@ pub fn main() !void {
                             }
                         }
                     }
-                    audio.play(.break_block, 1.0);
+                    audio.playAt(.break_block, .{ @as(f32, @floatFromInt(ex)) + 0.5, @as(f32, @floatFromInt(ey)) + 0.5, @as(f32, @floatFromInt(ez)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 40.0);
                     particles.spawnBlockDebris(ex, ey, ez, .{ 1.0, 0.3, 0.1 }, 64);
                     // mob blast damage
                     for (mob_manager.mobs.items, 0..) |*m, mi| {
