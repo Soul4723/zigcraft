@@ -205,6 +205,31 @@ pub const ChunkManager = struct {
         return entry.chunk.getBlock(lx, @intCast(y), lz);
     }
 
+    /// Water level 0..7 at world coords; 0 outside loaded chunks or for non-water.
+    pub fn getWaterLevel(self: *const ChunkManager, x: i32, y: i32, z: i32) u4 {
+        if (y < 0 or y >= 16) return 0;
+        const cx = @divFloor(x, 16);
+        const cz = @divFloor(z, 16);
+        const entry = self.chunks.get(.{ .x = cx, .z = cz }) orelse return 0;
+        const lx: u4 = @intCast(@mod(x, 16));
+        const lz: u4 = @intCast(@mod(z, 16));
+        return entry.chunk.getLevel(lx, @intCast(y), lz);
+    }
+
+    /// Set water level; false if chunk not loaded or cell is not water.
+    pub fn setWaterLevel(self: *ChunkManager, x: i32, y: i32, z: i32, level: u4) bool {
+        if (y < 0 or y >= 16) return false;
+        const cx = @divFloor(x, 16);
+        const cz = @divFloor(z, 16);
+        const entry = self.chunks.getPtr(.{ .x = cx, .z = cz }) orelse return false;
+        const lx: u4 = @intCast(@mod(x, 16));
+        const lz: u4 = @intCast(@mod(z, 16));
+        if (entry.chunk.getBlock(lx, @intCast(y), lz) != .water) return false;
+        entry.chunk.setLevel(lx, @intCast(y), lz, level);
+        entry.modified = true;
+        return true;
+    }
+
     /// Set block in loaded chunk. Returns false if chunk not loaded or y out of range.
     pub fn setBlockWorld(self: *ChunkManager, x: i32, y: i32, z: i32, block: block_mod.BlockId) bool {
         if (y < 0 or y >= 16) return false;

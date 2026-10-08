@@ -11,7 +11,8 @@ const c = @cImport({
 });
 
 pub const MAGIC = [4]u8{ 'Z', 'C', 'H', 'K' };
-pub const VERSION: u32 = 1;
+pub const VERSION: u32 = 2;
+pub const VERSION_LEVELS: u32 = 2;
 
 pub const ChunkHeader = extern struct {
     magic: [4]u8,
@@ -47,11 +48,28 @@ pub const Persistence = struct {
         if (c.fread(&header, 1, @sizeOf(ChunkHeader), f) != @sizeOf(ChunkHeader)) return false;
 
         if (!std.mem.eql(u8, &header.magic, &MAGIC)) return false;
-        if (header.version != VERSION) return false;
+        if (header.version != 1 and header.version != VERSION) return false;
         if (header.cx != cx or header.cz != cz) return false;
 
         const payload_size = @sizeOf(@TypeOf(out_chunk.blocks));
         if (c.fread(&out_chunk.blocks, 1, payload_size, f) != payload_size) return false;
+
+        // v1 files have no level payload: treat all water as full sources.
+        if (header.version == 1) {
+            var y: usize = 0;
+            while (y < 16) : (y += 1) {
+                var z: usize = 0;
+                while (z < 16) : (z += 1) {
+                    var x: usize = 0;
+                    while (x < 16) : (x += 1) {
+                        out_chunk.levels[y][z][x] = if (out_chunk.blocks[y][z][x] == .water) 7 else 0;
+                    }
+                }
+            }
+            return true;
+        }
+        const level_size = @sizeOf(@TypeOf(out_chunk.levels));
+        if (c.fread(&out_chunk.levels, 1, level_size, f) != level_size) return false;
 
         return true;
     }
@@ -118,7 +136,7 @@ pub const Persistence = struct {
             .cz = cz,
         };
 
-        return writeAtomic(file_path, &.{ std.mem.asBytes(&header), std.mem.asBytes(&chunk.blocks) });
+        return writeAtomic(file_path, &.{ std.mem.asBytes(&header), std.mem.asBytes(&chunk.blocks), std.mem.asBytes(&chunk.levels) });
     }
 };
 

@@ -32,6 +32,25 @@ test "save and load roundtrip" {
     try std.testing.expect(!found);
 }
 
+test "water levels persist roundtrip" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var path_buf: [256:0]u8 = undefined;
+    const test_dir = try std.fmt.bufPrintZ(&path_buf, ".zig-cache/tmp/{s}", .{tmp.sub_path});
+    const pp = Persistence.init(test_dir);
+    var src = Chunk.init();
+    src.setBlock(1, 1, 1, .water);
+    src.setLevel(1, 1, 1, 7);
+    src.setBlock(2, 2, 2, .water);
+    src.setLevel(2, 2, 2, 3);
+    try std.testing.expect(pp.saveChunk(4, 5, &src));
+    var dst = Chunk.init();
+    try std.testing.expect(pp.loadChunk(4, 5, &dst));
+    try std.testing.expectEqual(@as(u4, 7), dst.getLevel(1, 1, 1));
+    try std.testing.expectEqual(@as(u4, 3), dst.getLevel(2, 2, 2));
+    try std.testing.expectEqual(@as(u4, 0), dst.getLevel(0, 0, 0));
+}
+
 test "repeater stages sidecar roundtrip" {
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();

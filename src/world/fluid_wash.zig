@@ -58,11 +58,16 @@ const Cell = struct { x: i32, y: i32, z: i32 };
 const max_edits = 8;
 
 /// Advance nearby water once, reading all candidates before applying edits.
-/// World provides getBlockWorld and editAndRemesh; edit failures propagate.
-// ponytail: copied water remains a source; finite levels and drainage need persisted fluid metadata.
+/// World provides getBlockWorld, getWaterLevel, setWaterLevel, and editAndRemesh;
+/// edit failures propagate.
+///
+/// Levels bound lateral spread: downward flow keeps the source level, lateral
+/// flow decrements by one, and level-0 films evaporate instead of spreading.
 pub fn step(world: anytype, center: [3]i32) !usize {
-    var edits: [max_edits]Cell = undefined;
+    var edits: [max_edits]FlowEdit = undefined;
     var count: usize = 0;
+    var drains: [max_edits]Cell = undefined;
+    var drain_count: usize = 0;
     var x = center[0] - max_spread;
     while (x <= center[0] + max_spread and count < edits.len) : (x += 1) {
         var z = center[2] - max_spread;
@@ -70,23 +75,34 @@ pub fn step(world: anytype, center: [3]i32) !usize {
             var y = @min(center[1] + 2, 15);
             while (y >= @max(center[1] - 3, 0) and count < edits.len) : (y -= 1) {
                 if (world.getBlockWorld(x, y, z) != .water) continue;
+                const level: u4 = world.getWaterLevel(x, y, z);
                 if (y > 0 and shouldFlowDown(world.getBlockWorld(x, y - 1, z))) {
-                    queue(&edits, &count, .{ .x = x, .y = y - 1, .z = z });
+                    queueLevel(&edits, &count, .{ .x = x, .y = y - 1, .z = z }, level);
+                    continue;
+                }
+                if (level == 0) {
+                    queueDrain(&drains, &drain_count, .{ .x = x, .y = y, .z = z });
                     continue;
                 }
                 for (flow_dirs) |dir| {
                     const nx = x + dir.dx;
                     const nz = z + dir.dz;
                     if (canFlowInto(world.getBlockWorld(nx, y, nz))) {
-                        queue(&edits, &count, .{ .x = nx, .y = y, .z = nz });
+                        queueLevel(&edits, &count, .{ .x = nx, .y = y, .z = nz }, level - 1);
                     }
                 }
             }
         }
     }
     var changed: usize = 0;
-    for (edits[0..count]) |cell| {
-        if (try world.editAndRemesh(cell.x, cell.y, cell.z, .water)) changed += 1;
+    for (edits[0..count]) |edit| {
+        if (try world.editAndRemesh(edit.cell.x, edit.cell.y, edit.cell.z, .water)) {
+            _ = world.setWaterLevel(edit.cell.x, edit.cell.y, edit.cell.z, edit.level);
+            changed += 1;
+        }
+    }
+    for (drains[0..drain_count]) |cell| {
+        if (try world.editAndRemesh(cell.x, cell.y, cell.z, .air)) changed += 1;
     }
     return changed;
 }
@@ -100,8 +116,24 @@ fn queue(edits: *[max_edits]Cell, count: *usize, cell: Cell) void {
     count.* += 1;
 }
 
+const FlowEdit = struct { cell: Cell, level: u4 };
+
+fn queueLevel(edits: *[max_edits]FlowEdit, count: *usize, cell: Cell, level: u4) void {
+    if (count.* == edits.len) return;
+    for (edits[0..count.*]) |old| {
+        if (std.meta.eql(old.cell, cell)) return;
+    }
+    edits[count.*] = .{ .cell = cell, .level = level };
+    count.* += 1;
+}
+
+fn queueDrain(drains: *[max_edits]Cell, count: *usize, cell: Cell) void {
+    queue(drains, count, cell);
+}
+
 const TestWorld = struct {
     blocks: [5][5][5]BlockId = @splat(@splat(@splat(.stone))),
+    levels: [5][5][5]u4 = @splat(@splat(@splat(0))),
     fail: bool = false,
     reject: bool = false,
 
@@ -110,19 +142,38 @@ const TestWorld = struct {
         return self.blocks[@intCast(y)][@intCast(z)][@intCast(x)];
     }
 
+    pub fn getWaterLevel(self: *const TestWorld, x: i32, y: i32, z: i32) u4 {
+        if (x < 0 or x >= 5 or y < 0 or y >= 5 or z < 0 or z >= 5) return 0;
+        if (self.blocks[@intCast(y)][@intCast(z)][@intCast(x)] != .water) return 0;
+        return self.levels[@intCast(y)][@intCast(z)][@intCast(x)];
+    }
+
+    pub fn setWaterLevel(self: *TestWorld, x: i32, y: i32, z: i32, level: u4) bool {
+        if (x < 0 or x >= 5 or y < 0 or y >= 5 or z < 0 or z >= 5) return false;
+        if (self.blocks[@intCast(y)][@intCast(z)][@intCast(x)] != .water) return false;
+        self.levels[@intCast(y)][@intCast(z)][@intCast(x)] = level;
+        return true;
+    }
+
     pub fn editAndRemesh(self: *TestWorld, x: i32, y: i32, z: i32, block: BlockId) !bool {
         if (self.fail) return error.TestRemeshFailed;
         if (self.reject) return false;
         if (x < 0 or x >= 5 or y < 0 or y >= 5 or z < 0 or z >= 5) return false;
         self.blocks[@intCast(y)][@intCast(z)][@intCast(x)] = block;
+        if (block != .water) self.levels[@intCast(y)][@intCast(z)][@intCast(x)] = 0;
         return true;
+    }
+
+    pub fn setWater(self: *TestWorld, x: usize, y: usize, z: usize, level: u4) void {
+        self.blocks[y][z][x] = .water;
+        self.levels[y][z][x] = level;
     }
 };
 
 test "water spreads over solid floor without same-tick cascades" {
     var world = TestWorld{};
     world.blocks[1] = @splat(@splat(.air));
-    world.blocks[1][2][2] = .water;
+    world.setWater(2, 1, 2, 7);
     try std.testing.expectEqual(@as(usize, 4), try step(&world, .{ 2, 1, 2 }));
     try std.testing.expectEqual(BlockId.water, world.getBlockWorld(3, 1, 2));
     try std.testing.expectEqual(BlockId.water, world.getBlockWorld(1, 1, 2));
@@ -135,7 +186,7 @@ test "water spreads over solid floor without same-tick cascades" {
 test "water falls before spreading and descends one cell per tick" {
     var world = TestWorld{};
     world.blocks[2] = @splat(@splat(.air));
-    world.blocks[2][2][2] = .water;
+    world.setWater(2, 2, 2, 5);
     world.blocks[1][2][2] = .air;
     world.blocks[0][2][2] = .air;
     try std.testing.expectEqual(@as(usize, 1), try step(&world, .{ 2, 2, 2 }));
@@ -146,7 +197,7 @@ test "water falls before spreading and descends one cell per tick" {
 
 test "water crosses ledges but preserves occupied cells" {
     var world = TestWorld{};
-    world.blocks[1][2][2] = .water;
+    world.setWater(2, 1, 2, 7);
     world.blocks[1][2][3] = .air;
     world.blocks[0][2][3] = .air;
     world.blocks[1][2][1] = .torch;
@@ -158,26 +209,27 @@ test "water crosses ledges but preserves occupied cells" {
 test "water tick deduplicates edits and caps work" {
     var world = TestWorld{};
     world.blocks[1] = @splat(@splat(.air));
-    world.blocks[1][1][1] = .water;
-    world.blocks[1][1][3] = .water;
+    world.setWater(1, 1, 1, 7);
+    world.setWater(3, 1, 1, 7);
     try std.testing.expectEqual(@as(usize, 7), try step(&world, .{ 2, 1, 2 }));
     world.blocks[1] = @splat(@splat(.air));
-    world.blocks[1][1][1] = .water;
-    world.blocks[1][3][3] = .water;
-    world.blocks[1][1][3] = .water;
+    world.levels[1] = @splat(@splat(0));
+    world.setWater(1, 1, 1, 7);
+    world.setWater(3, 1, 3, 7);
+    world.setWater(3, 1, 1, 7);
     try std.testing.expectEqual(@as(usize, 8), try step(&world, .{ 2, 1, 2 }));
 }
 
 test "water remesh errors propagate" {
     var world = TestWorld{ .fail = true };
-    world.blocks[1][2][2] = .water;
+    world.setWater(2, 1, 2, 7);
     world.blocks[0][2][2] = .air;
     try std.testing.expectError(error.TestRemeshFailed, step(&world, .{ 2, 1, 2 }));
 }
 
 test "water respects bottom boundary and rejected edits" {
     var world = TestWorld{};
-    world.blocks[0][2][2] = .water;
+    world.setWater(2, 0, 2, 7);
     world.blocks[0][2][3] = .air;
     try std.testing.expectEqual(@as(usize, 1), try step(&world, .{ 2, 0, 2 }));
     world.blocks[0][2][3] = .air;
@@ -185,6 +237,34 @@ test "water respects bottom boundary and rejected edits" {
     try std.testing.expectEqual(@as(usize, 0), try step(&world, .{ 2, 0, 2 }));
     try std.testing.expectEqual(BlockId.air, world.getBlockWorld(3, 0, 2));
     try std.testing.expectEqual(@as(usize, 0), try step(&world, .{ 2, 20, 2 }));
+}
+
+test "lateral spread decrements level" {
+    var world = TestWorld{};
+    world.blocks[1] = @splat(@splat(.air));
+    world.setWater(2, 1, 2, 3);
+    _ = try step(&world, .{ 2, 1, 2 });
+    try std.testing.expectEqual(@as(u4, 2), world.getWaterLevel(3, 1, 2));
+    try std.testing.expectEqual(@as(u4, 2), world.getWaterLevel(1, 1, 2));
+}
+
+test "level zero films evaporate instead of spreading" {
+    var world = TestWorld{};
+    world.blocks[1] = @splat(@splat(.air));
+    world.setWater(2, 1, 2, 0);
+    try std.testing.expectEqual(@as(usize, 1), try step(&world, .{ 2, 1, 2 }));
+    try std.testing.expectEqual(BlockId.air, world.getBlockWorld(2, 1, 2));
+    try std.testing.expectEqual(BlockId.air, world.getBlockWorld(3, 1, 2));
+}
+
+test "downward flow preserves source level" {
+    var world = TestWorld{};
+    world.blocks[2] = @splat(@splat(.air));
+    world.blocks[1] = @splat(@splat(.air));
+    world.blocks[0] = @splat(@splat(.air));
+    world.setWater(2, 2, 2, 4);
+    _ = try step(&world, .{ 2, 2, 2 });
+    try std.testing.expectEqual(@as(u4, 4), world.getWaterLevel(2, 1, 2));
 }
 
 pub const WashDebris = struct {
