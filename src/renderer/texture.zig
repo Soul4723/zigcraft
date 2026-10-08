@@ -181,6 +181,38 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
     if (tile_x == 3 and tile_y == 3) {
         return sandPixel(x, y);
     }
+    // Campfire tile (4, 3): crossed burning ash logs and bright orange embers
+    if (tile_x == 4 and tile_y == 3) {
+        const is_log = (x == y or x + y == 15) and (y >= 4 and y <= 12);
+        if (is_log) return .{ 65, 42, 28, 255 };
+        const is_ember = (x >= 6 and x <= 9 and y >= 6 and y <= 9);
+        if (is_ember) return .{ 255, 140, 25, 255 };
+        const n = hash2(x, y, 71) % 15;
+        return .{ 40 + @as(u8, @intCast(n)), 35 + @as(u8, @intCast(n)), 35 + @as(u8, @intCast(n)), 255 };
+    }
+    // Lava tile (5, 3): boiling molten magma with fiery orange & bright yellow convection currents
+    if (tile_x == 5 and tile_y == 3) {
+        const hot = (x * 3 + y * 7) % 9 < 3;
+        if (hot) return .{ 255, 210, 40, 255 };
+        const n = hash2(x, y, 72) % 20;
+        return .{ 225 + @as(u8, @intCast(n)), 75 + @as(u8, @intCast(n / 2)), 12, 255 };
+    }
+    // Quartz Pillar (6, 3): fluted Greek column with vertical fluting ridges
+    if (tile_x == 6 and tile_y == 3) {
+        const col_strip = (x % 4 == 0);
+        if (col_strip) return .{ 208, 204, 202, 255 }; // fluting indentation shadow
+        const n = hash2(x, y, 215) % 12;
+        return .{ 244 + @as(u8, @intCast(n)), 240 + @as(u8, @intCast(n)), 236 + @as(u8, @intCast(n / 2)), 255 };
+    }
+    // Chiseled Quartz (7, 3): carved ceremonial glyphs and sunken geometric medallion
+    if (tile_x == 7 and tile_y == 3) {
+        const is_rim = (x <= 1 or x >= 14 or y <= 1 or y >= 14);
+        if (is_rim) return .{ 215, 210, 206, 255 };
+        const is_glyph = (x >= 5 and x <= 10 and (y == 5 or y == 10)) or (y >= 5 and y <= 10 and (x == 5 or x == 10));
+        if (is_glyph) return .{ 185, 180, 178, 255 }; // carved sunken relief
+        const n = hash2(x, y, 216) % 15;
+        return .{ 238 + @as(u8, @intCast(n)), 234 + @as(u8, @intCast(n)), 230 + @as(u8, @intCast(n / 2)), 255 };
+    }
     // Glass tile (0, 4): transparent interior with cyan tint, border and specular streaks
     if (tile_x == 0 and tile_y == 4) {
         return glassPixel(x, y);

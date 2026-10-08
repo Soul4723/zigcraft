@@ -60,6 +60,8 @@ pub const ItemType = enum(u8) {
     nether_quartz_ore = 54,
     nether_quartz = 55,
     quartz_block = 56,
+    quartz_pillar = 57,
+    chiseled_quartz_block = 58,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -101,6 +103,8 @@ pub const ItemType = enum(u8) {
             .glowstone => .glowstone,
             .nether_quartz_ore => .nether_quartz_ore,
             .quartz_block => .quartz_block,
+            .quartz_pillar => .quartz_pillar,
+            .chiseled_quartz_block => .chiseled_quartz_block,
             else => null,
         };
     }
@@ -149,6 +153,8 @@ pub const ItemType = enum(u8) {
             .glowstone => .glowstone,
             .nether_quartz_ore => .nether_quartz,
             .quartz_block => .quartz_block,
+            .quartz_pillar => .quartz_pillar,
+            .chiseled_quartz_block => .chiseled_quartz_block,
         };
     }
 
@@ -228,6 +234,8 @@ pub const ItemType = enum(u8) {
             .nether_quartz_ore => "Nether Quartz Ore",
             .nether_quartz => "Nether Quartz",
             .quartz_block => "Block of Quartz",
+            .quartz_pillar => "Quartz Pillar",
+            .chiseled_quartz_block => "Chiseled Quartz Block",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -290,6 +298,8 @@ pub const ItemType = enum(u8) {
             .nether_quartz_ore => .{ 0.75, 0.28, 0.28, 0.95 },
             .nether_quartz => .{ 0.95, 0.95, 0.98, 0.95 },
             .quartz_block => .{ 0.94, 0.92, 0.90, 0.95 },
+            .quartz_pillar => .{ 0.93, 0.91, 0.89, 0.95 },
+            .chiseled_quartz_block => .{ 0.92, 0.90, 0.88, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -559,6 +569,26 @@ pub const Inventory = struct {
         if (non_empty == 3) {
             if (g0 == .wood_planks and g1 == .wood_planks and (g2 == .stick or g3 == .stick)) {
                 self.craft_output = .{ .item = .wooden_pickaxe, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe: 2 Quartz Blocks stacked vertically -> 2 Quartz Pillars
+        if (non_empty == 2) {
+            if ((g0 == .quartz_block and g2 == .quartz_block and g1 == .none and g3 == .none) or
+                (g1 == .quartz_block and g3 == .quartz_block and g0 == .none and g2 == .none))
+            {
+                self.craft_output = .{ .item = .quartz_pillar, .count = 2 };
+                return;
+            }
+        }
+
+        // Recipe: 2 Quartz Pillars stacked vertically -> 2 Chiseled Quartz Blocks
+        if (non_empty == 2) {
+            if ((g0 == .quartz_pillar and g2 == .quartz_pillar and g1 == .none and g3 == .none) or
+                (g1 == .quartz_pillar and g3 == .quartz_pillar and g0 == .none and g2 == .none))
+            {
+                self.craft_output = .{ .item = .chiseled_quartz_block, .count = 2 };
                 return;
             }
         }
@@ -868,6 +898,25 @@ test "furnace recipe: 4 stone -> furnace" {
     inv.craft_grid[3] = .{ .item = .stone, .count = 1 };
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .furnace);
+}
+
+test "quartz pillar and chiseled quartz architectural crafting recipes" {
+    var inv = Inventory.init();
+    // 2 stacked quartz blocks -> 2 quartz pillars
+    inv.craft_grid[0] = .{ .item = .quartz_block, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .quartz_block, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .quartz_pillar);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+    try std.testing.expectEqual(inv.craft_output.item.toBlockId(), .quartz_pillar);
+
+    // 2 stacked quartz pillars -> 2 chiseled quartz blocks
+    inv.craft_grid[0] = .{ .item = .quartz_pillar, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .quartz_pillar, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .chiseled_quartz_block);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+    try std.testing.expectEqual(inv.craft_output.item.toBlockId(), .chiseled_quartz_block);
 }
 
 test "block of quartz crafting recipe from 4 nether quartz crystals" {

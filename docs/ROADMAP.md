@@ -106,3 +106,4 @@ Rough priority order. Completed milestones marked **[x]**.
 78. [x] **Nether Glowstone Crystalline Bell Chime Audio Synthesis** — Multi-harmonic pure bell chimes (880/1760/2640Hz) with 3D spatial attenuation (`.glowstone_chime`) (#196).
 79. [x] **Nether Quartz Ore Veins & Mineral Harvesting** — Crystalline quartz ore veins embedded in netherrack (`nether_quartz_ore`), pickaxe harvest requirements, and raw quartz drops (`nether_quartz`) (#197).
 80. [x] **Block of Quartz Crafting & Architectural Masonry** — 2x2 crafting recipe (4 nether quartz -> block of quartz), beveled marble texture, and building block mechanics (`quartz_block`) (#198).
+81. [x] **Quartz Pillars & Chiseled Quartz Architectural Blocks** — Fluted columns (`quartz_pillar`), ceremonial glyph medallions (`chiseled_quartz_block`), and vertical stacking crafting recipes (#199).
