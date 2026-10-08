@@ -217,6 +217,7 @@ pub fn main() !void {
     var burn_sizzle_cooldown: f32 = 0.0;
     var portal_ambient_timer: f32 = 0.0;
     var portal_transit = portal_mod.PortalTransitState{};
+    var portal_flash_timer: f32 = 0.0;
     var chunk_retry_timer: f32 = 0.0;
     var world_time: f32 = 45.0; // Start at morning daylight
     var last_step_dist: f32 = 0.0;
@@ -436,6 +437,7 @@ pub fn main() !void {
                 player.pos.x = warp_target[0];
                 player.pos.z = warp_target[2];
                 manager.is_nether = (portal_transit.current_dim == .nether);
+                portal_flash_timer = 1.0;
                 // Burst effects and audio warp
                 particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 1.0, player.pos.z }, 24);
                 audio.play(.portal_warp, 1.0);
@@ -1177,6 +1179,10 @@ pub fn main() !void {
             if (portal_transit.inside_timer > 0.0) {
                 const vignette_intensity = portal_transit.inside_timer / portal_mod.PORTAL_TRIGGER_TIME;
                 ui.drawPortalVignette(aspect, vignette_intensity);
+            }
+            if (portal_flash_timer > 0.0) {
+                portal_flash_timer = @max(0.0, portal_flash_timer - dt * 1.5);
+                ui.drawPortalFlash(aspect, portal_flash_timer * 0.85);
             }
             if (toast.visible()) {
                 const t_alpha = toast.tick(dt);

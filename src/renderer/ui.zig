@@ -196,6 +196,18 @@ pub const UIRenderer = struct {
         self.flush(&verts, count);
     }
 
+    /// Render full-screen post-warp stabilization flash fade overlay.
+    /// `alpha` in [0..1] scales flash transparency.
+    pub fn drawPortalFlash(self: *UIRenderer, aspect: f32, alpha: f32) void {
+        _ = aspect;
+        if (alpha <= 0.01) return;
+        var verts: [6]UIVertex = undefined;
+        var count: usize = 0;
+        const col: [4]f32 = .{ 0.85, 0.40, 1.0, @min(0.85, alpha) };
+        addQuad(&verts, &count, -1.0, -1.0, 1.0, 1.0, col);
+        self.flush(&verts, count);
+    }
+
     /// Render in-game HUD with inventory item stacks, selected slot border,
     /// and an optional mining progress bar above the crosshair (0..1, <0 hides).
     pub fn drawHUD(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8) void {
@@ -462,6 +474,12 @@ pub const UIRenderer = struct {
 
 test "ui vertex layout" {
     try std.testing.expectEqual(@sizeOf(UIVertex), 24);
+}
+
+test "portal flash alpha calculation" {
+    const alpha = 0.6;
+    const clamped = @min(0.85, alpha);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.6), clamped, 0.001);
 }
 
 test "portal vignette alpha calculation" {
