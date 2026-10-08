@@ -59,6 +59,7 @@ pub const ItemType = enum(u8) {
     glowstone = 53,
     nether_quartz_ore = 54,
     nether_quartz = 55,
+    quartz_block = 56,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -99,6 +100,7 @@ pub const ItemType = enum(u8) {
             .magma => .magma,
             .glowstone => .glowstone,
             .nether_quartz_ore => .nether_quartz_ore,
+            .quartz_block => .quartz_block,
             else => null,
         };
     }
@@ -146,6 +148,7 @@ pub const ItemType = enum(u8) {
             .magma => .magma,
             .glowstone => .glowstone,
             .nether_quartz_ore => .nether_quartz,
+            .quartz_block => .quartz_block,
         };
     }
 
@@ -224,6 +227,7 @@ pub const ItemType = enum(u8) {
             .glowstone => "Glowstone",
             .nether_quartz_ore => "Nether Quartz Ore",
             .nether_quartz => "Nether Quartz",
+            .quartz_block => "Block of Quartz",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -285,6 +289,7 @@ pub const ItemType = enum(u8) {
             .glowstone => .{ 0.98, 0.85, 0.35, 0.95 },
             .nether_quartz_ore => .{ 0.75, 0.28, 0.28, 0.95 },
             .nether_quartz => .{ 0.95, 0.95, 0.98, 0.95 },
+            .quartz_block => .{ 0.94, 0.92, 0.90, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -554,6 +559,18 @@ pub const Inventory = struct {
         if (non_empty == 3) {
             if (g0 == .wood_planks and g1 == .wood_planks and (g2 == .stick or g3 == .stick)) {
                 self.craft_output = .{ .item = .wooden_pickaxe, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe: 4 Nether Quartz in 2x2 grid -> 1 Block of Quartz
+        if (non_empty == 4) {
+            var quartz_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .nether_quartz) quartz_cnt += 1;
+            }
+            if (quartz_cnt == 4) {
+                self.craft_output = .{ .item = .quartz_block, .count = 1 };
                 return;
             }
         }
@@ -851,6 +868,18 @@ test "furnace recipe: 4 stone -> furnace" {
     inv.craft_grid[3] = .{ .item = .stone, .count = 1 };
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .furnace);
+}
+
+test "block of quartz crafting recipe from 4 nether quartz crystals" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .nether_quartz, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .nether_quartz, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .nether_quartz, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .nether_quartz, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .quartz_block);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+    try std.testing.expectEqual(inv.craft_output.item.toBlockId(), .quartz_block);
 }
 
 test "nether quartz ore drops and item conversion" {

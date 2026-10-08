@@ -51,6 +51,7 @@ pub const BlockId = enum(u8) {
     magma = 46,
     glowstone = 47,
     nether_quartz_ore = 48,
+    quartz_block = 49,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal;
@@ -169,6 +170,7 @@ pub const BlockId = enum(u8) {
             .magma => .{ .x = 4, .y = 2 }, // Scorched glowing obsidian fissures
             .glowstone => .{ .x = 5, .y = 2 }, // Radiant crystalline golden glowstone
             .nether_quartz_ore => .{ .x = 6, .y = 2 }, // Crimson netherrack with white crystalline quartz veins
+            .quartz_block => .{ .x = 7, .y = 2 }, // Polished architectural white quartz block
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -234,6 +236,7 @@ pub fn hardness(block: BlockId) f32 {
         .magma => 0.5,
         .glowstone => 0.3,
         .nether_quartz_ore => 0.8,
+        .quartz_block => 1.2,
     };
 }
 
@@ -245,7 +248,7 @@ pub const ToolTier = enum(u8) {
 
 pub fn requiredTier(block: BlockId) ToolTier {
     return switch (block) {
-        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore => .wooden,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block => .wooden,
         else => .hand,
     };
 }
@@ -255,13 +258,13 @@ pub fn requiredTier(block: BlockId) ToolTier {
 pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
     if (held_tool_id == TOOL_IRON_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore => 4.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block => 4.0,
             else => 2.0,
         };
     }
     if (held_tool_id == TOOL_WOODEN_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore => 3.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block => 3.0,
             else => 1.5,
         };
     }
@@ -324,6 +327,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .magma = .{ .name = "magma", .solid = true, .transparent = false, .fluid = false },
     .glowstone = .{ .name = "glowstone", .solid = true, .transparent = false, .fluid = false },
     .nether_quartz_ore = .{ .name = "nether_quartz_ore", .solid = true, .transparent = false, .fluid = false },
+    .quartz_block = .{ .name = "quartz_block", .solid = true, .transparent = false, .fluid = false },
 });
 
 test "block is_solid" {

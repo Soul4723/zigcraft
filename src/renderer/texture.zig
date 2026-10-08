@@ -141,6 +141,15 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         const n = hash2(x, y, 203) % 25;
         return .{ 115 + @as(u8, @intCast(n)), 32 + @as(u8, @intCast(n / 3)), 32 + @as(u8, @intCast(n / 3)), 255 };
     }
+    // Block of Quartz (7, 2): smooth polished architectural white marble / alabaster quartz block with subtle beveled border
+    if (tile_x == 7 and tile_y == 2) {
+        const is_border = (x == 0 or x == 15 or y == 0 or y == 15);
+        if (is_border) {
+            return .{ 218, 214, 212, 255 }; // subtle architectural bevel seam
+        }
+        const n = hash2(x, y, 204) % 15;
+        return .{ 240 + @as(u8, @intCast(n)), 236 + @as(u8, @intCast(n)), 232 + @as(u8, @intCast(n / 2)), 255 };
+    }
     if (tile_x == 0 and tile_y == 3) {
         const cx = x / 4;
         const cy = y / 4;
