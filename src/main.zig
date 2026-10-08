@@ -344,7 +344,10 @@ pub fn main() !void {
             // Campfire burn: standing inside or on a campfire cell burns 2 hp/sec
             const feet_b = manager.getBlockWorld(px_i, py_i, pz_i);
             const head_b = manager.getBlockWorld(px_i, py_i + 1, pz_i);
-            if (hazard_mod.checkBurnContact(feet_b) or hazard_mod.checkBurnContact(head_b)) {
+            if (hazard_mod.checkLavaHazard(feet_b) or hazard_mod.checkLavaHazard(head_b)) {
+                player.health = hazard_mod.applyDamageClamped(player.health, hazard_mod.lava_burn_rate, dt);
+                particles.spawnFlame(px_i, py_i, pz_i, 3);
+            } else if (hazard_mod.checkBurnContact(feet_b) or hazard_mod.checkBurnContact(head_b)) {
                 player.health = hazard_mod.applyDamageClamped(player.health, hazard_mod.burn_rate, dt);
             }
         }
@@ -1330,6 +1333,28 @@ pub fn main() !void {
                                     const is_furnace_place = place_type == .furnace;
                                     if (try manager.editAndRemesh(px, py, pz, place_type)) {
                                         if (place_type == .water) _ = manager.setWaterLevel(px, py, pz, 7);
+                                        // Fluid reaction on placement: adjacent water and lava interact
+                                        if (place_type == .water or place_type == .lava) {
+                                            const neighbors = [_][3]i32{ .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 1, 0 }, .{ 0, -1, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 } };
+                                            for (neighbors) |nb| {
+                                                const nx = px + nb[0];
+                                                const ny = py + nb[1];
+                                                const nz = pz + nb[2];
+                                                const adj_b = manager.getBlockWorld(nx, ny, nz);
+                                                const react = fluid_mod.evaluateFluidReaction(place_type, adj_b, true);
+                                                if (react == .obsidian) {
+                                                    _ = try manager.editAndRemesh(px, py, pz, .obsidian);
+                                                    audio.play(.break_block, 0.8);
+                                                    particles.spawnFlame(px, py, pz, 4);
+                                                    break;
+                                                } else if (react == .cobblestone) {
+                                                    _ = try manager.editAndRemesh(px, py, pz, .cobblestone);
+                                                    audio.play(.break_block, 0.7);
+                                                    particles.spawnBlockDebris(px, py, pz, .{ 0.5, 0.5, 0.5 }, 6);
+                                                    break;
+                                                }
+                                            }
+                                        }
                                         audio.play(.place_block, 0.7);
                                         const pcol = hotbar_slot.item.getColor();
                                         particles.spawnBlockDebris(px, py, pz, .{ pcol[0], pcol[1], pcol[2] }, 8);

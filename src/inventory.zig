@@ -50,6 +50,8 @@ pub const ItemType = enum(u8) {
     campfire = 44,
     cactus = 45,
     boat = 46,
+    lava_bucket = 47,
+    obsidian = 48,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -83,6 +85,8 @@ pub const ItemType = enum(u8) {
             .redstone_torch => .redstone_torch_on,
             .campfire => .campfire,
             .cactus => .cactus,
+            .lava_bucket => .lava,
+            .obsidian => .obsidian,
             else => null,
         };
     }
@@ -122,6 +126,8 @@ pub const ItemType = enum(u8) {
             .redstone_torch_off, .redstone_torch_on => .redstone_torch,
             .campfire => .campfire,
             .cactus => .cactus,
+            .lava => .lava_bucket,
+            .obsidian => .obsidian,
         };
     }
 
@@ -191,6 +197,8 @@ pub const ItemType = enum(u8) {
             .campfire => "Campfire",
             .cactus => "Cactus",
             .boat => "Wooden Boat",
+            .lava_bucket => "Lava Bucket",
+            .obsidian => "Obsidian",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -243,6 +251,8 @@ pub const ItemType = enum(u8) {
             .campfire => .{ 0.95, 0.45, 0.10, 0.95 },
             .cactus => .{ 0.15, 0.60, 0.15, 0.95 },
             .boat => .{ 0.70, 0.48, 0.25, 0.95 },
+            .lava_bucket => .{ 0.98, 0.35, 0.05, 0.95 },
+            .obsidian => .{ 0.15, 0.10, 0.22, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },

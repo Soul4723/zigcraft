@@ -447,3 +447,39 @@ test "calculateSplashParticleCount tiers" {
     try std.testing.expectEqual(@as(usize, 14), calculateSplashParticleCount(-8.0));
     try std.testing.expectEqual(@as(usize, 24), calculateSplashParticleCount(-16.0));
 }
+
+pub const FluidReaction = enum {
+    none,
+    cobblestone,
+    obsidian,
+};
+
+/// Evaluate contact reaction between two adjacent fluids.
+/// If water touches lava source -> obsidian.
+/// If water touches flowing lava or vice-versa -> cobblestone.
+pub fn evaluateFluidReaction(block_a: BlockId, block_b: BlockId, a_is_source: bool) FluidReaction {
+    const is_water = (block_a == .water or block_b == .water);
+    const is_lava = (block_a == .lava or block_b == .lava);
+    if (!is_water or !is_lava) return .none;
+
+    if (a_is_source) {
+        return .obsidian;
+    } else {
+        return .cobblestone;
+    }
+}
+
+test "fluid reaction water and lava forms obsidian or cobblestone" {
+    // Water touches lava source -> obsidian
+    try std.testing.expectEqual(FluidReaction.obsidian, evaluateFluidReaction(.water, .lava, true));
+    try std.testing.expectEqual(FluidReaction.obsidian, evaluateFluidReaction(.lava, .water, true));
+
+    // Water touches flowing lava -> cobblestone
+    try std.testing.expectEqual(FluidReaction.cobblestone, evaluateFluidReaction(.water, .lava, false));
+    try std.testing.expectEqual(FluidReaction.cobblestone, evaluateFluidReaction(.lava, .water, false));
+
+    // Same fluids or air -> none
+    try std.testing.expectEqual(FluidReaction.none, evaluateFluidReaction(.water, .water, true));
+    try std.testing.expectEqual(FluidReaction.none, evaluateFluidReaction(.lava, .lava, true));
+    try std.testing.expectEqual(FluidReaction.none, evaluateFluidReaction(.water, .air, true));
+}

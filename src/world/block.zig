@@ -43,9 +43,11 @@ pub const BlockId = enum(u8) {
     redstone_torch_on = 38,
     cactus = 39,
     campfire = 40,
+    lava = 41,
+    obsidian = 42,
 
     pub fn is_solid(self: BlockId) bool {
-        return self != .air and self != .water and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire;
+        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire;
     }
 
     pub fn is_campfire(self: BlockId) bool {
@@ -61,11 +63,11 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_fluid(self: BlockId) bool {
-        return self == .water;
+        return self == .water or self == .lava;
     }
 
     pub fn is_transparent(self: BlockId) bool {
-        return self == .air or self == .water or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on;
+        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on;
     }
 
     /// 0.0 = lit by sun only. 1.0 = full glow even at midnight.
@@ -78,6 +80,7 @@ pub const BlockId = enum(u8) {
             .redstone_torch_on => 0.85,
             .redstone_wire_on => 0.7,
             .repeater_on => 0.6,
+            .lava => 1.0,
             else => 0.0,
         };
     }
@@ -149,6 +152,8 @@ pub const BlockId = enum(u8) {
             .redstone_torch_on => .{ .x = 7, .y = 7 },
             .cactus => .{ .x = 3, .y = 1 },
             .campfire => .{ .x = 4, .y = 3 },
+            .lava => .{ .x = 5, .y = 3 },
+            .obsidian => .{ .x = 1, .y = 2 },
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -206,6 +211,8 @@ pub fn hardness(block: BlockId) f32 {
         .iron_door_closed, .iron_door_open => 3.0,
         .cactus => 0.4,
         .campfire => 1.0,
+        .lava => 0.0,
+        .obsidian => 15.0,
     };
 }
 
@@ -217,7 +224,7 @@ pub const ToolTier = enum(u8) {
 
 pub fn requiredTier(block: BlockId) ToolTier {
     return switch (block) {
-        .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open => .wooden,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open => .wooden,
         else => .hand,
     };
 }
@@ -288,6 +295,8 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .cactus = .{ .name = "cactus", .solid = true, .transparent = false, .fluid = false },
     .campfire = .{ .name = "campfire", .solid = false, .transparent = true, .fluid = false },
     .brick = .{ .name = "brick", .solid = true, .transparent = false, .fluid = false },
+    .lava = .{ .name = "lava", .solid = false, .transparent = true, .fluid = true },
+    .obsidian = .{ .name = "obsidian", .solid = true, .transparent = false, .fluid = false },
 });
 
 test "block is_solid" {
@@ -583,7 +592,7 @@ pub const FootstepType = enum {
 pub fn footstepType(block: BlockId) FootstepType {
     return switch (block) {
         .grass => .grass,
-        .stone, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick => .stone,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick => .stone,
         .wood => .wood,
         .dirt => .dirt,
         .sand => .sand,
@@ -604,4 +613,14 @@ test "footstepType block classification" {
     try std.testing.expectEqual(FootstepType.snow, footstepType(.snow));
     try std.testing.expectEqual(FootstepType.wool, footstepType(.wool));
     try std.testing.expectEqual(FootstepType.grass, footstepType(.air));
+}
+
+test "lava fluid and obsidian hardness properties" {
+    try std.testing.expect(BlockId.lava.is_fluid());
+    try std.testing.expect(!BlockId.lava.is_solid());
+    try std.testing.expectEqual(@as(f32, 1.0), BlockId.lava.emissive());
+    try std.testing.expect(BlockId.obsidian.is_solid());
+    try std.testing.expect(!BlockId.obsidian.is_fluid());
+    try std.testing.expectEqual(@as(f32, 15.0), hardness(.obsidian));
+    try std.testing.expectEqual(ToolTier.wooden, requiredTier(.obsidian));
 }

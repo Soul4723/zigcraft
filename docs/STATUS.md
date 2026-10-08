@@ -1,16 +1,16 @@
 # Project Status
 
-Last updated: 2026-10-08 (Session 172)
+Last updated: 2026-10-08 (Session 173)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 836 passing unit tests
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 856 passing unit tests
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
 - Axis-aligned bounding box (AABB) collision and voxel step snapping
 - Suffocation damage mechanics (when player eye position is inside solid blocks)
 - Player fall damage on hard landings
-- Environmental hazards: Cactus contact damage (1 hp/sec), campfire burn (2 hp/sec standing inside)
+- Environmental hazards: Cactus contact damage (1 hp/sec), campfire burn (2 hp/sec), lava contact burn (8 hp/sec), water-lava contact crystallization (obsidian / cobblestone)
 - Procedural audio synthesizer via ALSA with 3D spatial attenuation & distance rolloff: footsteps (grass, stone, wood, dirt, sand), block break/place, mob sounds
 - 16x16x16 chunk data structures, greedy mesher with Ambient Occlusion (AO)
 - Dynamic chunk streaming manager (load/unload radius around player) with frustum culling

@@ -45,6 +45,13 @@ pub fn calculateDrowningDamage(oxygen: f32, dt: f32) f32 {
     return 0.0;
 }
 
+
+pub const lava_burn_rate: f32 = 8.0;
+
+pub fn checkLavaHazard(block: BlockId) bool {
+    return block == .lava;
+}
+
 pub fn checkBurnContact(block: BlockId) bool {
     return block == .campfire or block == .tnt;
 }
@@ -140,4 +147,11 @@ test "surface gasp trigger logic" {
     try std.testing.expect(!shouldGaspOnSurface(true, true, 2.0));
     // Already surfaced earlier -> no gasp
     try std.testing.expect(!shouldGaspOnSurface(false, false, 2.0));
+}
+
+test "lava contact hazard check" {
+    try std.testing.expect(checkLavaHazard(.lava));
+    try std.testing.expect(!checkLavaHazard(.water));
+    try std.testing.expect(!checkLavaHazard(.air));
+    try std.testing.expectEqual(@as(f32, 8.0), lava_burn_rate);
 }
