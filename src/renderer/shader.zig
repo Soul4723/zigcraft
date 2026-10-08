@@ -204,6 +204,8 @@ pub const chunk_frag: [:0]const u8 =
 \\uniform vec3 u_lamp_pos[8];
 \\uniform float u_lamp_count;
 \\uniform float u_night;
+\\uniform float u_underwater;
+\\uniform vec3 u_cam_pos;
 \\void main() {
 \\    float diff = max(dot(normalize(FragNormal), normalize(u_light_dir)), 0.0);
 \\    float ambient = 0.35;
@@ -223,6 +225,28 @@ pub const chunk_frag: [:0]const u8 =
 \\        }
 \\        col += tex.rgb * vec3(1.0, 0.75, 0.45) * clamp(glow, 0.0, 1.5) * u_night * 0.8;
 \\    }
+\\    if (u_underwater > 0.01) {
+\\        float dist = distance(FragWorldPos, u_cam_pos);
+\\        float fog = clamp((dist - 3.0) / 22.0, 0.0, 1.0);
+\\        vec3 water_tint = vec3(0.08, 0.28, 0.58);
+\\        col = mix(col * vec3(0.5, 0.75, 1.1), water_tint, fog * 0.85);
+\\    }
 \\    FragColor = vec4(col, tex.a);
 \\}
 ;
+
+/// Calculate underwater fog blend factor given distance between fragment and camera.
+pub fn calculateUnderwaterFog(dist: f32) f32 {
+    // ponytail: linear distance ramp 3..25m; replace with exponential exp2(-dist * density) if volume scattering needed
+    const min_dist: f32 = 3.0;
+    const max_dist: f32 = 25.0;
+    return std.math.clamp((dist - min_dist) / (max_dist - min_dist), 0.0, 1.0);
+}
+
+test "calculateUnderwaterFog bounds and progression" {
+    try std.testing.expectEqual(@as(f32, 0.0), calculateUnderwaterFog(1.0));
+    try std.testing.expectEqual(@as(f32, 0.0), calculateUnderwaterFog(3.0));
+    try std.testing.expectEqual(@as(f32, 0.5), calculateUnderwaterFog(14.0));
+    try std.testing.expectEqual(@as(f32, 1.0), calculateUnderwaterFog(25.0));
+    try std.testing.expectEqual(@as(f32, 1.0), calculateUnderwaterFog(40.0));
+}

@@ -947,10 +947,29 @@ pub fn main() !void {
             night_horizon.z + (day_horizon.z - night_horizon.z) * day_factor,
         );
 
+        // Check if camera is underwater
+        const cam_block = manager.getBlockWorld(
+            @intFromFloat(@floor(cam.position.x)),
+            @intFromFloat(@floor(cam.position.y)),
+            @intFromFloat(@floor(cam.position.z)),
+        );
+        const cam_underwater = (cam_block == .water);
+
         // Render world
+        if (cam_underwater) {
+            c.glClearColor(0.08, 0.28, 0.58, 1.0);
+        } else {
+            c.glClearColor(0.1, 0.1, 0.1, 1.0);
+        }
         c.glClear(c.GL_COLOR_BUFFER_BIT | c.GL_DEPTH_BUFFER_BIT);
 
-        sky.draw(mvp, cam.position, sky_top, sky_horizon);
+        if (cam_underwater) {
+            const water_deep = math.Vec3.init(0.04, 0.14, 0.32);
+            const water_hzn = math.Vec3.init(0.08, 0.28, 0.58);
+            sky.draw(mvp, cam.position, water_deep, water_hzn);
+        } else {
+            sky.draw(mvp, cam.position, sky_top, sky_horizon);
+        }
         var lamp_spots: [8][3]f32 = [_][3]f32{.{ 0, -100, 0 }} ** 8;
         var lamp_spot_count: usize = 0;
         for (lamps[0..lamp_count]) |la| {
@@ -963,8 +982,8 @@ pub fn main() !void {
             lamp_spot_count += 1;
         }
         const night_factor = 1.0 - day_factor;
-        const stats = manager.draw(mvp, sun_dir, lamp_spots[0..lamp_spot_count], night_factor);
-        try mob_manager.draw(mvp, sun_dir);
+        const stats = manager.draw(mvp, sun_dir, lamp_spots[0..lamp_spot_count], night_factor, cam.position, cam_underwater);
+        try mob_manager.draw(mvp, sun_dir, cam.position, cam_underwater);
 
         // Update and render block debris particles
         particles.tick(dt);
