@@ -377,6 +377,7 @@ pub fn main() !void {
                 }
             } else if (hazard_mod.checkBurnContact(feet_b) or hazard_mod.checkBurnContact(head_b)) {
                 player.health = hazard_mod.applyDamageClamped(player.health, hazard_mod.burn_rate, dt);
+                particles.spawnBurnSparks(.{ player.pos.x, player.pos.y, player.pos.z }, 2);
                 if (burn_sizzle_cooldown <= 0.0) {
                     audio.play(.burn_sizzle, 0.6);
                     burn_sizzle_cooldown = 0.6;

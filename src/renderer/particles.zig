@@ -316,6 +316,42 @@ pub const ParticleSystem = struct {
         }
     }
 
+    /// Spawn searing fiery sparks erupting from hot surface contact (magma/campfire contact)
+    pub fn spawnBurnSparks(self: *ParticleSystem, pos: [3]f32, count: usize) void {
+        var i: usize = 0;
+        var seed: u32 = @as(u32, @bitCast(@as(i32, @intFromFloat(pos[0] * 64.0)))) *% 29 +%
+            @as(u32, @bitCast(@as(i32, @intFromFloat(pos[2] * 64.0)))) *% 17 +%
+            @as(u32, @intCast(self.count));
+        while (i < count and self.count < MAX_PARTICLES) : (i += 1) {
+            seed = seed *% 1103515245 +% 12345;
+            const rx = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            seed = seed *% 1103515245 +% 12345;
+            const ry = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            seed = seed *% 1103515245 +% 12345;
+            const rz = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+
+            const is_bright = rx > 0.4;
+            const col = if (is_bright)
+                [3]f32{ 1.0, 0.65 + 0.25 * ry, 0.1 }
+            else
+                [3]f32{ 0.95, 0.25 + 0.15 * ry, 0.05 };
+
+            self.particles[self.count] = .{
+                .x = pos[0] + (rx - 0.5) * 0.35,
+                .y = pos[1] + 0.05 + ry * 0.15,
+                .z = pos[2] + (rz - 0.5) * 0.35,
+                .vx = (rx - 0.5) * 2.2,
+                .vy = 1.4 + ry * 2.0,
+                .vz = (rz - 0.5) * 2.2,
+                .life = 0.25 + 0.2 * ry,
+                .max_life = 0.25 + 0.2 * ry,
+                .color = col,
+                .size = 0.04 + 0.03 * rx,
+            };
+            self.count += 1;
+        }
+    }
+
     /// Spawn mystical swirling purple portal particles inside a portal frame
     pub fn spawnPortalParticles(self: *ParticleSystem, pos: [3]f32, count: usize) void {
         var i: usize = 0;
@@ -591,6 +627,23 @@ test "spawnLavaEmber rising embers and smoke coloring" {
     // Expire after 1.5s
     ps.tick(1.5);
     try std.testing.expectEqual(ps.count, 0);
+}
+
+test "spawnBurnSparks fiery spark coloring and upward spray" {
+    var ps = ParticleSystem{
+        .particles = undefined,
+        .count = 0,
+        .vao = 0,
+        .vbo = 0,
+        .program = 0,
+    };
+    ps.spawnBurnSparks(.{ 1.0, 2.0, 3.0 }, 4);
+    try std.testing.expectEqual(ps.count, 4);
+    for (ps.particles[0..4]) |p| {
+        // Red component dominant
+        try std.testing.expect(p.color[0] >= 0.9);
+        try std.testing.expect(p.vy > 0.0);
+    }
 }
 
 test "spawnPortalParticles purple color and weightless drift" {

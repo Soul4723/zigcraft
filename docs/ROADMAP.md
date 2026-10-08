@@ -90,3 +90,4 @@ Rough priority order. Completed milestones marked **[x]**.
 62. [x] **Mob Bubble Column & Whirlpool Dynamics** — Soul sand upward elevator launch (6.5 m/s) and magma whirlpool downward suction (-7.0 m/s) for mobs (#180).
 63. [x] **Mob Contact Heat Hazard & Damage Ticks** — Magma block, campfire, and lava contact heat damage (1 hp/s) and death removal for mobs (#181).
 64. [x] **Burn Sizzle & Scald Audio Synthesis** — High-frequency burning contact sizzle/hiss synthesizer (`.burn_sizzle`) with 3D attenuation for players and entities (#182).
+65. [x] **Burn Sparks & Hot Surface Debris Particles** — Upward spraying brilliant fiery sparks (`spawnBurnSparks`) on magma and campfire contact (#183).
