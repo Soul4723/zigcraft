@@ -396,10 +396,11 @@ pub fn main() !void {
                 );
                 player.pos.x = warp_target[0];
                 player.pos.z = warp_target[2];
+                manager.is_nether = (portal_transit.current_dim == .nether);
                 // Burst effects and audio warp
                 particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 1.0, player.pos.z }, 24);
                 audio.play(.portal_warp, 1.0);
-                std.debug.print("dimension transit: warped to {s} at ({d:.1}, {d:.1}, {d:.1}\n", .{
+                std.debug.print("dimension transit: warped to {s} at ({d:.1}, {d:.1}, {d:.1})\n", .{
                     @tagName(portal_transit.current_dim),
                     player.pos.x,
                     player.pos.y,

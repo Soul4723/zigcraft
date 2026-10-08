@@ -48,6 +48,8 @@ pub const ChunkManager = struct {
     chunks: std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80),
     radius: i32,
     terrain: terrain_mod.TerrainGenerator,
+    nether: terrain_mod.NetherGenerator,
+    is_nether: bool = false,
     persistence: persistence_mod.Persistence,
 
     pub fn init(allocator: std.mem.Allocator, radius: i32, center_cx: i32, center_cz: i32, seed: u64, save_dir: [:0]const u8) !ChunkManager {
@@ -56,6 +58,8 @@ pub const ChunkManager = struct {
             .chunks = std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80).init(allocator),
             .radius = radius,
             .terrain = terrain_mod.TerrainGenerator.init(seed),
+            .nether = terrain_mod.NetherGenerator.init(seed),
+            .is_nether = false,
             .persistence = persistence_mod.Persistence.init(save_dir),
         };
         errdefer self.deinit();
@@ -109,7 +113,11 @@ pub const ChunkManager = struct {
                     var ch = Chunk.init();
                     const from_disk = self.persistence.loadChunk(cx, cz, &ch);
                     if (!from_disk) {
-                        self.terrain.generateChunk(&ch, cx, cz);
+                        if (self.is_nether) {
+                            self.nether.generateChunk(&ch, cx, cz);
+                        } else {
+                            self.terrain.generateChunk(&ch, cx, cz);
+                        }
                     }
                     try self.chunks.put(coord, .{
                         .chunk = ch,
@@ -385,6 +393,8 @@ test "streaming loads radius and unloads outside" {
         .chunks = std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80).init(std.testing.allocator),
         .radius = 1,
         .terrain = terrain_mod.TerrainGenerator.init(123),
+        .nether = terrain_mod.NetherGenerator.init(123),
+        .is_nether = false,
         .persistence = persistence_mod.Persistence.init(".zig-cache/test_mgr_stream"),
     };
     defer mgr.deinit();
@@ -418,6 +428,8 @@ test "isSolidWorld checks negative chunk coords" {
         .chunks = std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80).init(std.testing.allocator),
         .radius = 1,
         .terrain = terrain_mod.TerrainGenerator.init(0),
+        .nether = terrain_mod.NetherGenerator.init(0),
+        .is_nether = false,
         .persistence = persistence_mod.Persistence.init(".zig-cache/test_mgr_solid"),
     };
     defer mgr.deinit();
@@ -438,6 +450,8 @@ test "getBlockWorld returns block id or air" {
         .chunks = std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80).init(std.testing.allocator),
         .radius = 1,
         .terrain = terrain_mod.TerrainGenerator.init(0),
+        .nether = terrain_mod.NetherGenerator.init(0),
+        .is_nether = false,
         .persistence = persistence_mod.Persistence.init(".zig-cache/test_mgr_block"),
     };
     defer mgr.deinit();
@@ -470,6 +484,8 @@ test "streaming retains modified chunk when chunk or sidecar save fails" {
             .chunks = std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80).init(std.testing.allocator),
             .radius = 0,
             .terrain = terrain_mod.TerrainGenerator.init(0),
+        .nether = terrain_mod.NetherGenerator.init(0),
+        .is_nether = false,
             .persistence = persistence_mod.Persistence.init(dir),
         };
         defer mgr.deinit();

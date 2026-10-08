@@ -376,3 +376,98 @@ test "beaches spawn sand near sea level" {
     }
     try std.testing.expect(has_sand);
 }
+
+/// Nether dimension terrain generator: cavernous jagged netherrack ceilings,
+/// vast glowing lava oceans at SEA_LEVEL (y <= 4), and soul sand shorelines.
+pub const NetherGenerator = struct {
+    seed: u64,
+
+    pub fn init(seed: u64) NetherGenerator {
+        return .{ .seed = seed ^ 0xDEADBEEFCAFE };
+    }
+
+    /// Primary Nether ceiling & floor cave density noise
+    fn densityAt(self: NetherGenerator, wx: i32, wy: i32, wz: i32) f32 {
+        if (wy == 0 or wy >= 14) return 1.0; // Solid bedrock floor and ceiling
+        const n1 = valueNoise2D(self.seed +% 0x98765432, wx, wz, 0.06);
+        const n2 = valueNoise2D(self.seed +% 0x12345678, wx, wz, 0.12);
+        // Floor terrain rises between 2.0 and 6.5; ceiling starts around 11.0..13.0
+        const floor_h = 3.0 + n1 * 3.5;
+        const ceil_h = 11.5 + n2 * 2.0;
+
+        const y_f = @as(f32, @floatFromInt(wy));
+        if (y_f <= floor_h) return 1.0;
+        if (y_f >= ceil_h) return 1.0;
+        return 0.0;
+    }
+
+    /// Check if world column (wx, wz) is a soul sand shore patch
+    fn isSoulSand(self: NetherGenerator, wx: i32, wz: i32) bool {
+        const s = valueNoise2D(self.seed +% 0x50015A4D, wx, wz, 0.05);
+        return s > 0.0;
+    }
+
+    /// Generate Nether chunk with subterranean cavern, lava ocean, and soul sand deposits
+    pub fn generateChunk(self: NetherGenerator, chunk: *Chunk, cx: i32, cz: i32) void {
+        var lz: usize = 0;
+        while (lz < SIZE) : (lz += 1) {
+            var lx: usize = 0;
+            while (lx < SIZE) : (lx += 1) {
+                const wx = cx * 16 + @as(i32, @intCast(lx));
+                const wz = cz * 16 + @as(i32, @intCast(lz));
+                const is_soul = self.isSoulSand(wx, wz);
+
+                var y: usize = 0;
+                while (y < SIZE) : (y += 1) {
+                    const solid = (self.densityAt(wx, @intCast(y), wz) > 0.5);
+                    if (solid) {
+                        // Bedrock-like ceiling top and floor bottom
+                        if (y == 0 or y == SIZE - 1) {
+                            chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .netherrack);
+                        } else if (y <= 5 and is_soul) {
+                            chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .soul_sand);
+                        } else {
+                            chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .netherrack);
+                        }
+                    } else {
+                        // Open cavern space: lava sea up to SEA_LEVEL - 1 (y <= 4)
+                        if (y <= 4) {
+                            chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .lava);
+                            chunk.setLevel(@intCast(lx), @intCast(y), @intCast(lz), 7);
+                        } else {
+                            chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .air);
+                        }
+                    }
+                }
+            }
+        }
+    }
+};
+
+test "NetherGenerator fills netherrack, lava sea, and soul sand" {
+    const nether_gen = NetherGenerator.init(12345);
+    var chunk = Chunk.init();
+    nether_gen.generateChunk(&chunk, 0, 0);
+
+    var has_netherrack = false;
+    var has_lava = false;
+    var has_soul_sand = false;
+
+    var lz: usize = 0;
+    while (lz < SIZE) : (lz += 1) {
+        var lx: usize = 0;
+        while (lx < SIZE) : (lx += 1) {
+            var y: usize = 0;
+            while (y < SIZE) : (y += 1) {
+                const b = chunk.getBlock(@intCast(lx), @intCast(y), @intCast(lz));
+                if (b == .netherrack) has_netherrack = true;
+                if (b == .lava) has_lava = true;
+                if (b == .soul_sand) has_soul_sand = true;
+            }
+        }
+    }
+
+    try std.testing.expect(has_netherrack);
+    try std.testing.expect(has_lava);
+    try std.testing.expect(has_soul_sand);
+}

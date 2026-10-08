@@ -52,6 +52,8 @@ pub const ItemType = enum(u8) {
     boat = 46,
     lava_bucket = 47,
     obsidian = 48,
+    netherrack = 49,
+    soul_sand = 50,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -87,6 +89,8 @@ pub const ItemType = enum(u8) {
             .cactus => .cactus,
             .lava_bucket => .lava,
             .obsidian => .obsidian,
+            .netherrack => .netherrack,
+            .soul_sand => .soul_sand,
             else => null,
         };
     }
@@ -129,6 +133,8 @@ pub const ItemType = enum(u8) {
             .lava => .lava_bucket,
             .obsidian => .obsidian,
             .nether_portal => .none,
+            .netherrack => .netherrack,
+            .soul_sand => .soul_sand,
         };
     }
 
@@ -200,6 +206,8 @@ pub const ItemType = enum(u8) {
             .boat => "Wooden Boat",
             .lava_bucket => "Lava Bucket",
             .obsidian => "Obsidian",
+            .netherrack => "Netherrack",
+            .soul_sand => "Soul Sand",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -254,6 +262,8 @@ pub const ItemType = enum(u8) {
             .boat => .{ 0.70, 0.48, 0.25, 0.95 },
             .lava_bucket => .{ 0.98, 0.35, 0.05, 0.95 },
             .obsidian => .{ 0.15, 0.10, 0.22, 0.95 },
+            .netherrack => .{ 0.65, 0.18, 0.18, 0.95 },
+            .soul_sand => .{ 0.45, 0.32, 0.25, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
