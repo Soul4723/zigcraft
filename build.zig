@@ -77,6 +77,7 @@ pub fn build(b: *std.Build) void {
         "src/math.zig",
         "src/audio/synth.zig",
         "src/audio/audio.zig",
+        "src/entity/pathfind.zig",
         "src/entity.zig",
         "src/inventory.zig",
     };
