@@ -128,6 +128,16 @@ pub const MobManager = struct {
                 const col_type = hazard_mod.detectBubbleColumn(bat, mx, my, mz);
                 mob.in_bubble_column = (col_type == .upward);
                 mob.in_whirlpool = (col_type == .downward);
+
+                // Contact heat hazard check: floor block under feet or immersed block
+                const floor_b = bat(mx, @intFromFloat(@floor(mob.pos.y - 0.1)), mz);
+                const body_b = bat(mx, my, mz);
+                if (hazard_mod.checkBurnContact(floor_b) or hazard_mod.checkBurnContact(body_b) or hazard_mod.checkLavaHazard(floor_b) or hazard_mod.checkLavaHazard(body_b)) {
+                    if (mob.applyBurnTick(dt)) {
+                        _ = self.mobs.swapRemove(idx);
+                        continue;
+                    }
+                }
             }
             mob.tick(solid, fluid, dt, &self.rng);
 
@@ -331,4 +341,41 @@ test "MobManager bubble column lift and whirlpool suction" {
     try std.testing.expect(!mm.mobs.items[1].in_bubble_column);
     try std.testing.expect(mm.mobs.items[1].in_whirlpool);
     try std.testing.expect(mm.mobs.items[1].vel.y <= mob_mod.Mob.whirlpool_pull_speed);
+}
+
+test "MobManager mob burn damage contact hazard on magma or campfire" {
+    var mm = MobManager{
+        .allocator = std.testing.allocator,
+        .mobs = std.ArrayList(mob_mod.Mob).empty,
+        .renderer = undefined,
+        .rng = std.Random.DefaultPrng.init(42),
+        .ambient_timer = 5.0,
+    };
+    defer mm.mobs.deinit(std.testing.allocator);
+
+    // Spawn pig on magma (3 hp)
+    try mm.spawnMob(.pig, 0.5, 1.0, 0.5);
+
+    const MockWorld = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return true; }
+        fn fluid(_: i32, _: i32, _: i32) bool { return false; }
+        fn block(_: i32, y: i32, _: i32) block_mod.BlockId {
+            if (y == 0) return .magma;
+            return .air;
+        }
+    };
+
+    // 1 second pass: 1 damage taken, 2 hp left
+    mm.tick(MockWorld.solid, MockWorld.fluid, MockWorld.block, math.Vec3.init(50, 0, 0), 0.4, null, 1.0);
+    try std.testing.expectEqual(@as(usize, 1), mm.mobs.items.len);
+    try std.testing.expectEqual(@as(u8, 2), mm.mobs.items[0].health);
+
+    // 1 second pass: 1 damage taken, 1 hp left
+    mm.tick(MockWorld.solid, MockWorld.fluid, MockWorld.block, math.Vec3.init(50, 0, 0), 0.4, null, 1.0);
+    try std.testing.expectEqual(@as(usize, 1), mm.mobs.items.len);
+    try std.testing.expectEqual(@as(u8, 1), mm.mobs.items[0].health);
+
+    // 1 second pass: mob dies and is removed
+    mm.tick(MockWorld.solid, MockWorld.fluid, MockWorld.block, math.Vec3.init(50, 0, 0), 0.4, null, 1.0);
+    try std.testing.expectEqual(@as(usize, 0), mm.mobs.items.len);
 }

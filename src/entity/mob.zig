@@ -36,6 +36,7 @@ pub const Mob = struct {
     in_water: bool,
     in_bubble_column: bool,
     in_whirlpool: bool,
+    burn_timer: f32,
 
     pub fn init(mob_type: MobType, x: f32, y: f32, z: f32) Mob {
         const w: f32 = switch (mob_type) {
@@ -71,6 +72,7 @@ pub const Mob = struct {
             .in_water = false,
             .in_bubble_column = false,
             .in_whirlpool = false,
+            .burn_timer = 0.0,
         };
     }
 
@@ -239,6 +241,19 @@ pub const Mob = struct {
 
     pub fn takeHit(self: *Mob, from_dir: math.Vec3) bool {
         return self.takeHitDmg(from_dir, 1);
+    }
+
+    /// Apply contact burn damage with 1-second damage tick interval.
+    /// Returns true if mob dies.
+    pub fn applyBurnTick(self: *Mob, dt: f32) bool {
+        self.burn_timer += dt;
+        if (self.burn_timer >= 1.0) {
+            self.burn_timer = 0.0;
+            self.health = if (self.health > 1) self.health - 1 else 0;
+            self.vel.y = @max(self.vel.y, 2.5); // small flinch hop
+            return self.health == 0;
+        }
+        return false;
     }
 
 };
@@ -499,4 +514,27 @@ test "mob magma whirlpool downward drag" {
     mob.tick(Mock.solid, Mock.water, 0.05, &rng);
     try std.testing.expect(mob.in_water);
     try std.testing.expect(mob.vel.y <= Mob.whirlpool_pull_speed);
+}
+
+test "mob applyBurnTick deals contact damage and flinches" {
+    var mob = Mob.init(.pig, 0.5, 1.0, 0.5);
+    try std.testing.expectEqual(@as(u8, 3), mob.health);
+
+    // After 0.5s: no damage yet
+    try std.testing.expect(!mob.applyBurnTick(0.5));
+    try std.testing.expectEqual(@as(u8, 3), mob.health);
+
+    // After total 1.0s: 1 damage taken
+    try std.testing.expect(!mob.applyBurnTick(0.5));
+    try std.testing.expectEqual(@as(u8, 2), mob.health);
+    try std.testing.expect(mob.vel.y >= 2.0);
+
+    // Another 1.0s: 1 damage taken
+    _ = mob.applyBurnTick(1.0);
+    try std.testing.expectEqual(@as(u8, 1), mob.health);
+
+    // Final 1.0s: mob dies
+    const died = mob.applyBurnTick(1.0);
+    try std.testing.expect(died);
+    try std.testing.expectEqual(@as(u8, 0), mob.health);
 }

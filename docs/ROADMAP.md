@@ -88,3 +88,4 @@ Rough priority order. Completed milestones marked **[x]**.
 60. [x] **Soul Sand Drag & Bubble Column Elevator Physics** — 40% movement deceleration drag on soul sand, vertical bubble elevator surge (6.5 m/s) in water above soul sand, and continuous bubble stream particles (#178).
 61. [x] **Magma Blocks & Downward Whirlpool Drag** — Magma block contact heat damage (2 hp/s), 0.7 night emissive glow, and downward whirlpool water drag (-7.0 m/s) (#179).
 62. [x] **Mob Bubble Column & Whirlpool Dynamics** — Soul sand upward elevator launch (6.5 m/s) and magma whirlpool downward suction (-7.0 m/s) for mobs (#180).
+63. [x] **Mob Contact Heat Hazard & Damage Ticks** — Magma block, campfire, and lava contact heat damage (1 hp/s) and death removal for mobs (#181).
