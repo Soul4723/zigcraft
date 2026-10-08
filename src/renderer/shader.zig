@@ -217,14 +217,16 @@ pub const chunk_frag: [:0]const u8 =
 \\    vec4 tex = texture(u_texture, FragTexCoord);
 \\    vec3 col = tex.rgb * light;
 \\    // Lit-lamp spill: warm glow, radius ~6 blocks, scaled by night
-\\    if (u_night > 0.01 && u_lamp_count > 0.5) {
+\\    // Lit-lamp and glowstone spill: warm glow, radius ~6 blocks, scaled by darkness or Nether cavern
+\\    float darkness = max(u_night, u_nether * 0.85);
+\\    if (darkness > 0.01 && u_lamp_count > 0.5) {
 \\        float glow = 0.0;
 \\        for (int i = 0; i < 8; i++) {
 \\            if (float(i) >= u_lamp_count) break;
 \\            float d = distance(FragWorldPos, u_lamp_pos[i]);
 \\            glow += 1.0 / (1.0 + d * d * 0.35);
 \\        }
-\\        col += tex.rgb * vec3(1.0, 0.75, 0.45) * clamp(glow, 0.0, 1.5) * u_night * 0.8;
+\\        col += tex.rgb * vec3(1.0, 0.78, 0.45) * clamp(glow, 0.0, 1.5) * darkness * 0.85;
 \\    }
 \\    if (u_underwater > 0.01) {
 \\        float dist = distance(FragWorldPos, u_cam_pos);

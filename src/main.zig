@@ -1169,6 +1169,33 @@ pub fn main() !void {
             lamp_spots[lamp_spot_count] = .{ @as(f32, @floatFromInt(la.x)) + 0.5, @as(f32, @floatFromInt(la.y)) + 0.5, @as(f32, @floatFromInt(la.z)) + 0.5 };
             lamp_spot_count += 1;
         }
+        // In Nether: scan nearby radius (~8 blocks) around player for hanging glowstone clusters
+        if (manager.is_nether and lamp_spot_count < lamp_spots.len) {
+            const p_ix: i32 = @intFromFloat(@floor(player.pos.x));
+            const p_iy: i32 = @intFromFloat(@floor(player.pos.y));
+            const p_iz: i32 = @intFromFloat(@floor(player.pos.z));
+            var g_dx: i32 = -6;
+            outer_g: while (g_dx <= 6) : (g_dx += 2) {
+                var g_dz: i32 = -6;
+                while (g_dz <= 6) : (g_dz += 2) {
+                    var g_dy: i32 = -4;
+                    while (g_dy <= 6) : (g_dy += 2) {
+                        if (lamp_spot_count >= lamp_spots.len) break :outer_g;
+                        const gx = p_ix + g_dx;
+                        const gy = p_iy + g_dy;
+                        const gz = p_iz + g_dz;
+                        if (manager.getBlockWorld(gx, gy, gz) == .glowstone) {
+                            lamp_spots[lamp_spot_count] = .{
+                                @as(f32, @floatFromInt(gx)) + 0.5,
+                                @as(f32, @floatFromInt(gy)) + 0.5,
+                                @as(f32, @floatFromInt(gz)) + 0.5,
+                            };
+                            lamp_spot_count += 1;
+                        }
+                    }
+                }
+            }
+        }
         const night_factor = 1.0 - day_factor;
         const stats = manager.draw(mvp, sun_dir, lamp_spots[0..lamp_spot_count], night_factor, cam.position, cam_underwater);
         try mob_manager.draw(mvp, sun_dir, cam.position, cam_underwater, manager.is_nether);
