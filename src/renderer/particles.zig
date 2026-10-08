@@ -279,6 +279,43 @@ pub const ParticleSystem = struct {
         }
     }
 
+    /// Spawn rising fiery embers and smoke sparks erupting from lava surface
+    pub fn spawnLavaEmber(self: *ParticleSystem, pos: [3]f32, count: usize) void {
+        var i: usize = 0;
+        var seed: u32 = @as(u32, @bitCast(@as(i32, @intFromFloat(pos[0] * 64.0)))) *% 23 +%
+            @as(u32, @bitCast(@as(i32, @intFromFloat(pos[2] * 64.0)))) *% 19 +%
+            @as(u32, @intCast(self.count));
+        while (i < count and self.count < MAX_PARTICLES) : (i += 1) {
+            seed = seed *% 1103515245 +% 12345;
+            const rx = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            seed = seed *% 1103515245 +% 12345;
+            const ry = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            seed = seed *% 1103515245 +% 12345;
+            const rz = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+
+            // Fiery orange/yellow ember spark vs dark smoke puff
+            const is_smoke = (i % 3 == 0);
+            const col = if (is_smoke)
+                [3]f32{ 0.22 + 0.08 * rx, 0.20 + 0.05 * rx, 0.22 + 0.05 * rx }
+            else
+                [3]f32{ 1.0, 0.35 + 0.45 * ry, 0.05 };
+
+            self.particles[self.count] = .{
+                .x = pos[0] + (rx - 0.5) * 0.7,
+                .y = pos[1] + 0.1 + ry * 0.1,
+                .z = pos[2] + (rz - 0.5) * 0.7,
+                .vx = (rx - 0.5) * 0.6,
+                .vy = 0.9 + ry * 1.5,
+                .vz = (rz - 0.5) * 0.6,
+                .life = 0.5 + 0.4 * ry,
+                .max_life = 0.5 + 0.4 * ry,
+                .color = col,
+                .size = if (is_smoke) 0.07 else 0.04,
+            };
+            self.count += 1;
+        }
+    }
+
     pub fn tick(self: *ParticleSystem, dt: f32) void {
         var i: usize = 0;
         const gravity: f32 = 18.0;
@@ -291,10 +328,15 @@ pub const ParticleSystem = struct {
                 self.count -= 1;
                 continue;
             }
-            // Bubbles float upward against gravity; normal debris falls downward
+            // Bubbles float upward against gravity; embers/smoke drift upward softly; debris falls
             const is_bubble = (p.color[0] > 0.6 and p.color[1] > 0.8 and p.color[2] > 0.9);
+            const is_ember = (p.color[0] > 0.9 and p.color[2] < 0.2); // Fiery orange/yellow
+            const is_smoke = (p.color[0] < 0.35 and p.color[1] < 0.35 and p.color[2] < 0.35); // Dark smoke
             if (is_bubble) {
                 p.vy = @min(1.5, p.vy + 1.0 * dt);
+            } else if (is_ember or is_smoke) {
+                // Thermal lift: rising gently
+                p.vy = @max(0.2, p.vy - 3.0 * dt);
             } else {
                 p.vy -= gravity * dt;
             }
@@ -480,5 +522,35 @@ test "spawnBoatWake lateral spread and foam coloring" {
     ps.tick(0.1);
     try std.testing.expect(ps.particles[0].y > 1.0);
     ps.tick(1.0);
+    try std.testing.expectEqual(ps.count, 0);
+}
+
+test "spawnLavaEmber rising embers and smoke coloring" {
+    var ps = ParticleSystem{
+        .particles = undefined,
+        .count = 0,
+        .vao = 0,
+        .vbo = 0,
+        .program = 0,
+    };
+    ps.spawnLavaEmber(.{ 2.0, 5.0, 8.0 }, 6);
+    try std.testing.expectEqual(ps.count, 6);
+    // At least one ember and one smoke puff
+    var found_ember = false;
+    var found_smoke = false;
+    for (ps.particles[0..6]) |p| {
+        if (p.color[0] > 0.9 and p.color[2] < 0.2) found_ember = true;
+        if (p.color[0] < 0.35 and p.color[1] < 0.35 and p.color[2] < 0.35) found_smoke = true;
+    }
+    try std.testing.expect(found_ember);
+    try std.testing.expect(found_smoke);
+
+    // Initial upwards velocity
+    try std.testing.expect(ps.particles[0].vy > 0.5);
+    const initial_y = ps.particles[0].y;
+    ps.tick(0.1);
+    try std.testing.expect(ps.particles[0].y > initial_y);
+    // Expire after 1.5s
+    ps.tick(1.5);
     try std.testing.expectEqual(ps.count, 0);
 }

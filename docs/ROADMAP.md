@@ -81,3 +81,4 @@ Rough priority order. Completed milestones marked **[x]**.
 53. [x] **Boat Crafting & Water Surface Navigation** — Wooden boat crafting recipe, water boarding/dismounting, surface hydroplaning, and cruising speed scale (#171).
 54. [x] **Boat Wake & Bow Spray Particles** — Foaming lateral wake spread and forward spray particles when cruising in wooden boat (#172).
 55. [x] **Lava Mechanics & Obsidian Reactions** — Lava liquid fluid, high heat burn damage (8 hp/s), glowing emissive light, and water-lava contact crystallization into obsidian/cobblestone (#173).
+56. [x] **Lava Bubbling Audio & Smoke Ember Particles** — Synthesized lava pop/bubble sounds with 3D spatial attenuation, rising fiery embers and dark smoke particles (#174).

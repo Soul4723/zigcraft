@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-08 (Session 173)
+Last updated: 2026-10-08 (Session 174)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 856 passing unit tests
@@ -10,7 +10,7 @@ Last updated: 2026-10-08 (Session 173)
 - Axis-aligned bounding box (AABB) collision and voxel step snapping
 - Suffocation damage mechanics (when player eye position is inside solid blocks)
 - Player fall damage on hard landings
-- Environmental hazards: Cactus contact damage (1 hp/sec), campfire burn (2 hp/sec), lava contact burn (8 hp/sec), water-lava contact crystallization (obsidian / cobblestone)
+- Environmental hazards: Cactus contact damage (1 hp/sec), campfire burn (2 hp/sec), lava contact burn (8 hp/sec), water-lava contact crystallization (obsidian / cobblestone), ambient lava bubbling sound & ember smoke emission
 - Procedural audio synthesizer via ALSA with 3D spatial attenuation & distance rolloff: footsteps (grass, stone, wood, dirt, sand), block break/place, mob sounds
 - 16x16x16 chunk data structures, greedy mesher with Ambient Occlusion (AO)
 - Dynamic chunk streaming manager (load/unload radius around player) with frustum culling
@@ -28,5 +28,5 @@ Last updated: 2026-10-08 (Session 173)
 
 ## Active State
 - Main branch stable at commit 2d11bd3 (Phase 8: Survival Depth & Environmental Physics, Milestones 43-48)
-- All tests passing (823/823 tests across 81 test steps)
+- All tests passing (857/857 tests across 81 test steps)
 - Remote and local branches pruned clean

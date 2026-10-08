@@ -20,6 +20,8 @@ pub const SoundType = enum {
     click_off,
     splash,
     underwater_submerge,
+    lava_pop,
+    lava_bubble,
 };
 
 pub const SAMPLE_RATE: u32 = 44100;
@@ -81,6 +83,8 @@ pub const AudioMixer = struct {
             .click_on, .click_off => SAMPLE_RATE / 20, // ~50ms mechanical click
             .splash => SAMPLE_RATE / 4, // ~250ms bubbly splash burst
             .underwater_submerge => SAMPLE_RATE / 3, // ~330ms deep water plunge
+            .lava_pop => SAMPLE_RATE / 10, // ~100ms quick fiery pop/snap
+            .lava_bubble => SAMPLE_RATE / 4, // ~250ms low simmering bubbling hiss
         };
 
         slot.?.* = .{
@@ -289,6 +293,23 @@ pub const AudioMixer = struct {
                 const noise = (rng.random().float(f32) * 2.0 - 1.0) * 0.15 * (1.0 - progress);
                 return (tone + sub + noise) * envelope * 0.75;
             },
+            .lava_pop => {
+                // Lava burst pop: short high-energy chirp dropping pitch (650Hz -> 180Hz) + fiery sizzle noise
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const freq: f32 = 650.0 * (1.0 - progress * 0.75);
+                const tone = @sin(t * freq * 2.0 * std.math.pi) * 0.65;
+                const sizzle = (rng.random().float(f32) * 2.0 - 1.0) * 0.35 * (1.0 - progress * 0.5);
+                return (tone + sizzle) * envelope * 0.7;
+            },
+            .lava_bubble => {
+                // Simmering lava bubble: low viscous rumble (90-120Hz modulated) + subtle escaping steam hiss
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const wobble = @sin(t * 45.0);
+                const freq: f32 = (110.0 + 30.0 * wobble) * (1.0 - progress * 0.4);
+                const tone = @sin(t * freq * 2.0 * std.math.pi) * 0.75;
+                const hiss = (rng.random().float(f32) * 2.0 - 1.0) * 0.25 * @sin(progress * std.math.pi);
+                return (tone + hiss) * envelope * 0.65;
+            },
         }
     }
 };
@@ -320,7 +341,7 @@ test "AudioMixer play voice produces non-zero samples" {
 
 test "AudioMixer all sound types render without overflow or crash" {
     var mixer = AudioMixer.init();
-    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .click_on, .click_off, .splash, .underwater_submerge };
+    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble };
     for (sounds) |snd| {
         mixer.play(snd, 1.0);
     }

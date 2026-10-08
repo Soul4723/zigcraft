@@ -212,6 +212,7 @@ pub fn main() !void {
     var falling_count: usize = 0;
     var sand_scan: u8 = 0;
     var flow_timer: f32 = 0.0;
+    var lava_ambient_timer: f32 = 0.0;
     var chunk_retry_timer: f32 = 0.0;
     var world_time: f32 = 45.0; // Start at morning daylight
     var last_step_dist: f32 = 0.0;
@@ -349,6 +350,31 @@ pub fn main() !void {
                 particles.spawnFlame(px_i, py_i, pz_i, 3);
             } else if (hazard_mod.checkBurnContact(feet_b) or hazard_mod.checkBurnContact(head_b)) {
                 player.health = hazard_mod.applyDamageClamped(player.health, hazard_mod.burn_rate, dt);
+            }
+
+            // Periodic ambient lava bubbling and smoke ember emission around player
+            lava_ambient_timer += dt;
+            if (lava_ambient_timer >= 0.25) {
+                lava_ambient_timer = 0.0;
+                // Sample random offset in 16x16x8 cylinder around player
+                const l_seed = @as(u32, @intFromFloat(current_time * 100.0)) ^ @as(u32, @bitCast(px_i *% 31 +% pz_i));
+                const l_dx: i32 = @as(i32, @intCast(l_seed % 17)) - 8;
+                const l_dz: i32 = @as(i32, @intCast((l_seed / 17) % 17)) - 8;
+                const l_dy: i32 = @as(i32, @intCast((l_seed / 289) % 9)) - 4;
+                const lx = px_i + l_dx;
+                const ly = py_i + l_dy;
+                const lz = pz_i + l_dz;
+                if (manager.getBlockWorld(lx, ly, lz) == .lava) {
+                    // Check if block above is open to air/transparency for bubbling surface
+                    const above = manager.getBlockWorld(lx, ly + 1, lz);
+                    if (above == .air or above.is_transparent()) {
+                        const l_pos = [3]f32{ @as(f32, @floatFromInt(lx)) + 0.5, @as(f32, @floatFromInt(ly)) + 0.9, @as(f32, @floatFromInt(lz)) + 0.5 };
+                        particles.spawnLavaEmber(l_pos, 3);
+                        // Emit pop or simmer bubble with spatial attenuation
+                        const snd_type: audio_mod.synth.SoundType = if ((l_seed & 1) == 0) .lava_pop else .lava_bubble;
+                        audio.playAt(snd_type, l_pos, .{ player.pos.x, player.pos.y, player.pos.z }, 0.7, 16.0);
+                    }
+                }
             }
         }
         if (player.isDead()) {
