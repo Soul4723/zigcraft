@@ -184,6 +184,44 @@ pub const ParticleSystem = struct {
     }
 
 
+
+    /// Spawn trailing foaming wake and bow spray particles when navigating in a boat.
+    pub fn spawnBoatWake(self: *ParticleSystem, pos: [3]f32, move_dir: [3]f32, count: usize) void {
+        var i: usize = 0;
+        var seed: u32 = @as(u32, @bitCast(@as(i32, @intFromFloat(pos[0] * 80.0)))) *% 29 +%
+            @as(u32, @bitCast(@as(i32, @intFromFloat(pos[2] * 80.0)))) *% 17 +%
+            @as(u32, @intCast(self.count));
+        // Perpendicular horizontal vector for lateral wake spread
+        const perp_x = -move_dir[2];
+        const perp_z = move_dir[0];
+
+        while (i < count and self.count < MAX_PARTICLES) : (i += 1) {
+            seed = seed *% 1103515245 +% 12345;
+            const rx = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            seed = seed *% 1103515245 +% 12345;
+            const ry = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            const side: f32 = if (i % 2 == 0) 1.0 else -1.0;
+
+            const spread_x = perp_x * side * (0.35 + 0.3 * rx);
+            const spread_z = perp_z * side * (0.35 + 0.3 * rx);
+            const col = [3]f32{ 0.75 + 0.2 * rx, 0.88 + 0.1 * rx, 1.0 }; // White-blue foaming spray
+
+            self.particles[self.count] = .{
+                .x = pos[0] + spread_x - move_dir[0] * 0.4,
+                .y = pos[1] + 0.05 + ry * 0.15,
+                .z = pos[2] + spread_z - move_dir[2] * 0.4,
+                .vx = spread_x * 1.5 - move_dir[0] * 0.5,
+                .vy = 0.8 + ry * 1.2,
+                .vz = spread_z * 1.5 - move_dir[2] * 0.5,
+                .life = 0.3 + 0.2 * ry,
+                .max_life = 0.3 + 0.2 * ry,
+                .color = col,
+                .size = 0.05 + 0.03 * rx,
+            };
+            self.count += 1;
+        }
+    }
+
     /// Spawn a forward-drifting cloud of breath mist / gasping droplets.
     pub fn spawnBreathMist(self: *ParticleSystem, pos: [3]f32, look_dir: [3]f32, count: usize) void {
         var i: usize = 0;
@@ -419,6 +457,28 @@ test "spawnBreathMist forward direction and mist color" {
     try std.testing.expect(ps.particles[0].color[1] > 0.9);
     ps.tick(0.1);
     try std.testing.expect(ps.particles[0].z > 0.0);
+    ps.tick(1.0);
+    try std.testing.expectEqual(ps.count, 0);
+}
+
+test "spawnBoatWake lateral spread and foam coloring" {
+    var ps = ParticleSystem{
+        .particles = undefined,
+        .count = 0,
+        .vao = 0,
+        .vbo = 0,
+        .program = 0,
+    };
+    // Cruising along +X: perp is along Z
+    ps.spawnBoatWake(.{ 0.0, 1.0, 0.0 }, .{ 1.0, 0.0, 0.0 }, 4);
+    try std.testing.expectEqual(ps.count, 4);
+    // Whitish-blue foam color
+    try std.testing.expect(ps.particles[0].color[0] >= 0.7);
+    try std.testing.expect(ps.particles[0].color[2] >= 0.9);
+    // Lateral Z velocity is non-zero
+    try std.testing.expect(@abs(ps.particles[0].vz) > 0.1);
+    ps.tick(0.1);
+    try std.testing.expect(ps.particles[0].y > 1.0);
     ps.tick(1.0);
     try std.testing.expectEqual(ps.count, 0);
 }

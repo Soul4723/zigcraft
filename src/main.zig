@@ -322,6 +322,11 @@ pub fn main() !void {
                 player.health = @max(0.0, player.health - drown_dmg);
                 // Drowning gasp emits bubble burst
                 particles.spawnBubble(.{ eye.x, eye.y, eye.z }, 4);
+            } else if (player.in_boat and player.in_water and (norm_wish.x != 0 or norm_wish.z != 0)) {
+                // Boat cruising wake & bow spray particles
+                if (@as(u32, @intFromFloat(current_time * 16.0)) % 2 == 0) {
+                    particles.spawnBoatWake(.{ player.pos.x, player.pos.y, player.pos.z }, .{ norm_wish.x, 0.0, norm_wish.z }, 2);
+                }
             } else if (player.in_water and (norm_wish.x != 0 or norm_wish.z != 0 or jump)) {
                 // Swimming trail bubbles
                 if (@as(u32, @intFromFloat(current_time * 12.0)) % 4 == 0) {

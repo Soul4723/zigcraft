@@ -79,3 +79,4 @@ Rough priority order. Completed milestones marked **[x]**.
 51. [x] **Surface Breath Recovery & Gasp Mist** — Breath recovery gasp mist puff and audio trigger upon surfacing with low oxygen (#169).
 52. [x] **Entity Swimming Floatation & Head Bobbing** — Mob water paddle buoyancy physics and snout-elevating head bob mesh rendering (#170).
 53. [x] **Boat Crafting & Water Surface Navigation** — Wooden boat crafting recipe, water boarding/dismounting, surface hydroplaning, and cruising speed scale (#171).
+54. [x] **Boat Wake & Bow Spray Particles** — Foaming lateral wake spread and forward spray particles when cruising in wooden boat (#172).
