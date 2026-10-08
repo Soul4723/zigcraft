@@ -481,6 +481,7 @@ pub fn main() !void {
                 } else if (near_b == .glowstone) {
                     const gl_pos = [3]f32{ @as(f32, @floatFromInt(pox)) + 0.5, @as(f32, @floatFromInt(poy)) + 0.5, @as(f32, @floatFromInt(poz)) + 0.5 };
                     particles.spawnGlowstoneShimmer(gl_pos, 3);
+                    audio.playAt(.glowstone_chime, gl_pos, .{ player.pos.x, player.pos.y, player.pos.z }, 0.6, 16.0);
                 }
             }
         }

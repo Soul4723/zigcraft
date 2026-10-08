@@ -26,6 +26,7 @@ pub const SoundType = enum {
     portal_warp,
     burn_sizzle,
     nether_wind,
+    glowstone_chime,
 };
 
 pub const SAMPLE_RATE: u32 = 44100;
@@ -93,6 +94,7 @@ pub const AudioMixer = struct {
             .portal_warp => SAMPLE_RATE * 3 / 4, // ~750ms sweeping dimension portal vortex whoosh
             .burn_sizzle => SAMPLE_RATE / 3, // ~330ms fiery contact hiss & burning crackle
             .nether_wind => SAMPLE_RATE * 3 / 2, // ~1500ms ominous hollow gust & subterranean rumble
+            .glowstone_chime => SAMPLE_RATE * 2 / 5, // ~400ms crystalline harmonic chime bell
         };
 
         slot.?.* = .{
@@ -355,6 +357,16 @@ pub const AudioMixer = struct {
                 const env = @sin(progress * std.math.pi);
                 return (sub_bass + drone + breath) * env * 0.55;
             },
+            .glowstone_chime => {
+                // Radiant crystalline bell chime: pristine pure harmonics (880Hz root, 1760Hz octave, 2640Hz 5th) with sparkling shimmer decay
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const h1 = @sin(t * 880.0 * 2.0 * std.math.pi) * 0.55;
+                const h2 = @sin(t * 1760.0 * 2.0 * std.math.pi) * 0.30;
+                const h3 = @sin(t * 2640.0 * 2.0 * std.math.pi) * 0.15;
+                const sparkle = (rng.random().float(f32) * 2.0 - 1.0) * 0.05 * (1.0 - progress);
+                const chime_env = @exp(-progress * 4.5);
+                return (h1 + h2 + h3 + sparkle) * chime_env * 0.65;
+            },
         }
     }
 };
@@ -386,7 +398,7 @@ test "AudioMixer play voice produces non-zero samples" {
 
 test "AudioMixer all sound types render without overflow or crash" {
     var mixer = AudioMixer.init();
-    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle, .nether_wind };
+    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle, .nether_wind, .glowstone_chime };
     for (sounds) |snd| {
         mixer.play(snd, 1.0);
     }
@@ -418,6 +430,21 @@ test "AudioMixer burn_sizzle sound synthesizes properly" {
 test "nether_wind sound synthesis non-zero output" {
     var mixer = AudioMixer.init();
     mixer.play(.nether_wind, 0.8);
+    var buf: [512]i16 = undefined;
+    mixer.render(&buf);
+    var non_zero = false;
+    for (buf) |s| {
+        if (s != 0) {
+            non_zero = true;
+            break;
+        }
+    }
+    try std.testing.expect(non_zero);
+}
+
+test "glowstone_chime sound synthesis non-zero harmonic output" {
+    var mixer = AudioMixer.init();
+    mixer.play(.glowstone_chime, 0.75);
     var buf: [512]i16 = undefined;
     mixer.render(&buf);
     var non_zero = false;
