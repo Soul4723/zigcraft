@@ -5,6 +5,16 @@ const inventory_mod = @import("../inventory.zig");
 pub const MobType = inventory_mod.MobType;
 
 
+/// Steer away from water ahead: probe one block in facing dir at feet.
+/// Returns deflected yaw (+90 deg turn) when water ahead, else yaw unchanged.
+pub fn steerAroundWater(yaw: f32, pos_x: f32, pos_y: f32, pos_z: f32, fluid: *const fn (x: i32, y: i32, z: i32) bool) f32 {
+    const ahead_x: i32 = @intFromFloat(@floor(pos_x + @sin(yaw) * 1.2));
+    const ahead_z: i32 = @intFromFloat(@floor(pos_z + @cos(yaw) * 1.2));
+    const feet_y: i32 = @intFromFloat(@floor(pos_y + 0.2));
+    if (fluid(ahead_x, feet_y, ahead_z)) return yaw + std.math.pi * 0.5;
+    return yaw;
+}
+
 pub const Mob = struct {
     mob_type: MobType,
     pos: math.Vec3, // base / feet position
@@ -56,7 +66,7 @@ pub const Mob = struct {
     }
 
     /// Update mob AI and physics
-    pub fn tick(self: *Mob, solid: *const fn (x: i32, y: i32, z: i32) bool, dt: f32, rng: *std.Random.DefaultPrng) void {
+    pub fn tick(self: *Mob, solid: *const fn (x: i32, y: i32, z: i32) bool, fluid: *const fn (x: i32, y: i32, z: i32) bool, dt: f32, rng: *std.Random.DefaultPrng) void {
         const clamped_dt = @min(dt, 0.05);
 
         self.change_dir_timer -= clamped_dt;
@@ -71,6 +81,10 @@ pub const Mob = struct {
             }
             self.wants_sound = (roll < 0.35);
             self.change_dir_timer = 3.0 + rng.random().float(f32) * 4.0;
+        }
+
+        if (self.walk_timer > 0.0) {
+            self.yaw = steerAroundWater(self.yaw, self.pos.x, self.pos.y, self.pos.z, fluid);
         }
 
         var wish_x: f32 = 0.0;
@@ -280,12 +294,26 @@ fn testSolid(x: i32, y: i32, z: i32) bool {
     return y <= 0;
 }
 
+fn testDry(x: i32, y: i32, z: i32) bool {
+    _ = x;
+    _ = y;
+    _ = z;
+    return false;
+}
+
+fn testWet(x: i32, y: i32, z: i32) bool {
+    _ = x;
+    _ = y;
+    _ = z;
+    return true;
+}
+
 test "mob gravity falls and lands" {
     var mob = Mob.init(.sheep, 0.5, 4.0, 0.5);
     var rng = std.Random.DefaultPrng.init(42);
     var i: usize = 0;
     while (i < 200) : (i += 1) {
-        mob.tick(&testSolid, 1.0 / 60.0, &rng);
+        mob.tick(&testSolid, &testDry, 1.0 / 60.0, &rng);
     }
     try std.testing.expect(mob.on_ground);
     try std.testing.expectApproxEqAbs(mob.pos.y, 1.0, 0.05);
@@ -297,9 +325,14 @@ test "mob wandering modifies yaw or position" {
     var rng = std.Random.DefaultPrng.init(1234);
     var i: usize = 0;
     while (i < 300) : (i += 1) {
-        mob.tick(&testSolid, 1.0 / 60.0, &rng);
+        mob.tick(&testSolid, &testDry, 1.0 / 60.0, &rng);
     }
     try std.testing.expect(mob.yaw != 0.0 or mob.pos.x != 0.5 or mob.pos.z != 0.5);
+}
+
+test "steerAroundWater turns on wet, keeps yaw on dry" {
+    try std.testing.expectApproxEqAbs(steerAroundWater(0.0, 0.5, 1.0, 0.5, &testDry), 0.0, 0.001);
+    try std.testing.expectApproxEqAbs(steerAroundWater(0.0, 0.5, 1.0, 0.5, &testWet), std.math.pi * 0.5, 0.001);
 }
 
 test "mob rayIntersects detects hit" {
