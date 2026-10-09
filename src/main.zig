@@ -8,6 +8,7 @@ const proj_mod = @import("world/projectile.zig");
 const smelt_mod = @import("world/smelting.zig");
 const boom_mod = @import("world/explosives.zig");
 const sapling_mod = @import("world/sapling.zig");
+const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
 const fluid_mod = @import("world/fluid_wash.zig");
 const falling_mod = @import("world/falling_blocks.zig");
@@ -177,6 +178,7 @@ pub fn main() !void {
     var throw_cooldown: f32 = 0.0;
     var wolf_bite_cooldown: f32 = 0.0;
     var fireball_cooldown: f32 = 0.0;
+    var compass_cooldown: f32 = 0.0;
     const Fuse = boom_mod.Fuse;
     var fuses: [boom_mod.fuse_cap]Fuse = undefined;
     var fuse_count: usize = 0;
@@ -1631,7 +1633,14 @@ pub fn main() !void {
         }
         // Sleep on wool block at night: aim at wool + press B sets spawn, skips to dawn
         bed_cooldown = interact_mod.tickCooldown(bed_cooldown, dt);
+        compass_cooldown = interact_mod.tickCooldown(compass_cooldown, dt);
         const sun_y_now = @sin(world_time);
+        if (!inventory_open and manager.is_nether and c.glfwGetKey(window, c.GLFW_KEY_C) == c.GLFW_PRESS and interact_mod.ready(compass_cooldown)) {
+            const j = spawn_mod.nearestJunction(player.pos.x, player.pos.z);
+            std.debug.print("fortress compass: junction ({d},{d}) {d:.0}m\n", .{ j.jx, j.jz, j.dist });
+            audio.play(.click_on, 0.5);
+            compass_cooldown = 1.0;
+        }
         if (!inventory_open and interact_mod.ready(bed_cooldown) and c.glfwGetKey(window, c.GLFW_KEY_B) == c.GLFW_PRESS) {
             const dir_b = cam.front();
             if (pick_mod.raycast(&pickSolid, cam.position, dir_b, 5)) |hit_b| {

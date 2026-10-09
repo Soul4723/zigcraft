@@ -202,3 +202,36 @@ test "fortress spawner pulse timing and cap" {
     try std.testing.expect(spawnerDue(60.0));
     try std.testing.expectEqual(@as(usize, 2), spawner_max_near);
 }
+
+/// Nearest fortress junction center (48-cell grid, span 22..25) to world (x, z).
+/// Returns junction origin + distance for compass readout.
+pub const JunctionPoint = struct { jx: i32, jz: i32, dist: f32 };
+
+pub fn nearestJunction(x: f32, z: f32) JunctionPoint {
+    const cell: f32 = 48.0;
+    const cx = @floor((x - 23.5) / cell);
+    const cz = @floor((z - 23.5) / cell);
+    var best: JunctionPoint = .{ .jx = 0, .jz = 0, .dist = 1e30 };
+    var ox: i32 = -1;
+    while (ox <= 1) : (ox += 1) {
+        var oz: i32 = -1;
+        while (oz <= 1) : (oz += 1) {
+            const jx: i32 = @as(i32, @intFromFloat(cx)) * 48 + 23 + ox * 48;
+            const jz: i32 = @as(i32, @intFromFloat(cz)) * 48 + 23 + oz * 48;
+            const dx = @as(f32, @floatFromInt(jx)) - x;
+            const dz = @as(f32, @floatFromInt(jz)) - z;
+            const d = @sqrt(dx * dx + dz * dz);
+            if (d < best.dist) best = .{ .jx = jx, .jz = jz, .dist = d };
+        }
+    }
+    return best;
+}
+
+test "nearest junction centers on 48-cell fortress grid" {
+    const j = nearestJunction(24.0, 24.0);
+    try std.testing.expectEqual(@as(i32, 23), j.jx);
+    try std.testing.expect(j.dist < 2.0);
+    const k = nearestJunction(70.0, 70.0);
+    try std.testing.expectEqual(@as(i32, 71), k.jx);
+    try std.testing.expectEqual(@as(i32, 71), k.jz);
+}
