@@ -117,3 +117,4 @@ Rough priority order. Completed milestones marked **[x]**.
 89. [x] **Emberbeast Fireball Ranged Attack** — Aimed 3-dmg flame bolts with trail/burst, potion immunity (#207).
 90. [x] **Fireball Block Ignition** — Fireball strikes ignite campfires atop flammable floors (#208).
 91. [x] **Loot-Chest Emberbeast Guard Ambush** — 50% deterministic guard spawn with roar on fortress chest open (#209).
+92. [x] **Ignited Campfire Flame Burnout** — Fireball flames expire after 45s; player campfires permanent (#210).
