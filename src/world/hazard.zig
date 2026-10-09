@@ -53,7 +53,7 @@ pub fn checkLavaHazard(block: BlockId) bool {
 }
 
 pub fn checkBurnContact(block: BlockId) bool {
-    return block == .campfire or block == .tnt or block == .magma;
+    return block == .campfire or block == .soul_campfire or block == .tnt or block == .magma;
 }
 
 pub const BubbleColumnType = enum {
@@ -115,6 +115,7 @@ test "cactus proximity check" {
 
 test "burn hazard checks" {
     try std.testing.expect(checkBurnContact(.campfire));
+    try std.testing.expect(checkBurnContact(.soul_campfire));
     try std.testing.expect(!checkBurnContact(.stone));
     try std.testing.expect(!checkBurnContact(.air));
     try std.testing.expectEqual(burn_rate, 2.0);
