@@ -113,3 +113,4 @@ Rough priority order. Completed milestones marked **[x]**.
 85. [x] **Nether Wart Crop Farming** — Soul-sand-gated planting, 60s ripening with mature bonus yield, wild shore patches in Nether gen (#203).
 86. [x] **Emberbeast Nether Hostile Mob** — Fire-immune fortress hunter (8 HP, 2x bite), A* pack hunting, roar synth, Nether spawns (#204).
 87. [x] **Nether Wart Brewing Hook** — Wart + glass vial brews Fire Resistance Potion; legacy magma path preserved (#205).
+88. [x] **Fortress Loot Chest Alcoves** — Junction-corner chests with deterministic wart/quartz/iron loot on first open (#206).
