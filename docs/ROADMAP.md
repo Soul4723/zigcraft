@@ -122,3 +122,4 @@ Rough priority order. Completed milestones marked **[x]**.
 94. [x] **Emberbeast Kill Loot** — Coal + 0-2 wart bonus with flame burst on kill (#212).
 95. [x] **Nether Fortress Compass** — C-key nearest-junction readout with distance in Nether (#213).
 96. [x] **Live Fortress Compass Needle HUD** — Rotating crimson/gold needle above crosshair in Nether (#214).
+97. [x] **Magma Cream Crafting & Potion Brewing** — Coal + wart crafts cream; brews Fire Resistance with glass vial (#215).
