@@ -176,6 +176,7 @@ pub fn main() !void {
     var flint_cooldown: f32 = 0.0;
     var throw_cooldown: f32 = 0.0;
     var wolf_bite_cooldown: f32 = 0.0;
+    var fireball_cooldown: f32 = 0.0;
     const Fuse = boom_mod.Fuse;
     var fuses: [boom_mod.fuse_cap]Fuse = undefined;
     var fuse_count: usize = 0;
@@ -183,7 +184,7 @@ pub fn main() !void {
     var torches: [cache_mod.torch_cap]Torch = undefined;
     var torch_count: usize = 0;
     var torch_puff_timer: f32 = 0.0;
-    const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32 };
+    const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, hostile: bool = false };
     var thrown: [proj_mod.thrown_cap]Thrown = undefined;
     var thrown_count: usize = 0;
     const FurnaceJob = smelt_mod.FurnaceJob;
@@ -1785,10 +1786,32 @@ pub fn main() !void {
                 const mbz = mbc[2];
                 var dead = proj_mod.isExpired(t.life);
                 if (!dead) {
-                    if (pickSolid(mbx, mby, mbz)) {
+                    if (t.hostile) {
+                        // Fireball vs player: 3 dmg on close pass, flame burst on block
+                        const pdx = player.pos.x - t.pos.x;
+                        const pdy = (player.pos.y + 1.0) - t.pos.y;
+                        const pdz = player.pos.z - t.pos.z;
+                        if (pdx * pdx + pdy * pdy + pdz * pdz < 1.0) {
+                            const resist = player.fire_resistance_timer > 0.0;
+                            if (!resist) {
+                                player.health = @max(0.0, player.health - proj_mod.fireball_damage);
+                                audio.play(.hurt, 0.8);
+                                std.debug.print("fireball hit (hp={d:.1})\n", .{player.health});
+                            } else {
+                                std.debug.print("fireball resisted\n", .{});
+                            }
+                            particles.spawnFlame(mbx, mby, mbz, 8);
+                            dead = true;
+                        } else if (pickSolid(mbx, mby, mbz)) {
+                            particles.spawnFlame(mbx, mby, mbz, 8);
+                            audio.play(.burn_sizzle, 0.4);
+                            dead = true;
+                        }
+                    }
+                    if (!dead and !t.hostile and pickSolid(mbx, mby, mbz)) {
                         particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.93, 0.95, 1.0 }, 6);
                         dead = true;
-                    } else {
+                    } else if (!dead and !t.hostile) {
                         // mob hit test (generous radius)
                         for (mob_manager.mobs.items, 0..) |*m, mi| {
                             const d = proj_mod.mobDelta(m.pos.x, m.pos.y, m.pos.z, t.pos.x, t.pos.y, t.pos.z);
@@ -1814,7 +1837,11 @@ pub fn main() !void {
                     cache_mod.swapRemove(&thrown, &thrown_count, ti);
                 } else {
                     // trail puff
-                    particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.9, 0.92, 1.0 }, 1);
+                    if (t.hostile) {
+                        particles.spawnFlame(mbx, mby, mbz, 1);
+                    } else {
+                        particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.9, 0.92, 1.0 }, 1);
+                    }
                     ti += 1;
                 }
             }
@@ -1830,6 +1857,32 @@ pub fn main() !void {
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.place_block, 0.4);
                 throw_cooldown = proj_mod.throw_cooldown;
+            }
+        }
+        // Emberbeast fireballs: ranged 3-dmg flame bolts with fire trail
+        fireball_cooldown = combat_mod.tickCooldown(fireball_cooldown, dt);
+        if (fireball_cooldown <= 0.0) {
+            for (mob_manager.mobs.items) |m| {
+                if (m.mob_type != .emberbeast) continue;
+                const fdx = player.pos.x - m.pos.x;
+                const fdz = player.pos.z - m.pos.z;
+                const fdy = (player.pos.y + 1.0) - (m.pos.y + 0.7);
+                if (!proj_mod.inFireballRange(fdx, fdz)) continue;
+                if (thrown_count < thrown.len) {
+                    const fv = proj_mod.fireballVelocity(fdx, fdy, fdz);
+                    thrown[thrown_count] = .{
+                        .pos = math.Vec3.init(m.pos.x, m.pos.y + 0.7, m.pos.z),
+                        .vel = math.Vec3.init(fv[0], fv[1], fv[2]),
+                        .life = proj_mod.fireball_life,
+                        .hostile = true,
+                    };
+                    thrown_count += 1;
+                    audio.playAt(.lava_pop, .{ m.pos.x, m.pos.y, m.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
+                    particles.spawnFlame(@intFromFloat(@floor(m.pos.x)), @intFromFloat(@floor(m.pos.y + 1)), @intFromFloat(@floor(m.pos.z)), 6);
+                    std.debug.print("emberbeast fireball\n", .{});
+                }
+                fireball_cooldown = proj_mod.fireball_cooldown;
+                break;
             }
         }
         // TNT tick: white/smoke pulses during fuse; explode on 0
