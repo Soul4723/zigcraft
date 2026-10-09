@@ -119,3 +119,4 @@ Rough priority order. Completed milestones marked **[x]**.
 91. [x] **Loot-Chest Emberbeast Guard Ambush** — 50% deterministic guard spawn with roar on fortress chest open (#209).
 92. [x] **Ignited Campfire Flame Burnout** — Fireball flames expire after 45s; player campfires permanent (#210).
 93. [x] **Fortress Emberbeast Spawner Pulse** — 20s reinforcement waves near player in Nether (max 2 near) (#211).
+94. [x] **Emberbeast Kill Loot** — Coal + 0-2 wart bonus with flame burst on kill (#212).
