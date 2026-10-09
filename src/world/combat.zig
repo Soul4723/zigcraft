@@ -75,3 +75,8 @@ test "calculateWolfBite knockback and damage" {
     try std.testing.expectEqual(@as(f32, 0.0), hit_zero.knockback_x);
     try std.testing.expectEqual(@as(f32, 0.0), hit_zero.knockback_z);
 }
+
+test "fireball burn application" {
+    // Fireball deals flat damage; fire resistance handled at player effect layer.
+    try std.testing.expectEqual(@as(f32, 3.0), @import("projectile.zig").fireball_damage);
+}

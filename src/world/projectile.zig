@@ -103,3 +103,27 @@ test "initialVelocity calculation" {
     try std.testing.expectEqual(@as(f32, throw_up), v[1]);
     try std.testing.expectEqual(@as(f32, 0.0), v[2]);
 }
+
+pub const fireball_speed: f32 = 10.0;
+pub const fireball_life: f32 = 4.0;
+pub const fireball_damage: f32 = 3.0;
+pub const fireball_range_sq: f32 = 30.0 * 30.0;
+pub const fireball_cooldown: f32 = 2.5;
+
+pub fn inFireballRange(dx: f32, dz: f32) bool {
+    return dx * dx + dz * dz < fireball_range_sq;
+}
+
+pub fn fireballVelocity(dx: f32, dy: f32, dz: f32) [3]f32 {
+    const len = @max(0.001, @sqrt(dx * dx + dy * dy + dz * dz));
+    return .{ dx / len * fireball_speed, dy / len * fireball_speed, dz / len * fireball_speed };
+}
+
+test "fireball range and velocity" {
+    try std.testing.expect(inFireballRange(10.0, 10.0));
+    try std.testing.expect(!inFireballRange(25.0, 20.0));
+    const v = fireballVelocity(3.0, 0.0, 4.0);
+    try std.testing.expectApproxEqAbs(v[0], 6.0, 0.001);
+    try std.testing.expectApproxEqAbs(v[1], 0.0, 0.001);
+    try std.testing.expectApproxEqAbs(v[2], 8.0, 0.001);
+}
