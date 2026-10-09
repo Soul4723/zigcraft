@@ -1622,7 +1622,7 @@ pub fn main() !void {
                                         audio.play(.place_block, 0.7);
                                         const pcol = hotbar_slot.item.getColor();
                                         particles.spawnBlockDebris(px, py, pz, .{ pcol[0], pcol[1], pcol[2] }, 8);
-                                        if (place_type == .torch and cache_mod.canCreateTorch(torch_count, torches.len)) {
+                                        if ((place_type == .torch or place_type == .soul_torch) and cache_mod.canCreateTorch(torch_count, torches.len)) {
                                             torches[torch_count] = .{ .x = px, .y = py, .z = pz };
                                             torch_count += 1;
                                         }
@@ -1809,7 +1809,7 @@ pub fn main() !void {
                     cache_mod.swapRemove(&torches, &torch_count, ti);
                     continue;
                 }
-                if (cur_tb != .torch) {
+                if (cur_tb != .torch and cur_tb != .soul_torch) {
                     cache_mod.swapRemove(&torches, &torch_count, ti);
                     continue;
                 }

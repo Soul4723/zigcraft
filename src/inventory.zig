@@ -67,6 +67,7 @@ pub const ItemType = enum(u8) {
     nether_wart = 61,
     magma_cream = 62,
     fire_charge = 63,
+    soul_torch = 64,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -113,6 +114,7 @@ pub const ItemType = enum(u8) {
             .nether_brick => .nether_brick,
             .nether_brick_fence => .nether_brick_fence,
             .nether_wart => .nether_wart,
+            .soul_torch => .soul_torch,
             else => null,
         };
     }
@@ -166,6 +168,7 @@ pub const ItemType = enum(u8) {
             .nether_brick => .nether_brick,
             .nether_brick_fence => .nether_brick_fence,
             .nether_wart => .nether_wart,
+            .soul_torch => .soul_torch,
         };
     }
 
@@ -252,6 +255,7 @@ pub const ItemType = enum(u8) {
             .nether_wart => "Nether Wart",
             .magma_cream => "Magma Cream",
             .fire_charge => "Fire Charge",
+            .soul_torch => "Soul Torch",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -321,6 +325,7 @@ pub const ItemType = enum(u8) {
             .nether_wart => .{ 0.75, 0.16, 0.22, 0.95 },
             .magma_cream => .{ 0.88, 0.52, 0.15, 0.95 },
             .fire_charge => .{ 0.98, 0.35, 0.10, 0.95 },
+            .soul_torch => .{ 0.25, 0.85, 0.95, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -706,6 +711,16 @@ pub const Inventory = struct {
         if (non_empty == 3) {
             if (g0 == .iron_ingot and g1 == .iron_ingot and (g2 == .stick or g3 == .stick)) {
                 self.craft_output = .{ .item = .iron_pickaxe, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 35: Soul Torch: 1 Soul Sand + 1 Torch -> 2 Soul Torches (non_empty == 2)
+        if (non_empty == 2) {
+            const has_soul = (g0 == .soul_sand or g1 == .soul_sand or g2 == .soul_sand or g3 == .soul_sand);
+            const has_torch = (g0 == .torch or g1 == .torch or g2 == .torch or g3 == .torch);
+            if (has_soul and has_torch) {
+                self.craft_output = .{ .item = .soul_torch, .count = 2 };
                 return;
             }
         }
@@ -1368,4 +1383,18 @@ test "fire charge recipe from cream and coal" {
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .fire_charge);
     try std.testing.expectEqual(inv.craft_output.count, 3);
+}
+
+test "soul torch crafting recipe and item conversion" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .soul_sand, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .torch, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .soul_torch);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+    try std.testing.expectEqual(inv.craft_output.item.toBlockId(), .soul_torch);
+
+    const st = ItemType.fromBlockId(.soul_torch);
+    try std.testing.expectEqual(st, .soul_torch);
+    try std.testing.expectEqualStrings(st.name(), "Soul Torch");
 }
