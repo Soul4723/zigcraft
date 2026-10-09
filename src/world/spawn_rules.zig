@@ -195,12 +195,23 @@ pub fn spawnerDue(elapsed: f32) bool {
     return elapsed >= spawner_interval;
 }
 
+/// Spawner cage activation check: active within 16 blocks horizontal distance.
+pub fn isSpawnerActive(spawner_x: i32, spawner_z: i32, player_x: f32, player_z: f32) bool {
+    const dx = @as(f32, @floatFromInt(spawner_x)) + 0.5 - player_x;
+    const dz = @as(f32, @floatFromInt(spawner_z)) + 0.5 - player_z;
+    return (dx * dx + dz * dz) <= (16.0 * 16.0);
+}
+
 test "fortress spawner pulse timing and cap" {
     try std.testing.expect(!spawnerDue(0.0));
     try std.testing.expect(!spawnerDue(19.9));
     try std.testing.expect(spawnerDue(20.0));
     try std.testing.expect(spawnerDue(60.0));
     try std.testing.expectEqual(@as(usize, 2), spawner_max_near);
+
+    try std.testing.expect(isSpawnerActive(10, 10, 10.0, 10.0));
+    try std.testing.expect(isSpawnerActive(10, 10, 25.0, 10.0));
+    try std.testing.expect(!isSpawnerActive(10, 10, 30.0, 10.0));
 }
 
 /// Nearest fortress junction center (48-cell grid, span 22..25) to world (x, z).

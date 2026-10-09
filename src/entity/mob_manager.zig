@@ -202,15 +202,37 @@ pub const MobManager = struct {
                     const px: i32 = @intFromFloat(@floor(player_pos.x));
                     const pz: i32 = @intFromFloat(@floor(player_pos.z));
                     const py: i32 = @intFromFloat(@floor(player_pos.y));
-                    var oi: i32 = -6;
+                    
+                    // Search for a nearby spawner cage within 16 blocks to anchor the pulse
+                    var spawner_found = false;
+                    var anchor_x: i32 = px;
+                    var anchor_y: i32 = py;
+                    var anchor_z: i32 = pz;
+                    var si: i32 = -16;
+                    while (si <= 16 and !spawner_found) : (si += 4) {
+                        var sj: i32 = -16;
+                        while (sj <= 16 and !spawner_found) : (sj += 4) {
+                            var sk: i32 = -4;
+                            while (sk <= 4 and !spawner_found) : (sk += 1) {
+                                if (bat(px + si, py + sk, pz + sj) == .spawner_cage) {
+                                    anchor_x = px + si;
+                                    anchor_y = py + sk;
+                                    anchor_z = pz + sj;
+                                    spawner_found = true;
+                                }
+                            }
+                        }
+                    }
+
+                    var oi: i32 = -4;
                     var spawned = false;
-                    while (oi <= 6 and !spawned) : (oi += 1) {
-                        var oj: i32 = -6;
-                        while (oj <= 6 and !spawned) : (oj += 1) {
-                            const gx = px + oi;
-                            const gz = pz + oj;
-                            var gy = py + 2;
-                            while (gy >= py - 2) : (gy -= 1) {
+                    while (oi <= 4 and !spawned) : (oi += 1) {
+                        var oj: i32 = -4;
+                        while (oj <= 4 and !spawned) : (oj += 1) {
+                            const gx = anchor_x + oi;
+                            const gz = anchor_z + oj;
+                            var gy = anchor_y + 2;
+                            while (gy >= anchor_y - 2) : (gy -= 1) {
                                 const g = bat(gx, gy, gz);
                                 if (g == .netherrack or g == .nether_brick or g == .soul_sand) {
                                     if (bat(gx, gy + 1, gz) == .air and bat(gx, gy + 2, gz) == .air) {
