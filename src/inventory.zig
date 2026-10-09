@@ -1155,8 +1155,21 @@ pub fn getMobMeatDrop(mob_type: MobType) ItemType {
         .pig => .raw_pork,
         .sheep => .raw_mutton,
         .wolf => .none,
-        .emberbeast => .none,
+        .emberbeast => .coal,
     };
+}
+
+/// Bonus ember drops: emberbeasts shed 0-2 nether wart plus coal.
+pub fn getEmberBonus(wx: i32, wz: i32) u8 {
+    const h: u32 = @as(u32, @bitCast(wx *% 7 +% wz *% 19)) % 3;
+    return @as(u8, @intCast(h));
+}
+
+test "emberbeast drops coal plus wart bonus" {
+    try std.testing.expectEqual(getMobMeatDrop(.emberbeast), .coal);
+    try std.testing.expect(getEmberBonus(0, 0) <= 2);
+    // Deterministic per position.
+    try std.testing.expectEqual(getEmberBonus(5, 9), getEmberBonus(5, 9));
 }
 
 pub const BlockDrop = struct {

@@ -1464,6 +1464,11 @@ pub fn main() !void {
                     if (hit_mob.died) {
                         const drop = inventory_mod.getMobMeatDrop(hit_mob.mob_type);
                         _ = inventory.addItem(drop, 1);
+                        if (hit_mob.mob_type == .emberbeast) {
+                            const bonus = inventory_mod.getEmberBonus(px, pz);
+                            if (bonus > 0) _ = inventory.addItem(.nether_wart, bonus);
+                            particles.spawnFlame(px, py, pz, 6);
+                        }
                         if (hit_mob.wool) _ = inventory.addItem(.wool, 1);
                         std.debug.print("killed {s}, dropped {s}\n", .{ @tagName(hit_mob.mob_type), drop.name() });
                     }
@@ -1852,8 +1857,14 @@ pub fn main() !void {
                                 if (died) {
                                     const md = inventory_mod.getMobMeatDrop(m.mob_type);
                                     const mp = m.pos;
+                                    const was_ember = (m.mob_type == .emberbeast);
                                     _ = mob_manager.mobs.swapRemove(mi);
                                     _ = inventory.addItem(md, 1);
+                                    if (was_ember) {
+                                        const bonus = inventory_mod.getEmberBonus(mbx, mbz);
+                                        if (bonus > 0) _ = inventory.addItem(.nether_wart, bonus);
+                                        particles.spawnFlame(mbx, mby, mbz, 6);
+                                    }
                                     if (m.mob_type == .sheep) _ = inventory.addItem(.wool, 1);
                                     _ = mp;
                                 }
