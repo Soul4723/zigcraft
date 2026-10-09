@@ -453,6 +453,26 @@ pub const NetherGenerator = struct {
         return gx == want_gx and gz == want_gz;
     }
 
+    /// Check if cavern location (wx, wy, wz) mounts an ambient soul torch atop fortress fence balustrades
+    pub fn isFortressTorch(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
+        _ = self;
+        if (wy != 9) return false;
+        const cell_size: i32 = 48;
+        const gx = @mod(wx, cell_size);
+        const gz = @mod(wz, cell_size);
+
+        // Bridge X balustrades: y=8 fences at gz == 22 or 25; torch sits at y=9
+        const on_x_balustrade = (gz == 22 or gz == 25);
+        if (on_x_balustrade and (@mod(gx, 6) == 0)) return true;
+
+        // Bridge Z balustrades: y=8 fences at gx == 22 or 25; torch sits at y=9
+        const in_span_z = (gz >= 18 and gz <= 29);
+        const on_z_balustrade = (gx == 22 or gx == 25) and in_span_z;
+        if (on_z_balustrade and (@mod(gz, 6) == 0)) return true;
+
+        return false;
+    }
+
     /// Check if cavern location (wx, wy, wz) intersects a monumental Nether fortress bridge structure
     pub fn isFortress(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
         _ = self;
@@ -531,6 +551,8 @@ pub const NetherGenerator = struct {
                         }
                     } else if (self.isFortressLoot(wx, @intCast(y), wz)) {
                         chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .chest);
+                    } else if (self.isFortressTorch(wx, @intCast(y), wz)) {
+                        chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .soul_torch);
                     } else if (self.isFortress(wx, @intCast(y), wz)) {
                         // Monumental Nether Fortress masonry bridge crossing open cavern:
                         // Upper safety balustrade perimeter (y = 8) uses nether brick fences
@@ -667,4 +689,19 @@ test "NetherGenerator grows wild nether wart on soul sand" {
         }
     }
     try std.testing.expect(found_wart);
+}
+
+test "NetherGenerator mounts ambient soul torches on fortress balustrades" {
+    const nether_gen = NetherGenerator.init(12345);
+    // Over the span of one 48-block bridge cell, check for soul torches at y=9
+    try std.testing.expect(nether_gen.isFortressTorch(0, 9, 22));
+    try std.testing.expect(nether_gen.isFortressTorch(6, 9, 25));
+    try std.testing.expect(!nether_gen.isFortressTorch(1, 9, 22));
+    try std.testing.expect(!nether_gen.isFortressTorch(0, 8, 22)); // y=8 is fence, not torch
+
+    var chunk = Chunk.init();
+    nether_gen.generateChunk(&chunk, 0, 1); // contains gz around 22..25 in local chunk 1 (wz = 16..31)
+    // At wx = 0 (lx = 0), wz = 22 (lz = 6), y = 8 is fence and y = 9 is soul_torch
+    try std.testing.expectEqual(chunk.getBlock(0, 8, 6), .nether_brick_fence);
+    try std.testing.expectEqual(chunk.getBlock(0, 9, 6), .soul_torch);
 }
