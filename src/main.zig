@@ -186,7 +186,8 @@ pub fn main() !void {
     var torches: [cache_mod.torch_cap]Torch = undefined;
     var torch_count: usize = 0;
     var torch_puff_timer: f32 = 0.0;
-    const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, hostile: bool = false };
+    const ThrownKind = enum { snowball, hostile_fireball, player_fire_charge };
+    const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball };
     var thrown: [proj_mod.thrown_cap]Thrown = undefined;
     var thrown_count: usize = 0;
     const FurnaceJob = smelt_mod.FurnaceJob;
@@ -1827,7 +1828,7 @@ pub fn main() !void {
                 const mbz = mbc[2];
                 var dead = proj_mod.isExpired(t.life);
                 if (!dead) {
-                    if (t.hostile) {
+                    if (t.kind == .hostile_fireball) {
                         // Fireball vs player: 3 dmg on close pass, flame burst on block
                         const pdx = player.pos.x - t.pos.x;
                         const pdy = (player.pos.y + 1.0) - t.pos.y;
@@ -1860,15 +1861,31 @@ pub fn main() !void {
                             dead = true;
                         }
                     }
-                    if (!dead and !t.hostile and pickSolid(mbx, mby, mbz)) {
-                        particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.93, 0.95, 1.0 }, 6);
+                    if (!dead and t.kind != .hostile_fireball and pickSolid(mbx, mby, mbz)) {
+                        if (t.kind == .player_fire_charge) {
+                            const struck = manager.getBlockWorld(mbx, mby, mbz);
+                            if (hazard_mod.isFlammable(struck) and manager.getBlockWorld(mbx, mby + 1, mbz) == .air) {
+                                if (try manager.editAndRemesh(mbx, mby + 1, mbz, .campfire)) {
+                                    if (flame_count < flames.len) {
+                                        flames[flame_count] = .{ .x = mbx, .y = mby + 1, .z = mbz, .t = 0.0 };
+                                        flame_count += 1;
+                                    }
+                                }
+                            }
+                            particles.spawnFlame(mbx, mby, mbz, 8);
+                            audio.play(.burn_sizzle, 0.4);
+                        } else {
+                            particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.93, 0.95, 1.0 }, 6);
+                        }
                         dead = true;
-                    } else if (!dead and !t.hostile) {
+                    } else if (!dead and t.kind != .hostile_fireball) {
                         // mob hit test (generous radius)
                         for (mob_manager.mobs.items, 0..) |*m, mi| {
                             const d = proj_mod.mobDelta(m.pos.x, m.pos.y, m.pos.z, t.pos.x, t.pos.y, t.pos.z);
                             if (proj_mod.hitsMob(d[0], d[1], d[2])) {
-                                const died = m.takeHit(cam.front());
+                                const is_fc = (t.kind == .player_fire_charge);
+                                const died = if (is_fc) m.takeHitDmg(cam.front(), 2) else m.takeHit(cam.front());
+                                if (is_fc) particles.spawnFlame(mbx, mby, mbz, 8);
                                 audio.play(.hurt, 0.5);
                                 particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.93, 0.95, 1.0 }, 8);
                                 if (died) {
@@ -1895,7 +1912,7 @@ pub fn main() !void {
                     cache_mod.swapRemove(&thrown, &thrown_count, ti);
                 } else {
                     // trail puff
-                    if (t.hostile) {
+                    if (t.kind == .hostile_fireball) {
                         particles.spawnFlame(mbx, mby, mbz, 1);
                     } else {
                         particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.9, 0.92, 1.0 }, 1);
@@ -1907,13 +1924,19 @@ pub fn main() !void {
         // G throws snowball
         throw_cooldown = @max(0.0, throw_cooldown - dt);
         if (!inventory_open and throw_cooldown <= 0.0 and c.glfwGetKey(window, c.GLFW_KEY_G) == c.GLFW_PRESS) {
-            if (inventory.slots[selected_slot].item == .snowball and thrown_count < thrown.len) {
+            const held_throw = inventory.slots[selected_slot].item;
+            if ((held_throw == .snowball or held_throw == .fire_charge) and thrown_count < thrown.len) {
                 const dir_g = cam.front();
                 const vel_g = proj_mod.initialVelocity(dir_g.x, dir_g.y, dir_g.z);
-                thrown[thrown_count] = .{ .pos = cam.position, .vel = math.Vec3.init(vel_g[0], vel_g[1], vel_g[2]), .life = proj_mod.throw_life };
+                const k: ThrownKind = if (held_throw == .fire_charge) .player_fire_charge else .snowball;
+                thrown[thrown_count] = .{ .pos = cam.position, .vel = math.Vec3.init(vel_g[0], vel_g[1], vel_g[2]), .life = proj_mod.throw_life, .kind = k };
                 thrown_count += 1;
                 inventory.slots[selected_slot].decrement(1);
-                audio.play(.place_block, 0.4);
+                if (held_throw == .fire_charge) {
+                    audio.play(.lava_pop, 0.6);
+                } else {
+                    audio.play(.place_block, 0.4);
+                }
                 throw_cooldown = proj_mod.throw_cooldown;
             }
         }
@@ -1932,7 +1955,7 @@ pub fn main() !void {
                         .pos = math.Vec3.init(m.pos.x, m.pos.y + 0.7, m.pos.z),
                         .vel = math.Vec3.init(fv[0], fv[1], fv[2]),
                         .life = proj_mod.fireball_life,
-                        .hostile = true,
+                        .kind = .hostile_fireball,
                     };
                     thrown_count += 1;
                     audio.playAt(.lava_pop, .{ m.pos.x, m.pos.y, m.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);

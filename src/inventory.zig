@@ -66,6 +66,7 @@ pub const ItemType = enum(u8) {
     nether_brick_fence = 60,
     nether_wart = 61,
     magma_cream = 62,
+    fire_charge = 63,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -250,6 +251,7 @@ pub const ItemType = enum(u8) {
             .nether_brick_fence => "Nether Brick Fence",
             .nether_wart => "Nether Wart",
             .magma_cream => "Magma Cream",
+            .fire_charge => "Fire Charge",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -318,6 +320,7 @@ pub const ItemType = enum(u8) {
             .nether_brick_fence => .{ 0.38, 0.14, 0.16, 0.95 },
             .nether_wart => .{ 0.75, 0.16, 0.22, 0.95 },
             .magma_cream => .{ 0.88, 0.52, 0.15, 0.95 },
+            .fire_charge => .{ 0.98, 0.35, 0.10, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -703,6 +706,16 @@ pub const Inventory = struct {
         if (non_empty == 3) {
             if (g0 == .iron_ingot and g1 == .iron_ingot and (g2 == .stick or g3 == .stick)) {
                 self.craft_output = .{ .item = .iron_pickaxe, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 34: Fire Charge: 1 Magma Cream + 1 Coal -> 3 Fire Charges (non_empty == 2)
+        if (non_empty == 2) {
+            const has_cream = (g0 == .magma_cream or g1 == .magma_cream or g2 == .magma_cream or g3 == .magma_cream);
+            const has_coal = (g0 == .coal or g1 == .coal or g2 == .coal or g3 == .coal);
+            if (has_cream and has_coal) {
+                self.craft_output = .{ .item = .fire_charge, .count = 3 };
                 return;
             }
         }
@@ -1346,4 +1359,13 @@ test "magma cream recipe and potion brewing" {
     inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .fire_resistance_potion);
+}
+
+test "fire charge recipe from cream and coal" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .magma_cream, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .coal, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .fire_charge);
+    try std.testing.expectEqual(inv.craft_output.count, 3);
 }
