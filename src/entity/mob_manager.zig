@@ -20,6 +20,7 @@ pub const MobManager = struct {
     renderer: mob_renderer_mod.MobRenderer,
     rng: std.Random.DefaultPrng,
     ambient_timer: f32,
+    spawner_timer: f32,
 
     pub fn init(allocator: std.mem.Allocator, atlas_texture: c.GLuint) !MobManager {
         const r = try mob_renderer_mod.MobRenderer.init(allocator, atlas_texture);
@@ -29,6 +30,7 @@ pub const MobManager = struct {
             .renderer = r,
             .rng = std.Random.DefaultPrng.init(0xCAFEFEED),
             .ambient_timer = 5.0,
+        .spawner_timer = 0.0,
         };
     }
 
@@ -182,6 +184,49 @@ pub const MobManager = struct {
             }
 
             idx += 1;
+        }
+
+        // Fortress spawner pulse: reinforce emberbeast guards near player every 20s (max 2 near).
+        self.spawner_timer += dt;
+        if (block_at != null and spawn_rules.spawnerDue(self.spawner_timer)) {
+            self.spawner_timer = 0.0;
+            var near: usize = 0;
+            for (self.mobs.items) |mob| {
+                if (mob.mob_type != .emberbeast) continue;
+                const dx = mob.pos.x - player_pos.x;
+                const dz = mob.pos.z - player_pos.z;
+                if (dx * dx + dz * dz < 24.0 * 24.0) near += 1;
+            }
+            if (near < spawn_rules.spawner_max_near and self.mobs.items.len < 10) {
+                if (block_at) |bat| {
+                    const px: i32 = @intFromFloat(@floor(player_pos.x));
+                    const pz: i32 = @intFromFloat(@floor(player_pos.z));
+                    const py: i32 = @intFromFloat(@floor(player_pos.y));
+                    var oi: i32 = -6;
+                    var spawned = false;
+                    while (oi <= 6 and !spawned) : (oi += 1) {
+                        var oj: i32 = -6;
+                        while (oj <= 6 and !spawned) : (oj += 1) {
+                            const gx = px + oi;
+                            const gz = pz + oj;
+                            var gy = py + 2;
+                            while (gy >= py - 2) : (gy -= 1) {
+                                const g = bat(gx, gy, gz);
+                                if (g == .netherrack or g == .nether_brick or g == .soul_sand) {
+                                    if (bat(gx, gy + 1, gz) == .air and bat(gx, gy + 2, gz) == .air) {
+                                        self.spawnMob(.emberbeast, @as(f32, @floatFromInt(gx)) + 0.5, @as(f32, @floatFromInt(gy + 1)), @as(f32, @floatFromInt(gz)) + 0.5) catch {};
+                                        if (audio) |a| {
+                                            a.playAt(.mob_roar, .{ @as(f32, @floatFromInt(gx)), @as(f32, @floatFromInt(gy + 1)), @as(f32, @floatFromInt(gz)) }, .{ player_pos.x, player_pos.y, player_pos.z }, 0.8, 30.0);
+                                        }
+                                        spawned = true;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // Ambient sound bleat trigger
@@ -339,6 +384,7 @@ test "MobManager bubble column lift and whirlpool suction" {
         .renderer = undefined,
         .rng = std.Random.DefaultPrng.init(42),
         .ambient_timer = 5.0,
+        .spawner_timer = 0.0,
     };
     defer mm.mobs.deinit(std.testing.allocator);
 
@@ -380,6 +426,7 @@ test "MobManager mob burn damage contact hazard on magma or campfire" {
         .renderer = undefined,
         .rng = std.Random.DefaultPrng.init(42),
         .ambient_timer = 5.0,
+        .spawner_timer = 0.0,
     };
     defer mm.mobs.deinit(std.testing.allocator);
 
