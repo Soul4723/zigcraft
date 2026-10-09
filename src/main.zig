@@ -1274,7 +1274,15 @@ pub fn main() !void {
 
         if (!inventory_open) {
             const mine_frac: f32 = mine.fraction();
-            ui.drawHUDWithBuffs(aspect, selected_slot, &hotbar_colors, &hotbar_counts, mine_frac, player.health, player.hunger, player.regen_timer > 0.0, player.oxygen, player.fire_resistance_timer);
+            const compass_rel: f32 = if (manager.is_nether) blk: {
+                const j = spawn_mod.nearestJunction(player.pos.x, player.pos.z);
+                const bearing = std.math.atan2(@as(f32, @floatFromInt(j.jx)) - player.pos.x, @as(f32, @floatFromInt(j.jz)) - player.pos.z);
+                // Camera yaw convention: front = (cos yaw, sin yaw); bearing uses atan2(dx, dz).
+                // Relative angle aligns needle with view direction.
+                const rel = bearing - (std.math.pi / 2.0 - cam.yaw);
+                break :blk rel;
+            } else -1.0;
+            ui.drawHUDWithCompass(aspect, selected_slot, &hotbar_colors, &hotbar_counts, mine_frac, player.health, player.hunger, player.regen_timer > 0.0, player.oxygen, player.fire_resistance_timer, compass_rel);
             if (portal_transit.inside_timer > 0.0) {
                 const vignette_intensity = portal_transit.inside_timer / portal_mod.PORTAL_TRIGGER_TIME;
                 ui.drawPortalVignette(aspect, vignette_intensity);
