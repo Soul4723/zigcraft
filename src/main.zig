@@ -2062,6 +2062,16 @@ pub fn main() !void {
                                 chests[chest_count].items[idx] = li;
                             }
                             std.debug.print("fortress loot chest opened\n", .{});
+                            // Loot guard: 50% deterministic chance an emberbeast stalks the opened junction.
+                            const guard_roll: u32 = @as(u32, @bitCast(hit_f.x *% 13 +% hit_f.z *% 29)) % 2;
+                            if (guard_roll == 0) {
+                                const gx: f32 = @as(f32, @floatFromInt(hit_f.x)) + 0.5;
+                                const gz: f32 = @as(f32, @floatFromInt(hit_f.z)) + 0.5;
+                                const gy: f32 = @as(f32, @floatFromInt(hit_f.y + 1));
+                                try mob_manager.spawnMob(.emberbeast, gx, gy, gz);
+                                audio.playAt(.mob_roar, .{ gx, gy, gz }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 30.0);
+                                std.debug.print("loot guard emberbeast spawned\n", .{});
+                            }
                         }
                         k_opt = chest_count;
                         chest_count += 1;
