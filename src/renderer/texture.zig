@@ -107,6 +107,26 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         }
         return .{ 0, 0, 0, 0 }; // transparent air cutouts between fence rails
     }
+    // Nether Wart (6, 1): crimson wart nodule clusters rooted on soul soil
+    if (tile_x == 6 and tile_y == 1) {
+        // Soil bed across bottom rows
+        if (y >= 13) {
+            const n = hash2(x, y, 226) % 14;
+            const shade: u8 = @as(u8, @intCast(n));
+            return .{ 62 + shade, 38 + shade / 3, 34 + shade / 3, 255 };
+        }
+        // Wart stems rising from soil
+        const stem = (x == 3 or x == 7 or x == 11) and y >= 6;
+        if (stem) return .{ 88, 22, 26, 255 };
+        // Wart nodule bulbs clustered near stem tops
+        const bulb = ((x >= 2 and x <= 4) or (x >= 6 and x <= 8) or (x >= 10 and x <= 12)) and (y >= 4 and y <= 9);
+        if (bulb) {
+            const n = hash2(x, y, 227) % 24;
+            const shade: u8 = @as(u8, @intCast(n));
+            return .{ 148 + shade, 32 + shade / 4, 44 + shade / 4, 255 };
+        }
+        return .{ 0, 0, 0, 0 };
+    }
     if (tile_x == 0 and tile_y == 2) {
         const n = hash2(x, y, 71) % 15;
         const wc: u8 = 225 + @as(u8, @intCast(n));
@@ -861,4 +881,20 @@ test "nether brick fence atlas texture post and rail cutouts" {
     const rail = tilePixel(5, 1, 2, 4);
     try std.testing.expect(rail[0] >= 72);
     try std.testing.expectEqual(rail[3], 255);
+}
+
+test "nether wart atlas texture soil stems and bulbs" {
+    const soil = tilePixel(6, 1, 5, 14);
+    try std.testing.expect(soil[0] >= 62);
+    try std.testing.expectEqual(soil[3], 255);
+
+    const stem = tilePixel(6, 1, 3, 8);
+    try std.testing.expectEqual(stem[0], 88);
+
+    const bulb = tilePixel(6, 1, 6, 6);
+    try std.testing.expect(bulb[0] >= 148);
+    try std.testing.expectEqual(bulb[3], 255);
+
+    const gap = tilePixel(6, 1, 0, 0);
+    try std.testing.expectEqual(gap[3], 0);
 }

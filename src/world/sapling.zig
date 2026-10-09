@@ -79,3 +79,29 @@ test "tree structure count and blocks" {
     try std.testing.expectEqual(@as(usize, 3), wood_count);
     try std.testing.expectEqual(@as(usize, 9), leaf_count);
 }
+
+pub const wart_grow_time: f32 = 60.0;
+pub const wart_mature_bonus: u8 = 1;
+
+pub fn canPlantWart(soil: BlockId, hit_ny: i32) bool {
+    return soil == .soul_sand and hit_ny == 1;
+}
+
+pub fn isWartReady(t: f32) bool {
+    return t >= wart_grow_time;
+}
+
+test "nether wart planting soil rule" {
+    try std.testing.expect(canPlantWart(.soul_sand, 1));
+    try std.testing.expect(!canPlantWart(.dirt, 1));
+    try std.testing.expect(!canPlantWart(.netherrack, 1));
+    try std.testing.expect(!canPlantWart(.soul_sand, 0));
+    try std.testing.expect(!canPlantWart(.soul_sand, -1));
+}
+
+test "nether wart growth timing" {
+    try std.testing.expect(!isWartReady(0.0));
+    try std.testing.expect(!isWartReady(59.9));
+    try std.testing.expect(isWartReady(60.0));
+    try std.testing.expect(isWartReady(120.0));
+}

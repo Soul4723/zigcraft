@@ -46,6 +46,15 @@ fn pickBlockWorld(x: i32, y: i32, z: i32) block_mod.BlockId {
     const mgr = pick_manager orelse return .air;
     return mgr.getBlockWorld(x, y, z);
 }
+const WartCrop = struct { x: i32, y: i32, z: i32, t: f32 };
+
+fn isWartTracked(warts: []const WartCrop, x: i32, y: i32, z: i32) bool {
+    for (warts) |w| {
+        if (w.x == x and w.y == y and w.z == z) return true;
+    }
+    return false;
+}
+
 fn pickSolid(x: i32, y: i32, z: i32) bool {
     return pick_manager.?.isSolidWorld(x, y, z);
 }
@@ -185,6 +194,8 @@ pub fn main() !void {
     var chest_count: usize = 0;
     var sprouts: [sapling_mod.sprout_cap]sapling_mod.Sprout = undefined;
     var sprout_count: usize = 0;
+    var warts: [sapling_mod.sprout_cap]WartCrop = undefined;
+    var wart_count: usize = 0;
     const Plate = cache_mod.Plate;
     var plates: [cache_mod.plate_cap]Plate = undefined;
     var plate_count: usize = 0;
@@ -1031,6 +1042,18 @@ pub fn main() !void {
             }
         }
 
+        // Ripen planted nether wart after 60s into bonus-yield mature crop
+        var wi: usize = 0;
+        while (wi < wart_count) {
+            warts[wi].t += dt;
+            if (sapling_mod.isWartReady(warts[wi].t)) {
+                std.debug.print("nether wart ripened\n", .{});
+                cache_mod.swapRemove(&warts, &wart_count, wi);
+            } else {
+                wi += 1;
+            }
+        }
+
         // Stream chunks dynamically around player
         chunk_retry_timer = @max(0.0, chunk_retry_timer - dt);
         if (chunk_retry_timer == 0.0) {
@@ -1457,6 +1480,9 @@ pub fn main() !void {
                                     for (drops_buf[0..drop_count]) |d| {
                                         _ = inventory.addItem(d.item, d.count);
                                     }
+                                    if (broken_block == .nether_wart and !isWartTracked(warts[0..wart_count], hit.x, hit.y, hit.z)) {
+                                        _ = inventory.addItem(.nether_wart, sapling_mod.wart_mature_bonus);
+                                    }
                                     if (broken_block == .leaves) {
                                         const bonus = mining_mod.checkLeafBonuses(hit.x, hit.y, hit.z);
                                         if (bonus.apple) _ = inventory.addItem(.apple, 1);
@@ -1481,7 +1507,20 @@ pub fn main() !void {
                         const pz = hit.z + hit.nz;
                         if (!pickSolid(px, py, pz)) {
                             var hotbar_slot = &inventory.slots[selected_slot];
-                            if (hotbar_slot.item == .sapling) {
+                            if (hotbar_slot.item == .nether_wart) {
+                                const soil = manager.getBlockWorld(hit.x, hit.y, hit.z);
+                                if (sapling_mod.canPlantWart(soil, hit.ny)) {
+                                    if (try manager.editAndRemesh(px, py, pz, .nether_wart)) {
+                                        audio.play(.place_block, 0.7);
+                                        hotbar_slot.decrement(1);
+                                        if (wart_count < warts.len) {
+                                            warts[wart_count] = .{ .x = px, .y = py, .z = pz, .t = 0.0 };
+                                            wart_count += 1;
+                                        }
+                                        std.debug.print("planted nether wart\n", .{});
+                                    }
+                                }
+                            } else if (hotbar_slot.item == .sapling) {
                                 const soil = manager.getBlockWorld(hit.x, hit.y, hit.z);
                                 if (sapling_mod.canPlant(soil, hit.ny, py)) {
                                     if (manager.getBlockWorld(px, py + 1, pz) == .air and manager.getBlockWorld(px, py + 2, pz) == .air) {

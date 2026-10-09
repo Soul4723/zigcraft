@@ -64,6 +64,7 @@ pub const ItemType = enum(u8) {
     chiseled_quartz_block = 58,
     nether_brick = 59,
     nether_brick_fence = 60,
+    nether_wart = 61,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -109,6 +110,7 @@ pub const ItemType = enum(u8) {
             .chiseled_quartz_block => .chiseled_quartz_block,
             .nether_brick => .nether_brick,
             .nether_brick_fence => .nether_brick_fence,
+            .nether_wart => .nether_wart,
             else => null,
         };
     }
@@ -161,6 +163,7 @@ pub const ItemType = enum(u8) {
             .chiseled_quartz_block => .chiseled_quartz_block,
             .nether_brick => .nether_brick,
             .nether_brick_fence => .nether_brick_fence,
+            .nether_wart => .nether_wart,
         };
     }
 
@@ -244,6 +247,7 @@ pub const ItemType = enum(u8) {
             .chiseled_quartz_block => "Chiseled Quartz Block",
             .nether_brick => "Nether Bricks",
             .nether_brick_fence => "Nether Brick Fence",
+            .nether_wart => "Nether Wart",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -310,6 +314,7 @@ pub const ItemType = enum(u8) {
             .chiseled_quartz_block => .{ 0.92, 0.90, 0.88, 0.95 },
             .nether_brick => .{ 0.35, 0.12, 0.15, 0.95 },
             .nether_brick_fence => .{ 0.38, 0.14, 0.16, 0.95 },
+            .nether_wart => .{ 0.75, 0.16, 0.22, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -1154,6 +1159,9 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
     } else if (block == .snow) {
         out[0] = .{ .item = .snowball, .count = 2 };
         return 1;
+    } else if (block == .nether_wart) {
+        out[0] = .{ .item = .nether_wart, .count = 2 };
+        return 1;
     } else {
         const item = ItemType.fromBlockId(block);
         if (item != .none) {
@@ -1245,4 +1253,16 @@ test "nether brick fence crafting recipe and item conversion" {
     const f = ItemType.fromBlockId(.nether_brick_fence);
     try std.testing.expectEqual(f, .nether_brick_fence);
     try std.testing.expectEqual(f.name(), "Nether Brick Fence");
+}
+
+test "nether wart item conversion and drops" {
+    try std.testing.expectEqual(ItemType.fromBlockId(.nether_wart), .nether_wart);
+    try std.testing.expectEqual(ItemType.nether_wart.toBlockId(), .nether_wart);
+    try std.testing.expectEqualStrings(ItemType.nether_wart.name(), "Nether Wart");
+
+    var drops: [2]BlockDrop = undefined;
+    const n = getBlockDrops(.nether_wart, &drops);
+    try std.testing.expectEqual(@as(usize, 1), n);
+    try std.testing.expectEqual(drops[0].item, .nether_wart);
+    try std.testing.expectEqual(drops[0].count, 2);
 }
