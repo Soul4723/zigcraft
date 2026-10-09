@@ -123,3 +123,4 @@ Rough priority order. Completed milestones marked **[x]**.
 95. [x] **Nether Fortress Compass** — C-key nearest-junction readout with distance in Nether (#213).
 96. [x] **Live Fortress Compass Needle HUD** — Rotating crimson/gold needle above crosshair in Nether (#214).
 97. [x] **Magma Cream Crafting & Potion Brewing** — Coal + wart crafts cream; brews Fire Resistance with glass vial (#215).
+98. [x] **Throwable Fire Charge** — Magma cream + coal crafts 3x; thrown for 2-dmg + floor ignition (#216).
