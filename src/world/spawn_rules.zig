@@ -163,3 +163,25 @@ test "day vs night mob type selection" {
     try std.testing.expectEqual(selectMobType(0.7, true), .pig);
     try std.testing.expectEqual(selectMobType(0.9, true), .sheep);
 }
+
+/// Nether spawn: netherrack or fortress masonry floor with two simplest headroom cells.
+pub fn isNetherSpawn(world: anytype, x: i32, y: i32, z: i32) bool {
+    const ground = world.getBlockWorld(x, y, z);
+    if (ground != .netherrack and ground != .nether_brick and ground != .soul_sand) return false;
+    return hasHeadroom(world.getBlockWorld(x, y + 1, z), world.getBlockWorld(x, y + 2, z));
+}
+
+test "nether spawn needs nether ground and headroom" {
+    const NetherFlat = struct {
+        pub fn getBlockWorld(_: @This(), x: i32, y: i32, z: i32) BlockId {
+            _ = x;
+            _ = z;
+            if (y == 5) return .netherrack;
+            if (y > 5) return .air;
+            return .netherrack;
+        }
+    };
+    try std.testing.expect(isNetherSpawn(NetherFlat{}, 0, 5, 0));
+    try std.testing.expect(!isNetherSpawn(NetherFlat{}, 0, 6, 0));
+    try std.testing.expect(!isNetherSpawn(FlatWorld{}, 0, 5, 0));
+}

@@ -375,6 +375,25 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
                 uv_skin,
             );
         },
+        .emberbeast => {
+            const uv_hide = texture.getTileUV(4, 2);
+            const uv_face = texture.getTileUV(3, 3);
+
+            // 1. Body: bulky 0.55 x 0.48 x 0.78 at (0, 0.50, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.50, 0), math.Vec3.init(0.55, 0.48, 0.78), mob.yaw, mob.pos, uv_hide, uv_hide);
+            // 2. Head: 0.36 cube forward-up at (0, 0.74, 0.48)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.74 + head_bob_y, 0.48), math.Vec3.init(0.36, 0.36, 0.36), mob.yaw, mob.pos, uv_face, uv_hide);
+            // 3. Snout: 0.16 x 0.12 x 0.14 at (0, 0.66, 0.68)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.66 + head_bob_y, 0.68), math.Vec3.init(0.16, 0.12, 0.14), mob.yaw, mob.pos, uv_face, uv_hide);
+            // 4. Back ridges: two ember plates along spine
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.80, 0.05), math.Vec3.init(0.12, 0.14, 0.16), mob.yaw, mob.pos, uv_face, uv_hide);
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.80, -0.25), math.Vec3.init(0.12, 0.14, 0.16), mob.yaw, mob.pos, uv_face, uv_hide);
+            // 6-9. Sturdy legs (0.36 high)
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.17, 0.18, 0.26 + leg_swing), math.Vec3.init(0.13, 0.36, 0.13), mob.yaw, mob.pos, uv_hide, uv_hide);
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.17, 0.18, 0.26 - leg_swing), math.Vec3.init(0.13, 0.36, 0.13), mob.yaw, mob.pos, uv_hide, uv_hide);
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.17, 0.18, -0.26 - leg_swing), math.Vec3.init(0.13, 0.36, 0.13), mob.yaw, mob.pos, uv_hide, uv_hide);
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.17, 0.18, -0.26 + leg_swing), math.Vec3.init(0.13, 0.36, 0.13), mob.yaw, mob.pos, uv_hide, uv_hide);
+        },
         .wolf => {
             const uv_fur = texture.getTileUV(2, 5);
             const uv_face = texture.getTileUV(3, 5);
@@ -409,6 +428,14 @@ test "appendMobMesh generates correct vertex and index counts" {
     // 6 boxes * 6 faces * 6 indices = 216 indices
     try std.testing.expectEqual(@as(usize, 144), verts.items.len);
     try std.testing.expectEqual(@as(usize, 216), inds.items.len);
+
+    // Emberbeast: 9 boxes (body, head, snout, 2 ridges, 4 legs) = 216 verts, 324 indices
+    verts.clearRetainingCapacity();
+    inds.clearRetainingCapacity();
+    const ember = mob_mod.Mob.init(.emberbeast, 0, 0, 0);
+    try appendMobMesh(std.testing.allocator, &verts, &inds, ember);
+    try std.testing.expectEqual(@as(usize, 216), verts.items.len);
+    try std.testing.expectEqual(@as(usize, 324), inds.items.len);
 
     // Pig test: 7 boxes (body, head, snout, 4 legs) = 7 * 24 = 168 verts, 7 * 36 = 252 indices
     verts.clearRetainingCapacity();
