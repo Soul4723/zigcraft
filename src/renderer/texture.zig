@@ -281,6 +281,22 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
     if (tile_x == 0 and tile_y == 4) {
         return glassPixel(x, y);
     }
+    // Soul Campfire (4, 0): crossed dark soul logs with radiant cyan soul-fire embers
+    if (tile_x == 4 and tile_y == 0) {
+        const is_ember = (x >= 6 and x <= 9 and y >= 6 and y <= 9);
+        if (is_ember) {
+            const hot = (x >= 7 and x <= 8 and y >= 7 and y <= 8);
+            if (hot) return .{ 180, 245, 255, 255 }; // hot cyan core
+            return .{ 45, 185, 225, 255 }; // turquoise soul flame
+        }
+        const is_log = (x == y or x + y == 15) and (y >= 4 and y <= 12);
+        if (is_log) {
+            const n = hash2(x, y, 191) % 10;
+            return .{ 55 + @as(u8, @intCast(n)), 38 + @as(u8, @intCast(n / 2)), 30, 255 };
+        }
+        const n = hash2(x, y, 71) % 15;
+        return .{ 30 + @as(u8, @intCast(n)), 32 + @as(u8, @intCast(n)), 35 + @as(u8, @intCast(n)), 255 };
+    }
     // Sandstone top (1, 4): smooth fine packed sand
     if (tile_x == 1 and tile_y == 4) {
         return sandstoneTopPixel(x, y);
@@ -931,4 +947,20 @@ test "soul torch atlas texture cyan head and dark shaft" {
 
     const cutout = tilePixel(7, 1, 1, 1);
     try std.testing.expectEqual(cutout[3], 0);
+}
+
+test "soul campfire atlas texture cyan embers and dark logs" {
+    const ember_core = tilePixel(4, 0, 7, 7);
+    try std.testing.expectEqual(ember_core[0], 180);
+    try std.testing.expectEqual(ember_core[1], 245);
+    try std.testing.expectEqual(ember_core[2], 255);
+
+    const flame = tilePixel(4, 0, 6, 6);
+    try std.testing.expectEqual(flame[0], 45);
+    try std.testing.expectEqual(flame[1], 185);
+    try std.testing.expectEqual(flame[2], 225);
+
+    const log = tilePixel(4, 0, 5, 5);
+    try std.testing.expect(log[0] >= 55);
+    try std.testing.expectEqual(log[3], 255);
 }
