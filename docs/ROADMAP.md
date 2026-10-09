@@ -116,3 +116,4 @@ Rough priority order. Completed milestones marked **[x]**.
 88. [x] **Fortress Loot Chest Alcoves** — Junction-corner chests with deterministic wart/quartz/iron loot on first open (#206).
 89. [x] **Emberbeast Fireball Ranged Attack** — Aimed 3-dmg flame bolts with trail/burst, potion immunity (#207).
 90. [x] **Fireball Block Ignition** — Fireball strikes ignite campfires atop flammable floors (#208).
+91. [x] **Loot-Chest Emberbeast Guard Ambush** — 50% deterministic guard spawn with roar on fortress chest open (#209).
