@@ -427,6 +427,14 @@ pub const NetherGenerator = struct {
         return q > 0.25;
     }
 
+    /// Check if soul sand shore column grows a wild nether wart patch.
+    /// Subsets soul sand columns (same noise gate, sparser hash) so patches always sit on soul soil.
+    fn isWartPatch(self: NetherGenerator, wx: i32, wz: i32) bool {
+        if (!self.isSoulSand(wx, wz)) return false;
+        const h: u32 = @as(u32, @bitCast(wx *% 37 +% wz *% 91)) % 3;
+        return h == 0;
+    }
+
     /// Check if cavern location (wx, wy, wz) intersects a monumental Nether fortress bridge structure
     pub fn isFortress(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
         _ = self;
@@ -478,15 +486,30 @@ pub const NetherGenerator = struct {
                             // Ceiling hanging glowstone cluster
                             chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .glowstone);
                         } else if (y <= 5 and is_soul) {
+                            // Skip soil fill where a planted wart already roots (y=6 wart over y=5 soil).
+                            if (chunk.getBlock(@intCast(lx), @intCast(y), @intCast(lz)) == .nether_wart) {
+                                continue;
+                            }
                             chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .soul_sand);
+                            // Wild nether wart sprouts atop exposed soul sand shores:
+                            // only plant when the cell above is open cavern (non-solid).
+                            if (y <= 6 and self.isWartPatch(wx, wz)) {
+                                if (self.densityAt(wx, @intCast(y + 1), wz) <= 0.5 and !self.isFortress(wx, @intCast(y + 1), wz)) {
+                                    chunk.setBlock(@intCast(lx), @intCast(y + 1), @intCast(lz), .nether_wart);
+                                }
+                            }
                         } else if (y <= 5 and self.isMagma(wx, wz)) {
                             // Subterranean magma fissure vein near lava seas
                             chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .magma);
                         } else if (self.isQuartzOre(wx, @intCast(y), wz)) {
-                            // Subterranean nether quartz ore vein embedded in netherrack
-                            chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .nether_quartz_ore);
+                            // Preserve wild wart planted at y=6 by the y=5 soul sand pass
+                            if (chunk.getBlock(@intCast(lx), @intCast(y), @intCast(lz)) != .nether_wart) {
+                                chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .nether_quartz_ore);
+                            }
                         } else {
-                            chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .netherrack);
+                            if (chunk.getBlock(@intCast(lx), @intCast(y), @intCast(lz)) != .nether_wart) {
+                                chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .netherrack);
+                            }
                         }
                     } else if (self.isFortress(wx, @intCast(y), wz)) {
                         // Monumental Nether Fortress masonry bridge crossing open cavern:
@@ -495,6 +518,10 @@ pub const NetherGenerator = struct {
                         const b_id: @import("block.zig").BlockId = if (is_fence) .nether_brick_fence else .nether_brick;
                         chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), b_id);
                     } else {
+                        // Preserve wild wart planted at y=6 by the y=5 soul sand pass
+                        if (chunk.getBlock(@intCast(lx), @intCast(y), @intCast(lz)) == .nether_wart) {
+                            continue;
+                        }
                         // Open cavern space: lava sea up to SEA_LEVEL - 1 (y <= 4)
                         if (y <= 4) {
                             chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .lava);
@@ -570,4 +597,31 @@ test "NetherGenerator generates nether fortress ruins" {
     }
     try std.testing.expect(has_fortress);
     try std.testing.expect(has_fortress_fence);
+}
+
+test "NetherGenerator grows wild nether wart on soul sand" {
+    // Scan chunks (0,0)..(3,3) for any wart rooted on soul sand.
+    var found_wart = false;
+    var cx: i32 = 0;
+    while (cx < 4) : (cx += 1) {
+        var cz: i32 = 0;
+        while (cz < 4) : (cz += 1) {
+            const nether_gen = NetherGenerator.init(12345);
+            var chunk = Chunk.init();
+            nether_gen.generateChunk(&chunk, cx, cz);
+            var lz: usize = 0;
+            while (lz < SIZE) : (lz += 1) {
+                var lx: usize = 0;
+                while (lx < SIZE) : (lx += 1) {
+                    var y: usize = 1;
+                    while (y < SIZE) : (y += 1) {
+                        if (chunk.getBlock(@intCast(lx), @intCast(y), @intCast(lz)) == .nether_wart) {
+                            if (chunk.getBlock(@intCast(lx), @intCast(y - 1), @intCast(lz)) == .soul_sand) found_wart = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    try std.testing.expect(found_wart);
 }
