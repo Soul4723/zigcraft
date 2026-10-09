@@ -115,3 +115,4 @@ Rough priority order. Completed milestones marked **[x]**.
 87. [x] **Nether Wart Brewing Hook** — Wart + glass vial brews Fire Resistance Potion; legacy magma path preserved (#205).
 88. [x] **Fortress Loot Chest Alcoves** — Junction-corner chests with deterministic wart/quartz/iron loot on first open (#206).
 89. [x] **Emberbeast Fireball Ranged Attack** — Aimed 3-dmg flame bolts with trail/burst, potion immunity (#207).
+90. [x] **Fireball Block Ignition** — Fireball strikes ignite campfires atop flammable floors (#208).
