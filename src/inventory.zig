@@ -65,6 +65,7 @@ pub const ItemType = enum(u8) {
     nether_brick = 59,
     nether_brick_fence = 60,
     nether_wart = 61,
+    magma_cream = 62,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -248,6 +249,7 @@ pub const ItemType = enum(u8) {
             .nether_brick => "Nether Bricks",
             .nether_brick_fence => "Nether Brick Fence",
             .nether_wart => "Nether Wart",
+            .magma_cream => "Magma Cream",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -315,6 +317,7 @@ pub const ItemType = enum(u8) {
             .nether_brick => .{ 0.35, 0.12, 0.15, 0.95 },
             .nether_brick_fence => .{ 0.38, 0.14, 0.16, 0.95 },
             .nether_wart => .{ 0.75, 0.16, 0.22, 0.95 },
+            .magma_cream => .{ 0.88, 0.52, 0.15, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -704,10 +707,21 @@ pub const Inventory = struct {
             }
         }
 
-        // Recipe 32: Fire Resistance Potion: 1 Magma + 1 Apple/Glass (legacy) or 1 Nether Wart + 1 Glass vial.
+        // Recipe 33: Magma Cream: 1 Coal + 1 Nether Wart (non_empty == 2)
+        if (non_empty == 2) {
+            const has_coal = (g0 == .coal or g1 == .coal or g2 == .coal or g3 == .coal);
+            const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
+            if (has_coal and has_wart) {
+                self.craft_output = .{ .item = .magma_cream, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 32: Fire Resistance Potion: 1 Magma/Magma Cream + 1 Glass vial (or 1 Nether Wart + 1 Glass vial, or legacy apple).
         // Wart brewing requires a glass vial as the potion vessel; apple no longer substitutes for wart.
         if (non_empty == 2) {
-            const has_magma = (g0 == .magma or g1 == .magma or g2 == .magma or g3 == .magma);
+            const has_magma = (g0 == .magma or g1 == .magma or g2 == .magma or g3 == .magma or
+                g0 == .magma_cream or g1 == .magma_cream or g2 == .magma_cream or g3 == .magma_cream);
             const has_apple = (g0 == .apple or g1 == .apple or g2 == .apple or g3 == .apple);
             const has_glass = (g0 == .glass or g1 == .glass or g2 == .glass or g3 == .glass);
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
@@ -1317,4 +1331,19 @@ test "fortress loot is deterministic and wart-weighted" {
     var loot2: [4]ItemStack = undefined;
     fortressLoot(23, 24, &loot2);
     try std.testing.expectEqual(loot[0].count, loot2[0].count);
+}
+
+test "magma cream recipe and potion brewing" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .coal, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .nether_wart, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .magma_cream);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Brew fire resistance from magma cream + glass vial
+    inv.craft_grid[0] = .{ .item = .magma_cream, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .fire_resistance_potion);
 }
