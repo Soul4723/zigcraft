@@ -61,6 +61,7 @@ pub const BlockId = enum(u8) {
     nether_wart = 54,
     soul_torch = 55,
     soul_campfire = 56,
+    spawner_cage = 57,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire;
@@ -68,6 +69,10 @@ pub const BlockId = enum(u8) {
 
     pub fn is_campfire(self: BlockId) bool {
         return self == .campfire or self == .soul_campfire;
+    }
+
+    pub fn is_spawner(self: BlockId) bool {
+        return self == .spawner_cage;
     }
 
     pub fn is_cactus(self: BlockId) bool {
@@ -83,7 +88,7 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_transparent(self: BlockId) bool {
-        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .nether_brick_fence or self == .nether_wart or self == .soul_torch or self == .soul_campfire;
+        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .nether_brick_fence or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage;
     }
 
     /// 0.0 = lit by sun only. 1.0 = full glow even at midnight.
@@ -94,6 +99,7 @@ pub const BlockId = enum(u8) {
             .torch => 0.9,
             .soul_torch => 0.7,
             .soul_campfire => 0.8,
+            .spawner_cage => 0.6,
             .redstone_lamp_on => 1.0,
             .redstone_torch_on => 0.85,
             .redstone_wire_on => 0.7,
@@ -192,6 +198,7 @@ pub const BlockId = enum(u8) {
             .nether_wart => .{ .x = 6, .y = 1 }, // Crimson wart cluster nodules on soul soil
             .soul_torch => .{ .x = 7, .y = 1 }, // Cyan soul flame torch
             .soul_campfire => .{ .x = 4, .y = 0 }, // Soul campfire with cyan embers
+            .spawner_cage => .{ .x = 5, .y = 0 }, // Iron mesh spawner cage with burning core
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -251,6 +258,7 @@ pub fn hardness(block: BlockId) f32 {
         .cactus => 0.4,
         .campfire => 1.0,
         .soul_campfire => 1.0,
+        .spawner_cage => 5.0,
         .lava => 0.0,
         .obsidian => 15.0,
         .nether_portal => 0.0,
@@ -363,6 +371,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .nether_wart = .{ .name = "nether_wart", .solid = false, .transparent = true, .fluid = false },
     .soul_torch = .{ .name = "soul_torch", .solid = false, .transparent = true, .fluid = false },
     .soul_campfire = .{ .name = "soul_campfire", .solid = false, .transparent = true, .fluid = false },
+    .spawner_cage = .{ .name = "spawner_cage", .solid = true, .transparent = true, .fluid = false },
 });
 
 test "block is_solid" {
@@ -749,5 +758,15 @@ test "soul campfire properties and cyan emissive" {
     try std.testing.expectApproxEqAbs(BlockId.soul_campfire.emissive(), 0.8, 0.001);
     const tex = BlockId.soul_campfire.getFaceTexture(0);
     try std.testing.expectEqual(tex.x, 4);
+    try std.testing.expectEqual(tex.y, 0);
+}
+
+test "spawner cage properties and texture" {
+    try std.testing.expect(BlockId.spawner_cage.is_solid());
+    try std.testing.expect(BlockId.spawner_cage.is_transparent());
+    try std.testing.expectApproxEqAbs(BlockId.spawner_cage.emissive(), 0.6, 0.001);
+    try std.testing.expectEqual(hardness(BlockId.spawner_cage), 5.0);
+    const tex = BlockId.spawner_cage.getFaceTexture(0);
+    try std.testing.expectEqual(tex.x, 5);
     try std.testing.expectEqual(tex.y, 0);
 }

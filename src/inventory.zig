@@ -69,6 +69,7 @@ pub const ItemType = enum(u8) {
     fire_charge = 63,
     soul_torch = 64,
     soul_campfire = 65,
+    spawner_cage = 66,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -117,6 +118,7 @@ pub const ItemType = enum(u8) {
             .nether_wart => .nether_wart,
             .soul_torch => .soul_torch,
             .soul_campfire => .soul_campfire,
+            .spawner_cage => .spawner_cage,
             else => null,
         };
     }
@@ -172,6 +174,7 @@ pub const ItemType = enum(u8) {
             .nether_wart => .nether_wart,
             .soul_torch => .soul_torch,
             .soul_campfire => .soul_campfire,
+            .spawner_cage => .spawner_cage,
         };
     }
 
@@ -260,6 +263,7 @@ pub const ItemType = enum(u8) {
             .fire_charge => "Fire Charge",
             .soul_torch => "Soul Torch",
             .soul_campfire => "Soul Campfire",
+            .spawner_cage => "Monster Spawner",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -331,6 +335,7 @@ pub const ItemType = enum(u8) {
             .fire_charge => .{ 0.98, 0.35, 0.10, 0.95 },
             .soul_torch => .{ 0.25, 0.85, 0.95, 0.95 },
             .soul_campfire => .{ 0.20, 0.80, 0.90, 0.95 },
+            .spawner_cage => .{ 0.35, 0.33, 0.38, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -1412,6 +1417,13 @@ test "soul torch crafting recipe and item conversion" {
     const st = ItemType.fromBlockId(.soul_torch);
     try std.testing.expectEqual(st, .soul_torch);
     try std.testing.expectEqualStrings(st.name(), "Soul Torch");
+}
+
+test "monster spawner item conversion and name" {
+    const it = ItemType.fromBlockId(.spawner_cage);
+    try std.testing.expectEqual(it, .spawner_cage);
+    try std.testing.expectEqual(it.toBlockId(), .spawner_cage);
+    try std.testing.expectEqualStrings(it.name(), "Monster Spawner");
 }
 
 test "soul campfire crafting recipe and item conversion" {
