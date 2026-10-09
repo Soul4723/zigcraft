@@ -16,6 +16,7 @@ pub const SoundType = enum {
     eat,
     hurt,
     mob_growl,
+    mob_roar,
     click_on,
     click_off,
     splash,
@@ -84,6 +85,7 @@ pub const AudioMixer = struct {
             .eat => SAMPLE_RATE / 5, // ~200ms
             .hurt => SAMPLE_RATE / 3, // ~330ms
             .mob_growl => SAMPLE_RATE / 2, // ~500ms
+            .mob_roar => SAMPLE_RATE * 2 / 3, // ~660ms
             .craft_item => SAMPLE_RATE / 6, // ~166ms
             .click_on, .click_off => SAMPLE_RATE / 20, // ~50ms mechanical click
             .splash => SAMPLE_RATE / 4, // ~250ms bubbly splash burst
@@ -251,6 +253,15 @@ pub const AudioMixer = struct {
                 const tone = @sin(t * freq * 2.0 * std.math.pi) * 0.4;
                 return (noise * @max(0.0, chomp) + tone * 0.5) * envelope * 0.6;
             },
+            .mob_roar => {
+                // Emberbeast roar: deep 55Hz bellow with fiery 220Hz overtone and crackle
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const wobble = 0.6 + 0.4 * @sin(t * 40.0);
+                const phase = t * 55.0 * 2.0 * std.math.pi;
+                const tone = @sin(phase) + 0.6 * @sin(phase * 4.0) + 0.3 * @sin(phase * 8.03);
+                const noise = (rng.random().float(f32) * 2.0 - 1.0) * 0.2;
+                return (tone * wobble + noise) * envelope * 0.65;
+            },
             .mob_growl => {
                 // Wolf growl: low rumbling 70Hz with amplitude wobble
                 const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
@@ -398,7 +409,7 @@ test "AudioMixer play voice produces non-zero samples" {
 
 test "AudioMixer all sound types render without overflow or crash" {
     var mixer = AudioMixer.init();
-    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle, .nether_wind, .glowstone_chime };
+    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .mob_roar, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle, .nether_wind, .glowstone_chime };
     for (sounds) |snd| {
         mixer.play(snd, 1.0);
     }

@@ -43,16 +43,19 @@ pub const Mob = struct {
             .sheep => 0.6,
             .pig => 0.55,
             .wolf => 0.6,
+            .emberbeast => 0.7,
         };
         const h: f32 = switch (mob_type) {
             .sheep => 0.9,
             .pig => 0.75,
             .wolf => 0.8,
+            .emberbeast => 1.0,
         };
         const spd: f32 = switch (mob_type) {
             .sheep => 1.4,
             .pig => 1.6,
             .wolf => 3.2,
+            .emberbeast => 3.6,
         };
         return .{
             .mob_type = mob_type,
@@ -68,7 +71,7 @@ pub const Mob = struct {
             .anim_time = 0.0,
             .change_dir_timer = 2.0,
             .wants_sound = false,
-            .health = if (mob_type == .wolf) 5 else 3,
+            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else 3,
             .in_water = false,
             .in_bubble_column = false,
             .in_whirlpool = false,
@@ -425,6 +428,14 @@ test "mob takeHit applies knockback and sets state" {
     try std.testing.expect(mob.walk_timer > 0.0);
 }
 
+test "emberbeast tougher and faster than wolf" {
+    const e = Mob.init(.emberbeast, 0.0, 1.0, 0.0);
+    const w = Mob.init(.wolf, 0.0, 1.0, 0.0);
+    try std.testing.expect(e.health > w.health);
+    try std.testing.expect(e.walk_speed > w.walk_speed);
+    try std.testing.expectEqual(e.mob_type, .emberbeast);
+}
+
 test "wolf tougher and faster than sheep" {
     const w = Mob.init(.wolf, 0.0, 1.0, 0.0);
     const sh = Mob.init(.sheep, 0.0, 1.0, 0.0);
@@ -446,6 +457,7 @@ pub fn getSound(mob_type: MobType) ?@import("../audio/synth.zig").SoundType {
         .sheep => .mob_baa,
         .pig => .mob_oink,
         .wolf => .mob_growl,
+        .emberbeast => .mob_roar,
     };
 }
 
@@ -453,6 +465,7 @@ test "mob sound mapping" {
     try std.testing.expectEqual(@import("../audio/synth.zig").SoundType.mob_baa, getSound(.sheep).?);
     try std.testing.expectEqual(@import("../audio/synth.zig").SoundType.mob_oink, getSound(.pig).?);
     try std.testing.expectEqual(@import("../audio/synth.zig").SoundType.mob_growl, getSound(.wolf).?);
+    try std.testing.expectEqual(@import("../audio/synth.zig").SoundType.mob_roar, getSound(.emberbeast).?);
 }
 
 test "mob water current push" {

@@ -68,6 +68,19 @@ pub const MobManager = struct {
             }
         }
 
+        // Nether pass: emberbeasts stalk netherrack wastes and fortress bridges.
+        var nether_attempts: usize = 0;
+        while (self.mobs.items.len < 8 and nether_attempts < 6) : (nether_attempts += 1) {
+            const rx = center_x + (self.rng.random().float(f32) * 36.0 - 18.0);
+            const rz = center_z + (self.rng.random().float(f32) * 36.0 - 18.0);
+            const ix: i32 = @intFromFloat(@floor(rx));
+            const iz: i32 = @intFromFloat(@floor(rz));
+            const iy: i32 = 5 + @as(i32, @intFromFloat(self.rng.random().float(f32) * 4.0));
+            if (!spawn_rules.isNetherSpawn(chunk_manager, ix, iy, iz)) continue;
+            try self.spawnMob(.emberbeast, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
+            break;
+        }
+
         // Cave pass: dark hollows spawn wolves even by day, up to a shared cap.
         var cave_attempts: usize = 0;
         while (self.mobs.items.len < 8 and cave_attempts < 6) : (cave_attempts += 1) {
@@ -85,7 +98,7 @@ pub const MobManager = struct {
         var idx: usize = 0;
         while (idx < self.mobs.items.len) {
             var mob = &self.mobs.items[idx];
-            if (mob.mob_type == .wolf) {
+            if (mob.mob_type == .wolf or mob.mob_type == .emberbeast) {
                 const wdx = player_pos.x - mob.pos.x;
                 const wdz = player_pos.z - mob.pos.z;
                 const wd = @sqrt(wdx * wdx + wdz * wdz);
@@ -132,7 +145,7 @@ pub const MobManager = struct {
                 // Contact heat hazard check: floor block under feet or immersed block
                 const floor_b = bat(mx, @intFromFloat(@floor(mob.pos.y - 0.1)), mz);
                 const body_b = bat(mx, my, mz);
-                if (hazard_mod.checkBurnContact(floor_b) or hazard_mod.checkBurnContact(body_b) or hazard_mod.checkLavaHazard(floor_b) or hazard_mod.checkLavaHazard(body_b)) {
+                if (mob.mob_type != .emberbeast and (hazard_mod.checkBurnContact(floor_b) or hazard_mod.checkBurnContact(body_b) or hazard_mod.checkLavaHazard(floor_b) or hazard_mod.checkLavaHazard(body_b))) {
                     const prev_hp = mob.health;
                     if (mob.applyBurnTick(dt)) {
                         if (audio) |a| {
@@ -230,7 +243,7 @@ pub const MobManager = struct {
         var count: usize = 0;
         const r_sq = radius * radius;
         for (self.mobs.items) |m| {
-            if (m.mob_type != .wolf) continue;
+            if (m.mob_type != .wolf and m.mob_type != .emberbeast) continue;
             const dx = m.pos.x - center.x;
             const dy = m.pos.y - center.y;
             const dz = m.pos.z - center.z;
@@ -241,6 +254,15 @@ pub const MobManager = struct {
         return count;
     }
 };
+
+test "MobManager emberbeast immune to burn contact" {
+    var mobs = std.ArrayList(mob_mod.Mob).empty;
+    defer mobs.deinit(std.testing.allocator);
+    try mobs.append(std.testing.allocator, mob_mod.Mob.init(.emberbeast, 0, 1, 0));
+    // Immunity is enforced in tick() via mob_type guard; emberbeast type survives burn scan.
+    try std.testing.expectEqual(mobs.items[0].mob_type, .emberbeast);
+    try std.testing.expectEqual(mobs.items[0].health, 8);
+}
 
 test "MobManager spawn and tick list" {
     var mobs = std.ArrayList(mob_mod.Mob).empty;

@@ -1075,7 +1075,7 @@ pub fn main() !void {
         wolf_bite_cooldown = combat_mod.tickCooldown(wolf_bite_cooldown, dt);
         if (wolf_bite_cooldown <= 0.0) {
             for (mob_manager.mobs.items) |m| {
-                if (m.mob_type != .wolf) continue;
+                if (m.mob_type != .wolf and m.mob_type != .emberbeast) continue;
                 const bdx = m.pos.x - player.pos.x;
                 const bdz = m.pos.z - player.pos.z;
                 const bdy = m.pos.y - player.pos.y;
@@ -1083,7 +1083,8 @@ pub fn main() !void {
                     const pack_count = mob_manager.countNearbyWolves(m.pos, entity_mod.pack_hunt.pack_rally_radius);
                     const bonus = entity_mod.pack_hunt.packBonus(pack_count);
                     const hit = combat_mod.calculateWolfBite(bdx, bdz, bonus);
-                    player.health = @max(0.0, player.health - hit.damage);
+                    const dmg = if (m.mob_type == .emberbeast) hit.damage * 2.0 else hit.damage;
+                    player.health = @max(0.0, player.health - dmg);
                     audio.play(.hurt, 0.8);
                     player.pos.x -= hit.knockback_x;
                     player.pos.z -= hit.knockback_z;
