@@ -127,6 +127,21 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         }
         return .{ 0, 0, 0, 0 };
     }
+    // Soul Torch (7, 1): dark soul-wood shaft with cyan soul-fire tip
+    if (tile_x == 7 and tile_y == 1) {
+        const is_shaft = (x >= 6 and x <= 9) and (y >= 4);
+        const is_head = (x >= 5 and x <= 10) and (y <= 4);
+        if (is_head) {
+            const hot = (y <= 2) and (x >= 6 and x <= 9);
+            if (hot) return .{ 180, 245, 255, 255 }; // brilliant cyan-white core
+            return .{ 45, 185, 225, 255 }; // ethereal turquoise soul flame
+        }
+        if (is_shaft) {
+            const n = hash2(x, y, 182) % 12;
+            return .{ 65 + @as(u8, @intCast(n)), 45 + @as(u8, @intCast(n / 2)), 35, 255 };
+        }
+        return .{ 0, 0, 0, 0 };
+    }
     if (tile_x == 0 and tile_y == 2) {
         const n = hash2(x, y, 71) % 15;
         const wc: u8 = 225 + @as(u8, @intCast(n));
@@ -897,4 +912,23 @@ test "nether wart atlas texture soil stems and bulbs" {
 
     const gap = tilePixel(6, 1, 0, 0);
     try std.testing.expectEqual(gap[3], 0);
+}
+
+test "soul torch atlas texture cyan head and dark shaft" {
+    const head = tilePixel(7, 1, 7, 1);
+    try std.testing.expectEqual(head[0], 180);
+    try std.testing.expectEqual(head[1], 245);
+    try std.testing.expectEqual(head[2], 255);
+
+    const flame = tilePixel(7, 1, 5, 3);
+    try std.testing.expectEqual(flame[0], 45);
+    try std.testing.expectEqual(flame[1], 185);
+    try std.testing.expectEqual(flame[2], 225);
+
+    const shaft = tilePixel(7, 1, 7, 8);
+    try std.testing.expect(shaft[0] >= 65);
+    try std.testing.expectEqual(shaft[3], 255);
+
+    const cutout = tilePixel(7, 1, 1, 1);
+    try std.testing.expectEqual(cutout[3], 0);
 }
