@@ -185,3 +185,20 @@ test "nether spawn needs nether ground and headroom" {
     try std.testing.expect(!isNetherSpawn(NetherFlat{}, 0, 6, 0));
     try std.testing.expect(!isNetherSpawn(FlatWorld{}, 0, 5, 0));
 }
+
+/// Fortress spawner pulse: emberbeast reinforcements trickle near loot junctions.
+/// max_near caps local guards; interval gates pulse frequency; elapsed tracks time since last wave.
+pub const spawner_interval: f32 = 20.0;
+pub const spawner_max_near: usize = 2;
+
+pub fn spawnerDue(elapsed: f32) bool {
+    return elapsed >= spawner_interval;
+}
+
+test "fortress spawner pulse timing and cap" {
+    try std.testing.expect(!spawnerDue(0.0));
+    try std.testing.expect(!spawnerDue(19.9));
+    try std.testing.expect(spawnerDue(20.0));
+    try std.testing.expect(spawnerDue(60.0));
+    try std.testing.expectEqual(@as(usize, 2), spawner_max_near);
+}
