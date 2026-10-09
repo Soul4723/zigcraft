@@ -197,6 +197,9 @@ pub fn main() !void {
     var sprout_count: usize = 0;
     var warts: [sapling_mod.sprout_cap]WartCrop = undefined;
     var wart_count: usize = 0;
+    const IgnitedFlame = struct { x: i32, y: i32, z: i32, t: f32 };
+    var flames: [32]IgnitedFlame = undefined;
+    var flame_count: usize = 0;
     const Plate = cache_mod.Plate;
     var plates: [cache_mod.plate_cap]Plate = undefined;
     var plate_count: usize = 0;
@@ -1055,6 +1058,22 @@ pub fn main() !void {
             }
         }
 
+        // Burn out fireball-ignited flames after lifetime; player campfires are permanent.
+        var flame_i: usize = 0;
+        while (flame_i < flame_count) {
+            flames[flame_i].t += dt;
+            if (flames[flame_i].t >= hazard_mod.ignited_flame_life) {
+                if (manager.getBlockWorld(flames[flame_i].x, flames[flame_i].y, flames[flame_i].z) == .campfire) {
+                    _ = try manager.editAndRemesh(flames[flame_i].x, flames[flame_i].y, flames[flame_i].z, .air);
+                    particles.spawnBlockDebris(flames[flame_i].x, flames[flame_i].y, flames[flame_i].z, .{ 0.3, 0.3, 0.3 }, 6);
+                    std.debug.print("ignited flame burned out\n", .{});
+                }
+                cache_mod.swapRemove(&flames, &flame_count, flame_i);
+            } else {
+                flame_i += 1;
+            }
+        }
+
         // Stream chunks dynamically around player
         chunk_retry_timer = @max(0.0, chunk_retry_timer - dt);
         if (chunk_retry_timer == 0.0) {
@@ -1807,6 +1826,10 @@ pub fn main() !void {
                             const struck = manager.getBlockWorld(mbx, mby, mbz);
                             if (hazard_mod.isFlammable(struck) and manager.getBlockWorld(mbx, mby + 1, mbz) == .air) {
                                 if (try manager.editAndRemesh(mbx, mby + 1, mbz, .campfire)) {
+                                    if (flame_count < flames.len) {
+                                        flames[flame_count] = .{ .x = mbx, .y = mby + 1, .z = mbz, .t = 0.0 };
+                                        flame_count += 1;
+                                    }
                                     std.debug.print("fireball ignited campfire\n", .{});
                                 }
                             }
