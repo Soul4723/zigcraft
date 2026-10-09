@@ -704,12 +704,14 @@ pub const Inventory = struct {
             }
         }
 
-        // Recipe 32: Fire Resistance Potion: 1 Magma + 1 Apple (or 1 Magma + 1 Glass) in 2x2 (non_empty == 2)
+        // Recipe 32: Fire Resistance Potion: 1 Magma + 1 Apple/Glass (legacy) or 1 Nether Wart + 1 Glass vial.
+        // Wart brewing requires a glass vial as the potion vessel; apple no longer substitutes for wart.
         if (non_empty == 2) {
             const has_magma = (g0 == .magma or g1 == .magma or g2 == .magma or g3 == .magma);
-            const has_catalyst = (g0 == .apple or g1 == .apple or g2 == .apple or g3 == .apple or
-                g0 == .glass or g1 == .glass or g2 == .glass or g3 == .glass);
-            if (has_magma and has_catalyst) {
+            const has_apple = (g0 == .apple or g1 == .apple or g2 == .apple or g3 == .apple);
+            const has_glass = (g0 == .glass or g1 == .glass or g2 == .glass or g3 == .glass);
+            const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
+            if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
                 return;
             }
@@ -993,6 +995,16 @@ test "fire resistance potion recipe: magma + apple or glass" {
     inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .fire_resistance_potion);
+
+    // Wart brewing: nether wart + glass vial -> potion (apple alone with wart does not brew)
+    inv.craft_grid[0] = .{ .item = .nether_wart, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .fire_resistance_potion);
+
+    inv.craft_grid[1] = .{ .item = .apple, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expect(inv.craft_output.item != .fire_resistance_potion);
 }
 
 test "golden apple recipe: 2 apples + ingot + coal" {
