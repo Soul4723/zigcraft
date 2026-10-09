@@ -91,6 +91,22 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         const shade: u8 = @as(u8, @intCast(n));
         return .{ 68 + shade, 20 + shade / 3, 28 + shade / 3, 255 };
     }
+    // Nether Brick Fence (5, 1): dark nether brick posts with horizontal crossbars and transparent cutouts
+    if (tile_x == 5 and tile_y == 1) {
+        // Vertical post in center (x: 6..9)
+        const is_post = (x >= 6 and x <= 9);
+        // Two horizontal rails (y: 3..5 and y: 10..12)
+        const is_rail = (y >= 3 and y <= 5) or (y >= 10 and y <= 12);
+        if (is_post or is_rail) {
+            // Dark masonry edge outline
+            const is_edge = (is_post and (x == 6 or x == 9)) or (is_rail and (y == 3 or y == 5 or y == 10 or y == 12));
+            if (is_edge) return .{ 30, 10, 14, 255 };
+            const n = hash2(x, y, 225) % 20;
+            const shade: u8 = @as(u8, @intCast(n));
+            return .{ 72 + shade, 22 + shade / 3, 30 + shade / 3, 255 };
+        }
+        return .{ 0, 0, 0, 0 }; // transparent air cutouts between fence rails
+    }
     if (tile_x == 0 and tile_y == 2) {
         const n = hash2(x, y, 71) % 15;
         const wc: u8 = 225 + @as(u8, @intCast(n));
@@ -829,4 +845,20 @@ test "nether brick atlas texture generation" {
     const interior = tilePixel(4, 1, 2, 2);
     try std.testing.expect(interior[0] >= 68);
     try std.testing.expectEqual(interior[3], 255);
+}
+
+test "nether brick fence atlas texture post and rail cutouts" {
+    // Post center has solid dark brick tone
+    const post = tilePixel(5, 1, 7, 7);
+    try std.testing.expect(post[0] >= 72);
+    try std.testing.expectEqual(post[3], 255);
+
+    // Rail cutout between posts and rails has transparent alpha = 0
+    const cutout = tilePixel(5, 1, 2, 7);
+    try std.testing.expectEqual(cutout[3], 0);
+
+    // Rail horizontal bar has solid color
+    const rail = tilePixel(5, 1, 2, 4);
+    try std.testing.expect(rail[0] >= 72);
+    try std.testing.expectEqual(rail[3], 255);
 }

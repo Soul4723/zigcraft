@@ -56,6 +56,7 @@ pub const BlockId = enum(u8) {
     chiseled_quartz_block = 51,
     // ponytail: Nether masonry ceiling; upgrade when adding red nether bricks and cracked nether bricks.
     nether_brick = 52,
+    nether_brick_fence = 53,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal;
@@ -78,7 +79,7 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_transparent(self: BlockId) bool {
-        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal;
+        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .nether_brick_fence;
     }
 
     /// 0.0 = lit by sun only. 1.0 = full glow even at midnight.
@@ -181,6 +182,7 @@ pub const BlockId = enum(u8) {
             },
             .chiseled_quartz_block => .{ .x = 7, .y = 3 }, // Carved glyph medallion relief
             .nether_brick => .{ .x = 4, .y = 1 }, // Dark fiery running-bond nether masonry
+            .nether_brick_fence => .{ .x = 5, .y = 1 }, // Nether brick post and crossbar rail texture
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -250,6 +252,7 @@ pub fn hardness(block: BlockId) f32 {
         .quartz_pillar => 1.2,
         .chiseled_quartz_block => 1.2,
         .nether_brick => 2.0,
+        .nether_brick_fence => 2.0,
     };
 }
 
@@ -261,7 +264,7 @@ pub const ToolTier = enum(u8) {
 
 pub fn requiredTier(block: BlockId) ToolTier {
     return switch (block) {
-        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick => .wooden,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence => .wooden,
         else => .hand,
     };
 }
@@ -271,13 +274,13 @@ pub fn requiredTier(block: BlockId) ToolTier {
 pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
     if (held_tool_id == TOOL_IRON_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick => 4.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence => 4.0,
             else => 2.0,
         };
     }
     if (held_tool_id == TOOL_WOODEN_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick => 3.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence => 3.0,
             else => 1.5,
         };
     }
@@ -344,6 +347,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .quartz_pillar = .{ .name = "quartz_pillar", .solid = true, .transparent = false, .fluid = false },
     .chiseled_quartz_block = .{ .name = "chiseled_quartz_block", .solid = true, .transparent = false, .fluid = false },
     .nether_brick = .{ .name = "nether_brick", .solid = true, .transparent = false, .fluid = false },
+    .nether_brick_fence = .{ .name = "nether_brick_fence", .solid = true, .transparent = true, .fluid = false },
 });
 
 test "block is_solid" {
@@ -639,7 +643,7 @@ pub const FootstepType = enum {
 pub fn footstepType(block: BlockId) FootstepType {
     return switch (block) {
         .grass => .grass,
-        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick => .stone,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence => .stone,
         .wood => .wood,
         .dirt => .dirt,
         .sand => .sand,
@@ -684,5 +688,20 @@ test "nether brick block properties and textures" {
 
     const tex = BlockId.nether_brick.getFaceTexture(0);
     try std.testing.expectEqual(tex.x, 4);
+    try std.testing.expectEqual(tex.y, 1);
+}
+
+test "nether brick fence block properties and textures" {
+    try std.testing.expect(BlockId.nether_brick_fence.is_solid());
+    try std.testing.expect(BlockId.nether_brick_fence.is_transparent());
+    try std.testing.expect(!BlockId.nether_brick_fence.is_fluid());
+    try std.testing.expectEqual(hardness(.nether_brick_fence), 2.0);
+    try std.testing.expectEqual(requiredTier(.nether_brick_fence), .wooden);
+    try std.testing.expectEqual(toolMultiplier(TOOL_WOODEN_PICKAXE, .nether_brick_fence), 3.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_IRON_PICKAXE, .nether_brick_fence), 4.0);
+    try std.testing.expectEqual(footstepType(.nether_brick_fence), .stone);
+
+    const tex = BlockId.nether_brick_fence.getFaceTexture(0);
+    try std.testing.expectEqual(tex.x, 5);
     try std.testing.expectEqual(tex.y, 1);
 }

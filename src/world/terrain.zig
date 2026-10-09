@@ -489,8 +489,11 @@ pub const NetherGenerator = struct {
                             chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .netherrack);
                         }
                     } else if (self.isFortress(wx, @intCast(y), wz)) {
-                        // Monumental Nether Fortress masonry bridge crossing open cavern
-                        chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .nether_brick);
+                        // Monumental Nether Fortress masonry bridge crossing open cavern:
+                        // Upper safety balustrade perimeter (y = 8) uses nether brick fences
+                        const is_fence = (y == 8);
+                        const b_id: @import("block.zig").BlockId = if (is_fence) .nether_brick_fence else .nether_brick;
+                        chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), b_id);
                     } else {
                         // Open cavern space: lava sea up to SEA_LEVEL - 1 (y <= 4)
                         if (y <= 4) {
@@ -552,17 +555,19 @@ test "NetherGenerator generates nether fortress ruins" {
     nether_gen.generateChunk(&chunk, 1, 1);
 
     var has_fortress = false;
+    var has_fortress_fence = false;
     var lz: usize = 0;
     while (lz < SIZE) : (lz += 1) {
         var lx: usize = 0;
         while (lx < SIZE) : (lx += 1) {
             var y: usize = 0;
             while (y < SIZE) : (y += 1) {
-                if (chunk.getBlock(@intCast(lx), @intCast(y), @intCast(lz)) == .nether_brick) {
-                    has_fortress = true;
-                }
+                const b = chunk.getBlock(@intCast(lx), @intCast(y), @intCast(lz));
+                if (b == .nether_brick) has_fortress = true;
+                if (b == .nether_brick_fence) has_fortress_fence = true;
             }
         }
     }
     try std.testing.expect(has_fortress);
+    try std.testing.expect(has_fortress_fence);
 }
