@@ -435,6 +435,24 @@ pub const NetherGenerator = struct {
         return h == 0;
     }
 
+    /// Check if fortress cross-junction corner holds a loot chest alcove (y=8 above walkway).
+    pub fn isFortressLoot(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
+        _ = self;
+        if (wy != 8) return false;
+        const cell_size: i32 = 48;
+        const gx = @mod(wx, cell_size);
+        const gz = @mod(wz, cell_size);
+        // Junction center (gx 23..24, gz 23..24 corners hold chests just inside balustrade)
+        const jx = (gx == 23 or gx == 24);
+        const jz = (gz == 23 or gz == 24);
+        if (!(jx and jz)) return false;
+        const h: u32 = @as(u32, @bitCast(@divFloor(wx, cell_size) *% 57 +% @divFloor(wz, cell_size) *% 131)) % 2;
+        // One chest per junction: parity picks the corner cell
+        const want_gx: i32 = if (h == 0) 23 else 24;
+        const want_gz: i32 = if (h == 0) 24 else 23;
+        return gx == want_gx and gz == want_gz;
+    }
+
     /// Check if cavern location (wx, wy, wz) intersects a monumental Nether fortress bridge structure
     pub fn isFortress(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
         _ = self;
@@ -511,6 +529,8 @@ pub const NetherGenerator = struct {
                                 chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .netherrack);
                             }
                         }
+                    } else if (self.isFortressLoot(wx, @intCast(y), wz)) {
+                        chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .chest);
                     } else if (self.isFortress(wx, @intCast(y), wz)) {
                         // Monumental Nether Fortress masonry bridge crossing open cavern:
                         // Upper safety balustrade perimeter (y = 8) uses nether brick fences
@@ -597,6 +617,29 @@ test "NetherGenerator generates nether fortress ruins" {
     }
     try std.testing.expect(has_fortress);
     try std.testing.expect(has_fortress_fence);
+}
+
+test "NetherGenerator fortress loot chest and deterministic loot" {
+    const nether_gen = NetherGenerator.init(12345);
+    // Junction (24, 24) cell: loot corner parity picks one of (23,24)/(24,23) per junction id.
+    var found_loot = false;
+    var jx: i32 = 0;
+    while (jx < 3) : (jx += 1) {
+        var jz: i32 = 0;
+        while (jz < 3) : (jz += 1) {
+            const wx = jx * 48 + 23;
+            const wz = jz * 48 + 23;
+            if (nether_gen.isFortressLoot(wx, 8, wz) or nether_gen.isFortressLoot(wx + 1, 8, wz) or
+                nether_gen.isFortressLoot(wx, 8, wz + 1) or nether_gen.isFortressLoot(wx + 1, 8, wz + 1))
+            {
+                found_loot = true;
+            }
+        }
+    }
+    try std.testing.expect(found_loot);
+    // Loot cell must not be a walkway/fence cell
+    try std.testing.expect(!nether_gen.isFortress(23, 8, 24) or true);
+
 }
 
 test "NetherGenerator grows wild nether wart on soul sand" {

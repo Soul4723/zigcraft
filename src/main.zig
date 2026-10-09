@@ -1994,6 +1994,15 @@ pub fn main() !void {
                     var k_opt = cache_mod.findChest(&chests, chest_count, hit_f.x, hit_f.y, hit_f.z);
                     if (k_opt == null and cache_mod.canCreateChest(chest_count, chests.len)) {
                         chests[chest_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z, .items = [_]inventory_mod.ItemStack{.{}} ** 4 };
+                        // Fortress loot: pre-fill Nether-generated chests with deterministic junction loot on first open.
+                        if (manager.is_nether and manager.nether.isFortressLoot(hit_f.x, hit_f.y, hit_f.z)) {
+                            var loot: [4]inventory_mod.ItemStack = undefined;
+                            inventory_mod.fortressLoot(hit_f.x, hit_f.z, &loot);
+                            for (loot, 0..) |li, idx| {
+                                chests[chest_count].items[idx] = li;
+                            }
+                            std.debug.print("fortress loot chest opened\n", .{});
+                        }
                         k_opt = chest_count;
                         chest_count += 1;
                     }

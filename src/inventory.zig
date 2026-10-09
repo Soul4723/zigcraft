@@ -1279,3 +1279,29 @@ test "nether wart item conversion and drops" {
     try std.testing.expectEqual(drops[0].item, .nether_wart);
     try std.testing.expectEqual(drops[0].count, 2);
 }
+
+/// Deterministic fortress junction loot roll for world (wx, wz).
+pub fn fortressLoot(wx: i32, wz: i32, out: *[4]ItemStack) void {
+    const h1: u32 = @as(u32, @bitCast(wx *% 17 +% wz *% 41)) % 3;
+    const h2: u32 = @as(u32, @bitCast(wx *% 29 +% wz *% 53)) % 2;
+    out[0] = .{ .item = .nether_wart, .count = @as(u8, @intCast(h1 + 2)) };
+    out[1] = .{ .item = .nether_quartz, .count = @as(u8, @intCast(h2 + 1)) };
+    const h3: u32 = @as(u32, @bitCast(wx *% 11 +% wz *% 67)) % 4;
+    if (h3 == 0) {
+        out[2] = .{ .item = .iron_ingot, .count = 2 };
+    } else {
+        out[2] = .{};
+    }
+    out[3] = .{};
+}
+
+test "fortress loot is deterministic and wart-weighted" {
+    var loot: [4]ItemStack = undefined;
+    fortressLoot(23, 24, &loot);
+    try std.testing.expectEqual(loot[0].item, .nether_wart);
+    try std.testing.expect(loot[0].count >= 2 and loot[0].count <= 4);
+    try std.testing.expectEqual(loot[1].item, .nether_quartz);
+    var loot2: [4]ItemStack = undefined;
+    fortressLoot(23, 24, &loot2);
+    try std.testing.expectEqual(loot[0].count, loot2[0].count);
+}
