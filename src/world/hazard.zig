@@ -192,3 +192,16 @@ test "detectBubbleColumn identifies soul sand and magma columns" {
     try std.testing.expectEqual(BubbleColumnType.downward, detectBubbleColumn(&mockColumnWorld, 1, 4, 0));
     try std.testing.expectEqual(BubbleColumnType.none, detectBubbleColumn(&mockColumnWorld, 2, 4, 0));
 }
+
+/// Fireball ignition: flammable floor blocks that catch a campfire flame when struck.
+pub fn isFlammable(block: BlockId) bool {
+    return block == .wood or block == .leaves or block == .wood_planks;
+}
+
+test "fireball ignition fuel classification" {
+    try std.testing.expect(isFlammable(.wood));
+    try std.testing.expect(isFlammable(.leaves));
+    try std.testing.expect(isFlammable(.wood_planks));
+    try std.testing.expect(!isFlammable(.stone));
+    try std.testing.expect(!isFlammable(.netherrack));
+}

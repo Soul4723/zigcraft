@@ -1803,6 +1803,13 @@ pub fn main() !void {
                             particles.spawnFlame(mbx, mby, mbz, 8);
                             dead = true;
                         } else if (pickSolid(mbx, mby, mbz)) {
+                            // Ignite flammable floors: set struck cell's air above ablaze as campfire.
+                            const struck = manager.getBlockWorld(mbx, mby, mbz);
+                            if (hazard_mod.isFlammable(struck) and manager.getBlockWorld(mbx, mby + 1, mbz) == .air) {
+                                if (try manager.editAndRemesh(mbx, mby + 1, mbz, .campfire)) {
+                                    std.debug.print("fireball ignited campfire\n", .{});
+                                }
+                            }
                             particles.spawnFlame(mbx, mby, mbz, 8);
                             audio.play(.burn_sizzle, 0.4);
                             dead = true;
