@@ -453,6 +453,20 @@ pub const NetherGenerator = struct {
         return gx == want_gx and gz == want_gz;
     }
 
+    /// Check if cavern location (wx, wy, wz) hosts an emberbeast spawner cage at a fortress junction center
+    pub fn isFortressSpawner(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
+        _ = self;
+        if (wy != 8) return false;
+        const cell_size: i32 = 48;
+        const gx = @mod(wx, cell_size);
+        const gz = @mod(wz, cell_size);
+        // Chest sits at (23,24) or (24,23). Spawner cage sits at the opposite diagonal junction cell (24,24) or (23,23)
+        const h: u32 = @as(u32, @bitCast(@divFloor(wx, cell_size) *% 57 +% @divFloor(wz, cell_size) *% 131)) % 2;
+        const want_gx: i32 = if (h == 0) 24 else 23;
+        const want_gz: i32 = if (h == 0) 24 else 23;
+        return gx == want_gx and gz == want_gz;
+    }
+
     /// Check if cavern location (wx, wy, wz) mounts an ambient soul torch atop fortress fence balustrades
     pub fn isFortressTorch(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
         _ = self;
@@ -551,6 +565,8 @@ pub const NetherGenerator = struct {
                         }
                     } else if (self.isFortressLoot(wx, @intCast(y), wz)) {
                         chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .chest);
+                    } else if (self.isFortressSpawner(wx, @intCast(y), wz)) {
+                        chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .spawner_cage);
                     } else if (self.isFortressTorch(wx, @intCast(y), wz)) {
                         chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .soul_torch);
                     } else if (self.isFortress(wx, @intCast(y), wz)) {
@@ -704,4 +720,13 @@ test "NetherGenerator mounts ambient soul torches on fortress balustrades" {
     // At wx = 0 (lx = 0), wz = 22 (lz = 6), y = 8 is fence and y = 9 is soul_torch
     try std.testing.expectEqual(chunk.getBlock(0, 8, 6), .nether_brick_fence);
     try std.testing.expectEqual(chunk.getBlock(0, 9, 6), .soul_torch);
+}
+
+test "NetherGenerator places spawner cage at fortress junction alcoves" {
+    const nether_gen = NetherGenerator.init(12345);
+    // At junction (0,0), cell (24, 24) or (23, 23) should be spawner cage at y=8
+    const has_spawner = nether_gen.isFortressSpawner(24, 8, 24) or nether_gen.isFortressSpawner(23, 8, 23);
+    try std.testing.expect(has_spawner);
+    try std.testing.expect(!nether_gen.isFortressSpawner(0, 8, 0));
+    try std.testing.expect(!nether_gen.isFortressSpawner(24, 7, 24));
 }

@@ -297,6 +297,31 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         const n = hash2(x, y, 71) % 15;
         return .{ 30 + @as(u8, @intCast(n)), 32 + @as(u8, @intCast(n)), 35 + @as(u8, @intCast(n)), 255 };
     }
+    // Spawner Cage (5, 0): heavy dark iron grating crosshatch enclosing glowing ember flame core
+    if (tile_x == 5 and tile_y == 0) {
+        // Outer iron cage frame border
+        const is_border = (x == 0 or x == 15 or y == 0 or y == 15);
+        if (is_border) return .{ 50, 48, 52, 255 }; // dark forged iron
+
+        // Interior crosshatch bars every 4 pixels
+        const is_bar = (x % 4 == 0 or y % 4 == 0);
+        if (is_bar) {
+            const n = hash2(x, y, 177) % 15;
+            return .{ 70 + @as(u8, @intCast(n)), 68 + @as(u8, @intCast(n)), 75, 255 };
+        }
+
+        // Inner incandescent fiery core (spinning mob silhouette center)
+        const is_core = (x >= 6 and x <= 9 and y >= 6 and y <= 9);
+        if (is_core) {
+            const hot = (x >= 7 and x <= 8 and y >= 7 and y <= 8);
+            if (hot) return .{ 255, 220, 90, 255 }; // hot gold core
+            return .{ 230, 95, 20, 255 }; // fiery blaze orange
+        }
+
+        // Dark hollow cage interior
+        const n = hash2(x, y, 178) % 12;
+        return .{ 20 + @as(u8, @intCast(n)), 15 + @as(u8, @intCast(n / 2)), 20, 255 };
+    }
     // Sandstone top (1, 4): smooth fine packed sand
     if (tile_x == 1 and tile_y == 4) {
         return sandstoneTopPixel(x, y);
@@ -963,4 +988,22 @@ test "soul campfire atlas texture cyan embers and dark logs" {
     const log = tilePixel(4, 0, 5, 5);
     try std.testing.expect(log[0] >= 55);
     try std.testing.expectEqual(log[3], 255);
+}
+
+test "spawner cage atlas texture iron bars and ember core" {
+    const border = tilePixel(5, 0, 0, 0);
+    try std.testing.expectEqual(border[0], 50);
+    try std.testing.expectEqual(border[3], 255);
+
+    const bar = tilePixel(5, 0, 4, 3);
+    try std.testing.expect(bar[0] >= 70);
+    try std.testing.expectEqual(bar[3], 255);
+
+    const hot = tilePixel(5, 0, 7, 7);
+    try std.testing.expectEqual(hot[0], 255);
+    try std.testing.expectEqual(hot[1], 220);
+
+    const interior = tilePixel(5, 0, 2, 2);
+    try std.testing.expect(interior[0] <= 35);
+    try std.testing.expectEqual(interior[3], 255);
 }
