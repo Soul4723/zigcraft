@@ -63,6 +63,7 @@ pub const ItemType = enum(u8) {
     quartz_pillar = 57,
     chiseled_quartz_block = 58,
     nether_brick = 59,
+    nether_brick_fence = 60,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -107,6 +108,7 @@ pub const ItemType = enum(u8) {
             .quartz_pillar => .quartz_pillar,
             .chiseled_quartz_block => .chiseled_quartz_block,
             .nether_brick => .nether_brick,
+            .nether_brick_fence => .nether_brick_fence,
             else => null,
         };
     }
@@ -158,6 +160,7 @@ pub const ItemType = enum(u8) {
             .quartz_pillar => .quartz_pillar,
             .chiseled_quartz_block => .chiseled_quartz_block,
             .nether_brick => .nether_brick,
+            .nether_brick_fence => .nether_brick_fence,
         };
     }
 
@@ -240,6 +243,7 @@ pub const ItemType = enum(u8) {
             .quartz_pillar => "Quartz Pillar",
             .chiseled_quartz_block => "Chiseled Quartz Block",
             .nether_brick => "Nether Bricks",
+            .nether_brick_fence => "Nether Brick Fence",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -305,6 +309,7 @@ pub const ItemType = enum(u8) {
             .quartz_pillar => .{ 0.93, 0.91, 0.89, 0.95 },
             .chiseled_quartz_block => .{ 0.92, 0.90, 0.88, 0.95 },
             .nether_brick => .{ 0.35, 0.12, 0.15, 0.95 },
+            .nether_brick_fence => .{ 0.38, 0.14, 0.16, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -574,6 +579,16 @@ pub const Inventory = struct {
         if (non_empty == 3) {
             if (g0 == .wood_planks and g1 == .wood_planks and (g2 == .stick or g3 == .stick)) {
                 self.craft_output = .{ .item = .wooden_pickaxe, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe: 2 Nether Bricks stacked vertically -> 2 Nether Brick Fences
+        if (non_empty == 2) {
+            if ((g0 == .nether_brick and g2 == .nether_brick and g1 == .none and g3 == .none) or
+                (g1 == .nether_brick and g3 == .nether_brick and g0 == .none and g2 == .none))
+            {
+                self.craft_output = .{ .item = .nether_brick_fence, .count = 2 };
                 return;
             }
         }
@@ -1215,4 +1230,19 @@ test "nether bricks crafting recipe and item conversion" {
     const b = ItemType.fromBlockId(.nether_brick);
     try std.testing.expectEqual(b, .nether_brick);
     try std.testing.expectEqual(b.name(), "Nether Bricks");
+}
+
+test "nether brick fence crafting recipe and item conversion" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .nether_brick, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .nether_brick, .count = 1 };
+    inv.updateCrafting();
+
+    try std.testing.expectEqual(inv.craft_output.item, .nether_brick_fence);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+    try std.testing.expectEqual(inv.craft_output.item.toBlockId(), .nether_brick_fence);
+
+    const f = ItemType.fromBlockId(.nether_brick_fence);
+    try std.testing.expectEqual(f, .nether_brick_fence);
+    try std.testing.expectEqual(f.name(), "Nether Brick Fence");
 }
