@@ -111,3 +111,4 @@ Rough priority order. Completed milestones marked **[x]**.
 83. [x] **Nether Fortress Procedural Ruins Generation** — Periodic cavern cross-spans, monumental bridges at y=7, perimeter safety balustrades (y=8), and heavy support pillars extending to cavern floors (#201).
 84. [x] **Nether Brick Fence & Fortress Balustrade Railings** — Thin-post fence block (`nether_brick_fence`), post/rail atlas tile with transparent cutouts, vertical 2-brick crafting recipe -> 2 fences, and fortress y=8 perimeter balustrade placement (#202).
 85. [x] **Nether Wart Crop Farming** — Soul-sand-gated planting, 60s ripening with mature bonus yield, wild shore patches in Nether gen (#203).
+86. [x] **Emberbeast Nether Hostile Mob** — Fire-immune fortress hunter (8 HP, 2x bite), A* pack hunting, roar synth, Nether spawns (#204).
