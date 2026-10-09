@@ -205,3 +205,11 @@ test "fireball ignition fuel classification" {
     try std.testing.expect(!isFlammable(.stone));
     try std.testing.expect(!isFlammable(.netherrack));
 }
+
+/// Ignited campfire flame lifetime before burnout (player-placed campfires are permanent).
+pub const ignited_flame_life: f32 = 45.0;
+
+test "ignited flame lifetime is positive and bounded" {
+    try std.testing.expect(ignited_flame_life > 0.0);
+    try std.testing.expect(ignited_flame_life <= 120.0);
+}
