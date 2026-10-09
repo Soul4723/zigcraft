@@ -128,3 +128,4 @@ Rough priority order. Completed milestones marked **[x]**.
 100. [x] **Soul Torches with Cyan Flame & Crafting** — Soul torches (block 55, item 64) with 0.7 emissive cyan lighting, ethereal turquoise atlas tile, and soul sand + torch crafting (#218).
 101. [x] **Fortress Bridge Ambient Soul Torches** — Procedural Nether fortress bridge spans naturally illuminated with ambient soul torches mounted atop fence balustrades (y=9, 6-block interval) (#219).
 102. [x] **Soul Campfire with Cyan Embers & Crafting** — Soul campfires (block 56, item 65) with 0.8 emissive cyan embers, dark soul-wood logs atlas tile (4,0), contact burn hazard, and soul sand + campfire crafting (#220).
+103. [x] **Soul Sand Fireball Ignition into Soul Campfires** — Fireball and fire charge impacts on soul sand floors ignite soul campfires with 45s burnout tracking (#221).
