@@ -227,6 +227,10 @@ pub const UIRenderer = struct {
     }
 
     pub fn drawHUDWithProgressVitals(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool, oxygen: f32, fire_res_timer: f32) void {
+        self.drawHUDWithCompass(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, health, hunger, regen, oxygen, fire_res_timer, -1.0);
+    }
+
+    pub fn drawHUDWithCompass(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool, oxygen: f32, fire_res_timer: f32, compass_rel: f32) void {
         var verts: [1024]UIVertex = undefined;
         var count: usize = 0;
 
@@ -309,6 +313,22 @@ pub const UIRenderer = struct {
                 const ffill = bw * @min(1.0, @max(0.0, fire_res_timer / 180.0));
                 addQuad(&verts, &count, hbx0 + 0.0015, fby0 + 0.0015, hbx0 + 0.0015 + ffill, fby0 + bh - 0.0015, .{ 1.0, 0.55, 0.12, 1.0 });
             }
+        }
+
+        // Fortress compass needle above crosshair (Nether only, -1 hides).
+        // rel_rad: junction bearing minus camera yaw. Arrow rotates in screen plane.
+        if (compass_rel >= 0.0) {
+            const ncx: f32 = 0.0;
+            const ncy: f32 = 0.115;
+            const nlen: f32 = 0.035;
+            const tip_x = ncx + @sin(compass_rel) * nlen;
+            const tip_y = ncy + @cos(compass_rel) * nlen;
+            const nbase_x = ncx - @sin(compass_rel) * nlen * 0.4;
+            const nbase_y = ncy - @cos(compass_rel) * nlen * 0.4;
+            const pw: f32 = 0.006 / aspect;
+            // Needle shaft (crimson) + tip dot (gold)
+            addQuad(&verts, &count, @min(nbase_x, tip_x) - pw, @min(nbase_y, tip_y), @max(nbase_x, tip_x) + pw, @max(nbase_y, tip_y), .{ 0.85, 0.2, 0.2, 0.95 });
+            addQuad(&verts, &count, tip_x - 0.005 / aspect, tip_y - 0.005, tip_x + 0.005 / aspect, tip_y + 0.005, .{ 1.0, 0.8, 0.25, 1.0 });
         }
 
         // Mining progress bar above crosshair
