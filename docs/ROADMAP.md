@@ -126,3 +126,4 @@ Rough priority order. Completed milestones marked **[x]**.
 98. [x] **Throwable Fire Charge** — Magma cream + coal crafts 3x; thrown for 2-dmg + floor ignition (#216).
 99. [x] **Fire Charge TNT Ignition** — Priming TNT via thrown direct hits or right-click consume (#217).
 100. [x] **Soul Torches with Cyan Flame & Crafting** — Soul torches (block 55, item 64) with 0.7 emissive cyan lighting, ethereal turquoise atlas tile, and soul sand + torch crafting (#218).
+101. [x] **Fortress Bridge Ambient Soul Torches** — Procedural Nether fortress bridge spans naturally illuminated with ambient soul torches mounted atop fence balustrades (y=9, 6-block interval) (#219).
