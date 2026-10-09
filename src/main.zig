@@ -1585,6 +1585,13 @@ pub fn main() !void {
                                     particles.spawnWaterSplash(.{ player.pos.x, player.pos.y, player.pos.z }, 10);
                                     std.debug.print("boarded wooden boat\n", .{});
                                 }
+                            } else if (!hotbar_slot.isEmpty() and hotbar_slot.item == .fire_charge and manager.getBlockWorld(hit.x, hit.y, hit.z) == .tnt and fuse_count < fuses.len) {
+                                fuses[fuse_count] = .{ .x = hit.x, .y = hit.y, .z = hit.z, .t = 2.5 };
+                                fuse_count += 1;
+                                hotbar_slot.decrement(1);
+                                audio.play(.place_block, 0.8);
+                                particles.spawnFlame(hit.x, hit.y, hit.z, 6);
+                                std.debug.print("fire charge lit TNT fuse\n", .{});
                             } else if (!hotbar_slot.isEmpty()) {
                                 if (hotbar_slot.item.toBlockId()) |place_type| {
                                     const is_furnace_place = place_type == .furnace;
@@ -1864,6 +1871,12 @@ pub fn main() !void {
                     if (!dead and t.kind != .hostile_fireball and pickSolid(mbx, mby, mbz)) {
                         if (t.kind == .player_fire_charge) {
                             const struck = manager.getBlockWorld(mbx, mby, mbz);
+                            if (struck == .tnt and fuse_count < fuses.len) {
+                                fuses[fuse_count] = .{ .x = mbx, .y = mby, .z = mbz, .t = 2.5 };
+                                fuse_count += 1;
+                                audio.play(.place_block, 0.8);
+                                std.debug.print("fire charge lit TNT fuse\n", .{});
+                            } else 
                             if (hazard_mod.isFlammable(struck) and manager.getBlockWorld(mbx, mby + 1, mbz) == .air) {
                                 if (try manager.editAndRemesh(mbx, mby + 1, mbz, .campfire)) {
                                     if (flame_count < flames.len) {
