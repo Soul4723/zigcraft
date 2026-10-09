@@ -125,3 +125,4 @@ Rough priority order. Completed milestones marked **[x]**.
 97. [x] **Magma Cream Crafting & Potion Brewing** — Coal + wart crafts cream; brews Fire Resistance with glass vial (#215).
 98. [x] **Throwable Fire Charge** — Magma cream + coal crafts 3x; thrown for 2-dmg + floor ignition (#216).
 99. [x] **Fire Charge TNT Ignition** — Priming TNT via thrown direct hits or right-click consume (#217).
+100. [x] **Soul Torches with Cyan Flame & Crafting** — Soul torches (block 55, item 64) with 0.7 emissive cyan lighting, ethereal turquoise atlas tile, and soul sand + torch crafting (#218).
