@@ -1066,7 +1066,8 @@ pub fn main() !void {
         while (flame_i < flame_count) {
             flames[flame_i].t += dt;
             if (flames[flame_i].t >= hazard_mod.ignited_flame_life) {
-                if (manager.getBlockWorld(flames[flame_i].x, flames[flame_i].y, flames[flame_i].z) == .campfire) {
+                const cur_flame = manager.getBlockWorld(flames[flame_i].x, flames[flame_i].y, flames[flame_i].z);
+                if (cur_flame == .campfire or cur_flame == .soul_campfire) {
                     _ = try manager.editAndRemesh(flames[flame_i].x, flames[flame_i].y, flames[flame_i].z, .air);
                     particles.spawnBlockDebris(flames[flame_i].x, flames[flame_i].y, flames[flame_i].z, .{ 0.3, 0.3, 0.3 }, 6);
                     std.debug.print("ignited flame burned out\n", .{});
@@ -1852,15 +1853,16 @@ pub fn main() !void {
                             particles.spawnFlame(mbx, mby, mbz, 8);
                             dead = true;
                         } else if (pickSolid(mbx, mby, mbz)) {
-                            // Ignite flammable floors: set struck cell's air above ablaze as campfire.
+                            // Ignite flammable floors: set struck cell's air above ablaze as campfire or soul campfire.
                             const struck = manager.getBlockWorld(mbx, mby, mbz);
                             if (hazard_mod.isFlammable(struck) and manager.getBlockWorld(mbx, mby + 1, mbz) == .air) {
-                                if (try manager.editAndRemesh(mbx, mby + 1, mbz, .campfire)) {
+                                const flame_block = hazard_mod.ignitedFlameBlock(struck);
+                                if (try manager.editAndRemesh(mbx, mby + 1, mbz, flame_block)) {
                                     if (flame_count < flames.len) {
                                         flames[flame_count] = .{ .x = mbx, .y = mby + 1, .z = mbz, .t = 0.0 };
                                         flame_count += 1;
                                     }
-                                    std.debug.print("fireball ignited campfire\n", .{});
+                                    std.debug.print("fireball ignited flame\n", .{});
                                 }
                             }
                             particles.spawnFlame(mbx, mby, mbz, 8);
@@ -1878,7 +1880,8 @@ pub fn main() !void {
                                 std.debug.print("fire charge lit TNT fuse\n", .{});
                             } else 
                             if (hazard_mod.isFlammable(struck) and manager.getBlockWorld(mbx, mby + 1, mbz) == .air) {
-                                if (try manager.editAndRemesh(mbx, mby + 1, mbz, .campfire)) {
+                                const flame_block = hazard_mod.ignitedFlameBlock(struck);
+                                if (try manager.editAndRemesh(mbx, mby + 1, mbz, flame_block)) {
                                     if (flame_count < flames.len) {
                                         flames[flame_count] = .{ .x = mbx, .y = mby + 1, .z = mbz, .t = 0.0 };
                                         flame_count += 1;

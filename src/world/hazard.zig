@@ -196,15 +196,26 @@ test "detectBubbleColumn identifies soul sand and magma columns" {
 
 /// Fireball ignition: flammable floor blocks that catch a campfire flame when struck.
 pub fn isFlammable(block: BlockId) bool {
-    return block == .wood or block == .leaves or block == .wood_planks;
+    return block == .wood or block == .leaves or block == .wood_planks or block == .soul_sand;
+}
+
+/// Ignite flame block: soul sand ignites as soul campfire; wood/leaves as campfire.
+pub fn ignitedFlameBlock(floor: BlockId) BlockId {
+    if (floor == .soul_sand) return .soul_campfire;
+    return .campfire;
 }
 
 test "fireball ignition fuel classification" {
     try std.testing.expect(isFlammable(.wood));
     try std.testing.expect(isFlammable(.leaves));
     try std.testing.expect(isFlammable(.wood_planks));
+    try std.testing.expect(isFlammable(.soul_sand));
     try std.testing.expect(!isFlammable(.stone));
     try std.testing.expect(!isFlammable(.netherrack));
+
+    try std.testing.expectEqual(BlockId.soul_campfire, ignitedFlameBlock(.soul_sand));
+    try std.testing.expectEqual(BlockId.campfire, ignitedFlameBlock(.wood));
+    try std.testing.expectEqual(BlockId.campfire, ignitedFlameBlock(.wood_planks));
 }
 
 /// Ignited campfire flame lifetime before burnout (player-placed campfires are permanent).
