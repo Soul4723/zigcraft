@@ -110,3 +110,4 @@ Rough priority order. Completed milestones marked **[x]**.
 82. [x] **Nether Bricks Crafting & Fortress Masonry** — 2x2 Netherrack masonry recipe (4 netherrack -> 4 nether bricks), dark purplish fiery running-bond texture atlas tile, and wooden pickaxe harvesting (#200).
 83. [x] **Nether Fortress Procedural Ruins Generation** — Periodic cavern cross-spans, monumental bridges at y=7, perimeter safety balustrades (y=8), and heavy support pillars extending to cavern floors (#201).
 84. [x] **Nether Brick Fence & Fortress Balustrade Railings** — Thin-post fence block (`nether_brick_fence`), post/rail atlas tile with transparent cutouts, vertical 2-brick crafting recipe -> 2 fences, and fortress y=8 perimeter balustrade placement (#202).
+85. [x] **Nether Wart Crop Farming** — Soul-sand-gated planting, 60s ripening with mature bonus yield, wild shore patches in Nether gen (#203).
