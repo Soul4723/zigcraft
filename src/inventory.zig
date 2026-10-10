@@ -75,6 +75,8 @@ pub const ItemType = enum(u8) {
     beacon = 69,
     ancient_debris = 70,
     netherite_scrap = 71,
+    netherite_ingot = 72,
+    netherite_pickaxe = 73,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -194,6 +196,7 @@ pub const ItemType = enum(u8) {
             .wooden_pickaxe => 25,
             .iron_pickaxe => 120,
             .iron_sword => 100,
+            .netherite_pickaxe => 350,
             else => 0,
         };
     }
@@ -205,7 +208,7 @@ pub const ItemType = enum(u8) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .wooden_pickaxe => 1,
+            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword => 1,
             else => 64,
         };
     }
@@ -280,6 +283,8 @@ pub const ItemType = enum(u8) {
             .beacon => "Beacon",
             .ancient_debris => "Ancient Debris",
             .netherite_scrap => "Netherite Scrap",
+            .netherite_ingot => "Netherite Ingot",
+            .netherite_pickaxe => "Netherite Pickaxe",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -357,6 +362,8 @@ pub const ItemType = enum(u8) {
             .beacon => .{ 0.50, 0.90, 0.95, 0.95 },
             .ancient_debris => .{ 0.38, 0.32, 0.28, 0.95 },
             .netherite_scrap => .{ 0.28, 0.22, 0.20, 0.95 },
+            .netherite_ingot => .{ 0.22, 0.20, 0.22, 0.95 },
+            .netherite_pickaxe => .{ 0.32, 0.28, 0.34, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -796,6 +803,33 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 39: Netherite Pickaxe: 1 Iron Pickaxe + 1 Netherite Ingot (non_empty == 2) -> 1 Netherite Pickaxe
+        if (non_empty == 2) {
+            const has_pick = (g0 == .iron_pickaxe or g1 == .iron_pickaxe or g2 == .iron_pickaxe or g3 == .iron_pickaxe);
+            const has_ingot = (g0 == .netherite_ingot or g1 == .netherite_ingot or g2 == .netherite_ingot or g3 == .netherite_ingot);
+            if (has_pick and has_ingot) {
+                self.craft_output = .{ .item = .netherite_pickaxe, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 38: Netherite Ingot: 2 Netherite Scrap + 2 Iron Ingot (full 2x2, any layout) -> 1 Netherite Ingot
+        {
+            var scraps: u8 = 0;
+            var iron_ingots: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.isEmpty()) continue;
+                if (sl.item == .netherite_scrap) scraps += 1 else if (sl.item == .iron_ingot) iron_ingots += 1 else {
+                    scraps = 99;
+                    break;
+                }
+            }
+            if (scraps == 2 and iron_ingots == 2) {
+                self.craft_output = .{ .item = .netherite_ingot, .count = 1 };
                 return;
             }
         }
@@ -1246,7 +1280,7 @@ test "cactus item mapping and conversion" {
 pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
     const need = block_mod.requiredTier(block);
     if (need == .hand) return true;
-    return held == .wooden_pickaxe or held == .iron_pickaxe;
+    return held == .wooden_pickaxe or held == .iron_pickaxe or held == .netherite_pickaxe;
 }
 
 pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton };
@@ -1317,6 +1351,34 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         }
         return 0;
     }
+}
+
+test "crafting recipes: netherite ingot and netherite pickaxe" {
+    var inv = Inventory.init();
+    // 2 scraps + 2 iron ingots -> 1 netherite ingot
+    inv.craft_grid[0] = .{ .item = .netherite_scrap, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .netherite_scrap, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .iron_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .netherite_ingot);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // 1 iron pickaxe + 1 netherite ingot -> 1 netherite pickaxe
+    inv.craft_grid = [_]ItemStack{.{}} ** 4;
+    inv.craft_grid[0] = .{ .item = .iron_pickaxe, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .netherite_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .netherite_pickaxe);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Tool properties
+    const np = ItemType.netherite_pickaxe;
+    try std.testing.expect(np.isTool());
+    try std.testing.expectEqual(np.maxDurability(), 350);
+    try std.testing.expectEqual(np.maxStackSize(), 1);
+    try std.testing.expect(canHarvestBlock(.netherite_pickaxe, .ancient_debris));
+    try std.testing.expect(canHarvestBlock(.netherite_pickaxe, .obsidian));
 }
 
 test "ancient debris block and item roundtrip" {

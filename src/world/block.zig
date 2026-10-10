@@ -231,6 +231,7 @@ pub const BlockDef = struct {
 /// (cross-directory import breaks standalone test targets): 9 = wooden_pickaxe, 27 = iron_pickaxe.
 pub const TOOL_WOODEN_PICKAXE: u8 = 9;
 pub const TOOL_IRON_PICKAXE: u8 = 27;
+pub const TOOL_NETHERITE_PICKAXE: u8 = 73;
 
 pub fn hardness(block: BlockId) f32 {
     return switch (block) {
@@ -302,6 +303,12 @@ pub fn requiredTier(block: BlockId) ToolTier {
 /// Mining speed multiplier for held item vs target block.
 /// Wooden pickaxe is 3x on stone-class blocks, 1.5x elsewhere.
 pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
+    if (held_tool_id == TOOL_NETHERITE_PICKAXE) {
+        return switch (block) {
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .ancient_debris => 6.0,
+            else => 3.0,
+        };
+    }
     if (held_tool_id == TOOL_IRON_PICKAXE) {
         return switch (block) {
             .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .ancient_debris => 4.0,
@@ -411,6 +418,14 @@ test "isBeaconSkyClear checks column above beacon" {
     };
     try std.testing.expect(isBeaconSkyClear(Mock.openSky, 0, 5, 0));
     try std.testing.expect(!isBeaconSkyClear(Mock.blockedSky, 0, 5, 0));
+}
+
+test "netherite pickaxe tool speed exceeds iron tier" {
+    try std.testing.expectEqual(toolMultiplier(TOOL_NETHERITE_PICKAXE, .ancient_debris), 6.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_NETHERITE_PICKAXE, .stone), 6.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_NETHERITE_PICKAXE, .dirt), 3.0);
+    try std.testing.expect(mineTime(.ancient_debris, TOOL_NETHERITE_PICKAXE) < mineTime(.ancient_debris, TOOL_IRON_PICKAXE));
+    try std.testing.expect(mineTime(.stone, TOOL_NETHERITE_PICKAXE) < mineTime(.stone, TOOL_IRON_PICKAXE));
 }
 
 test "ancient debris block properties and textures" {
