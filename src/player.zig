@@ -21,6 +21,7 @@ pub const Player = struct {
     in_bubble_column: bool = false,
     in_whirlpool: bool = false,
     fire_resistance_timer: f32 = 0.0,
+    wither_timer: f32 = 0.0,
 
     pub fn init(x: f32, y: f32, z: f32) Player {
         return .{
@@ -89,6 +90,7 @@ pub const Player = struct {
         self.hunger = 20.0;
         self.saturation = 5.0;
         self.regen_timer = 0.0;
+        self.wither_timer = 0.0;
         self.in_water = false;
         self.in_boat = false;
         self.oxygen = 15.0;
@@ -102,9 +104,24 @@ pub const Player = struct {
     pub const heal_hunger_threshold: f32 = 14.0;
 
     /// Passive drain: hunger falls over time, health regen/suffer follows.
+    pub const wither_duration: f32 = 8.0;
+    pub const wither_rate: f32 = 1.0;
+
+    pub fn applyWither(self: *Player) void {
+        self.wither_timer = wither_duration;
+    }
+
+    pub fn isWithered(self: Player) bool {
+        return self.wither_timer > 0.0;
+    }
+
     pub fn tickVitals(self: *Player, dt: f32) void {
         self.fire_resistance_timer = @max(0.0, self.fire_resistance_timer - dt);
         self.regen_timer = @max(0.0, self.regen_timer - dt);
+        self.wither_timer = @max(0.0, self.wither_timer - dt);
+        if (self.wither_timer > 0.0 and self.health > 0.0) {
+            self.health = @max(0.0, self.health - dt * wither_rate);
+        }
         if (self.regen_timer > 0.0 and self.health < 20.0) {
             self.health = @min(20.0, self.health + dt * regen_rate);
         }
@@ -399,6 +416,25 @@ test "player vitals drain and regen" {
     const h = p.health;
     p.tickVitals(1.0);
     try std.testing.expect(p.health < h);
+}
+
+test "wither effect drains health over 8s" {
+    var p = Player.init(0.5, 1.0, 0.5);
+    p.health = 10.0;
+    p.hunger = 10.0;
+    p.applyWither();
+    try std.testing.expect(p.isWithered());
+    p.tickVitals(3.0);
+    try std.testing.expectApproxEqAbs(p.health, 7.0, 0.001);
+    try std.testing.expect(p.isWithered());
+    p.tickVitals(5.0);
+    try std.testing.expectApproxEqAbs(p.health, 7.0, 0.001);
+    try std.testing.expect(!p.isWithered());
+    p.applyWither();
+    p.tickVitals(7.0);
+    try std.testing.expectApproxEqAbs(p.health, 0.0, 0.001);
+    p.respawn(0, 1, 0);
+    try std.testing.expect(!p.isWithered());
 }
 
 test "player death and respawn" {

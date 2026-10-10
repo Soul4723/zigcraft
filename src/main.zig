@@ -1112,6 +1112,10 @@ pub fn main() !void {
                     const hit = combat_mod.calculateWolfBite(bdx, bdz, bonus);
                     const dmg = if (m.mob_type == .emberbeast) hit.damage * 2.0 else if (m.mob_type == .wither_skeleton) hit.damage * 1.5 else hit.damage;
                     player.health = @max(0.0, player.health - dmg);
+                    if (m.mob_type == .wither_skeleton) {
+                        player.applyWither();
+                        std.debug.print("withered", .{});
+                    }
                     audio.play(.hurt, 0.8);
                     player.pos.x -= hit.knockback_x;
                     player.pos.z -= hit.knockback_z;
@@ -1287,7 +1291,7 @@ pub fn main() !void {
                 const rel = bearing - (std.math.pi / 2.0 - cam.yaw);
                 break :blk rel;
             } else -1.0;
-            ui.drawHUDWithCompass(aspect, selected_slot, &hotbar_colors, &hotbar_counts, mine_frac, player.health, player.hunger, player.regen_timer > 0.0, player.oxygen, player.fire_resistance_timer, compass_rel);
+            ui.drawHUDWithCompass(aspect, selected_slot, &hotbar_colors, &hotbar_counts, mine_frac, player.health, player.hunger, player.regen_timer > 0.0, player.oxygen, player.fire_resistance_timer, player.wither_timer, compass_rel);
             if (portal_transit.inside_timer > 0.0) {
                 const vignette_intensity = portal_transit.inside_timer / portal_mod.PORTAL_TRIGGER_TIME;
                 ui.drawPortalVignette(aspect, vignette_intensity);
