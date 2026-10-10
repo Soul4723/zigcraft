@@ -79,6 +79,7 @@ pub const ItemType = enum(u8) {
     netherite_pickaxe = 73,
     netherite_sword = 74,
     respawn_anchor = 75,
+    crying_obsidian = 76,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -132,6 +133,7 @@ pub const ItemType = enum(u8) {
             .beacon => .beacon,
             .ancient_debris => .ancient_debris,
             .respawn_anchor => .respawn_anchor,
+            .crying_obsidian => .crying_obsidian,
             else => null,
         };
     }
@@ -192,6 +194,7 @@ pub const ItemType = enum(u8) {
             .beacon => .beacon,
             .ancient_debris => .ancient_debris,
             .respawn_anchor => .respawn_anchor,
+            .crying_obsidian => .crying_obsidian,
         };
     }
 
@@ -292,6 +295,7 @@ pub const ItemType = enum(u8) {
             .netherite_pickaxe => "Netherite Pickaxe",
             .netherite_sword => "Netherite Sword",
             .respawn_anchor => "Respawn Anchor",
+            .crying_obsidian => "Crying Obsidian",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -373,6 +377,7 @@ pub const ItemType = enum(u8) {
             .netherite_pickaxe => .{ 0.32, 0.28, 0.34, 0.95 },
             .netherite_sword => .{ 0.28, 0.24, 0.30, 0.95 },
             .respawn_anchor => .{ 0.35, 0.15, 0.45, 0.95 },
+            .crying_obsidian => .{ 0.45, 0.15, 0.65, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -816,13 +821,23 @@ pub const Inventory = struct {
             }
         }
 
-        // Recipe 41: Respawn Anchor: 2 Obsidian + 2 Glowstone (full 2x2, any layout) -> 1 Respawn Anchor
+        // Recipe 42: Crying Obsidian: 1 Obsidian + 1 Magma Cream -> 1 Crying Obsidian
+        if (non_empty == 2) {
+            const has_obs = (g0 == .obsidian or g1 == .obsidian or g2 == .obsidian or g3 == .obsidian);
+            const has_magma_cream = (g0 == .magma_cream or g1 == .magma_cream or g2 == .magma_cream or g3 == .magma_cream);
+            if (has_obs and has_magma_cream) {
+                self.craft_output = .{ .item = .crying_obsidian, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 41: Respawn Anchor: 2 Obsidian (or Crying Obsidian) + 2 Glowstone (full 2x2, any layout) -> 1 Respawn Anchor
         {
             var obs: u8 = 0;
             var glow: u8 = 0;
             for (self.craft_grid) |sl| {
                 if (sl.isEmpty()) continue;
-                if (sl.item == .obsidian) obs += 1 else if (sl.item == .glowstone) glow += 1 else {
+                if (sl.item == .obsidian or sl.item == .crying_obsidian) obs += 1 else if (sl.item == .glowstone) glow += 1 else {
                     obs = 99;
                     break;
                 }
@@ -1387,6 +1402,27 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         }
         return 0;
     }
+}
+
+test "crying obsidian item roundtrip and crafting recipe" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .obsidian, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .magma_cream, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .crying_obsidian);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+    try std.testing.expectEqual(ItemType.crying_obsidian.toBlockId().?, .crying_obsidian);
+    try std.testing.expectEqual(ItemType.fromBlockId(.crying_obsidian), .crying_obsidian);
+    try std.testing.expectEqualStrings(ItemType.crying_obsidian.name(), "Crying Obsidian");
+
+    // Respawn anchor can also be crafted with crying obsidian
+    inv.craft_grid[0] = .{ .item = .crying_obsidian, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glowstone, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .glowstone, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .crying_obsidian, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .respawn_anchor);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
 }
 
 test "crafting recipe: respawn anchor from obsidian and glowstone" {
