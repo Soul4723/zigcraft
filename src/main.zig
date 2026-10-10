@@ -2360,6 +2360,13 @@ pub fn main() !void {
                     }
                     flint_cooldown = interact_mod.flint_edge_cooldown;
                 } else
+                if (target == .respawn_anchor) {
+                    player.spawn_point = math.Vec3.init(@as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5);
+                    audio.play(.portal_hum, 0.85);
+                    particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 12);
+                    std.debug.print("respawn anchor set ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                    flint_cooldown = interact_mod.flint_edge_cooldown;
+                } else
                 if (target.isFlammable()) {
                     particles.spawnFlame(hit_f.x, hit_f.y, hit_f.z, 14);
                     if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, .air)) {
