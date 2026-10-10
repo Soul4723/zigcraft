@@ -70,6 +70,19 @@ pub const MobManager = struct {
             }
         }
 
+        // Nether fortress pass: wither skeletons guard masonry bridges.
+        var skeleton_attempts: usize = 0;
+        while (self.mobs.items.len < 8 and skeleton_attempts < 6) : (skeleton_attempts += 1) {
+            const rx = center_x + (self.rng.random().float(f32) * 36.0 - 18.0);
+            const rz = center_z + (self.rng.random().float(f32) * 36.0 - 18.0);
+            const ix: i32 = @intFromFloat(@floor(rx));
+            const iz: i32 = @intFromFloat(@floor(rz));
+            const iy: i32 = 7;
+            if (!spawn_rules.isFortressSpawn(chunk_manager, ix, iy, iz)) continue;
+            try self.spawnMob(.wither_skeleton, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
+            break;
+        }
+
         // Nether pass: emberbeasts stalk netherrack wastes and fortress bridges.
         var nether_attempts: usize = 0;
         while (self.mobs.items.len < 8 and nether_attempts < 6) : (nether_attempts += 1) {
@@ -100,7 +113,7 @@ pub const MobManager = struct {
         var idx: usize = 0;
         while (idx < self.mobs.items.len) {
             var mob = &self.mobs.items[idx];
-            if (mob.mob_type == .wolf or mob.mob_type == .emberbeast) {
+            if (mob.mob_type == .wolf or mob.mob_type == .emberbeast or mob.mob_type == .wither_skeleton) {
                 const wdx = player_pos.x - mob.pos.x;
                 const wdz = player_pos.z - mob.pos.z;
                 const wd = @sqrt(wdx * wdx + wdz * wdz);
@@ -147,7 +160,7 @@ pub const MobManager = struct {
                 // Contact heat hazard check: floor block under feet or immersed block
                 const floor_b = bat(mx, @intFromFloat(@floor(mob.pos.y - 0.1)), mz);
                 const body_b = bat(mx, my, mz);
-                if (mob.mob_type != .emberbeast and (hazard_mod.checkBurnContact(floor_b) or hazard_mod.checkBurnContact(body_b) or hazard_mod.checkLavaHazard(floor_b) or hazard_mod.checkLavaHazard(body_b))) {
+                if (mob.mob_type != .emberbeast and mob.mob_type != .wither_skeleton and (hazard_mod.checkBurnContact(floor_b) or hazard_mod.checkBurnContact(body_b) or hazard_mod.checkLavaHazard(floor_b) or hazard_mod.checkLavaHazard(body_b))) {
                     const prev_hp = mob.health;
                     if (mob.applyBurnTick(dt)) {
                         if (audio) |a| {
@@ -192,7 +205,7 @@ pub const MobManager = struct {
             self.spawner_timer = 0.0;
             var near: usize = 0;
             for (self.mobs.items) |mob| {
-                if (mob.mob_type != .emberbeast) continue;
+                if (mob.mob_type != .emberbeast and mob.mob_type != .wither_skeleton) continue;
                 const dx = mob.pos.x - player_pos.x;
                 const dz = mob.pos.z - player_pos.z;
                 if (dx * dx + dz * dz < 24.0 * 24.0) near += 1;
@@ -310,7 +323,7 @@ pub const MobManager = struct {
         var count: usize = 0;
         const r_sq = radius * radius;
         for (self.mobs.items) |m| {
-            if (m.mob_type != .wolf and m.mob_type != .emberbeast) continue;
+            if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton) continue;
             const dx = m.pos.x - center.x;
             const dy = m.pos.y - center.y;
             const dz = m.pos.z - center.z;
