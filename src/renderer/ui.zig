@@ -290,7 +290,7 @@ pub const UIRenderer = struct {
             const hbx0 = start_x;
             addBorderedRect(&verts, &count, hbx0, by0, hbx0 + bw, by0 + bh, 0.0015, .{ 0.1, 0.05, 0.05, 0.9 }, .{ 0.25, 0.08, 0.08, 0.9 });
             const hfill = bw * @min(1.0, @max(0.0, health / 20.0));
-            const hcol: [4]f32 = if (regen) .{ 1.0, 0.80, 0.20, 1.0 } else .{ 0.9, 0.15, 0.15, 1.0 };
+            const hcol: [4]f32 = if (wither_timer > 0.0) .{ 0.30, 0.22, 0.32, 1.0 } else if (regen) .{ 1.0, 0.80, 0.20, 1.0 } else .{ 0.9, 0.15, 0.15, 1.0 };
             addQuad(&verts, &count, hbx0 + 0.0015, by0 + 0.0015, hbx0 + 0.0015 + hfill, by0 + bh - 0.0015, hcol);
             // Hunger right half
             const gbx0 = start_x + total_w - bw;

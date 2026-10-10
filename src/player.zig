@@ -122,11 +122,12 @@ pub const Player = struct {
         if (self.wither_timer > 0.0 and self.health > 0.0) {
             self.health = @max(0.0, self.health - dt * wither_rate);
         }
-        if (self.regen_timer > 0.0 and self.health < 20.0) {
+        // Wither suppresses all healing while active.
+        if (self.wither_timer <= 0.0 and self.regen_timer > 0.0 and self.health < 20.0) {
             self.health = @min(20.0, self.health + dt * regen_rate);
         }
         self.hunger = @max(0.0, self.hunger - dt * hunger_drain);
-        if (self.hunger > heal_hunger_threshold and self.health < 20.0) {
+        if (self.wither_timer <= 0.0 and self.hunger > heal_hunger_threshold and self.health < 20.0) {
             self.health = @min(20.0, self.health + dt * passive_heal_rate);
         } else if (self.hunger <= 0.0 and self.health > 0.0) {
             self.health = @max(0.0, self.health - dt * starve_rate);
@@ -435,6 +436,15 @@ test "wither effect drains health over 8s" {
     try std.testing.expectApproxEqAbs(p.health, 0.0, 0.001);
     p.respawn(0, 1, 0);
     try std.testing.expect(!p.isWithered());
+
+    // Wither suppresses golden-apple regen and passive healing.
+    var q = Player.init(0.5, 1.0, 0.5);
+    q.health = 10.0;
+    q.hunger = 20.0;
+    q.regen_timer = 30.0;
+    q.applyWither();
+    q.tickVitals(2.0);
+    try std.testing.expectApproxEqAbs(q.health, 8.0, 0.001);
 }
 
 test "player death and respawn" {
