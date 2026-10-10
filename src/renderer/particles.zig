@@ -316,6 +316,39 @@ pub const ParticleSystem = struct {
         }
     }
 
+    /// Spawn ascending luminous sky-beam particles from an active beacon block
+    pub fn spawnBeaconBeam(self: *ParticleSystem, bx: i32, by: i32, bz: i32, count: usize) void {
+        var i: usize = 0;
+        var seed: u32 = @as(u32, @bitCast(bx *% 83 +% by *% 29 +% bz *% 47)) +% @as(u32, @intCast(self.count));
+        while (i < count and self.count < MAX_PARTICLES) : (i += 1) {
+            seed = seed *% 1103515245 +% 12345;
+            const angle = @as(f32, @floatFromInt((seed >> 16) % 360)) * (std.math.pi / 180.0);
+            const radius = 0.05 + @as(f32, @floatFromInt((seed >> 8) % 20)) / 100.0;
+            const px = @as(f32, @floatFromInt(bx)) + 0.5 + @cos(angle) * radius;
+            const pz = @as(f32, @floatFromInt(bz)) + 0.5 + @sin(angle) * radius;
+            const py = @as(f32, @floatFromInt(by)) + 1.05;
+
+            // Radiant cyan to pure white core tint
+            const is_core = ((seed >> 4) % 3) == 0;
+            const col: [3]f32 = if (is_core) .{ 0.95, 1.0, 1.0 } else .{ 0.35, 0.88, 1.0 };
+            const vy = 12.0 + @as(f32, @floatFromInt((seed >> 12) % 40)) / 10.0;
+
+            self.particles[self.count] = .{
+                .x = px,
+                .y = py,
+                .z = pz,
+                .vx = @cos(angle) * 0.1,
+                .vy = vy,
+                .vz = @sin(angle) * 0.1,
+                .life = 0.8,
+                .max_life = 0.8,
+                .color = col,
+                .size = 0.09,
+            };
+            self.count += 1;
+        }
+    }
+
     /// Spawn spinning ember sparks swirling around an active spawner cage
     pub fn spawnSpawnerFlames(self: *ParticleSystem, bx: i32, by: i32, bz: i32, count: usize) void {
         var i: usize = 0;
@@ -892,4 +925,20 @@ test "spawnSpawnerFlames creates orbiting particles" {
     try std.testing.expectEqual(@as(usize, 4), ps.count);
     try std.testing.expect(ps.particles[0].y >= 8.3);
     try std.testing.expectEqual(ps.particles[0].color[0], 1.0);
+}
+
+test "spawnBeaconBeam creates ascending beam particles" {
+    var ps = ParticleSystem{
+        .particles = undefined,
+        .count = 0,
+        .vao = 0,
+        .vbo = 0,
+        .program = 0,
+    };
+    ps.spawnBeaconBeam(5, 4, 5, 4);
+    try std.testing.expectEqual(@as(usize, 4), ps.count);
+    try std.testing.expect(ps.particles[0].vy > 10.0);
+    try std.testing.expect(ps.particles[0].y > 5.0);
+    // Colors should be cyan or white core
+    try std.testing.expect(ps.particles[0].color[2] > 0.8);
 }

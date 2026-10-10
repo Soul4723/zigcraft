@@ -383,6 +383,32 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .beacon = .{ .name = "beacon", .solid = true, .transparent = true, .fluid = false },
 });
 
+/// A beacon activates when the column directly above it up to world ceiling (y=15)
+/// contains only transparent blocks (air, glass, etc).
+pub fn isBeaconSkyClear(lookup: *const fn (x: i32, y: i32, z: i32) BlockId, bx: i32, by: i32, bz: i32) bool {
+    var y = by + 1;
+    while (y <= 15) : (y += 1) {
+        const b = lookup(bx, y, bz);
+        if (!b.is_transparent()) return false;
+    }
+    return true;
+}
+
+test "isBeaconSkyClear checks column above beacon" {
+    const Mock = struct {
+        fn openSky(x: i32, y: i32, z: i32) BlockId {
+            _ = x; _ = z;
+            return if (y >= 10) .air else .glass;
+        }
+        fn blockedSky(x: i32, y: i32, z: i32) BlockId {
+            _ = x; _ = z;
+            return if (y == 12) .stone else .air;
+        }
+    };
+    try std.testing.expect(isBeaconSkyClear(Mock.openSky, 0, 5, 0));
+    try std.testing.expect(!isBeaconSkyClear(Mock.blockedSky, 0, 5, 0));
+}
+
 test "block is_solid" {
     try std.testing.expect(!BlockId.air.is_solid());
     try std.testing.expect(BlockId.stone.is_solid());
