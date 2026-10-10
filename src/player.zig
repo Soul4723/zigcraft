@@ -52,12 +52,14 @@ pub const Player = struct {
         return self.fire_resistance_timer > 0.0;
     }
 
-    /// Golden apple: instant heal + regen timer.
+    /// Golden apple: instant heal + regen timer. Cleanses wither.
+    /// ponytail: dedicated milk bucket + cow milking cures instead when passive mobs expand.
     pub fn eatGolden(self: *Player) void {
         self.health = @min(20.0, self.health + 6.0);
         self.hunger = @min(20.0, self.hunger + 4.0);
         self.saturation = @min(20.0, self.saturation + 6.0);
         self.regen_timer = 30.0;
+        self.wither_timer = 0.0;
     }
 
     /// Eat apple: light snack.
@@ -445,6 +447,8 @@ test "wither effect drains health over 8s" {
     q.applyWither();
     q.tickVitals(2.0);
     try std.testing.expectApproxEqAbs(q.health, 8.0, 0.001);
+    q.eatGolden();
+    try std.testing.expect(!q.isWithered());
 }
 
 test "player death and respawn" {
