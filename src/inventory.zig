@@ -80,6 +80,7 @@ pub const ItemType = enum(u8) {
     netherite_sword = 74,
     respawn_anchor = 75,
     crying_obsidian = 76,
+    lodestone = 77,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -134,6 +135,7 @@ pub const ItemType = enum(u8) {
             .ancient_debris => .ancient_debris,
             .respawn_anchor => .respawn_anchor,
             .crying_obsidian => .crying_obsidian,
+            .lodestone => .lodestone,
             else => null,
         };
     }
@@ -195,6 +197,7 @@ pub const ItemType = enum(u8) {
             .ancient_debris => .ancient_debris,
             .respawn_anchor => .respawn_anchor,
             .crying_obsidian => .crying_obsidian,
+            .lodestone => .lodestone,
         };
     }
 
@@ -296,6 +299,7 @@ pub const ItemType = enum(u8) {
             .netherite_sword => "Netherite Sword",
             .respawn_anchor => "Respawn Anchor",
             .crying_obsidian => "Crying Obsidian",
+            .lodestone => "Lodestone",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -378,6 +382,7 @@ pub const ItemType = enum(u8) {
             .netherite_sword => .{ 0.28, 0.24, 0.30, 0.95 },
             .respawn_anchor => .{ 0.35, 0.15, 0.45, 0.95 },
             .crying_obsidian => .{ 0.45, 0.15, 0.65, 0.95 },
+            .lodestone => .{ 0.60, 0.60, 0.65, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -817,6 +822,18 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 43: Lodestone: 1 Netherite Ingot + 1 Chiseled Quartz (or Quartz Block) -> 1 Lodestone
+        if (non_empty == 2) {
+            const has_netherite = (g0 == .netherite_ingot or g1 == .netherite_ingot or g2 == .netherite_ingot or g3 == .netherite_ingot);
+            const has_carved_stone = (g0 == .chiseled_quartz_block or g1 == .chiseled_quartz_block or g2 == .chiseled_quartz_block or g3 == .chiseled_quartz_block or
+                                      g0 == .quartz_block or g1 == .quartz_block or g2 == .quartz_block or g3 == .quartz_block or
+                                      g0 == .stone or g1 == .stone or g2 == .stone or g3 == .stone);
+            if (has_netherite and has_carved_stone) {
+                self.craft_output = .{ .item = .lodestone, .count = 1 };
                 return;
             }
         }
@@ -1402,6 +1419,24 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         }
         return 0;
     }
+}
+
+test "lodestone item roundtrip and crafting recipe" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .netherite_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .chiseled_quartz_block, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .lodestone);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+    try std.testing.expectEqual(ItemType.lodestone.toBlockId().?, .lodestone);
+    try std.testing.expectEqual(ItemType.fromBlockId(.lodestone), .lodestone);
+    try std.testing.expectEqualStrings(ItemType.lodestone.name(), "Lodestone");
+
+    // Also craftable with regular stone
+    inv.craft_grid[1] = .{ .item = .stone, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .lodestone);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
 }
 
 test "crying obsidian item roundtrip and crafting recipe" {

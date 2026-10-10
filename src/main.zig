@@ -1287,11 +1287,13 @@ pub fn main() !void {
 
         if (!inventory_open) {
             const mine_frac: f32 = mine.fraction();
-            const compass_rel: f32 = if (manager.is_nether) blk: {
+            const compass_rel: f32 = if (player.lodestone_target) |lt| blk: {
+                const bearing = std.math.atan2(lt.x - player.pos.x, lt.z - player.pos.z);
+                const rel = bearing - (std.math.pi / 2.0 - cam.yaw);
+                break :blk rel;
+            } else if (manager.is_nether) blk: {
                 const j = spawn_mod.nearestJunction(player.pos.x, player.pos.z);
                 const bearing = std.math.atan2(@as(f32, @floatFromInt(j.jx)) - player.pos.x, @as(f32, @floatFromInt(j.jz)) - player.pos.z);
-                // Camera yaw convention: front = (cos yaw, sin yaw); bearing uses atan2(dx, dz).
-                // Relative angle aligns needle with view direction.
                 const rel = bearing - (std.math.pi / 2.0 - cam.yaw);
                 break :blk rel;
             } else -1.0;
@@ -1702,9 +1704,16 @@ pub fn main() !void {
         bed_cooldown = interact_mod.tickCooldown(bed_cooldown, dt);
         compass_cooldown = interact_mod.tickCooldown(compass_cooldown, dt);
         const sun_y_now = @sin(world_time);
-        if (!inventory_open and manager.is_nether and c.glfwGetKey(window, c.GLFW_KEY_C) == c.GLFW_PRESS and interact_mod.ready(compass_cooldown)) {
-            const j = spawn_mod.nearestJunction(player.pos.x, player.pos.z);
-            std.debug.print("fortress compass: junction ({d},{d}) {d:.0}m\n", .{ j.jx, j.jz, j.dist });
+        if (!inventory_open and (manager.is_nether or player.lodestone_target != null) and c.glfwGetKey(window, c.GLFW_KEY_C) == c.GLFW_PRESS and interact_mod.ready(compass_cooldown)) {
+            if (player.lodestone_target) |lt| {
+                const dx = lt.x - player.pos.x;
+                const dz = lt.z - player.pos.z;
+                const dist = @sqrt(dx * dx + dz * dz);
+                std.debug.print("lodestone compass: target ({d:.0},{d:.0},{d:.0}) {d:.0}m\n", .{ lt.x, lt.y, lt.z, dist });
+            } else {
+                const j = spawn_mod.nearestJunction(player.pos.x, player.pos.z);
+                std.debug.print("fortress compass: junction ({d},{d}) {d:.0}m\n", .{ j.jx, j.jz, j.dist });
+            }
             audio.play(.click_on, 0.5);
             compass_cooldown = 1.0;
         }
@@ -2358,6 +2367,13 @@ pub fn main() !void {
                         particles.spawnFlame(hit_f.x, hit_f.y, hit_f.z, 4);
                         audio.play(.click_on, 0.5);
                     }
+                    flint_cooldown = interact_mod.flint_edge_cooldown;
+                } else
+                if (target == .lodestone) {
+                    player.lodestone_target = math.Vec3.init(@as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5);
+                    audio.play(.click_on, 0.75);
+                    particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.8, 0.8, 0.9 }, 8);
+                    std.debug.print("lodestone compass target bound ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
                     flint_cooldown = interact_mod.flint_edge_cooldown;
                 } else
                 if (target == .respawn_anchor) {
