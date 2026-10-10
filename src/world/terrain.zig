@@ -435,6 +435,16 @@ pub const NetherGenerator = struct {
     /// Columns emerge from lava floors/shores (y = 4..11) in volcanic delta patches.
     /// Check if cavern location (wx, wy, wz) forms a Blackstone Bastion Remnant ruin rampart (y = 5..10).
     /// Generates imposing square bastions with central courtyards at cell_size = 64 intervals.
+    /// Check if bastion rampart location contains a gilded blackstone gold seam deposit.
+    pub fn isGildedBlackstone(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
+        if (!self.isBastionRampart(wx, wy, wz)) return false;
+        // Floor at y=5 is plain blackstone; veins sit inside vertical rampart walls (wy=6..9)
+        if (wy < 6 or wy > 9) return false;
+        const seed_mix: u32 = @truncate(self.seed);
+        const h: u32 = (@as(u32, @bitCast(wx *% 31 +% wy *% 17 +% wz *% 79)) +% seed_mix) % 8;
+        return h == 0;
+    }
+
     pub fn isBastionRampart(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
         if (wy < 5 or wy > 10) return false;
         const cell_size: i32 = 64;
@@ -654,7 +664,8 @@ pub const NetherGenerator = struct {
                         const b_id: @import("block.zig").BlockId = if (is_fence) .nether_brick_fence else .nether_brick;
                         chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), b_id);
                     } else if (self.isBastionRampart(wx, @intCast(y), wz)) {
-                        chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .blackstone);
+                        const b_id: @import("block.zig").BlockId = if (self.isGildedBlackstone(wx, @intCast(y), wz)) .gilded_blackstone else .blackstone;
+                        chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), b_id);
                     } else if (self.isBasaltColumn(wx, @intCast(y), wz)) {
                         chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .basalt);
                     } else {
@@ -675,6 +686,28 @@ pub const NetherGenerator = struct {
         }
     }
 };
+
+test "NetherGenerator embeds gilded blackstone veins in bastion rampart walls" {
+    const nether_gen = NetherGenerator.init(12345);
+    var found = false;
+    var x: i32 = 0;
+    while (x <= 128) : (x += 1) {
+        var z: i32 = 0;
+        while (z <= 128) : (z += 1) {
+            var y: i32 = 6;
+            while (y <= 9) : (y += 1) {
+                if (nether_gen.isGildedBlackstone(x, y, z)) {
+                    try std.testing.expect(nether_gen.isBastionRampart(x, y, z));
+                    found = true;
+                    break;
+                }
+            }
+            if (found) break;
+        }
+        if (found) break;
+    }
+    try std.testing.expect(found);
+}
 
 test "NetherGenerator generates blackstone bastion remnant ramparts" {
     const nether_gen = NetherGenerator.init(12345);
