@@ -140,3 +140,4 @@ Rough priority order. Completed milestones marked **[x]**.
 112. [x] **Placeable Wither Skull Trophy Block** — Skull places as non-solid display block with bone tile art; breaks back into skull via generic paths (#230).
 113. [x] **Wither Champion Summon** — Completed soul-sand skull-T (either axis) consumes pattern, raises 30 HP wither skeleton champion with roar + flame burst (#231).
 114. [x] **Nether Star & Champion Combat Scaling** — Wither champion deals 2.5x bite damage; defeat drops 1 Nether Star + 2 skulls across melee and fire-charge kill paths (#225).
+115. [x] **Beacon Block & Nether Star Crafting** — 1 Nether Star + 1 Obsidian + 2 Glass crafts 1 Beacon block (1.0 emissive glow, obsidian footing + incandescent cyan star core) (#227).
