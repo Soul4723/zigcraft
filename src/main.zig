@@ -1488,6 +1488,10 @@ pub fn main() !void {
                             if (bonus > 0) _ = inventory.addItem(.nether_wart, bonus);
                             particles.spawnFlame(px, py, pz, 6);
                         }
+                        if (hit_mob.mob_type == .wither_skeleton and inventory_mod.dropsWitherSkull(px, py, pz)) {
+                            _ = inventory.addItem(.wither_skull, 1);
+                            std.debug.print("wither skull dropped\n", .{});
+                        }
                         if (hit_mob.wool) _ = inventory.addItem(.wool, 1);
                         std.debug.print("killed {s}, dropped {s}\n", .{ @tagName(hit_mob.mob_type), drop.name() });
                     }
@@ -1940,6 +1944,10 @@ pub fn main() !void {
                                         const bonus = inventory_mod.getEmberBonus(mbx, mbz);
                                         if (bonus > 0) _ = inventory.addItem(.nether_wart, bonus);
                                         particles.spawnFlame(mbx, mby, mbz, 6);
+                                    }
+                                    if (m.mob_type == .wither_skeleton and inventory_mod.dropsWitherSkull(mbx, mby, mbz)) {
+                                        _ = inventory.addItem(.wither_skull, 1);
+                                        std.debug.print("wither skull dropped\n", .{});
                                     }
                                     if (m.mob_type == .sheep) _ = inventory.addItem(.wool, 1);
                                     _ = mp;
