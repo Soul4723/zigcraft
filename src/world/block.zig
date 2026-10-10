@@ -69,6 +69,7 @@ pub const BlockId = enum(u8) {
     crying_obsidian = 62,
     lodestone = 63,
     basalt = 64,
+    blackstone = 65,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block;
@@ -221,6 +222,7 @@ pub const BlockId = enum(u8) {
                 0, 1 => .{ .x = 5, .y = 4 }, // Dark polygonal basalt column cap
                 else => .{ .x = 4, .y = 4 }, // Columnar dark volcanic basalt shaft
             },
+            .blackstone => .{ .x = 2, .y = 5 }, // Dark charcoal volcanic bastion masonry
             .respawn_anchor => switch (face_idx) {
                 0 => .{ .x = 5, .y = 2 }, // Radiant crystalline glowstone top portal core
                 else => .{ .x = 1, .y = 2 }, // Dense obsidian casing sides and bottom
@@ -293,6 +295,7 @@ pub fn hardness(block: BlockId) f32 {
         .crying_obsidian => 15.0,
         .lodestone => 5.0,
         .basalt => 2.5,
+        .blackstone => 3.0,
         .lava => 0.0,
         .obsidian => 15.0,
         .nether_portal => 0.0,
@@ -318,7 +321,7 @@ pub const ToolTier = enum(u8) {
 
 pub fn requiredTier(block: BlockId) ToolTier {
     return switch (block) {
-        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt => .wooden,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone => .wooden,
         else => .hand,
     };
 }
@@ -328,13 +331,13 @@ pub fn requiredTier(block: BlockId) ToolTier {
 pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
     if (held_tool_id == TOOL_NETHERITE_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt => 6.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone => 6.0,
             else => 3.0,
         };
     }
     if (held_tool_id == TOOL_IRON_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt => 4.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone => 4.0,
             else => 2.0,
         };
     }
@@ -419,6 +422,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .crying_obsidian = .{ .name = "crying_obsidian", .solid = true, .transparent = false, .fluid = false },
     .lodestone = .{ .name = "lodestone", .solid = true, .transparent = false, .fluid = false },
     .basalt = .{ .name = "basalt", .solid = true, .transparent = false, .fluid = false },
+    .blackstone = .{ .name = "blackstone", .solid = true, .transparent = false, .fluid = false },
 });
 
 /// A beacon activates when the column directly above it up to world ceiling (y=15)
@@ -445,6 +449,20 @@ test "isBeaconSkyClear checks column above beacon" {
     };
     try std.testing.expect(isBeaconSkyClear(Mock.openSky, 0, 5, 0));
     try std.testing.expect(!isBeaconSkyClear(Mock.blockedSky, 0, 5, 0));
+}
+
+test "blackstone block properties and bastion textures" {
+    try std.testing.expect(BlockId.blackstone.is_solid());
+    try std.testing.expect(!BlockId.blackstone.is_transparent());
+    try std.testing.expectEqual(hardness(.blackstone), 3.0);
+    try std.testing.expectEqual(requiredTier(.blackstone), .wooden);
+    try std.testing.expectEqual(toolMultiplier(TOOL_NETHERITE_PICKAXE, .blackstone), 6.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_IRON_PICKAXE, .blackstone), 4.0);
+    try std.testing.expectEqual(footstepType(.blackstone), .stone);
+
+    const tex = BlockId.blackstone.getFaceTexture(0);
+    try std.testing.expectEqual(tex.x, 2);
+    try std.testing.expectEqual(tex.y, 5);
 }
 
 test "basalt block properties and column textures" {
@@ -829,7 +847,7 @@ pub const FootstepType = enum {
 pub fn footstepType(block: BlockId) FootstepType {
     return switch (block) {
         .grass => .grass,
-        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt => .stone,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone => .stone,
         .wood => .wood,
         .dirt => .dirt,
         .sand => .sand,

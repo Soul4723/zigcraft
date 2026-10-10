@@ -82,6 +82,7 @@ pub const ItemType = enum(u8) {
     crying_obsidian = 76,
     lodestone = 77,
     basalt = 78,
+    blackstone = 79,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -138,6 +139,7 @@ pub const ItemType = enum(u8) {
             .crying_obsidian => .crying_obsidian,
             .lodestone => .lodestone,
             .basalt => .basalt,
+            .blackstone => .blackstone,
             else => null,
         };
     }
@@ -201,6 +203,7 @@ pub const ItemType = enum(u8) {
             .crying_obsidian => .crying_obsidian,
             .lodestone => .lodestone,
             .basalt => .basalt,
+            .blackstone => .blackstone,
         };
     }
 
@@ -304,6 +307,7 @@ pub const ItemType = enum(u8) {
             .crying_obsidian => "Crying Obsidian",
             .lodestone => "Lodestone",
             .basalt => "Basalt",
+            .blackstone => "Blackstone",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -388,6 +392,7 @@ pub const ItemType = enum(u8) {
             .crying_obsidian => .{ 0.45, 0.15, 0.65, 0.95 },
             .lodestone => .{ 0.60, 0.60, 0.65, 0.95 },
             .basalt => .{ 0.28, 0.28, 0.32, 0.95 },
+            .blackstone => .{ 0.18, 0.18, 0.20, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -827,6 +832,19 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 45: Blackstone: 1 Basalt + 1 Coal (or 2 Basalt) -> 2 Blackstone
+        if (non_empty == 2) {
+            const has_basalt = (g0 == .basalt or g1 == .basalt or g2 == .basalt or g3 == .basalt);
+            const has_darkener = (g0 == .coal or g1 == .coal or g2 == .coal or g3 == .coal or
+                                  (g0 == .basalt and g1 == .basalt) or (g0 == .basalt and g2 == .basalt) or
+                                  (g0 == .basalt and g3 == .basalt) or (g1 == .basalt and g2 == .basalt) or
+                                  (g1 == .basalt and g3 == .basalt) or (g2 == .basalt and g3 == .basalt));
+            if (has_basalt and has_darkener) {
+                self.craft_output = .{ .item = .blackstone, .count = 2 };
                 return;
             }
         }
@@ -1435,6 +1453,24 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         }
         return 0;
     }
+}
+
+test "blackstone item roundtrip and crafting recipe" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .basalt, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .coal, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .blackstone);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+    try std.testing.expectEqual(ItemType.blackstone.toBlockId().?, .blackstone);
+    try std.testing.expectEqual(ItemType.fromBlockId(.blackstone), .blackstone);
+    try std.testing.expectEqualStrings(ItemType.blackstone.name(), "Blackstone");
+
+    // Also craftable with 2 basalt
+    inv.craft_grid[1] = .{ .item = .basalt, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .blackstone);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
 }
 
 test "basalt item roundtrip and crafting recipe" {

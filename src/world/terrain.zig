@@ -433,6 +433,36 @@ pub const NetherGenerator = struct {
     /// Uses deterministic 3D hash (~1 in 90 cells at y=3..5) near ancient ruins/magma beds.
     /// Check if cavern location (wx, wy, wz) intersects a procedural basalt column cluster.
     /// Columns emerge from lava floors/shores (y = 4..11) in volcanic delta patches.
+    /// Check if cavern location (wx, wy, wz) forms a Blackstone Bastion Remnant ruin rampart (y = 5..10).
+    /// Generates imposing square bastions with central courtyards at cell_size = 64 intervals.
+    pub fn isBastionRampart(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
+        if (wy < 5 or wy > 10) return false;
+        const cell_size: i32 = 64;
+        const gx = @mod(wx, cell_size);
+        const gz = @mod(wz, cell_size);
+
+        // Bastion footprint: 12x12 perimeter ramparts centered at gx, gz ~ 40..51
+        const in_outer = (gx >= 40 and gx <= 51 and gz >= 40 and gz <= 51);
+        if (!in_outer) return false;
+
+        // Inner courtyard opening (open air in center at gx, gz 43..48)
+        const in_inner = (gx >= 43 and gx <= 48 and gz >= 43 and gz <= 48);
+
+        // Parity hash selects 50% of 64x64 cells for bastion ruins
+        const cell_x = @divFloor(wx, cell_size);
+        const cell_z = @divFloor(wz, cell_size);
+        const seed_mix: u32 = @truncate(self.seed);
+        const h: u32 = (@as(u32, @bitCast(cell_x *% 97 +% cell_z *% 43)) +% seed_mix) % 100;
+        if (h >= 50) return false;
+
+        // Main rampart walkway floor at y = 5
+        if (wy == 5) return true;
+        // Outer defensive rampart walls up to y = 10
+        if (!in_inner) return true;
+        // Central courtyard is open (except floor at y=5)
+        return false;
+    }
+
     pub fn isBasaltColumn(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
         if (wy < 4 or wy > 11) return false;
         const cell_size: i32 = 32;
@@ -623,6 +653,8 @@ pub const NetherGenerator = struct {
                         const is_fence = (y == 8);
                         const b_id: @import("block.zig").BlockId = if (is_fence) .nether_brick_fence else .nether_brick;
                         chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), b_id);
+                    } else if (self.isBastionRampart(wx, @intCast(y), wz)) {
+                        chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .blackstone);
                     } else if (self.isBasaltColumn(wx, @intCast(y), wz)) {
                         chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .basalt);
                     } else {
@@ -643,6 +675,26 @@ pub const NetherGenerator = struct {
         }
     }
 };
+
+test "NetherGenerator generates blackstone bastion remnant ramparts" {
+    const nether_gen = NetherGenerator.init(12345);
+    var found = false;
+    var x: i32 = 0;
+    while (x <= 128) : (x += 1) {
+        var z: i32 = 0;
+        while (z <= 128) : (z += 1) {
+            if (nether_gen.isBastionRampart(x, 7, z)) {
+                // Wall should be solid blackstone from y=5 up to y=10
+                try std.testing.expect(nether_gen.isBastionRampart(x, 5, z));
+                try std.testing.expect(nether_gen.isBastionRampart(x, 10, z));
+                found = true;
+                break;
+            }
+        }
+        if (found) break;
+    }
+    try std.testing.expect(found);
+}
 
 test "NetherGenerator generates vertical basalt columns in volcanic cavern deltas" {
     const nether_gen = NetherGenerator.init(12345);
