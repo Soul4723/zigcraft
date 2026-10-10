@@ -120,6 +120,7 @@ pub const ItemType = enum(u8) {
             .soul_torch => .soul_torch,
             .soul_campfire => .soul_campfire,
             .spawner_cage => .spawner_cage,
+            .wither_skull => .wither_skull_block,
             else => null,
         };
     }
@@ -176,6 +177,7 @@ pub const ItemType = enum(u8) {
             .soul_torch => .soul_torch,
             .soul_campfire => .soul_campfire,
             .spawner_cage => .spawner_cage,
+            .wither_skull_block => .wither_skull,
         };
     }
 
@@ -1445,6 +1447,8 @@ test "soul torch crafting recipe and item conversion" {
 test "monster spawner item conversion and name" {
     const it = ItemType.fromBlockId(.spawner_cage);
     try std.testing.expectEqual(it, .spawner_cage);
+    try std.testing.expectEqual(ItemType.wither_skull.toBlockId().?, .wither_skull_block);
+    try std.testing.expectEqual(ItemType.fromBlockId(.wither_skull_block), .wither_skull);
     try std.testing.expectEqual(it.toBlockId(), .spawner_cage);
     try std.testing.expectEqualStrings(it.name(), "Monster Spawner");
 }

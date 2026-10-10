@@ -62,9 +62,10 @@ pub const BlockId = enum(u8) {
     soul_torch = 55,
     soul_campfire = 56,
     spawner_cage = 57,
+    wither_skull_block = 58,
 
     pub fn is_solid(self: BlockId) bool {
-        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire;
+        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block;
     }
 
     pub fn is_campfire(self: BlockId) bool {
@@ -88,7 +89,7 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_transparent(self: BlockId) bool {
-        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .nether_brick_fence or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage;
+        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .nether_brick_fence or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block;
     }
 
     /// 0.0 = lit by sun only. 1.0 = full glow even at midnight.
@@ -199,6 +200,7 @@ pub const BlockId = enum(u8) {
             .soul_torch => .{ .x = 7, .y = 1 }, // Cyan soul flame torch
             .soul_campfire => .{ .x = 4, .y = 0 }, // Soul campfire with cyan embers
             .spawner_cage => .{ .x = 5, .y = 0 }, // Iron mesh spawner cage with burning core
+            .wither_skull_block => .{ .x = 6, .y = 0 }, // Bleached wither skull trophy
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -259,6 +261,7 @@ pub fn hardness(block: BlockId) f32 {
         .campfire => 1.0,
         .soul_campfire => 1.0,
         .spawner_cage => 5.0,
+        .wither_skull_block => 0.5,
         .lava => 0.0,
         .obsidian => 15.0,
         .nether_portal => 0.0,
@@ -372,6 +375,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .soul_torch = .{ .name = "soul_torch", .solid = false, .transparent = true, .fluid = false },
     .soul_campfire = .{ .name = "soul_campfire", .solid = false, .transparent = true, .fluid = false },
     .spawner_cage = .{ .name = "spawner_cage", .solid = true, .transparent = true, .fluid = false },
+    .wither_skull_block = .{ .name = "wither_skull_block", .solid = false, .transparent = true, .fluid = false },
 });
 
 test "block is_solid" {

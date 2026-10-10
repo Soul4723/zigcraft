@@ -322,6 +322,18 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         const n = hash2(x, y, 178) % 12;
         return .{ 20 + @as(u8, @intCast(n)), 15 + @as(u8, @intCast(n / 2)), 20, 255 };
     }
+    // Wither Skull (6, 0): bleached bone skull with dark eye sockets on ash-gray ground
+    if (tile_x == 6 and tile_y == 0) {
+        const eye_l = (x >= 3 and x <= 5 and y >= 6 and y <= 8);
+        const eye_r = (x >= 10 and x <= 12 and y >= 6 and y <= 8);
+        if (eye_l or eye_r) return .{ 15, 12, 18, 255 }; // hollow dark sockets
+        const nose = (x == 7 or x == 8) and (y >= 9 and y <= 10);
+        if (nose) return .{ 40, 35, 42, 255 }; // nasal slit
+        const teeth = (y >= 12) and ((x % 2 == 0) and (x >= 4 and x <= 11));
+        if (teeth) return .{ 200, 195, 188, 255 }; // bared teeth
+        const n = hash2(x, y, 199) % 18;
+        return .{ 205 + @as(u8, @intCast(n)), 200 + @as(u8, @intCast(n)), 190 + @as(u8, @intCast(n / 2)), 255 };
+    }
     // Sandstone top (1, 4): smooth fine packed sand
     if (tile_x == 1 and tile_y == 4) {
         return sandstoneTopPixel(x, y);
