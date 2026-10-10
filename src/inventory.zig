@@ -70,6 +70,7 @@ pub const ItemType = enum(u8) {
     soul_torch = 64,
     soul_campfire = 65,
     spawner_cage = 66,
+    wither_skull = 67,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -264,6 +265,7 @@ pub const ItemType = enum(u8) {
             .soul_torch => "Soul Torch",
             .soul_campfire => "Soul Campfire",
             .spawner_cage => "Monster Spawner",
+            .wither_skull => "Wither Skeleton Skull",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -336,6 +338,7 @@ pub const ItemType = enum(u8) {
             .soul_torch => .{ 0.25, 0.85, 0.95, 0.95 },
             .soul_campfire => .{ 0.20, 0.80, 0.90, 0.95 },
             .spawner_cage => .{ 0.35, 0.33, 0.38, 0.95 },
+            .wither_skull => .{ 0.85, 0.83, 0.80, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -1226,6 +1229,25 @@ pub fn getMobMeatDrop(mob_type: MobType) ItemType {
 pub fn getEmberBonus(wx: i32, wz: i32) u8 {
     const h: u32 = @as(u32, @bitCast(wx *% 7 +% wz *% 19)) % 3;
     return @as(u8, @intCast(h));
+}
+
+/// Rare trophy: wither skeletons drop a skull on ~1-in-8 deterministic kills.
+pub fn dropsWitherSkull(wx: i32, wy: i32, wz: i32) bool {
+    const h: u32 = @as(u32, @bitCast(wx *% 13 +% wy *% 29 +% wz *% 7)) % 8;
+    return h == 0;
+}
+
+test "wither skeleton drops skull rarely" {
+    var skulls: u32 = 0;
+    var x: i32 = 0;
+    while (x < 16) : (x += 1) {
+        var z: i32 = 0;
+        while (z < 16) : (z += 1) {
+            if (dropsWitherSkull(x, 7, z)) skulls += 1;
+        }
+    }
+    try std.testing.expect(skulls > 0 and skulls < 128);
+    try std.testing.expectEqual(dropsWitherSkull(3, 7, 5), dropsWitherSkull(3, 7, 5));
 }
 
 test "emberbeast drops coal plus wart bonus" {
