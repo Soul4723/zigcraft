@@ -14,6 +14,7 @@ const fluid_mod = @import("world/fluid_wash.zig");
 const falling_mod = @import("world/falling_blocks.zig");
 const hazard_mod = @import("world/hazard.zig");
 const portal_mod = @import("world/portal.zig");
+const summon_mod = @import("world/summon.zig");
 const std = @import("std");
 const c = @cImport({
     @cDefine("GL_GLEXT_PROTOTYPES", "1");
@@ -1645,6 +1646,28 @@ pub fn main() !void {
                                         if (place_type == .spawner_cage and spawner_count < spawners.len) {
                                             spawners[spawner_count] = .{ .x = px, .y = py, .z = pz };
                                             spawner_count += 1;
+                                        }
+                                        // Wither summon: completed skull-T consumes the pattern
+                                        // and raises an empowered wither champion (30 HP).
+                                        // ponytail: dedicated boss mob type + ranged skull attack
+                                        // when the mob roster grows past shared-type buffs.
+                                        if (place_type == .wither_skull_block) {
+                                            if (summon_mod.detectWitherPattern(&pickBlockWorld, px, py, pz)) |site| {
+                                                const cells = if (site.axis == .x_axis)
+                                                    [_][3]i32{ .{ -1, 0, 0 }, .{ 0, 0, 0 }, .{ 1, 0, 0 }, .{ -1, 1, 0 }, .{ 0, 1, 0 }, .{ 1, 1, 0 }, .{ 0, -1, 0 } }
+                                                else
+                                                    [_][3]i32{ .{ 0, 0, -1 }, .{ 0, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 1, -1 }, .{ 0, 1, 0 }, .{ 0, 1, 1 }, .{ 0, -1, 0 } };
+                                                for (cells) |cell| {
+                                                    _ = try manager.editAndRemesh(site.base_x + cell[0], site.base_y + cell[1], site.base_z + cell[2], .air);
+                                                }
+                                                mob_manager.spawnMob(.wither_skeleton, @as(f32, @floatFromInt(site.base_x)) + 0.5, @as(f32, @floatFromInt(site.base_y)) + 1.0, @as(f32, @floatFromInt(site.base_z)) + 0.5) catch {};
+                                                if (mob_manager.mobs.items.len > 0) {
+                                                    mob_manager.mobs.items[mob_manager.mobs.items.len - 1].health = 30;
+                                                }
+                                                audio.playAt(.mob_roar, .{ @as(f32, @floatFromInt(site.base_x)) + 0.5, @as(f32, @floatFromInt(site.base_y)) + 1.0, @as(f32, @floatFromInt(site.base_z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 40.0);
+                                                particles.spawnFlame(site.base_x, site.base_y + 1, site.base_z, 24);
+                                                std.debug.print("wither champion summoned at ({d},{d},{d})\n", .{ site.base_x, site.base_y, site.base_z });
+                                            }
                                         }
                                         if (is_furnace_place and cache_mod.canCreateFurnace(furnace_count, furnaces.len)) {
                                             furnaces[furnace_count] = .{ .x = px, .y = py, .z = pz, .t = 0, .fuel = 0, .input = smelt_mod.None };
