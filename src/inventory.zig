@@ -78,6 +78,7 @@ pub const ItemType = enum(u8) {
     netherite_ingot = 72,
     netherite_pickaxe = 73,
     netherite_sword = 74,
+    respawn_anchor = 75,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -130,6 +131,7 @@ pub const ItemType = enum(u8) {
             .wither_skull => .wither_skull_block,
             .beacon => .beacon,
             .ancient_debris => .ancient_debris,
+            .respawn_anchor => .respawn_anchor,
             else => null,
         };
     }
@@ -189,6 +191,7 @@ pub const ItemType = enum(u8) {
             .wither_skull_block => .wither_skull,
             .beacon => .beacon,
             .ancient_debris => .ancient_debris,
+            .respawn_anchor => .respawn_anchor,
         };
     }
 
@@ -288,6 +291,7 @@ pub const ItemType = enum(u8) {
             .netherite_ingot => "Netherite Ingot",
             .netherite_pickaxe => "Netherite Pickaxe",
             .netherite_sword => "Netherite Sword",
+            .respawn_anchor => "Respawn Anchor",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -368,6 +372,7 @@ pub const ItemType = enum(u8) {
             .netherite_ingot => .{ 0.22, 0.20, 0.22, 0.95 },
             .netherite_pickaxe => .{ 0.32, 0.28, 0.34, 0.95 },
             .netherite_sword => .{ 0.28, 0.24, 0.30, 0.95 },
+            .respawn_anchor => .{ 0.35, 0.15, 0.45, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -807,6 +812,23 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 41: Respawn Anchor: 2 Obsidian + 2 Glowstone (full 2x2, any layout) -> 1 Respawn Anchor
+        {
+            var obs: u8 = 0;
+            var glow: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.isEmpty()) continue;
+                if (sl.item == .obsidian) obs += 1 else if (sl.item == .glowstone) glow += 1 else {
+                    obs = 99;
+                    break;
+                }
+            }
+            if (obs == 2 and glow == 2) {
+                self.craft_output = .{ .item = .respawn_anchor, .count = 1 };
                 return;
             }
         }
@@ -1365,6 +1387,20 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         }
         return 0;
     }
+}
+
+test "crafting recipe: respawn anchor from obsidian and glowstone" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .obsidian, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glowstone, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .glowstone, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .obsidian, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .respawn_anchor);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+    try std.testing.expectEqual(ItemType.respawn_anchor.toBlockId().?, .respawn_anchor);
+    try std.testing.expectEqual(ItemType.fromBlockId(.respawn_anchor), .respawn_anchor);
+    try std.testing.expectEqualStrings(ItemType.respawn_anchor.name(), "Respawn Anchor");
 }
 
 test "crafting recipe: netherite sword weapon upgrade" {
