@@ -190,6 +190,9 @@ pub fn main() !void {
     const Spawner = struct { x: i32, y: i32, z: i32 };
     var spawners: [16]Spawner = undefined;
     var spawner_count: usize = 0;
+    const Beacon = struct { x: i32, y: i32, z: i32 };
+    var beacons: [16]Beacon = undefined;
+    var beacon_count: usize = 0;
     const ThrownKind = enum { snowball, hostile_fireball, player_fire_charge };
     const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball };
     var thrown: [proj_mod.thrown_cap]Thrown = undefined;
@@ -1651,6 +1654,10 @@ pub fn main() !void {
                                             spawners[spawner_count] = .{ .x = px, .y = py, .z = pz };
                                             spawner_count += 1;
                                         }
+                                        if (place_type == .beacon and beacon_count < beacons.len) {
+                                            beacons[beacon_count] = .{ .x = px, .y = py, .z = pz };
+                                            beacon_count += 1;
+                                        }
                                         // Wither summon: completed skull-T consumes the pattern
                                         // and raises an empowered wither champion (30 HP).
                                         // ponytail: dedicated boss mob type + ranged skull attack
@@ -1876,6 +1883,28 @@ pub fn main() !void {
                     particles.spawnSpawnerFlames(sp.x, sp.y, sp.z, 2);
                 }
                 si2 += 1;
+            }
+            // Beacon sky beam & regeneration aura: active beacons with clear sky above
+            var bi2: usize = 0;
+            while (bi2 < beacon_count) {
+                const bc = &beacons[bi2];
+                const cur_bb = manager.getBlockWorld(bc.x, bc.y, bc.z);
+                if (cur_bb != .beacon) {
+                    beacons[bi2] = beacons[beacon_count - 1];
+                    beacon_count -= 1;
+                    continue;
+                }
+                if (block_mod.isBeaconSkyClear(&pickBlockWorld, bc.x, bc.y, bc.z)) {
+                    particles.spawnBeaconBeam(bc.x, bc.y, bc.z, 2);
+                    const bdx = @as(f32, @floatFromInt(bc.x)) + 0.5 - player.pos.x;
+                    const bdz = @as(f32, @floatFromInt(bc.z)) + 0.5 - player.pos.z;
+                    const bdy = @as(f32, @floatFromInt(bc.y)) - player.pos.y;
+                    const bdist_sq = bdx * bdx + bdz * bdz + bdy * bdy;
+                    if (bdist_sq <= 24.0 * 24.0) {
+                        player.regen_timer = @max(player.regen_timer, 3.0);
+                    }
+                }
+                bi2 += 1;
             }
         }
 
