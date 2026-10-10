@@ -334,6 +334,28 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         const n = hash2(x, y, 199) % 18;
         return .{ 205 + @as(u8, @intCast(n)), 200 + @as(u8, @intCast(n)), 190 + @as(u8, @intCast(n / 2)), 255 };
     }
+    // Beacon (7, 0): obsidian base footing, translucent glass frame, incandescent cyan star core
+    if (tile_x == 7 and tile_y == 0) {
+        // Base plate: bottom 3 rows obsidian (y >= 13)
+        if (y >= 13) {
+            const n = hash2(x, y, 203) % 15;
+            return .{ 30 + @as(u8, @intCast(n)), 20 + @as(u8, @intCast(n / 2)), 45 + @as(u8, @intCast(n)), 255 };
+        }
+        // Glass perimeter framing (outer single pixel border)
+        if (x == 0 or x == 15 or y == 0 or y == 12) {
+            return .{ 180, 220, 240, 200 };
+        }
+        // Incandescent Nether Star core: diamond centered at (x 6..9, y 5..8)
+        const dx = @as(i32, @intCast(x)) - 7;
+        const dy = @as(i32, @intCast(y)) - 6;
+        const dist = @abs(dx) + @abs(dy);
+        if (dist <= 1) return .{ 255, 255, 255, 255 }; // pure white hot center
+        if (dist <= 2) return .{ 140, 245, 255, 255 }; // bright cyan aura
+        if (dist <= 4) return .{ 60, 180, 230, 220 }; // turquoise star glare
+        // Inner glass chamber with specular glint
+        if (x == y and x >= 2 and x <= 4) return .{ 240, 250, 255, 180 };
+        return .{ 110, 160, 190, 140 }; // soft translucent glass interior
+    }
     // Sandstone top (1, 4): smooth fine packed sand
     if (tile_x == 1 and tile_y == 4) {
         return sandstoneTopPixel(x, y);

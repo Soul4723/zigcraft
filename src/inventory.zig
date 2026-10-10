@@ -72,6 +72,7 @@ pub const ItemType = enum(u8) {
     spawner_cage = 66,
     wither_skull = 67,
     nether_star = 68,
+    beacon = 69,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -122,6 +123,7 @@ pub const ItemType = enum(u8) {
             .soul_campfire => .soul_campfire,
             .spawner_cage => .spawner_cage,
             .wither_skull => .wither_skull_block,
+            .beacon => .beacon,
             else => null,
         };
     }
@@ -179,6 +181,7 @@ pub const ItemType = enum(u8) {
             .soul_campfire => .soul_campfire,
             .spawner_cage => .spawner_cage,
             .wither_skull_block => .wither_skull,
+            .beacon => .beacon,
         };
     }
 
@@ -270,6 +273,7 @@ pub const ItemType = enum(u8) {
             .spawner_cage => "Monster Spawner",
             .wither_skull => "Wither Skeleton Skull",
             .nether_star => "Nether Star",
+            .beacon => "Beacon",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -344,6 +348,7 @@ pub const ItemType = enum(u8) {
             .spawner_cage => .{ 0.35, 0.33, 0.38, 0.95 },
             .wither_skull => .{ 0.85, 0.83, 0.80, 0.95 },
             .nether_star => .{ 0.55, 0.95, 1.0, 1.0 },
+            .beacon => .{ 0.50, 0.90, 0.95, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -783,6 +788,24 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 37: Beacon: 1 Nether Star + 1 Obsidian + 2 Glass (full 2x2, any layout) -> 1 Beacon
+        {
+            var stars: u8 = 0;
+            var obs: u8 = 0;
+            var glasses: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.isEmpty()) continue;
+                if (sl.item == .nether_star) stars += 1 else if (sl.item == .obsidian) obs += 1 else if (sl.item == .glass) glasses += 1 else {
+                    stars = 99;
+                    break;
+                }
+            }
+            if (stars == 1 and obs == 1 and glasses == 2) {
+                self.craft_output = .{ .item = .beacon, .count = 1 };
                 return;
             }
         }
@@ -1286,6 +1309,19 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         }
         return 0;
     }
+}
+
+test "crafting recipe: beacon from nether star, obsidian, glass" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .glass, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .nether_star, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .obsidian, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .beacon);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+    try std.testing.expectEqual(ItemType.beacon.toBlockId().?, .beacon);
+    try std.testing.expectEqual(ItemType.fromBlockId(.beacon), .beacon);
 }
 
 test "getBlockDrops mapping" {
