@@ -215,22 +215,22 @@ pub const UIRenderer = struct {
     }
 
     pub fn drawHUDWithVitals(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32) void {
-        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, health, hunger, false, 15.0);
+        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, health, hunger, false, 15.0, 0.0, 0.0);
     }
 
     pub fn drawHUDWithBuffs(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool, oxygen: f32, fire_res_timer: f32) void {
-        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, health, hunger, regen, oxygen, fire_res_timer);
+        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, health, hunger, regen, oxygen, fire_res_timer, 0.0);
     }
 
     pub fn drawHUDWithProgress(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32) void {
-        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, 20.0, 20.0, false, 15.0, 0.0);
+        self.drawHUDWithProgressVitals(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, 20.0, 20.0, false, 15.0, 0.0, 0.0);
     }
 
-    pub fn drawHUDWithProgressVitals(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool, oxygen: f32, fire_res_timer: f32) void {
-        self.drawHUDWithCompass(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, health, hunger, regen, oxygen, fire_res_timer, -1.0);
+    pub fn drawHUDWithProgressVitals(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool, oxygen: f32, fire_res_timer: f32, wither_timer: f32) void {
+        self.drawHUDWithCompass(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, health, hunger, regen, oxygen, fire_res_timer, wither_timer, -1.0);
     }
 
-    pub fn drawHUDWithCompass(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool, oxygen: f32, fire_res_timer: f32, compass_rel: f32) void {
+    pub fn drawHUDWithCompass(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool, oxygen: f32, fire_res_timer: f32, wither_timer: f32, compass_rel: f32) void {
         var verts: [1024]UIVertex = undefined;
         var count: usize = 0;
 
@@ -312,6 +312,14 @@ pub const UIRenderer = struct {
                 addBorderedRect(&verts, &count, hbx0, fby0, hbx0 + bw, fby0 + bh, 0.0015, .{ 0.15, 0.08, 0.02, 0.9 }, .{ 0.28, 0.14, 0.04, 0.9 });
                 const ffill = bw * @min(1.0, @max(0.0, fire_res_timer / 180.0));
                 addQuad(&verts, &count, hbx0 + 0.0015, fby0 + 0.0015, hbx0 + 0.0015 + ffill, fby0 + bh - 0.0015, .{ 1.0, 0.55, 0.12, 1.0 });
+            }
+
+            // Wither status effect indicator bar (dark bone purple); stacks above fire bar when both active
+            if (wither_timer > 0.0) {
+                const wby0 = if (fire_res_timer > 0.0) by0 - 0.030 else by0 - 0.015;
+                addBorderedRect(&verts, &count, hbx0, wby0, hbx0 + bw, wby0 + bh, 0.0015, .{ 0.08, 0.05, 0.10, 0.9 }, .{ 0.15, 0.10, 0.18, 0.9 });
+                const wfill = bw * @min(1.0, @max(0.0, wither_timer / 8.0));
+                addQuad(&verts, &count, hbx0 + 0.0015, wby0 + 0.0015, hbx0 + 0.0015 + wfill, wby0 + bh - 0.0015, .{ 0.35, 0.25, 0.40, 1.0 });
             }
         }
 
