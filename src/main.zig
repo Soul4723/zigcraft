@@ -186,6 +186,9 @@ pub fn main() !void {
     var torches: [cache_mod.torch_cap]Torch = undefined;
     var torch_count: usize = 0;
     var torch_puff_timer: f32 = 0.0;
+    const Spawner = struct { x: i32, y: i32, z: i32 };
+    var spawners: [16]Spawner = undefined;
+    var spawner_count: usize = 0;
     const ThrownKind = enum { snowball, hostile_fireball, player_fire_charge };
     const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball };
     var thrown: [proj_mod.thrown_cap]Thrown = undefined;
@@ -1631,6 +1634,10 @@ pub fn main() !void {
                                             chests[chest_count] = .{ .x = px, .y = py, .z = pz, .items = [_]inventory_mod.ItemStack{.{}} ** 4 };
                                             chest_count += 1;
                                         }
+                                        if (place_type == .spawner_cage and spawner_count < spawners.len) {
+                                            spawners[spawner_count] = .{ .x = px, .y = py, .z = pz };
+                                            spawner_count += 1;
+                                        }
                                         if (is_furnace_place and cache_mod.canCreateFurnace(furnace_count, furnaces.len)) {
                                             furnaces[furnace_count] = .{ .x = px, .y = py, .z = pz, .t = 0, .fuel = 0, .input = smelt_mod.None };
                                             furnace_count += 1;
@@ -1818,6 +1825,21 @@ pub fn main() !void {
                     particles.spawnFlame(tr.x, tr.y, tr.z, 1);
                 }
                 ti += 1;
+            }
+            // Spawner cage embers: active cages within 16m emit spinning flames
+            var si2: usize = 0;
+            while (si2 < spawner_count) {
+                const sp = &spawners[si2];
+                const cur_sb = manager.getBlockWorld(sp.x, sp.y, sp.z);
+                if (cur_sb != .spawner_cage) {
+                    spawners[si2] = spawners[spawner_count - 1];
+                    spawner_count -= 1;
+                    continue;
+                }
+                if (spawn_mod.isSpawnerActive(sp.x, sp.z, player.pos.x, player.pos.z)) {
+                    particles.spawnSpawnerFlames(sp.x, sp.y, sp.z, 2);
+                }
+                si2 += 1;
             }
         }
 

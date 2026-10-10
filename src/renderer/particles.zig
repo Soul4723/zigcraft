@@ -316,6 +316,34 @@ pub const ParticleSystem = struct {
         }
     }
 
+    /// Spawn spinning ember sparks swirling around an active spawner cage
+    pub fn spawnSpawnerFlames(self: *ParticleSystem, bx: i32, by: i32, bz: i32, count: usize) void {
+        var i: usize = 0;
+        var seed: u32 = @as(u32, @bitCast(bx *% 73 +% by *% 19 +% bz *% 37)) +% @as(u32, @intCast(self.count));
+        while (i < count and self.count < MAX_PARTICLES) : (i += 1) {
+            seed = seed *% 1103515245 +% 12345;
+            const angle = @as(f32, @floatFromInt((seed >> 16) % 360)) * (std.math.pi / 180.0);
+            const radius = 0.2 + @as(f32, @floatFromInt((seed >> 8) % 25)) / 100.0;
+            const px = @as(f32, @floatFromInt(bx)) + 0.5 + @cos(angle) * radius;
+            const pz = @as(f32, @floatFromInt(bz)) + 0.5 + @sin(angle) * radius;
+            const py = @as(f32, @floatFromInt(by)) + 0.3 + @as(f32, @floatFromInt((seed >> 4) % 40)) / 100.0;
+
+            self.particles[self.count] = .{
+                .x = px,
+                .y = py,
+                .z = pz,
+                .vx = -@sin(angle) * 0.8,
+                .vy = 0.4 + @as(f32, @floatFromInt((seed >> 12) % 30)) / 100.0,
+                .vz = @cos(angle) * 0.8,
+                .life = 0.4,
+                .max_life = 0.4,
+                .color = .{ 1.0, 0.55, 0.1 },
+                .size = 0.05,
+            };
+            self.count += 1;
+        }
+    }
+
     /// Spawn searing fiery sparks erupting from hot surface contact (magma/campfire contact)
     pub fn spawnBurnSparks(self: *ParticleSystem, pos: [3]f32, count: usize) void {
         var i: usize = 0;
@@ -850,4 +878,18 @@ test "spawnGlowstoneShimmer particle properties and gentle floating physics" {
     ps.tick(0.1);
     // Does not fall with heavy gravity (-18 m/s^2)
     try std.testing.expect(ps.particles[0].vy > initial_vy - 0.5);
+}
+
+test "spawnSpawnerFlames creates orbiting particles" {
+    var ps = ParticleSystem{
+        .particles = undefined,
+        .count = 0,
+        .vao = 0,
+        .vbo = 0,
+        .program = 0,
+    };
+    ps.spawnSpawnerFlames(10, 8, 10, 4);
+    try std.testing.expectEqual(@as(usize, 4), ps.count);
+    try std.testing.expect(ps.particles[0].y >= 8.3);
+    try std.testing.expectEqual(ps.particles[0].color[0], 1.0);
 }
