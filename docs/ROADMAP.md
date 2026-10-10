@@ -145,3 +145,4 @@ Rough priority order. Completed milestones marked **[x]**.
 117. [x] **Ancient Debris Generation & Netherite Scrap Smelting** — Rare ancient debris veins generate in deep Nether strata (y=2..4), mine with pickaxe, and smelt in furnaces into netherite scrap (#231).
 118. [x] **Netherite Ingot Crafting & Netherite Pickaxe Upgrade** — 2 scraps + 2 iron ingots craft netherite ingots; upgrade iron pickaxes into netherite pickaxes (350 durability, 6.0x mining speed) (#233).
 119. [x] **Netherite Sword Weapon Upgrade & Tier-4 Combat** — 1 Iron Sword + 1 Netherite Ingot upgrades into Netherite Sword (400 durability, 4 melee damage) (#235).
+120. [x] **Respawn Anchor Block & Nether Spawn Anchoring** — 2 Obsidian + 2 Glowstone crafts Respawn Anchor (block 61, item 75, emissive 0.85, glowstone top / obsidian casing); right-click anchors player respawn point with portal hum and shimmer particles (#237).
