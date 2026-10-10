@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-10 (Session 236)
+Last updated: 2026-10-10 (Session 237)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 1244 passing unit tests
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 1246 passing unit tests
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -27,6 +27,6 @@ Last updated: 2026-10-10 (Session 236)
 - HUD toast warning queue for system notifications (cap overflows, redstone burnout)
 
 ## Active State
-- Main branch stable (Phase 8: Milestones 43-118)
-- All tests passing (1244/1244 tests across 85 test steps)
+- Main branch stable (Phase 8: Milestones 43-119)
+- All tests passing (1246/1246 tests across 85 test steps)
 - Remote and local branches pruned clean
