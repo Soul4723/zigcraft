@@ -44,18 +44,21 @@ pub const Mob = struct {
             .pig => 0.55,
             .wolf => 0.6,
             .emberbeast => 0.7,
+            .wither_skeleton => 0.6,
         };
         const h: f32 = switch (mob_type) {
             .sheep => 0.9,
             .pig => 0.75,
             .wolf => 0.8,
             .emberbeast => 1.0,
+            .wither_skeleton => 1.6,
         };
         const spd: f32 = switch (mob_type) {
             .sheep => 1.4,
             .pig => 1.6,
             .wolf => 3.2,
             .emberbeast => 3.6,
+            .wither_skeleton => 2.8,
         };
         return .{
             .mob_type = mob_type,
@@ -71,7 +74,7 @@ pub const Mob = struct {
             .anim_time = 0.0,
             .change_dir_timer = 2.0,
             .wants_sound = false,
-            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else 3,
+            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .wither_skeleton) 10 else 3,
             .in_water = false,
             .in_bubble_column = false,
             .in_whirlpool = false,
@@ -436,6 +439,14 @@ test "emberbeast tougher and faster than wolf" {
     try std.testing.expectEqual(e.mob_type, .emberbeast);
 }
 
+test "wither skeleton tall, tough hunter" {
+    const sk = Mob.init(.wither_skeleton, 0.0, 1.0, 0.0);
+    try std.testing.expectEqual(sk.health, 10);
+    try std.testing.expect(sk.height > 1.5);
+    try std.testing.expectEqual(getSound(.wither_skeleton), .mob_growl);
+    try std.testing.expectEqual(@import("../inventory.zig").getMobMeatDrop(.wither_skeleton), .coal);
+}
+
 test "wolf tougher and faster than sheep" {
     const w = Mob.init(.wolf, 0.0, 1.0, 0.0);
     const sh = Mob.init(.sheep, 0.0, 1.0, 0.0);
@@ -458,6 +469,7 @@ pub fn getSound(mob_type: MobType) ?@import("../audio/synth.zig").SoundType {
         .pig => .mob_oink,
         .wolf => .mob_growl,
         .emberbeast => .mob_roar,
+        .wither_skeleton => .mob_growl,
     };
 }
 

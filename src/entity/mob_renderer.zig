@@ -412,6 +412,22 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
             try appendBox(allocator, verts, inds, math.Vec3.init(-0.14, 0.16, -0.24 - leg_swing), math.Vec3.init(0.11, 0.32, 0.11), mob.yaw, mob.pos, uv_fur, uv_fur);
             try appendBox(allocator, verts, inds, math.Vec3.init(0.14, 0.16, -0.24 + leg_swing), math.Vec3.init(0.11, 0.32, 0.11), mob.yaw, mob.pos, uv_fur, uv_fur);
         },
+        .wither_skeleton => {
+            const uv_bone = texture.getTileUV(7, 2);
+            const uv_skull = texture.getTileUV(6, 2);
+            // 1. Ribcage: tall thin 0.4 x 0.55 x 0.3 at (0, 0.85, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.85, 0), math.Vec3.init(0.4, 0.55, 0.3), mob.yaw, mob.pos, uv_bone, uv_bone);
+            // 2. Skull: 0.3 cube at (0, 1.3, 0.1)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 1.3 + head_bob_y, 0.1), math.Vec3.init(0.3, 0.3, 0.3), mob.yaw, mob.pos, uv_skull, uv_bone);
+            // 3-4. Long arms
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.28, 0.85, 0 + leg_swing), math.Vec3.init(0.1, 0.6, 0.1), mob.yaw, mob.pos, uv_bone, uv_bone);
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.28, 0.85, 0 - leg_swing), math.Vec3.init(0.1, 0.6, 0.1), mob.yaw, mob.pos, uv_bone, uv_bone);
+            // 5. Stone sword held low
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.28, 0.45, 0.15 - leg_swing), math.Vec3.init(0.08, 0.5, 0.08), mob.yaw, mob.pos, uv_skull, uv_skull);
+            // 6-7. Long legs
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.12, 0.3, 0 + leg_swing), math.Vec3.init(0.12, 0.6, 0.12), mob.yaw, mob.pos, uv_bone, uv_bone);
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.12, 0.3, 0 - leg_swing), math.Vec3.init(0.12, 0.6, 0.12), mob.yaw, mob.pos, uv_bone, uv_bone);
+        },
     }
 }
 
@@ -436,6 +452,14 @@ test "appendMobMesh generates correct vertex and index counts" {
     try appendMobMesh(std.testing.allocator, &verts, &inds, ember);
     try std.testing.expectEqual(@as(usize, 216), verts.items.len);
     try std.testing.expectEqual(@as(usize, 324), inds.items.len);
+
+    // Wither skeleton: 7 boxes (ribcage, skull, 2 arms, sword, 2 legs) = 168 verts, 252 indices
+    verts.clearRetainingCapacity();
+    inds.clearRetainingCapacity();
+    const wither = mob_mod.Mob.init(.wither_skeleton, 0, 0, 0);
+    try appendMobMesh(std.testing.allocator, &verts, &inds, wither);
+    try std.testing.expectEqual(@as(usize, 168), verts.items.len);
+    try std.testing.expectEqual(@as(usize, 252), inds.items.len);
 
     // Pig test: 7 boxes (body, head, snout, 4 legs) = 7 * 24 = 168 verts, 7 * 36 = 252 indices
     verts.clearRetainingCapacity();

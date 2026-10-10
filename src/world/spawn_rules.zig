@@ -164,6 +164,13 @@ test "day vs night mob type selection" {
     try std.testing.expectEqual(selectMobType(0.9, true), .sheep);
 }
 
+/// Fortress spawn: nether brick floor with headroom (wither skeleton guard posts).
+pub fn isFortressSpawn(world: anytype, x: i32, y: i32, z: i32) bool {
+    const ground = world.getBlockWorld(x, y, z);
+    if (ground != .nether_brick) return false;
+    return hasHeadroom(world.getBlockWorld(x, y + 1, z), world.getBlockWorld(x, y + 2, z));
+}
+
 /// Nether spawn: netherrack or fortress masonry floor with two simplest headroom cells.
 pub fn isNetherSpawn(world: anytype, x: i32, y: i32, z: i32) bool {
     const ground = world.getBlockWorld(x, y, z);
@@ -184,6 +191,21 @@ test "nether spawn needs nether ground and headroom" {
     try std.testing.expect(isNetherSpawn(NetherFlat{}, 0, 5, 0));
     try std.testing.expect(!isNetherSpawn(NetherFlat{}, 0, 6, 0));
     try std.testing.expect(!isNetherSpawn(FlatWorld{}, 0, 5, 0));
+}
+
+test "fortress spawn needs nether brick and headroom" {
+    const FortressFlat = struct {
+        pub fn getBlockWorld(_: @This(), x: i32, y: i32, z: i32) BlockId {
+            _ = x;
+            _ = z;
+            if (y == 7) return .nether_brick;
+            if (y > 7) return .air;
+            return .netherrack;
+        }
+    };
+    try std.testing.expect(isFortressSpawn(FortressFlat{}, 0, 7, 0));
+    try std.testing.expect(!isFortressSpawn(FortressFlat{}, 0, 5, 0));
+    try std.testing.expect(isNetherSpawn(FortressFlat{}, 0, 7, 0)); // fortress brick also valid nether ground
 }
 
 /// Fortress spawner pulse: emberbeast reinforcements trickle near loot junctions.

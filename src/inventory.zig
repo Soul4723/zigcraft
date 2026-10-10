@@ -1210,7 +1210,7 @@ pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
     return held == .wooden_pickaxe or held == .iron_pickaxe;
 }
 
-pub const MobType = enum { sheep, pig, wolf, emberbeast };
+pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton };
 
 pub fn getMobMeatDrop(mob_type: MobType) ItemType {
     return switch (mob_type) {
@@ -1218,6 +1218,7 @@ pub fn getMobMeatDrop(mob_type: MobType) ItemType {
         .sheep => .raw_mutton,
         .wolf => .none,
         .emberbeast => .coal,
+        .wither_skeleton => .coal,
     };
 }
 
