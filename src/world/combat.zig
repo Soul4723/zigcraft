@@ -7,6 +7,7 @@ pub const wolf_bite_height: f32 = 2.0;
 pub const melee_cooldown: f32 = 0.35;
 pub const melee_range: f32 = 4.0;
 pub const sword_damage: u8 = 2;
+pub const netherite_sword_damage: u8 = 4;
 pub const hand_damage: u8 = 1;
 
 pub fn inBiteRange(dx: f32, dz: f32, dy: f32) bool {
@@ -17,8 +18,14 @@ pub fn tickCooldown(cd: f32, dt: f32) f32 {
     return @max(0.0, cd - dt);
 }
 
+pub fn weaponDamage(is_netherite: bool, is_iron: bool) u8 {
+    if (is_netherite) return netherite_sword_damage;
+    if (is_iron) return sword_damage;
+    return hand_damage;
+}
+
 pub fn meleeDamage(is_sword: bool) u8 {
-    return if (is_sword) sword_damage else hand_damage;
+    return weaponDamage(false, is_sword);
 }
 
 pub fn wolfDamage(base: f32, pack_bonus: f32) f32 {
@@ -41,6 +48,9 @@ test "cooldown ticks down and clamps" {
 test "melee damage tiers" {
     try std.testing.expectEqual(meleeDamage(true), @as(u8, 2));
     try std.testing.expectEqual(meleeDamage(false), @as(u8, 1));
+    try std.testing.expectEqual(weaponDamage(true, false), @as(u8, 4));
+    try std.testing.expectEqual(weaponDamage(false, true), @as(u8, 2));
+    try std.testing.expectEqual(weaponDamage(false, false), @as(u8, 1));
 }
 
 test "wolf damage calculation with pack bonus" {

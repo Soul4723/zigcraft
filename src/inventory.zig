@@ -77,6 +77,7 @@ pub const ItemType = enum(u8) {
     netherite_scrap = 71,
     netherite_ingot = 72,
     netherite_pickaxe = 73,
+    netherite_sword = 74,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -197,6 +198,7 @@ pub const ItemType = enum(u8) {
             .iron_pickaxe => 120,
             .iron_sword => 100,
             .netherite_pickaxe => 350,
+            .netherite_sword => 400,
             else => 0,
         };
     }
@@ -208,7 +210,7 @@ pub const ItemType = enum(u8) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword => 1,
+            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword => 1,
             else => 64,
         };
     }
@@ -285,6 +287,7 @@ pub const ItemType = enum(u8) {
             .netherite_scrap => "Netherite Scrap",
             .netherite_ingot => "Netherite Ingot",
             .netherite_pickaxe => "Netherite Pickaxe",
+            .netherite_sword => "Netherite Sword",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -364,6 +367,7 @@ pub const ItemType = enum(u8) {
             .netherite_scrap => .{ 0.28, 0.22, 0.20, 0.95 },
             .netherite_ingot => .{ 0.22, 0.20, 0.22, 0.95 },
             .netherite_pickaxe => .{ 0.32, 0.28, 0.34, 0.95 },
+            .netherite_sword => .{ 0.28, 0.24, 0.30, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -803,6 +807,16 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 40: Netherite Sword: 1 Iron Sword + 1 Netherite Ingot (non_empty == 2) -> 1 Netherite Sword
+        if (non_empty == 2) {
+            const has_sword = (g0 == .iron_sword or g1 == .iron_sword or g2 == .iron_sword or g3 == .iron_sword);
+            const has_ingot = (g0 == .netherite_ingot or g1 == .netherite_ingot or g2 == .netherite_ingot or g3 == .netherite_ingot);
+            if (has_sword and has_ingot) {
+                self.craft_output = .{ .item = .netherite_sword, .count = 1 };
                 return;
             }
         }
@@ -1351,6 +1365,21 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         }
         return 0;
     }
+}
+
+test "crafting recipe: netherite sword weapon upgrade" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .iron_sword, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .netherite_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .netherite_sword);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    const ns = ItemType.netherite_sword;
+    try std.testing.expect(ns.isTool());
+    try std.testing.expectEqual(ns.maxDurability(), 400);
+    try std.testing.expectEqual(ns.maxStackSize(), 1);
+    try std.testing.expectEqualStrings(ns.name(), "Netherite Sword");
 }
 
 test "crafting recipes: netherite ingot and netherite pickaxe" {
