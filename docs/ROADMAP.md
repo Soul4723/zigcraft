@@ -131,3 +131,4 @@ Rough priority order. Completed milestones marked **[x]**.
 103. [x] **Soul Sand Fireball Ignition into Soul Campfires** — Fireball and fire charge impacts on soul sand floors ignite soul campfires with 45s burnout tracking (#221).
 104. [x] **Monster Spawner Cage Block & Fortress Alcoves** — Monster spawner block (block 57, item 66) with iron mesh grating atlas tile (5,0), glowing core (emissive 0.6), and procedural placement in fortress junction alcoves (#222).
 105. [x] **Spawner Cage Mob Wave Anchoring** — Fortress reinforcement pulse detects nearby active spawner cages (16m activation radius) and spawns emberbeasts near the cage alcove (#223).
+106. [x] **Spawner Cage Spinning Ember Particles** — Active player-placed spawner cages emit orbiting ember flames within 16m activation radius (#224).
