@@ -135,3 +135,4 @@ Rough priority order. Completed milestones marked **[x]**.
 107. [x] **Wither Skeleton Fortress Hunter** — Tall bone mob (10 HP, 1.5x bite, fire-immune) guarding fortress bridges with hunt AI and spawner waves (#225).
 108. [x] **Wither Bite Status Effect** — Skeleton bites apply 8s poison (1 HP/s drain, cleared on respawn) with dark purple HUD indicator bar stacked above fire-res bar (#226).
 109. [x] **Wither Healing Suppression** — Regen and passive hunger healing paused while withered; health bar darkens to bone-gray for readability (#227).
+110. [x] **Wither Cure via Golden Apple** — Eating a golden apple cleanses wither poison; milk bucket deferred until cows exist (#228).
