@@ -81,6 +81,7 @@ pub const ItemType = enum(u8) {
     respawn_anchor = 75,
     crying_obsidian = 76,
     lodestone = 77,
+    basalt = 78,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -136,6 +137,7 @@ pub const ItemType = enum(u8) {
             .respawn_anchor => .respawn_anchor,
             .crying_obsidian => .crying_obsidian,
             .lodestone => .lodestone,
+            .basalt => .basalt,
             else => null,
         };
     }
@@ -198,6 +200,7 @@ pub const ItemType = enum(u8) {
             .respawn_anchor => .respawn_anchor,
             .crying_obsidian => .crying_obsidian,
             .lodestone => .lodestone,
+            .basalt => .basalt,
         };
     }
 
@@ -300,6 +303,7 @@ pub const ItemType = enum(u8) {
             .respawn_anchor => "Respawn Anchor",
             .crying_obsidian => "Crying Obsidian",
             .lodestone => "Lodestone",
+            .basalt => "Basalt",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -383,6 +387,7 @@ pub const ItemType = enum(u8) {
             .respawn_anchor => .{ 0.35, 0.15, 0.45, 0.95 },
             .crying_obsidian => .{ 0.45, 0.15, 0.65, 0.95 },
             .lodestone => .{ 0.60, 0.60, 0.65, 0.95 },
+            .basalt => .{ 0.28, 0.28, 0.32, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -822,6 +827,17 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 44: Basalt: 1 Cobblestone + 1 Soul Sand (or Magma) -> 2 Basalt
+        if (non_empty == 2) {
+            const has_cobble = (g0 == .cobblestone or g1 == .cobblestone or g2 == .cobblestone or g3 == .cobblestone);
+            const has_volcanic = (g0 == .soul_sand or g1 == .soul_sand or g2 == .soul_sand or g3 == .soul_sand or
+                                  g0 == .magma or g1 == .magma or g2 == .magma or g3 == .magma);
+            if (has_cobble and has_volcanic) {
+                self.craft_output = .{ .item = .basalt, .count = 2 };
                 return;
             }
         }
@@ -1419,6 +1435,24 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         }
         return 0;
     }
+}
+
+test "basalt item roundtrip and crafting recipe" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .cobblestone, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .soul_sand, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .basalt);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+    try std.testing.expectEqual(ItemType.basalt.toBlockId().?, .basalt);
+    try std.testing.expectEqual(ItemType.fromBlockId(.basalt), .basalt);
+    try std.testing.expectEqualStrings(ItemType.basalt.name(), "Basalt");
+
+    // Also craftable with magma
+    inv.craft_grid[1] = .{ .item = .magma, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .basalt);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
 }
 
 test "lodestone item roundtrip and crafting recipe" {

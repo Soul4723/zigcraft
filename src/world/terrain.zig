@@ -431,6 +431,32 @@ pub const NetherGenerator = struct {
     /// Uses deterministic 3D hash (~1 in 80 cells at y=2..4) so veins are rare, scattered deep fossils.
     /// Check if deep cavern or lava shore strata contains a crying obsidian cluster (y = 3..5).
     /// Uses deterministic 3D hash (~1 in 90 cells at y=3..5) near ancient ruins/magma beds.
+    /// Check if cavern location (wx, wy, wz) intersects a procedural basalt column cluster.
+    /// Columns emerge from lava floors/shores (y = 4..11) in volcanic delta patches.
+    pub fn isBasaltColumn(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
+        if (wy < 4 or wy > 11) return false;
+        const cell_size: i32 = 32;
+        const gx = @mod(wx, cell_size);
+        const gz = @mod(wz, cell_size);
+
+        // Column roots sit at specific delta clusters in the cell
+        const is_center_col = ((gx >= 6 and gx <= 7) and (gz >= 6 and gz <= 7));
+        const is_offset_col = ((gx >= 9 and gx <= 10) and (gz >= 8 and gz <= 9));
+        if (!is_center_col and !is_offset_col) return false;
+
+        // Check height variation per column using cell coordinates
+        const cell_x = @divFloor(wx, cell_size);
+        const cell_z = @divFloor(wz, cell_size);
+        const seed_mix: u32 = @truncate(self.seed);
+        const h: u32 = (@as(u32, @bitCast(cell_x *% 83 +% cell_z *% 59)) +% seed_mix) % 100;
+        // 40% of cells have basalt column formations
+        if (h >= 40) return false;
+
+        // Column max height varies between y=8 and y=11
+        const max_h: i32 = if (is_center_col) 11 else 9;
+        return wy <= max_h;
+    }
+
     pub fn isCryingObsidian(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
         if (wy < 3 or wy > 5) return false;
         const seed_mix: u32 = @truncate(self.seed);
@@ -597,6 +623,8 @@ pub const NetherGenerator = struct {
                         const is_fence = (y == 8);
                         const b_id: @import("block.zig").BlockId = if (is_fence) .nether_brick_fence else .nether_brick;
                         chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), b_id);
+                    } else if (self.isBasaltColumn(wx, @intCast(y), wz)) {
+                        chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .basalt);
                     } else {
                         // Preserve wild wart planted at y=6 by the y=5 soul sand pass
                         if (chunk.getBlock(@intCast(lx), @intCast(y), @intCast(lz)) == .nether_wart) {
@@ -615,6 +643,26 @@ pub const NetherGenerator = struct {
         }
     }
 };
+
+test "NetherGenerator generates vertical basalt columns in volcanic cavern deltas" {
+    const nether_gen = NetherGenerator.init(12345);
+    var found = false;
+    var x: i32 = 0;
+    while (x <= 128) : (x += 1) {
+        var z: i32 = 0;
+        while (z <= 128) : (z += 1) {
+            if (nether_gen.isBasaltColumn(x, 6, z)) {
+                // Column should extend vertically from y=4 up to at least y=8
+                try std.testing.expect(nether_gen.isBasaltColumn(x, 4, z));
+                try std.testing.expect(nether_gen.isBasaltColumn(x, 8, z));
+                found = true;
+                break;
+            }
+        }
+        if (found) break;
+    }
+    try std.testing.expect(found);
+}
 
 test "NetherGenerator generates crying obsidian veins in deep strata" {
     const nether_gen = NetherGenerator.init(12345);
