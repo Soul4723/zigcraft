@@ -67,6 +67,7 @@ pub const BlockId = enum(u8) {
     ancient_debris = 60,
     respawn_anchor = 61,
     crying_obsidian = 62,
+    lodestone = 63,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block;
@@ -211,6 +212,10 @@ pub const BlockId = enum(u8) {
             .beacon => .{ .x = 7, .y = 0 }, // Crystalline glass beacon enclosing radiant star core
             .ancient_debris => .{ .x = 0, .y = 2 }, // Fossilized metallic ancient debris ore bands
             .crying_obsidian => .{ .x = 6, .y = 4 }, // Obsidian with weeping luminous purple veins
+            .lodestone => switch (face_idx) {
+                0, 1 => .{ .x = 7, .y = 3 }, // Concentric magnetic rune medallion top/bottom
+                else => .{ .x = 6, .y = 3 }, // Fluted magnetic stone column sides
+            },
             .respawn_anchor => switch (face_idx) {
                 0 => .{ .x = 5, .y = 2 }, // Radiant crystalline glowstone top portal core
                 else => .{ .x = 1, .y = 2 }, // Dense obsidian casing sides and bottom
@@ -281,6 +286,7 @@ pub fn hardness(block: BlockId) f32 {
         .ancient_debris => 12.0,
         .respawn_anchor => 15.0,
         .crying_obsidian => 15.0,
+        .lodestone => 5.0,
         .lava => 0.0,
         .obsidian => 15.0,
         .nether_portal => 0.0,
@@ -306,7 +312,7 @@ pub const ToolTier = enum(u8) {
 
 pub fn requiredTier(block: BlockId) ToolTier {
     return switch (block) {
-        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .ancient_debris, .respawn_anchor, .crying_obsidian => .wooden,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone => .wooden,
         else => .hand,
     };
 }
@@ -316,13 +322,13 @@ pub fn requiredTier(block: BlockId) ToolTier {
 pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
     if (held_tool_id == TOOL_NETHERITE_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .ancient_debris, .respawn_anchor, .crying_obsidian => 6.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone => 6.0,
             else => 3.0,
         };
     }
     if (held_tool_id == TOOL_IRON_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .ancient_debris, .respawn_anchor, .crying_obsidian => 4.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone => 4.0,
             else => 2.0,
         };
     }
@@ -405,6 +411,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .ancient_debris = .{ .name = "ancient_debris", .solid = true, .transparent = false, .fluid = false },
     .respawn_anchor = .{ .name = "respawn_anchor", .solid = true, .transparent = false, .fluid = false },
     .crying_obsidian = .{ .name = "crying_obsidian", .solid = true, .transparent = false, .fluid = false },
+    .lodestone = .{ .name = "lodestone", .solid = true, .transparent = false, .fluid = false },
 });
 
 /// A beacon activates when the column directly above it up to world ceiling (y=15)
@@ -431,6 +438,23 @@ test "isBeaconSkyClear checks column above beacon" {
     };
     try std.testing.expect(isBeaconSkyClear(Mock.openSky, 0, 5, 0));
     try std.testing.expect(!isBeaconSkyClear(Mock.blockedSky, 0, 5, 0));
+}
+
+test "lodestone block properties and textures" {
+    try std.testing.expect(BlockId.lodestone.is_solid());
+    try std.testing.expect(!BlockId.lodestone.is_transparent());
+    try std.testing.expectEqual(hardness(.lodestone), 5.0);
+    try std.testing.expectEqual(requiredTier(.lodestone), .wooden);
+    try std.testing.expectEqual(toolMultiplier(TOOL_NETHERITE_PICKAXE, .lodestone), 6.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_IRON_PICKAXE, .lodestone), 4.0);
+    try std.testing.expectEqual(footstepType(.lodestone), .stone);
+
+    const top_tex = BlockId.lodestone.getFaceTexture(0);
+    try std.testing.expectEqual(top_tex.x, 7);
+    try std.testing.expectEqual(top_tex.y, 3);
+    const side_tex = BlockId.lodestone.getFaceTexture(2);
+    try std.testing.expectEqual(side_tex.x, 6);
+    try std.testing.expectEqual(side_tex.y, 3);
 }
 
 test "crying obsidian properties, textures, and emissive glow" {
@@ -781,7 +805,7 @@ pub const FootstepType = enum {
 pub fn footstepType(block: BlockId) FootstepType {
     return switch (block) {
         .grass => .grass,
-        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .ancient_debris, .respawn_anchor, .crying_obsidian => .stone,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone => .stone,
         .wood => .wood,
         .dirt => .dirt,
         .sand => .sand,

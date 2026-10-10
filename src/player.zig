@@ -22,6 +22,7 @@ pub const Player = struct {
     in_whirlpool: bool = false,
     fire_resistance_timer: f32 = 0.0,
     wither_timer: f32 = 0.0,
+    lodestone_target: ?math.Vec3 = null,
 
     pub fn init(x: f32, y: f32, z: f32) Player {
         return .{
@@ -712,3 +713,11 @@ test "player fire resistance duration and immunity" {
     try std.testing.expect(!p.isFireImmune());
     try std.testing.expectEqual(@as(f32, 0.0), p.fire_resistance_timer);
 }
+test "player lodestone tracking target" {
+    var p = Player.init(0.0, 10.0, 0.0);
+    try std.testing.expectEqual(p.lodestone_target, null);
+    p.lodestone_target = math.Vec3.init(100.0, 64.0, -50.0);
+    try std.testing.expect(p.lodestone_target != null);
+    try std.testing.expectEqual(p.lodestone_target.?.x, 100.0);
+}
+
