@@ -427,6 +427,15 @@ pub const NetherGenerator = struct {
         return q > 0.25;
     }
 
+    /// Check if deeply buried netherrack contains an ancient debris fossil deposit (y = 2..4).
+    /// Uses deterministic 3D hash (~1 in 80 cells at y=2..4) so veins are rare, scattered deep fossils.
+    fn isAncientDebris(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
+        if (wy < 2 or wy > 4) return false;
+        const seed_mix: u32 = @truncate(self.seed);
+        const h: u32 = (@as(u32, @bitCast(wx *% 73 +% wy *% 19 +% wz *% 37)) +% seed_mix) % 80;
+        return h == 0;
+    }
+
     /// Check if soul sand shore column grows a wild nether wart patch.
     /// Subsets soul sand columns (same noise gate, sparser hash) so patches always sit on soul soil.
     fn isWartPatch(self: NetherGenerator, wx: i32, wz: i32) bool {
@@ -537,6 +546,8 @@ pub const NetherGenerator = struct {
                         } else if (y >= 10 and self.isGlowstone(wx, @intCast(y), wz)) {
                             // Ceiling hanging glowstone cluster
                             chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .glowstone);
+                        } else if (self.isAncientDebris(wx, @intCast(y), wz)) {
+                            chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .ancient_debris);
                         } else if (y <= 5 and is_soul) {
                             // Skip soil fill where a planted wart already roots (y=6 wart over y=5 soil).
                             if (chunk.getBlock(@intCast(lx), @intCast(y), @intCast(lz)) == .nether_wart) {
@@ -631,6 +642,22 @@ test "NetherGenerator fills netherrack, lava sea, and soul sand" {
     try std.testing.expect(has_magma);
     try std.testing.expect(has_glowstone);
     try std.testing.expect(has_quartz_ore);
+
+    // Verify Ancient Debris generation in a nearby subterranean chunk
+    var chunk2 = Chunk.init();
+    nether_gen.generateChunk(&chunk2, 1, 0);
+    var has_debris = false;
+    for (0..SIZE) |z_i| {
+        for (0..SIZE) |x_i| {
+            for (2..5) |y_i| {
+                if (chunk2.getBlock(@intCast(x_i), @intCast(y_i), @intCast(z_i)) == .ancient_debris or
+                    chunk.getBlock(@intCast(x_i), @intCast(y_i), @intCast(z_i)) == .ancient_debris) {
+                    has_debris = true;
+                }
+            }
+        }
+    }
+    try std.testing.expect(has_debris);
 }
 
 test "NetherGenerator generates nether fortress ruins" {

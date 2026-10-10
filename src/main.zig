@@ -2297,7 +2297,7 @@ pub fn main() !void {
                     // feed held item as input or fuel
                     const held_f = inventory.slots[selected_slot];
                     const smeltable = switch (held_f.item) {
-                        .raw_pork, .raw_mutton, .sand, .iron_ore => true,
+                        .raw_pork, .raw_mutton, .sand, .iron_ore, .ancient_debris => true,
                         else => false,
                     };
                     var fed = false;

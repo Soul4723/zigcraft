@@ -64,6 +64,7 @@ pub const BlockId = enum(u8) {
     spawner_cage = 57,
     wither_skull_block = 58,
     beacon = 59,
+    ancient_debris = 60,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block;
@@ -204,6 +205,7 @@ pub const BlockId = enum(u8) {
             .spawner_cage => .{ .x = 5, .y = 0 }, // Iron mesh spawner cage with burning core
             .wither_skull_block => .{ .x = 6, .y = 0 }, // Bleached wither skull trophy
             .beacon => .{ .x = 7, .y = 0 }, // Crystalline glass beacon enclosing radiant star core
+            .ancient_debris => .{ .x = 0, .y = 2 }, // Fossilized metallic ancient debris ore bands
             .crafting_table => switch (face_idx) {
                 0 => .{ .x = 3, .y = 2 }, // Table top with tools
                 1 => .{ .x = 2, .y = 2 }, // Planks bottom
@@ -266,6 +268,7 @@ pub fn hardness(block: BlockId) f32 {
         .spawner_cage => 5.0,
         .wither_skull_block => 0.5,
         .beacon => 3.0,
+        .ancient_debris => 12.0,
         .lava => 0.0,
         .obsidian => 15.0,
         .nether_portal => 0.0,
@@ -291,7 +294,7 @@ pub const ToolTier = enum(u8) {
 
 pub fn requiredTier(block: BlockId) ToolTier {
     return switch (block) {
-        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence => .wooden,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .ancient_debris => .wooden,
         else => .hand,
     };
 }
@@ -301,7 +304,7 @@ pub fn requiredTier(block: BlockId) ToolTier {
 pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
     if (held_tool_id == TOOL_IRON_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence => 4.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .ancient_debris => 4.0,
             else => 2.0,
         };
     }
@@ -381,6 +384,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .spawner_cage = .{ .name = "spawner_cage", .solid = true, .transparent = true, .fluid = false },
     .wither_skull_block = .{ .name = "wither_skull_block", .solid = false, .transparent = true, .fluid = false },
     .beacon = .{ .name = "beacon", .solid = true, .transparent = true, .fluid = false },
+    .ancient_debris = .{ .name = "ancient_debris", .solid = true, .transparent = false, .fluid = false },
 });
 
 /// A beacon activates when the column directly above it up to world ceiling (y=15)
@@ -407,6 +411,19 @@ test "isBeaconSkyClear checks column above beacon" {
     };
     try std.testing.expect(isBeaconSkyClear(Mock.openSky, 0, 5, 0));
     try std.testing.expect(!isBeaconSkyClear(Mock.blockedSky, 0, 5, 0));
+}
+
+test "ancient debris block properties and textures" {
+    try std.testing.expect(BlockId.ancient_debris.is_solid());
+    try std.testing.expect(!BlockId.ancient_debris.is_transparent());
+    try std.testing.expect(!BlockId.ancient_debris.is_fluid());
+    try std.testing.expectEqual(hardness(.ancient_debris), 12.0);
+    try std.testing.expectEqual(requiredTier(.ancient_debris), .wooden);
+    try std.testing.expectEqual(toolMultiplier(TOOL_IRON_PICKAXE, .ancient_debris), 4.0);
+    try std.testing.expectEqual(footstepType(.ancient_debris), .stone);
+    const tex = BlockId.ancient_debris.getFaceTexture(0);
+    try std.testing.expectEqual(tex.x, 0);
+    try std.testing.expectEqual(tex.y, 2);
 }
 
 test "block is_solid" {
@@ -702,7 +719,7 @@ pub const FootstepType = enum {
 pub fn footstepType(block: BlockId) FootstepType {
     return switch (block) {
         .grass => .grass,
-        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence => .stone,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .ancient_debris => .stone,
         .wood => .wood,
         .dirt => .dirt,
         .sand => .sand,

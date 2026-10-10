@@ -142,10 +142,20 @@ pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
         }
         return .{ 0, 0, 0, 0 };
     }
+    // Ancient Debris (0, 2): fossilized dark metallic bronze/charcoal bands with swirled slate veins
     if (tile_x == 0 and tile_y == 2) {
-        const n = hash2(x, y, 71) % 15;
-        const wc: u8 = 225 + @as(u8, @intCast(n));
-        return .{ wc, wc, wc - 5, 255 };
+        const band = (y % 4 == 0) or ((x + y * 2) % 7 == 0);
+        const knot = (x >= 5 and x <= 10 and y >= 5 and y <= 9);
+        if (knot) {
+            const kn = hash2(x, y, 149) % 12;
+            return .{ 75 + @as(u8, @intCast(kn)), 55 + @as(u8, @intCast(kn / 2)), 45, 255 }; // dense fossil core
+        }
+        if (band) {
+            const bn = hash2(x, y, 150) % 15;
+            return .{ 105 + @as(u8, @intCast(bn)), 80 + @as(u8, @intCast(bn / 2)), 68, 255 }; // metallic bronze vein
+        }
+        const n = hash2(x, y, 151) % 18;
+        return .{ 55 + @as(u8, @intCast(n)), 48 + @as(u8, @intCast(n)), 46 + @as(u8, @intCast(n)), 255 }; // dark slate matrix
     }
     if (tile_x == 1 and tile_y == 2) {
         const eye = (y >= 6 and y <= 8) and ((x >= 2 and x <= 5) or (x >= 10 and x <= 13));
