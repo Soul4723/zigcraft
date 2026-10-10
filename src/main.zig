@@ -1468,7 +1468,7 @@ pub fn main() !void {
                 const dir = cam.front();
                 mob_hit_cooldown = combat_mod.tickCooldown(mob_hit_cooldown, dt);
                 const held_weapon = inventory.slots[selected_slot].item;
-                const hit_dmg: u8 = combat_mod.meleeDamage(held_weapon == .iron_sword);
+                const hit_dmg: u8 = combat_mod.weaponDamage(held_weapon == .netherite_sword, held_weapon == .iron_sword);
                 const hit_mob_opt = if (left and mob_hit_cooldown <= 0.0) mob_manager.tryHitMobDmg(cam.position, dir, combat_mod.melee_range, hit_dmg) else null;
                 if (hit_mob_opt) |hit_mob| {
                     mob_hit_cooldown = combat_mod.melee_cooldown;
