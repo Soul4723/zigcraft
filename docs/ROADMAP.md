@@ -136,3 +136,4 @@ Rough priority order. Completed milestones marked **[x]**.
 108. [x] **Wither Bite Status Effect** — Skeleton bites apply 8s poison (1 HP/s drain, cleared on respawn) with dark purple HUD indicator bar stacked above fire-res bar (#226).
 109. [x] **Wither Healing Suppression** — Regen and passive hunger healing paused while withered; health bar darkens to bone-gray for readability (#227).
 110. [x] **Wither Cure via Golden Apple** — Eating a golden apple cleanses wither poison; milk bucket deferred until cows exist (#228).
+111. [x] **Wither Skeleton Skull Trophy** — Rare deterministic ~1/8 bone-white skull drop on wither skeleton kills (melee + fire-charge paths) (#229).
