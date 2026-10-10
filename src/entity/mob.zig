@@ -33,6 +33,7 @@ pub const Mob = struct {
     change_dir_timer: f32,
     wants_sound: bool,
     health: u8,
+    is_champion: bool = false,
     in_water: bool,
     in_bubble_column: bool,
     in_whirlpool: bool,
@@ -437,6 +438,11 @@ test "emberbeast tougher and faster than wolf" {
     try std.testing.expect(e.health > w.health);
     try std.testing.expect(e.walk_speed > w.walk_speed);
     try std.testing.expectEqual(e.mob_type, .emberbeast);
+}
+
+test "champion flag defaults off" {
+    const m = Mob.init(.wither_skeleton, 0.0, 1.0, 0.0);
+    try std.testing.expect(!m.is_champion);
 }
 
 test "wither skeleton tall, tough hunter" {

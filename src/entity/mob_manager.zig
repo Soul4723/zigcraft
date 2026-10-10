@@ -283,7 +283,7 @@ pub const MobManager = struct {
         }
     }
 
-    pub const HitResult = struct { mob_type: mob_mod.MobType, pos: math.Vec3, died: bool, drop: ?mob_mod.MobType, wool: bool };
+    pub const HitResult = struct { mob_type: mob_mod.MobType, pos: math.Vec3, died: bool, drop: ?mob_mod.MobType, wool: bool, is_champion: bool = false };
 
     /// Try hitting a mob with raycast from camera. Returns hit info incl. death/drop.
     pub fn tryHitMobDmg(self: *MobManager, origin: math.Vec3, dir: math.Vec3, max_dist: f32, dmg: u8) ?HitResult {
@@ -299,13 +299,14 @@ pub const MobManager = struct {
 
         if (hit_idx) |i| {
             const mtype = self.mobs.items[i].mob_type;
+            const was_champ = self.mobs.items[i].is_champion;
             const died = self.mobs.items[i].takeHitDmg(dir, dmg);
             if (died) {
                 const pos = self.mobs.items[i].pos;
                 _ = self.mobs.swapRemove(i);
-                return .{ .mob_type = mtype, .pos = pos, .died = true, .drop = mtype, .wool = mtype == .sheep };
+                return .{ .mob_type = mtype, .pos = pos, .died = true, .drop = mtype, .wool = mtype == .sheep, .is_champion = was_champ };
             }
-            return .{ .mob_type = mtype, .pos = self.mobs.items[i].pos, .died = false, .drop = null, .wool = false };
+            return .{ .mob_type = mtype, .pos = self.mobs.items[i].pos, .died = false, .drop = null, .wool = false, .is_champion = was_champ };
         }
 
         return null;
@@ -490,4 +491,15 @@ test "MobManager mob burn damage contact hazard on magma or campfire" {
     // 1 second pass: mob dies and is removed
     mm.tick(MockWorld.solid, MockWorld.fluid, MockWorld.block, math.Vec3.init(50, 0, 0), 0.4, null, 1.0);
     try std.testing.expectEqual(@as(usize, 0), mm.mobs.items.len);
+}
+
+test "mob manager hit reports champion status" {
+    var mm = try MobManager.init(std.testing.allocator, 0);
+    defer mm.deinit();
+    try mm.spawnMob(.wither_skeleton, 0.5, 1.0, 5.0);
+    mm.mobs.items[0].is_champion = true;
+    const hit = mm.tryHitMobDmg(math.Vec3.init(0.5, 1.5, 0.0), math.Vec3.init(0.0, 0.0, 1.0), 10.0, 5);
+    try std.testing.expect(hit != null);
+    try std.testing.expect(hit.?.is_champion);
+    try std.testing.expect(!hit.?.died);
 }

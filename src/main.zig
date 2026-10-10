@@ -1111,7 +1111,7 @@ pub fn main() !void {
                     const pack_count = mob_manager.countNearbyWolves(m.pos, entity_mod.pack_hunt.pack_rally_radius);
                     const bonus = entity_mod.pack_hunt.packBonus(pack_count);
                     const hit = combat_mod.calculateWolfBite(bdx, bdz, bonus);
-                    const dmg = if (m.mob_type == .emberbeast) hit.damage * 2.0 else if (m.mob_type == .wither_skeleton) hit.damage * 1.5 else hit.damage;
+                    const dmg = if (m.is_champion) hit.damage * 2.5 else if (m.mob_type == .emberbeast) hit.damage * 2.0 else if (m.mob_type == .wither_skeleton) hit.damage * 1.5 else hit.damage;
                     player.health = @max(0.0, player.health - dmg);
                     if (m.mob_type == .wither_skeleton) {
                         player.applyWither();
@@ -1489,7 +1489,11 @@ pub fn main() !void {
                             if (bonus > 0) _ = inventory.addItem(.nether_wart, bonus);
                             particles.spawnFlame(px, py, pz, 6);
                         }
-                        if (hit_mob.mob_type == .wither_skeleton and inventory_mod.dropsWitherSkull(px, py, pz)) {
+                        if (hit_mob.is_champion) {
+                            _ = inventory.addItem(.nether_star, 1);
+                            _ = inventory.addItem(.wither_skull, 2);
+                            std.debug.print("wither champion slain: nether star dropped\n", .{});
+                        } else if (hit_mob.mob_type == .wither_skeleton and inventory_mod.dropsWitherSkull(px, py, pz)) {
                             _ = inventory.addItem(.wither_skull, 1);
                             std.debug.print("wither skull dropped\n", .{});
                         }
@@ -1663,6 +1667,7 @@ pub fn main() !void {
                                                 mob_manager.spawnMob(.wither_skeleton, @as(f32, @floatFromInt(site.base_x)) + 0.5, @as(f32, @floatFromInt(site.base_y)) + 1.0, @as(f32, @floatFromInt(site.base_z)) + 0.5) catch {};
                                                 if (mob_manager.mobs.items.len > 0) {
                                                     mob_manager.mobs.items[mob_manager.mobs.items.len - 1].health = 30;
+                                                    mob_manager.mobs.items[mob_manager.mobs.items.len - 1].is_champion = true;
                                                 }
                                                 audio.playAt(.mob_roar, .{ @as(f32, @floatFromInt(site.base_x)) + 0.5, @as(f32, @floatFromInt(site.base_y)) + 1.0, @as(f32, @floatFromInt(site.base_z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 40.0);
                                                 particles.spawnFlame(site.base_x, site.base_y + 1, site.base_z, 24);
@@ -1968,7 +1973,11 @@ pub fn main() !void {
                                         if (bonus > 0) _ = inventory.addItem(.nether_wart, bonus);
                                         particles.spawnFlame(mbx, mby, mbz, 6);
                                     }
-                                    if (m.mob_type == .wither_skeleton and inventory_mod.dropsWitherSkull(mbx, mby, mbz)) {
+                                    if (m.is_champion) {
+                                        _ = inventory.addItem(.nether_star, 1);
+                                        _ = inventory.addItem(.wither_skull, 2);
+                                        std.debug.print("wither champion slain: nether star dropped\n", .{});
+                                    } else if (m.mob_type == .wither_skeleton and inventory_mod.dropsWitherSkull(mbx, mby, mbz)) {
                                         _ = inventory.addItem(.wither_skull, 1);
                                         std.debug.print("wither skull dropped\n", .{});
                                     }
