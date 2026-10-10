@@ -73,6 +73,8 @@ pub const ItemType = enum(u8) {
     wither_skull = 67,
     nether_star = 68,
     beacon = 69,
+    ancient_debris = 70,
+    netherite_scrap = 71,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -124,6 +126,7 @@ pub const ItemType = enum(u8) {
             .spawner_cage => .spawner_cage,
             .wither_skull => .wither_skull_block,
             .beacon => .beacon,
+            .ancient_debris => .ancient_debris,
             else => null,
         };
     }
@@ -182,6 +185,7 @@ pub const ItemType = enum(u8) {
             .spawner_cage => .spawner_cage,
             .wither_skull_block => .wither_skull,
             .beacon => .beacon,
+            .ancient_debris => .ancient_debris,
         };
     }
 
@@ -274,6 +278,8 @@ pub const ItemType = enum(u8) {
             .wither_skull => "Wither Skeleton Skull",
             .nether_star => "Nether Star",
             .beacon => "Beacon",
+            .ancient_debris => "Ancient Debris",
+            .netherite_scrap => "Netherite Scrap",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -349,6 +355,8 @@ pub const ItemType = enum(u8) {
             .wither_skull => .{ 0.85, 0.83, 0.80, 0.95 },
             .nether_star => .{ 0.55, 0.95, 1.0, 1.0 },
             .beacon => .{ 0.50, 0.90, 0.95, 0.95 },
+            .ancient_debris => .{ 0.38, 0.32, 0.28, 0.95 },
+            .netherite_scrap => .{ 0.28, 0.22, 0.20, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -1309,6 +1317,14 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         }
         return 0;
     }
+}
+
+test "ancient debris block and item roundtrip" {
+    try std.testing.expectEqual(ItemType.ancient_debris.toBlockId().?, .ancient_debris);
+    try std.testing.expectEqual(ItemType.fromBlockId(.ancient_debris), .ancient_debris);
+    try std.testing.expectEqual(ItemType.netherite_scrap.toBlockId(), null);
+    try std.testing.expectEqualStrings(ItemType.ancient_debris.name(), "Ancient Debris");
+    try std.testing.expectEqualStrings(ItemType.netherite_scrap.name(), "Netherite Scrap");
 }
 
 test "crafting recipe: beacon from nether star, obsidian, glass" {
