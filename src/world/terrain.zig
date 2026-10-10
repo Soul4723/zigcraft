@@ -429,6 +429,15 @@ pub const NetherGenerator = struct {
 
     /// Check if deeply buried netherrack contains an ancient debris fossil deposit (y = 2..4).
     /// Uses deterministic 3D hash (~1 in 80 cells at y=2..4) so veins are rare, scattered deep fossils.
+    /// Check if deep cavern or lava shore strata contains a crying obsidian cluster (y = 3..5).
+    /// Uses deterministic 3D hash (~1 in 90 cells at y=3..5) near ancient ruins/magma beds.
+    pub fn isCryingObsidian(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
+        if (wy < 3 or wy > 5) return false;
+        const seed_mix: u32 = @truncate(self.seed);
+        const h: u32 = (@as(u32, @bitCast(wx *% 47 +% wy *% 29 +% wz *% 67)) +% seed_mix) % 90;
+        return h == 0;
+    }
+
     fn isAncientDebris(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
         if (wy < 2 or wy > 4) return false;
         const seed_mix: u32 = @truncate(self.seed);
@@ -548,6 +557,8 @@ pub const NetherGenerator = struct {
                             chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .glowstone);
                         } else if (self.isAncientDebris(wx, @intCast(y), wz)) {
                             chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .ancient_debris);
+                        } else if (self.isCryingObsidian(wx, @intCast(y), wz)) {
+                            chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .crying_obsidian);
                         } else if (y <= 5 and is_soul) {
                             // Skip soil fill where a planted wart already roots (y=6 wart over y=5 soil).
                             if (chunk.getBlock(@intCast(lx), @intCast(y), @intCast(lz)) == .nether_wart) {
@@ -604,6 +615,27 @@ pub const NetherGenerator = struct {
         }
     }
 };
+
+test "NetherGenerator generates crying obsidian veins in deep strata" {
+    const nether_gen = NetherGenerator.init(12345);
+    var found = false;
+    var x: i32 = -50;
+    while (x <= 50) : (x += 1) {
+        var z: i32 = -50;
+        while (z <= 50) : (z += 1) {
+            var y: i32 = 3;
+            while (y <= 5) : (y += 1) {
+                if (nether_gen.isCryingObsidian(x, y, z)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found) break;
+        }
+        if (found) break;
+    }
+    try std.testing.expect(found);
+}
 
 test "NetherGenerator fills netherrack, lava sea, and soul sand" {
     const nether_gen = NetherGenerator.init(12345);
