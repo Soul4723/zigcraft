@@ -144,3 +144,4 @@ Rough priority order. Completed milestones marked **[x]**.
 116. [x] **Active Beacon Sky Beam & Regeneration Aura** — Unobstructed beacons emit ascending cyan/white sky beam particles (12-16 m/s) and grant a continuous 24m regeneration aura (#229).
 117. [x] **Ancient Debris Generation & Netherite Scrap Smelting** — Rare ancient debris veins generate in deep Nether strata (y=2..4), mine with pickaxe, and smelt in furnaces into netherite scrap (#231).
 118. [x] **Netherite Ingot Crafting & Netherite Pickaxe Upgrade** — 2 scraps + 2 iron ingots craft netherite ingots; upgrade iron pickaxes into netherite pickaxes (350 durability, 6.0x mining speed) (#233).
+119. [x] **Netherite Sword Weapon Upgrade & Tier-4 Combat** — 1 Iron Sword + 1 Netherite Ingot upgrades into Netherite Sword (400 durability, 4 melee damage) (#235).
