@@ -83,6 +83,8 @@ pub const ItemType = enum(u8) {
     lodestone = 77,
     basalt = 78,
     blackstone = 79,
+    gilded_blackstone = 80,
+    gold_nugget = 81,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -140,6 +142,7 @@ pub const ItemType = enum(u8) {
             .lodestone => .lodestone,
             .basalt => .basalt,
             .blackstone => .blackstone,
+            .gilded_blackstone => .gilded_blackstone,
             else => null,
         };
     }
@@ -204,6 +207,7 @@ pub const ItemType = enum(u8) {
             .lodestone => .lodestone,
             .basalt => .basalt,
             .blackstone => .blackstone,
+            .gilded_blackstone => .gilded_blackstone,
         };
     }
 
@@ -308,6 +312,8 @@ pub const ItemType = enum(u8) {
             .lodestone => "Lodestone",
             .basalt => "Basalt",
             .blackstone => "Blackstone",
+            .gilded_blackstone => "Gilded Blackstone",
+            .gold_nugget => "Gold Nugget",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -393,6 +399,8 @@ pub const ItemType = enum(u8) {
             .lodestone => .{ 0.60, 0.60, 0.65, 0.95 },
             .basalt => .{ 0.28, 0.28, 0.32, 0.95 },
             .blackstone => .{ 0.18, 0.18, 0.20, 0.95 },
+            .gilded_blackstone => .{ 0.85, 0.65, 0.15, 0.95 },
+            .gold_nugget => .{ 1.0, 0.85, 0.10, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -832,6 +840,30 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 47: Golden Apple via Nuggets: 2 Apples + 2 Gold Nuggets -> 1 Golden Apple
+        if (non_empty == 4) {
+            var apple_cnt: u8 = 0;
+            var nugget_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.isEmpty()) continue;
+                if (sl.item == .apple) apple_cnt += 1 else if (sl.item == .gold_nugget) nugget_cnt += 1;
+            }
+            if (apple_cnt == 2 and nugget_cnt == 2) {
+                self.craft_output = .{ .item = .golden_apple, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 46: Gilded Blackstone: 1 Blackstone + 1 Gold Nugget -> 1 Gilded Blackstone
+        if (non_empty == 2) {
+            const has_blackstone = (g0 == .blackstone or g1 == .blackstone or g2 == .blackstone or g3 == .blackstone);
+            const has_gold = (g0 == .gold_nugget or g1 == .gold_nugget or g2 == .gold_nugget or g3 == .gold_nugget);
+            if (has_blackstone and has_gold) {
+                self.craft_output = .{ .item = .gilded_blackstone, .count = 1 };
                 return;
             }
         }
@@ -1435,7 +1467,11 @@ pub const BlockDrop = struct {
 };
 
 pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
-    if (block == .coal_ore) {
+    if (block == .gilded_blackstone) {
+        out[0] = .{ .item = .blackstone, .count = 1 };
+        out[1] = .{ .item = .gold_nugget, .count = 2 };
+        return 2;
+    } else if (block == .coal_ore) {
         out[0] = .{ .item = .coal, .count = 1 };
         out[1] = .{ .item = .cobblestone, .count = 1 };
         return 2;
@@ -1453,6 +1489,37 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         }
         return 0;
     }
+}
+
+test "gilded blackstone item roundtrip, drops, and gold recipes" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .blackstone, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .gold_nugget, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .gilded_blackstone);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+    try std.testing.expectEqual(ItemType.gilded_blackstone.toBlockId().?, .gilded_blackstone);
+    try std.testing.expectEqual(ItemType.fromBlockId(.gilded_blackstone), .gilded_blackstone);
+    try std.testing.expectEqualStrings(ItemType.gilded_blackstone.name(), "Gilded Blackstone");
+    try std.testing.expectEqualStrings(ItemType.gold_nugget.name(), "Gold Nugget");
+
+    // Mining drops check: drops blackstone + 2 gold nuggets
+    var drops: [4]BlockDrop = undefined;
+    const n = getBlockDrops(.gilded_blackstone, &drops);
+    try std.testing.expectEqual(n, 2);
+    try std.testing.expectEqual(drops[0].item, .blackstone);
+    try std.testing.expectEqual(drops[0].count, 1);
+    try std.testing.expectEqual(drops[1].item, .gold_nugget);
+    try std.testing.expectEqual(drops[1].count, 2);
+
+    // Recipe 47: 2 apples + 2 gold nuggets -> golden apple
+    inv.craft_grid[0] = .{ .item = .apple, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .gold_nugget, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .apple, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .gold_nugget, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .golden_apple);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
 }
 
 test "blackstone item roundtrip and crafting recipe" {
