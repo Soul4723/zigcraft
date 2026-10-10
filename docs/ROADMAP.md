@@ -133,3 +133,4 @@ Rough priority order. Completed milestones marked **[x]**.
 105. [x] **Spawner Cage Mob Wave Anchoring** — Fortress reinforcement pulse detects nearby active spawner cages (16m activation radius) and spawns emberbeasts near the cage alcove (#223).
 106. [x] **Spawner Cage Spinning Ember Particles** — Active player-placed spawner cages emit orbiting ember flames within 16m activation radius (#224).
 107. [x] **Wither Skeleton Fortress Hunter** — Tall bone mob (10 HP, 1.5x bite, fire-immune) guarding fortress bridges with hunt AI and spawner waves (#225).
+108. [x] **Wither Bite Status Effect** — Skeleton bites apply 8s poison (1 HP/s drain, cleared on respawn) with dark purple HUD indicator bar stacked above fire-res bar (#226).
