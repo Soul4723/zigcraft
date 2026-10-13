@@ -275,6 +275,9 @@ pub fn main() !void {
     };
     var armor_stands: [cache_mod.armor_stand_cap]ArmorStandState = undefined;
     var armor_stand_count: usize = 0;
+    const EnchantmentTableState = struct { x: i32, y: i32, z: i32 };
+    var enchantment_tables: [cache_mod.enchantment_table_cap]EnchantmentTableState = undefined;
+    var enchantment_table_count: usize = 0;
     const DropperState = struct { x: i32, y: i32, z: i32, powered: bool = false, items: [4]inventory_mod.ItemStack = undefined, count: usize = 0 };
     var droppers: [32]DropperState = undefined;
     var dropper_count: usize = 0;
@@ -581,6 +584,22 @@ pub fn main() !void {
                     }
                 }
                 asi += 1;
+            }
+        }
+
+        // Enchantment table celestial mystic glyph shimmer particles
+        {
+            var eti: usize = 0;
+            while (eti < enchantment_table_count) {
+                const et = &enchantment_tables[eti];
+                const cur_b = manager.getBlockWorld(et.x, et.y, et.z);
+                if (cur_b != .enchantment_table) {
+                    cache_mod.swapRemove(&enchantment_tables, &enchantment_table_count, eti);
+                    continue;
+                }
+                // Floating mystical rune particles ascending from pedestal
+                particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(et.x)) + 0.5, @as(f32, @floatFromInt(et.y)) + 0.85, @as(f32, @floatFromInt(et.z)) + 0.5 }, 1);
+                eti += 1;
             }
         }
 
@@ -2347,6 +2366,10 @@ pub fn main() !void {
                                             armor_stands[armor_stand_count] = .{ .x = px, .y = py, .z = pz };
                                             armor_stand_count += 1;
                                         }
+                                        if (place_type == .enchantment_table and enchantment_table_count < enchantment_tables.len) {
+                                            enchantment_tables[enchantment_table_count] = .{ .x = px, .y = py, .z = pz };
+                                            enchantment_table_count += 1;
+                                        }
                                         if (place_type == .spawner_cage and spawner_count < spawners.len) {
                                             spawners[spawner_count] = .{ .x = px, .y = py, .z = pz };
                                             spawner_count += 1;
@@ -3424,6 +3447,27 @@ pub fn main() !void {
                             }
                             audio.playAt(.click_off, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
                         }
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .enchantment_table) {
+                    var et_opt = cache_mod.findEnchantmentTable(&enchantment_tables, enchantment_table_count, hit_f.x, hit_f.y, hit_f.z);
+                    if (et_opt == null and enchantment_table_count < enchantment_tables.len) {
+                        enchantment_tables[enchantment_table_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z };
+                        et_opt = enchantment_table_count;
+                        enchantment_table_count += 1;
+                    }
+
+                    const held_slot = &inventory.slots[selected_slot];
+                    if (held_slot.item.isTool()) {
+                        // Mystic enchantment honing: restore wear / repair held tool
+                        tool_wear.uses[selected_slot] = 0;
+                        audio.playAt(.glowstone_chime, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 32.0);
+                        particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 12);
+                        std.debug.print("enchantment table sharpened/repaired {s} at ({d},{d},{d})\n", .{ held_slot.item.name(), hit_f.x, hit_f.y, hit_f.z });
+                    } else {
+                        // Celestial grimoire glyph spark inspection
+                        audio.playAt(.click_on, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.7, 24.0);
+                        particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 4);
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .jukebox) {

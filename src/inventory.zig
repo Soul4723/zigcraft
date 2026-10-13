@@ -124,6 +124,7 @@ pub const ItemType = enum(u8) {
     lead = 118,
     armor_stand = 119,
     target_dummy = 120,
+    enchantment_table = 121,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -201,6 +202,7 @@ pub const ItemType = enum(u8) {
             .jukebox => .jukebox,
             .oak_fence => .oak_fence,
             .armor_stand => .armor_stand,
+            .enchantment_table => .enchantment_table,
             else => null,
         };
     }
@@ -284,6 +286,7 @@ pub const ItemType = enum(u8) {
             .jukebox => .jukebox,
             .oak_fence => .oak_fence,
             .armor_stand => .armor_stand,
+            .enchantment_table => .enchantment_table,
         };
     }
 
@@ -447,6 +450,7 @@ pub const ItemType = enum(u8) {
             .lead => "Lead",
             .armor_stand => "Armor Stand",
             .target_dummy => "Target Dummy",
+            .enchantment_table => "Enchantment Table",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -509,6 +513,7 @@ pub const ItemType = enum(u8) {
             .lead => .{ 0.85, 0.75, 0.55, 0.95 },
             .armor_stand => .{ 0.75, 0.60, 0.42, 0.95 },
             .target_dummy => .{ 0.90, 0.80, 0.35, 0.95 },
+            .enchantment_table => .{ 0.60, 0.20, 0.70, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1057,6 +1062,22 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 85: Enchantment Table: 2 Obsidian + 1 Nether Quartz (or Nether Star / Gold Nugget) + 1 Wood Planks (or Wool) -> 1 Enchantment Table
+        if (non_empty == 4) {
+            var obs_count: u8 = 0;
+            var gem_count: u8 = 0;
+            var book_cloth_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .obsidian or sl.item == .crying_obsidian) obs_count += 1;
+                if (sl.item == .nether_quartz or sl.item == .nether_star or sl.item == .gold_nugget) gem_count += 1;
+                if (sl.item == .wood_planks or sl.item == .wool) book_cloth_count += 1;
+            }
+            if (obs_count == 2 and gem_count == 1 and book_cloth_count == 1) {
+                self.craft_output = .{ .item = .enchantment_table, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 84: Target Dummy: 1 Hay Bale + 1..2 Sticks + 1 Wood Planks (or Wool) -> 1 Target Dummy
         if (non_empty >= 3 and non_empty <= 4) {
@@ -3389,4 +3410,30 @@ test "target dummy item properties, mob drop, and Recipe 84" {
     try std.testing.expectEqual(ItemType.target_dummy.maxStackSize(), 16);
 
     try std.testing.expectEqual(ItemType.hay_bale, getMobMeatDrop(.target_dummy));
+}
+
+test "enchantment table item roundtrip, properties, and Recipe 85" {
+    var inv = Inventory.init();
+    // Recipe 85: 2 Obsidian + 1 Nether Quartz + 1 Wood Planks -> 1 Enchantment Table
+    inv.craft_grid[0] = .{ .item = .obsidian, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .obsidian, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .nether_quartz, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .wood_planks, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .enchantment_table);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Also works with Nether Star & Wool
+    inv.craft_grid[2] = .{ .item = .nether_star, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .wool, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .enchantment_table);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.enchantment_table.toBlockId().?, .enchantment_table);
+    try std.testing.expectEqual(ItemType.fromBlockId(.enchantment_table), .enchantment_table);
+    try std.testing.expectEqualStrings(ItemType.enchantment_table.name(), "Enchantment Table");
+    try std.testing.expectEqual(ItemType.enchantment_table.maxDurability(), 0);
+    try std.testing.expect(!ItemType.enchantment_table.isTool());
+    try std.testing.expectEqual(ItemType.enchantment_table.maxStackSize(), 64);
 }

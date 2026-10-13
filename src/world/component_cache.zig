@@ -310,3 +310,16 @@ test "findArmorStand helper" {
     try std.testing.expectEqual(findArmorStand(&as_arr, 1, 15, 30, 45), @as(?usize, 0));
     try std.testing.expectEqual(findArmorStand(&as_arr, 1, 0, 0, 0), @as(?usize, null));
 }
+
+pub const enchantment_table_cap: usize = 32;
+
+pub fn findEnchantmentTable(tables: anytype, n: usize, x: i32, y: i32, z: i32) ?usize {
+    return find2D(tables, n, x, y, z);
+}
+
+test "findEnchantmentTable helper" {
+    const FakeTable = struct { x: i32, y: i32, z: i32 };
+    var et = [_]FakeTable{.{ .x = 10, .y = 20, .z = 30 }} ** 2;
+    try std.testing.expectEqual(findEnchantmentTable(&et, 1, 10, 20, 30), @as(?usize, 0));
+    try std.testing.expectEqual(findEnchantmentTable(&et, 1, 0, 0, 0), @as(?usize, null));
+}
