@@ -137,6 +137,7 @@ pub const ItemType = enum(u8) {
     blast_furnace = 131,
     stonecutter = 132,
     lantern = 133,
+    soul_lantern = 134,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -226,6 +227,7 @@ pub const ItemType = enum(u8) {
             .blast_furnace => .blast_furnace,
             .stonecutter => .stonecutter,
             .lantern => .lantern,
+            .soul_lantern => .soul_lantern,
             else => null,
         };
     }
@@ -321,6 +323,7 @@ pub const ItemType = enum(u8) {
             .blast_furnace => .blast_furnace,
             .stonecutter => .stonecutter,
             .lantern => .lantern,
+            .soul_lantern => .soul_lantern,
         };
     }
 
@@ -505,6 +508,7 @@ pub const ItemType = enum(u8) {
             .blast_furnace => "Blast Furnace",
             .stonecutter => "Stonecutter",
             .lantern => "Lantern",
+            .soul_lantern => "Soul Lantern",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -580,6 +584,7 @@ pub const ItemType = enum(u8) {
             .blast_furnace => .{ 0.30, 0.32, 0.34, 0.95 },
             .stonecutter => .{ 0.50, 0.50, 0.52, 0.95 },
             .lantern => .{ 0.95, 0.75, 0.35, 0.95 },
+            .soul_lantern => .{ 0.35, 0.75, 0.85, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1128,6 +1133,22 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 97: Soul Lantern: 1 Soul Torch + 1..3 Iron Ingots (or Iron Ore) -> 1 Soul Lantern
+        if (non_empty >= 2 and non_empty <= 4) {
+            var soul_torch_count: u8 = 0;
+            var iron_count: u8 = 0;
+            var other_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .soul_torch) soul_torch_count += 1
+                else if (sl.item == .iron_ingot or sl.item == .iron_ore) iron_count += 1
+                else if (!sl.isEmpty()) other_count += 1;
+            }
+            if (soul_torch_count == 1 and iron_count >= 1 and other_count == 0) {
+                self.craft_output = .{ .item = .soul_lantern, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 96: Lantern: 1 Torch + 1..3 Iron Ingots (or Iron Ore) -> 1 Lantern
         if (non_empty >= 2 and non_empty <= 4) {
@@ -3846,6 +3867,29 @@ test "loom item roundtrip, properties, and Recipe 92" {
     try std.testing.expectEqual(ItemType.loom.maxDurability(), 0);
     try std.testing.expect(!ItemType.loom.isTool());
     try std.testing.expectEqual(ItemType.loom.maxStackSize(), 64);
+}
+
+test "soul_lantern item roundtrip, properties, and Recipe 97" {
+    var inv = Inventory.init();
+    // Recipe 97: 1 Soul Torch + 1 Iron Ingot -> 1 Soul Lantern
+    inv.craft_grid[0] = .{ .item = .soul_torch, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .iron_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .soul_lantern);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Alternative: 1 Soul Torch + 2 Iron Ore
+    inv.craft_grid[1] = .{ .item = .iron_ore, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .iron_ore, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .soul_lantern);
+
+    try std.testing.expectEqual(ItemType.soul_lantern.toBlockId().?, .soul_lantern);
+    try std.testing.expectEqual(ItemType.fromBlockId(.soul_lantern), .soul_lantern);
+    try std.testing.expectEqualStrings(ItemType.soul_lantern.name(), "Soul Lantern");
+    try std.testing.expectEqual(ItemType.soul_lantern.maxDurability(), 0);
+    try std.testing.expect(!ItemType.soul_lantern.isTool());
+    try std.testing.expectEqual(ItemType.soul_lantern.maxStackSize(), 64);
 }
 
 test "lantern item roundtrip, properties, and Recipe 96" {
