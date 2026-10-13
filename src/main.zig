@@ -227,6 +227,9 @@ pub fn main() !void {
     const RedTorch = cache_mod.RedTorch;
     var red_torches: [cache_mod.red_torch_cap]RedTorch = undefined;
     var red_torch_count: usize = 0;
+    const TargetPulse = struct { x: i32, y: i32, z: i32, t: f32 };
+    var target_pulses: [16]TargetPulse = undefined;
+    var target_pulse_count: usize = 0;
     var toast = toast_mod.Toast{};
     var rs_cap_warned_plate = false;
     var rs_cap_warned_wire = false;
@@ -670,6 +673,20 @@ pub fn main() !void {
             }
         }
 
+        // Target block pulse decay: pulse expires after 0.4s
+        {
+            var tpi: usize = 0;
+            while (tpi < target_pulse_count) {
+                target_pulses[tpi].t -= dt;
+                if (target_pulses[tpi].t <= 0.0 or manager.getBlockWorld(target_pulses[tpi].x, target_pulses[tpi].y, target_pulses[tpi].z) != .target_block) {
+                    target_pulses[tpi] = target_pulses[target_pulse_count - 1];
+                    target_pulse_count -= 1;
+                } else {
+                    tpi += 1;
+                }
+            }
+        }
+
         // Pressure plate trigger logic: test player and mob positions on active plates
         {
             var pi: usize = 0;
@@ -807,7 +824,16 @@ pub fn main() !void {
                 const w = &wires[wi];
                 for (adj_dirs) |ad| {
                     const nb = manager.getBlockWorld(w.x + ad[0], w.y + ad[1], w.z + ad[2]);
-                    if (redstone_mod.isSource(nb)) {
+                    var is_src = redstone_mod.isSource(nb);
+                    if (!is_src and nb == .target_block) {
+                        for (target_pulses[0..target_pulse_count]) |tp| {
+                            if (tp.x == w.x + ad[0] and tp.y == w.y + ad[1] and tp.z == w.z + ad[2]) {
+                                is_src = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (is_src) {
                         strength[wi] = redstone_mod.max_strength;
                         break;
                     }
@@ -1998,14 +2024,29 @@ pub fn main() !void {
                                     std.debug.print("fireball ignited flame\n", .{});
                                 }
                             }
+                            if (struck == .target_block) {
+                                var found_tp = false;
+                                for (target_pulses[0..target_pulse_count]) |*tp| {
+                                    if (tp.x == mbx and tp.y == mby and tp.z == mbz) {
+                                        tp.t = redstone_mod.target_pulse_duration;
+                                        found_tp = true;
+                                        break;
+                                    }
+                                }
+                                if (!found_tp and target_pulse_count < target_pulses.len) {
+                                    target_pulses[target_pulse_count] = .{ .x = mbx, .y = mby, .z = mbz, .t = redstone_mod.target_pulse_duration };
+                                    target_pulse_count += 1;
+                                }
+                                audio.play(.click_on, 0.8);
+                            }
                             particles.spawnFlame(mbx, mby, mbz, 8);
                             audio.play(.burn_sizzle, 0.4);
                             dead = true;
                         }
                     }
                     if (!dead and t.kind != .hostile_fireball and pickSolid(mbx, mby, mbz)) {
+                        const struck = manager.getBlockWorld(mbx, mby, mbz);
                         if (t.kind == .player_fire_charge) {
-                            const struck = manager.getBlockWorld(mbx, mby, mbz);
                             if (struck == .tnt and fuse_count < fuses.len) {
                                 fuses[fuse_count] = .{ .x = mbx, .y = mby, .z = mbz, .t = 2.5 };
                                 fuse_count += 1;
@@ -2025,6 +2066,23 @@ pub fn main() !void {
                             audio.play(.burn_sizzle, 0.4);
                         } else {
                             particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.93, 0.95, 1.0 }, 6);
+                            if (struck == .target_block) {
+                                var found_tp = false;
+                                for (target_pulses[0..target_pulse_count]) |*tp| {
+                                    if (tp.x == mbx and tp.y == mby and tp.z == mbz) {
+                                        tp.t = redstone_mod.target_pulse_duration;
+                                        found_tp = true;
+                                        break;
+                                    }
+                                }
+                                if (!found_tp and target_pulse_count < target_pulses.len) {
+                                    target_pulses[target_pulse_count] = .{ .x = mbx, .y = mby, .z = mbz, .t = redstone_mod.target_pulse_duration };
+                                    target_pulse_count += 1;
+                                }
+                                audio.play(.click_on, 0.8);
+                                particles.spawnBurnSparks(.{ @as(f32, @floatFromInt(mbx)) + 0.5, @as(f32, @floatFromInt(mby)) + 0.5, @as(f32, @floatFromInt(mbz)) + 0.5 }, 12);
+                                std.debug.print("target block struck: emitting redstone signal\n", .{});
+                            }
                         }
                         dead = true;
                     } else if (!dead and t.kind != .hostile_fireball) {

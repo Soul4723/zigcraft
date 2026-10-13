@@ -75,6 +75,8 @@ pub const BlockId = enum(u8) {
     weeping_vines = 67,
     // ponytail: single twisting vine block; upgrade with age growth stages when vine tick loop lands.
     twisting_vines = 68,
+    // ponytail: single target block; upgrade with multi-ring hit precision strength when raycast uv hits land.
+    target_block = 69,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines;
@@ -102,6 +104,10 @@ pub const BlockId = enum(u8) {
 
     pub fn is_twisting_vines(self: BlockId) bool {
         return self == .twisting_vines;
+    }
+
+    pub fn is_target_block(self: BlockId) bool {
+        return self == .target_block;
     }
 
     pub fn is_fluid(self: BlockId) bool {
@@ -140,7 +146,7 @@ pub const BlockId = enum(u8) {
 
     pub fn isFlammable(self: BlockId) bool {
         return switch (self) {
-            .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest, .wooden_door_closed, .wooden_door_open, .pressure_plate_up, .pressure_plate_down, .weeping_vines, .twisting_vines => true,
+            .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest, .wooden_door_closed, .wooden_door_open, .pressure_plate_up, .pressure_plate_down, .weeping_vines, .twisting_vines, .target_block => true,
             else => false,
         };
     }
@@ -241,6 +247,7 @@ pub const BlockId = enum(u8) {
             .gilded_blackstone => .{ .x = 3, .y = 5 }, // Charcoal masonry studded with glittering gold seams
             .weeping_vines => .{ .x = 6, .y = 1 }, // Crimson hanging tendrils and wart bulbs
             .twisting_vines => .{ .x = 7, .y = 1 }, // Cyan glowing warped tendril spiral
+            .target_block => .{ .x = 3, .y = 3 }, // Concentric bullseye target and redstone hay band
             .respawn_anchor => switch (face_idx) {
                 0 => .{ .x = 5, .y = 2 }, // Radiant crystalline glowstone top portal core
                 else => .{ .x = 1, .y = 2 }, // Dense obsidian casing sides and bottom
@@ -280,6 +287,7 @@ pub fn hardness(block: BlockId) f32 {
         .glass => 0.3,
         .sandstone => 1.8,
         .wool => 0.4,
+        .target_block => 0.6,
         .furnace => 2.5,
         .snow => 0.3,
         .ladder => 0.4,
@@ -446,6 +454,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .gilded_blackstone = .{ .name = "gilded_blackstone", .solid = true, .transparent = false, .fluid = false },
     .weeping_vines = .{ .name = "weeping_vines", .solid = false, .transparent = true, .fluid = false },
     .twisting_vines = .{ .name = "twisting_vines", .solid = false, .transparent = true, .fluid = false },
+    .target_block = .{ .name = "target_block", .solid = true, .transparent = false, .fluid = false },
 });
 
 /// A beacon activates when the column directly above it up to world ceiling (y=15)
@@ -885,7 +894,7 @@ pub fn footstepType(block: BlockId) FootstepType {
     return switch (block) {
         .grass, .weeping_vines, .twisting_vines => .grass,
         .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone => .stone,
-        .wood => .wood,
+        .wood, .target_block => .wood,
         .dirt => .dirt,
         .sand => .sand,
         .snow => .snow,
@@ -945,6 +954,20 @@ test "nether brick fence block properties and textures" {
     const tex = BlockId.nether_brick_fence.getFaceTexture(0);
     try std.testing.expectEqual(tex.x, 5);
     try std.testing.expectEqual(tex.y, 1);
+}
+
+test "target block properties and textures" {
+    try std.testing.expect(BlockId.target_block.is_solid());
+    try std.testing.expect(!BlockId.target_block.is_transparent());
+    try std.testing.expect(BlockId.target_block.is_target_block());
+    try std.testing.expect(BlockId.target_block.isFlammable());
+    try std.testing.expectEqual(hardness(.target_block), 0.6);
+    try std.testing.expectEqual(requiredTier(.target_block), .hand);
+    try std.testing.expectEqual(footstepType(.target_block), .wood);
+
+    const tex = BlockId.target_block.getFaceTexture(0);
+    try std.testing.expectEqual(tex.x, 3);
+    try std.testing.expectEqual(tex.y, 3);
 }
 
 test "twisting vines block properties, climbing, and cyan glow" {

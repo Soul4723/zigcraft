@@ -176,6 +176,12 @@ pub fn isTorchBasePowered(get: *const fn (x: i32, y: i32, z: i32) BlockId, tx: i
     return false;
 }
 
+pub const target_pulse_duration: f32 = 0.4; // 8 redstone game ticks
+
+pub fn isTargetHitPowered(is_hit_active: bool) bool {
+    return is_hit_active;
+}
+
 pub fn isLampPowered(get: *const fn (x: i32, y: i32, z: i32) BlockId, lx: i32, ly: i32, lz: i32) bool {
     const adj_dirs = [_][3]i32{
         .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 },
@@ -268,6 +274,12 @@ pub fn resolveLampState(is_lit: bool, power_in: bool) LampUpdate {
     if (power_in and !is_lit) return .turn_on;
     if (!power_in and is_lit) return .turn_off;
     return .none;
+}
+
+test "target block pulse helper" {
+    try std.testing.expect(isTargetHitPowered(true));
+    try std.testing.expect(!isTargetHitPowered(false));
+    try std.testing.expectEqual(@as(f32, 0.4), target_pulse_duration);
 }
 
 test "resolveLampState transitions" {
