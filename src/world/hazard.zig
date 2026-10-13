@@ -24,8 +24,14 @@ pub fn checkDrowning(eye_block: BlockId) bool {
 }
 
 pub fn tickOxygen(oxygen: f32, is_underwater: bool, dt: f32) f32 {
+    return tickOxygenRespiration(oxygen, is_underwater, false, dt);
+}
+
+pub fn tickOxygenRespiration(oxygen: f32, is_underwater: bool, has_respiration: bool, dt: f32) f32 {
     if (is_underwater) {
-        return @max(0.0, oxygen - dt);
+        // Netherite helmet respiration cuts oxygen consumption in half (2x breath duration)
+        const drain = if (has_respiration) dt * 0.5 else dt;
+        return @max(0.0, oxygen - drain);
     } else {
         return @min(max_oxygen, oxygen + oxygen_recovery_rate * dt);
     }
@@ -224,4 +230,11 @@ pub const ignited_flame_life: f32 = 45.0;
 test "ignited flame lifetime is positive and bounded" {
     try std.testing.expect(ignited_flame_life > 0.0);
     try std.testing.expect(ignited_flame_life <= 120.0);
+}
+
+test "tickOxygenRespiration halves oxygen drain when wearing netherite helmet" {
+    // Normal drain: 15.0 - 2.0 = 13.0
+    try std.testing.expectEqual(@as(f32, 13.0), tickOxygenRespiration(15.0, true, false, 2.0));
+    // Respiration drain: 15.0 - 1.0 = 14.0
+    try std.testing.expectEqual(@as(f32, 14.0), tickOxygenRespiration(15.0, true, true, 2.0));
 }

@@ -384,7 +384,7 @@ pub fn main() !void {
                 was_in_water = player.in_water;
             }
 
-            player.oxygen = hazard_mod.tickOxygen(player.oxygen, is_underwater, dt);
+            player.oxygen = hazard_mod.tickOxygenRespiration(player.oxygen, is_underwater, inventory.hasItem(.netherite_helmet), dt);
             const drown_dmg = hazard_mod.calculateDrowningDamage(player.oxygen, dt);
             if (drown_dmg > 0.0) {
                 player.health = @max(0.0, player.health - drown_dmg);
