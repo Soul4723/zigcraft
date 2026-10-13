@@ -94,7 +94,8 @@ pub const MobManager = struct {
             var iy: i32 = 10;
             while (iy >= 5) : (iy -= 1) {
                 if (!spawn_rules.isBastionSpawn(chunk_manager, ix, iy, iz)) continue;
-                try self.spawnMob(.piglin, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
+                const m_type: mob_mod.MobType = if (self.rng.random().float(f32) < 0.33) .piglin_brute else .piglin;
+                try self.spawnMob(m_type, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
                 break;
             }
         }
@@ -179,7 +180,7 @@ pub const MobManager = struct {
         var idx: usize = 0;
         while (idx < self.mobs.items.len) {
             var mob = &self.mobs.items[idx];
-            if (mob.mob_type == .wolf or mob.mob_type == .emberbeast or mob.mob_type == .wither_skeleton or mob.mob_type == .piglin) {
+            if (mob.mob_type == .wolf or mob.mob_type == .emberbeast or mob.mob_type == .wither_skeleton or mob.mob_type == .piglin or mob.mob_type == .piglin_brute) {
                 var is_repelled = false;
                 if (mob.mob_type == .piglin) {
                     if (isPiglinRepelled(mob.pos, player_pos, player_holding_fungus, block_at)) |repel_source| {
@@ -447,7 +448,7 @@ pub const MobManager = struct {
         var count: usize = 0;
         const r_sq = radius * radius;
         for (self.mobs.items) |m| {
-            if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin) continue;
+            if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute) continue;
             const dx = m.pos.x - center.x;
             const dy = m.pos.y - center.y;
             const dz = m.pos.z - center.z;
@@ -682,4 +683,31 @@ test "mob manager piglin warped fungus repulsion and fleeing" {
     // Piglin should face away from (4.5, 0.5): fdx = 0.5 - 4.5 = -4.0, fdz = 0.5 - 0.5 = 0.0
     // yaw = atan2(-4.0, 0.0) = -pi/2 (-1.5707963...)
     try std.testing.expectApproxEqAbs(mm.mobs.items[0].yaw, -std.math.pi * 0.5, 0.01);
+}
+
+test "mob manager piglin brute unpacified, fearless, and aggressive" {
+    var mm = try MobManager.init(std.testing.allocator, 0);
+    defer mm.deinit();
+
+    const MockFungusWorld = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return true; }
+        fn fluid(_: i32, _: i32, _: i32) bool { return false; }
+        fn block(x: i32, y: i32, z: i32) block_mod.BlockId {
+            if (x == 4 and y == 1 and z == 0) return .warped_fungus;
+            return .air;
+        }
+    };
+
+    try mm.spawnMob(.piglin_brute, 0.5, 1.0, 0.5);
+    try std.testing.expectEqual(mm.mobs.items[0].mob_type, .piglin_brute);
+    try std.testing.expectEqual(mm.mobs.items[0].health, 15);
+
+    // Piglin brute ignores bartering (returns null)
+    const b = mm.tryBarter(math.Vec3.init(0.5, 1.5, 0.0), math.Vec3.init(0.0, 0.0, 1.0), 5.0);
+    try std.testing.expect(b == null);
+
+    // Piglin brute does not flee from warped fungus; hunts player directly
+    // Player is at (0.5, 1.0, 5.5) -> dz = 5.0, dx = 0.0 -> yaw towards player = atan2(0, 5) = 0.0
+    mm.tick(MockFungusWorld.solid, MockFungusWorld.fluid, MockFungusWorld.block, math.Vec3.init(0.5, 1.0, 5.5), 0.4, true, null, 0.05);
+    try std.testing.expectApproxEqAbs(mm.mobs.items[0].yaw, 0.0, 0.01);
 }

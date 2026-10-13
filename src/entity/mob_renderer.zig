@@ -428,10 +428,10 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
             try appendBox(allocator, verts, inds, math.Vec3.init(-0.12, 0.3, 0 + leg_swing), math.Vec3.init(0.12, 0.6, 0.12), mob.yaw, mob.pos, uv_bone, uv_bone);
             try appendBox(allocator, verts, inds, math.Vec3.init(0.12, 0.3, 0 - leg_swing), math.Vec3.init(0.12, 0.6, 0.12), mob.yaw, mob.pos, uv_bone, uv_bone);
         },
-        .piglin => {
-            const uv_skin = texture.getTileUV(5, 4);
+        .piglin, .piglin_brute => {
+            const uv_skin = if (mob.mob_type == .piglin_brute) texture.getTileUV(2, 5) else texture.getTileUV(5, 4); // Brute dark charcoal armor
             const uv_face = texture.getTileUV(6, 4);
-            const uv_gold = texture.getTileUV(3, 5); // gold seam / golden weapon
+            const uv_gold = texture.getTileUV(3, 5); // gold battleaxe / golden weapon
 
             // 1. Torso: bipedal 0.44 x 0.58 x 0.30 at (0, 0.82, 0)
             try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.82, 0), math.Vec3.init(0.44, 0.58, 0.30), mob.yaw, mob.pos, uv_skin, uv_skin);
@@ -445,8 +445,9 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
             // 6-7. Arms with walking swing
             try appendBox(allocator, verts, inds, math.Vec3.init(-0.28, 0.82, 0 + leg_swing), math.Vec3.init(0.12, 0.55, 0.12), mob.yaw, mob.pos, uv_skin, uv_skin);
             try appendBox(allocator, verts, inds, math.Vec3.init(0.28, 0.82, 0 - leg_swing), math.Vec3.init(0.12, 0.55, 0.12), mob.yaw, mob.pos, uv_skin, uv_skin);
-            // 8. Golden sword held in right hand
-            try appendBox(allocator, verts, inds, math.Vec3.init(0.28, 0.46, 0.16 - leg_swing), math.Vec3.init(0.08, 0.44, 0.08), mob.yaw, mob.pos, uv_gold, uv_gold);
+            // 8. Golden battleaxe / sword held in right hand
+            const weapon_h: f32 = if (mob.mob_type == .piglin_brute) 0.54 else 0.44;
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.28, 0.46, 0.16 - leg_swing), math.Vec3.init(0.10, weapon_h, 0.10), mob.yaw, mob.pos, uv_gold, uv_gold);
             // 9-10. Legs
             try appendBox(allocator, verts, inds, math.Vec3.init(-0.12, 0.28, 0 + leg_swing), math.Vec3.init(0.13, 0.56, 0.13), mob.yaw, mob.pos, uv_skin, uv_skin);
             try appendBox(allocator, verts, inds, math.Vec3.init(0.12, 0.28, 0 - leg_swing), math.Vec3.init(0.13, 0.56, 0.13), mob.yaw, mob.pos, uv_skin, uv_skin);
@@ -524,4 +525,17 @@ test "appendMobMesh water swimming head bob elevates head" {
     try std.testing.expectEqual(verts_land.items.len, verts_water.items.len);
     // Head vertices (box 2, indices 24..48) have higher Y in water
     try std.testing.expect(verts_water.items[24].pos[1] > verts_land.items[24].pos[1]);
+}
+
+test "piglin brute mob mesh generation" {
+    var verts = std.ArrayList(MobVertex).empty;
+    defer verts.deinit(std.testing.allocator);
+    var inds = std.ArrayList(u32).empty;
+    defer inds.deinit(std.testing.allocator);
+
+    const brute = mob_mod.Mob.init(.piglin_brute, 0, 0, 0);
+    try appendMobMesh(std.testing.allocator, &verts, &inds, brute);
+    // 10 boxes (torso, head, snout, 2 ears, 2 arms, weapon, 2 legs) = 240 verts, 360 indices
+    try std.testing.expectEqual(@as(usize, 240), verts.items.len);
+    try std.testing.expectEqual(@as(usize, 360), inds.items.len);
 }

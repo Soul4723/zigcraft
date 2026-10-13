@@ -47,7 +47,7 @@ pub const Mob = struct {
             .wolf => 0.6,
             .emberbeast => 0.7,
             .wither_skeleton => 0.6,
-            .piglin => 0.6,
+            .piglin, .piglin_brute => 0.6,
         };
         const h: f32 = switch (mob_type) {
             .sheep => 0.9,
@@ -55,7 +55,7 @@ pub const Mob = struct {
             .wolf => 0.8,
             .emberbeast => 1.0,
             .wither_skeleton => 1.6,
-            .piglin => 1.5,
+            .piglin, .piglin_brute => 1.5,
         };
         const spd: f32 = switch (mob_type) {
             .sheep => 1.4,
@@ -64,6 +64,7 @@ pub const Mob = struct {
             .emberbeast => 3.6,
             .wither_skeleton => 2.8,
             .piglin => 2.6,
+            .piglin_brute => 3.0,
         };
         return .{
             .mob_type = mob_type,
@@ -79,7 +80,7 @@ pub const Mob = struct {
             .anim_time = 0.0,
             .change_dir_timer = 2.0,
             .wants_sound = false,
-            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
+            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .piglin_brute) 15 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
             .in_water = false,
             .in_bubble_column = false,
             .in_whirlpool = false,
@@ -482,7 +483,7 @@ pub fn getSound(mob_type: MobType) ?@import("../audio/synth.zig").SoundType {
         .wolf => .mob_growl,
         .emberbeast => .mob_roar,
         .wither_skeleton => .mob_growl,
-        .piglin => .mob_oink,
+        .piglin, .piglin_brute => .mob_oink,
     };
 }
 
@@ -592,4 +593,12 @@ test "mob applyBurnTick deals contact damage and flinches" {
     const died = mob.applyBurnTick(1.0);
     try std.testing.expect(died);
     try std.testing.expectEqual(@as(u8, 0), mob.health);
+}
+
+test "piglin brute mob stats and sounds" {
+    const b = Mob.init(.piglin_brute, 1.0, 2.0, 3.0);
+    try std.testing.expectEqual(b.mob_type, .piglin_brute);
+    try std.testing.expectEqual(b.health, 15);
+    try std.testing.expectApproxEqAbs(b.walk_speed, 3.0, 0.01);
+    try std.testing.expectEqual(getSound(.piglin_brute), .mob_oink);
 }
