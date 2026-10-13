@@ -219,6 +219,8 @@ pub fn main() !void {
     const FurnaceJob = smelt_mod.FurnaceJob;
     var furnaces: [smelt_mod.furnace_cap]FurnaceJob = undefined;
     var furnace_count: usize = 0;
+    var smokers: [smelt_mod.furnace_cap]FurnaceJob = undefined;
+    var smoker_count: usize = 0;
     const Chest = struct { x: i32, y: i32, z: i32, items: [4]inventory_mod.ItemStack };
     var chests: [cache_mod.chest_cap]Chest = undefined;
     var chest_count: usize = 0;
@@ -2458,6 +2460,10 @@ pub fn main() !void {
                                             furnaces[furnace_count] = .{ .x = px, .y = py, .z = pz, .t = 0, .fuel = 0, .input = smelt_mod.None };
                                             furnace_count += 1;
                                         }
+                                        if (place_type == .smoker and cache_mod.canCreateFurnace(smoker_count, smokers.len)) {
+                                            smokers[smoker_count] = .{ .x = px, .y = py, .z = pz, .t = 0, .fuel = 0, .input = smelt_mod.None };
+                                            smoker_count += 1;
+                                        }
                                         hotbar_slot.decrement(1);
                                         std.debug.print("placed {s} ({d},{d},{d})\n", .{ @tagName(place_type), px, py, pz });
                                     }
@@ -2517,6 +2523,31 @@ pub fn main() !void {
                 }
             }
         }
+        // Smoker tick: high-speed food smoking (5s per item) and aromatic chimney smoke plume
+        {
+            var smk_i: usize = 0;
+            while (smk_i < smoker_count) {
+                const s = &smokers[smk_i];
+                if (manager.getBlockWorld(s.x, s.y, s.z) != .smoker) {
+                    cache_mod.swapRemove(&smokers, &smoker_count, smk_i);
+                    continue;
+                }
+                const outcome = smelt_mod.tickSmokerJob(&s.t, &s.fuel, &s.input, dt);
+                if (s.fuel > 0 and s.input != smelt_mod.None) {
+                    // Ascending smoke plume particles from chimney vent top
+                    particles.spawnCampfireSmoke(s.x, s.y, s.z, false, false, 2);
+                }
+                if (outcome.done_item) |done_tag| {
+                    const done: inventory_mod.ItemType = @enumFromInt(done_tag);
+                    _ = inventory.addItem(done, 1);
+                    audio.play(.craft_item, 0.8);
+                    particles.spawnFlame(s.x, s.y + 1, s.z, 4);
+                    std.debug.print("smoked food: {s}\n", .{done.name()});
+                }
+                smk_i += 1;
+            }
+        }
+
         // Furnace tick: cook stored input using fuel, 10s per item
         {
             var fi: usize = 0;
@@ -3863,6 +3894,36 @@ pub fn main() !void {
                         }
                     }
                     flint_cooldown = interact_mod.flint_feed_cooldown;
+                } else if (target == .smoker) {
+                    const held_f = inventory.slots[selected_slot];
+                    const is_meat = smelt_mod.isFoodItem(@intFromEnum(held_f.item));
+                    var fed = false;
+                    var k_opt = cache_mod.findSmoker(&smokers, smoker_count, hit_f.x, hit_f.y, hit_f.z);
+                    if (k_opt == null and cache_mod.canCreateFurnace(smoker_count, smokers.len)) {
+                        smokers[smoker_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z, .t = 0, .fuel = 0, .input = smelt_mod.None };
+                        k_opt = smoker_count;
+                        smoker_count += 1;
+                    }
+                    if (k_opt) |k| {
+                        switch (smelt_mod.evaluateFurnaceFeed(held_f.item == .coal, is_meat, smokers[k].fuel, smokers[k].input)) {
+                            .add_fuel => {
+                                smokers[k].fuel += 1;
+                                inventory.slots[selected_slot].decrement(1);
+                                fed = true;
+                            },
+                            .set_input => {
+                                smokers[k].input = @intFromEnum(held_f.item);
+                                inventory.slots[selected_slot].decrement(1);
+                                fed = true;
+                            },
+                            .none => {},
+                        }
+                    }
+                    if (fed) {
+                        audio.play(.place_block, 0.7);
+                        particles.spawnCampfireSmoke(hit_f.x, hit_f.y, hit_f.z, false, false, 4);
+                    }
+                    flint_cooldown = interact_mod.flint_edge_cooldown;
                 } else if (target == .furnace) {
                     // feed held item as input or fuel
                     const held_f = inventory.slots[selected_slot];

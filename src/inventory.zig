@@ -133,6 +133,7 @@ pub const ItemType = enum(u8) {
     composter = 127,
     bone_meal = 128,
     loom = 129,
+    smoker = 130,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -218,6 +219,7 @@ pub const ItemType = enum(u8) {
             .fletching_table => .fletching_table,
             .composter => .composter,
             .loom => .loom,
+            .smoker => .smoker,
             else => null,
         };
     }
@@ -309,6 +311,7 @@ pub const ItemType = enum(u8) {
             .fletching_table => .fletching_table,
             .composter => .composter,
             .loom => .loom,
+            .smoker => .smoker,
         };
     }
 
@@ -489,6 +492,7 @@ pub const ItemType = enum(u8) {
             .composter => "Composter",
             .bone_meal => "Bone Meal",
             .loom => "Loom",
+            .smoker => "Smoker",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -560,6 +564,7 @@ pub const ItemType = enum(u8) {
             .composter => .{ 0.58, 0.42, 0.28, 0.95 },
             .bone_meal => .{ 0.92, 0.92, 0.88, 0.95 },
             .loom => .{ 0.65, 0.52, 0.38, 0.95 },
+            .smoker => .{ 0.40, 0.38, 0.36, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1108,6 +1113,22 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 93: Smoker: 1 Furnace + 1 Wood Planks (or Wood Log) -> 1 Smoker
+        if (non_empty >= 2 and non_empty <= 4) {
+            var furnace_count: u8 = 0;
+            var wood_count: u8 = 0;
+            var other_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .furnace) furnace_count += 1
+                else if (sl.item == .wood or sl.item == .wood_planks) wood_count += 1
+                else if (!sl.isEmpty()) other_count += 1;
+            }
+            if (furnace_count == 1 and wood_count >= 1 and other_count == 0) {
+                self.craft_output = .{ .item = .smoker, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 92: Loom: 2 Wool (or Vines) + 2 Wood Planks -> 1 Loom
         if (non_empty == 4) {
@@ -3760,4 +3781,27 @@ test "loom item roundtrip, properties, and Recipe 92" {
     try std.testing.expectEqual(ItemType.loom.maxDurability(), 0);
     try std.testing.expect(!ItemType.loom.isTool());
     try std.testing.expectEqual(ItemType.loom.maxStackSize(), 64);
+}
+
+test "smoker item roundtrip, properties, and Recipe 93" {
+    var inv = Inventory.init();
+    // Recipe 93: 1 Furnace + 1 Wood Planks -> 1 Smoker
+    inv.craft_grid[0] = .{ .item = .furnace, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wood_planks, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .smoker);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Also works with Wood Log
+    inv.craft_grid[1] = .{ .item = .wood, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .smoker);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.smoker.toBlockId().?, .smoker);
+    try std.testing.expectEqual(ItemType.fromBlockId(.smoker), .smoker);
+    try std.testing.expectEqualStrings(ItemType.smoker.name(), "Smoker");
+    try std.testing.expectEqual(ItemType.smoker.maxDurability(), 0);
+    try std.testing.expect(!ItemType.smoker.isTool());
+    try std.testing.expectEqual(ItemType.smoker.maxStackSize(), 64);
 }

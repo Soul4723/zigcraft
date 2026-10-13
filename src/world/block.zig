@@ -102,6 +102,7 @@ pub const BlockId = enum(u8) {
     fletching_table = 91,
     composter = 92,
     loom = 93,
+    smoker = 94,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand;
@@ -301,6 +302,11 @@ pub const BlockId = enum(u8) {
             .warped_fungus => .{ .x = 7, .y = 1 }, // Azure bioluminescent spore cap
             .shroomlight => .{ .x = 5, .y = 3 }, // Luminescent organic shroomlight vesicle
             .chiseled_nether_brick => .{ .x = 5, .y = 1 }, // Chiseled nether brick skull relief medallion
+            .smoker => switch (face_idx) {
+                0 => .{ .x = 1, .y = 5 }, // Smoker top smoke vent and iron exhaust chimney
+                1 => .{ .x = 0, .y = 0 }, // Stone hearth foundation bottom
+                else => .{ .x = 0, .y = 5 }, // Cobblestone smoker chamber with oak wood reinforcement
+            },
             .loom => switch (face_idx) {
                 0 => .{ .x = 7, .y = 4 }, // Weaving warp thread array and wooden heddle harness top
                 1 => .{ .x = 2, .y = 2 }, // Oak wood planks bottom
@@ -492,6 +498,7 @@ pub fn hardness(block: BlockId) f32 {
         .smithing_table, .cartography_table, .fletching_table => 2.5,
         .composter => 0.6,
         .loom => 2.5,
+        .smoker => 3.5,
         .jukebox, .oak_fence => 2.0,
         .nether_wart => 0.3,
     };
@@ -505,7 +512,7 @@ pub const ToolTier = enum(u8) {
 
 pub fn requiredTier(block: BlockId) ToolTier {
     return switch (block) {
-        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone => .wooden,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker => .wooden,
         else => .hand,
     };
 }
@@ -515,19 +522,19 @@ pub fn requiredTier(block: BlockId) ToolTier {
 pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
     if (held_tool_id == TOOL_NETHERITE_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone => 6.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker => 6.0,
             else => 3.0,
         };
     }
     if (held_tool_id == TOOL_IRON_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone => 4.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker => 4.0,
             else => 2.0,
         };
     }
     if (held_tool_id == TOOL_WOODEN_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone => 3.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker => 3.0,
             else => 1.5,
         };
     }
@@ -635,6 +642,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .fletching_table = .{ .name = "fletching_table", .solid = true, .transparent = false, .fluid = false },
     .composter = .{ .name = "composter", .solid = true, .transparent = true, .fluid = false },
     .loom = .{ .name = "loom", .solid = true, .transparent = false, .fluid = false },
+    .smoker = .{ .name = "smoker", .solid = true, .transparent = false, .fluid = false },
 });
 
 /// A beacon activates when the column directly above it up to world ceiling (y=15)
@@ -1073,7 +1081,7 @@ pub const FootstepType = enum {
 pub fn footstepType(block: BlockId) FootstepType {
     return switch (block) {
         .grass, .weeping_vines, .twisting_vines, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight => .grass,
-        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone => .stone,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker => .stone,
         .wood, .target_block, .daylight_detector, .daylight_detector_inverted, .note_block, .jukebox, .oak_fence, .armor_stand, .smithing_table, .cartography_table, .fletching_table, .composter, .loom => .wood,
         .dirt => .dirt,
         .sand => .sand,
@@ -1646,4 +1654,25 @@ test "loom block properties and textures" {
     const side_tex = BlockId.loom.getFaceTexture(2);
     try std.testing.expectEqual(@as(u32, 4), side_tex.x);
     try std.testing.expectEqual(@as(u32, 3), side_tex.y);
+}
+
+test "smoker block properties and textures" {
+    try std.testing.expect(BlockId.smoker.is_solid());
+    try std.testing.expect(!BlockId.smoker.is_transparent());
+    try std.testing.expect(!BlockId.smoker.is_fluid());
+    try std.testing.expectEqual(hardness(.smoker), 3.5);
+    try std.testing.expectEqual(requiredTier(.smoker), .wooden);
+    try std.testing.expectEqual(footstepType(.smoker), .stone);
+
+    const top_tex = BlockId.smoker.getFaceTexture(0);
+    try std.testing.expectEqual(@as(u32, 1), top_tex.x);
+    try std.testing.expectEqual(@as(u32, 5), top_tex.y);
+
+    const bot_tex = BlockId.smoker.getFaceTexture(1);
+    try std.testing.expectEqual(@as(u32, 0), bot_tex.x);
+    try std.testing.expectEqual(@as(u32, 0), bot_tex.y);
+
+    const side_tex = BlockId.smoker.getFaceTexture(2);
+    try std.testing.expectEqual(@as(u32, 0), side_tex.x);
+    try std.testing.expectEqual(@as(u32, 5), side_tex.y);
 }

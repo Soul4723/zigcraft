@@ -414,3 +414,16 @@ test "findLoom helper" {
     try std.testing.expectEqual(findLoom(&lm, 1, 23, 27, 31), @as(?usize, 0));
     try std.testing.expectEqual(findLoom(&lm, 1, 0, 0, 0), @as(?usize, null));
 }
+
+pub const smoker_cap: usize = 16;
+
+pub fn findSmoker(smokers: anytype, n: usize, x: i32, y: i32, z: i32) ?usize {
+    return find2D(smokers, n, x, y, z);
+}
+
+test "findSmoker helper" {
+    const FakeSmoker = struct { x: i32, y: i32, z: i32 };
+    var sm = [_]FakeSmoker{.{ .x = 25, .y = 29, .z = 33 }} ** 2;
+    try std.testing.expectEqual(findSmoker(&sm, 1, 25, 29, 33), @as(?usize, 0));
+    try std.testing.expectEqual(findSmoker(&sm, 1, 0, 0, 0), @as(?usize, null));
+}
