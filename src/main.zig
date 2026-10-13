@@ -213,7 +213,7 @@ pub fn main() !void {
     var portal_targets: [32]PortalTarget = undefined;
     var portal_target_count: usize = 0;
     const ThrownKind = enum { snowball, hostile_fireball, player_fire_charge, spectral_arrow, arrow, firework_rocket };
-    const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball, damage: u8 = 1 };
+    const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball, damage: u8 = 1, pierce: u8 = 0, last_hit_mob: ?usize = null };
     var thrown: [proj_mod.thrown_cap]Thrown = undefined;
     var thrown_count: usize = 0;
     const FurnaceJob = smelt_mod.FurnaceJob;
@@ -2345,6 +2345,7 @@ pub fn main() !void {
                     } else if (!dead and t.kind != .hostile_fireball) {
                         // mob hit test (generous radius)
                         for (mob_manager.mobs.items, 0..) |*m, mi| {
+                            if (t.last_hit_mob != null and t.last_hit_mob.? == mi) continue;
                             const d = proj_mod.mobDelta(m.pos.x, m.pos.y, m.pos.z, t.pos.x, t.pos.y, t.pos.z);
                             if (proj_mod.hitsMob(d[0], d[1], d[2])) {
                                 const is_fc = (t.kind == .player_fire_charge);
@@ -2383,7 +2384,16 @@ pub fn main() !void {
                                     if (m.mob_type == .sheep) _ = inventory.addItem(.wool, 1);
                                     _ = mp;
                                 }
-                                dead = true;
+                                if (t.pierce > 0) {
+                                    const p_res = proj_mod.decrementPierce(t.pierce);
+                                    t.pierce = p_res.next_pierce;
+                                    dead = p_res.dead;
+                                    t.last_hit_mob = if (died) null else mi;
+                                    particles.spawnBurnSparks(.{ t.pos.x, t.pos.y, t.pos.z }, 6);
+                                    std.debug.print("bolt pierced through mob ({d} pierces remain)\n", .{t.pierce});
+                                } else {
+                                    dead = true;
+                                }
                                 break;
                             }
                         }
@@ -2432,12 +2442,15 @@ pub fn main() !void {
                         const dmg: u8 = if (is_rocket) proj_mod.firework_explosion_damage else proj_mod.crossbow_arrow_damage;
                         const life_cb: f32 = if (is_rocket) proj_mod.firework_rocket_life else proj_mod.throw_life;
 
+                        const pierce_cb: u8 = if (is_rocket) 0 else proj_mod.crossbow_pierce_count;
                         thrown[thrown_count] = .{
                             .pos = cam.position,
                             .vel = math.Vec3.init(vel_cb[0], vel_cb[1], vel_cb[2]),
                             .life = life_cb,
                             .kind = k,
                             .damage = dmg,
+                            .pierce = pierce_cb,
+                            .last_hit_mob = null,
                         };
                         thrown_count += 1;
                         audio.play(.crossbow_shoot, 0.95);

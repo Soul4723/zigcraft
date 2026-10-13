@@ -235,3 +235,27 @@ test "crossbow rocket velocity calculation" {
     try std.testing.expectApproxEqAbs(vel[1], 0.4, 0.01);
     try std.testing.expectApproxEqAbs(vel[2], 0.0, 0.01);
 }
+
+pub const crossbow_pierce_count: u8 = 2; // Penetrates through up to 2 entities, terminates on 3rd
+
+pub fn decrementPierce(remaining_pierce: u8) struct { dead: bool, next_pierce: u8 } {
+    if (remaining_pierce > 0) {
+        return .{ .dead = false, .next_pierce = remaining_pierce - 1 };
+    }
+    return .{ .dead = true, .next_pierce = 0 };
+}
+
+test "decrementPierce multi-entity penetration sequence" {
+    const p: u8 = 2;
+    const r1 = decrementPierce(p);
+    try std.testing.expectEqual(false, r1.dead);
+    try std.testing.expectEqual(@as(u8, 1), r1.next_pierce);
+
+    const r2 = decrementPierce(r1.next_pierce);
+    try std.testing.expectEqual(false, r2.dead);
+    try std.testing.expectEqual(@as(u8, 0), r2.next_pierce);
+
+    const r3 = decrementPierce(r2.next_pierce);
+    try std.testing.expectEqual(true, r3.dead);
+    try std.testing.expectEqual(@as(u8, 0), r3.next_pierce);
+}
