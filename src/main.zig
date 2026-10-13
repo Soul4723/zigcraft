@@ -71,6 +71,11 @@ fn pickLadder(x: i32, y: i32, z: i32) bool {
     return mgr.getBlockWorld(x, y, z).is_ladder();
 }
 
+fn pickHay(x: i32, y: i32, z: i32) bool {
+    const mgr = pick_manager orelse return false;
+    return mgr.getBlockWorld(x, y, z).is_hay_bale();
+}
+
 
 
 fn getFootstepSound(block: block_mod.BlockId) audio_mod.synth.SoundType {
@@ -193,6 +198,9 @@ pub fn main() !void {
     const Beacon = struct { x: i32, y: i32, z: i32 };
     var beacons: [16]Beacon = undefined;
     var beacon_count: usize = 0;
+    const Campfire = struct { x: i32, y: i32, z: i32, is_soul: bool };
+    var campfires: [32]Campfire = undefined;
+    var campfire_count: usize = 0;
     const ThrownKind = enum { snowball, hostile_fireball, player_fire_charge };
     const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball };
     var thrown: [proj_mod.thrown_cap]Thrown = undefined;
@@ -331,7 +339,7 @@ pub fn main() !void {
             particles.spawnBubble(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 4);
         }
 
-        player.tickPhysics(&pickSolid, &pickLadder, &pickFluid, norm_wish.x * walk_speed * dt, norm_wish.z * walk_speed * dt, jump, dt);
+        player.tickPhysicsFull(&pickSolid, &pickLadder, &pickFluid, &pickHay, norm_wish.x * walk_speed * dt, norm_wish.z * walk_speed * dt, jump, dt);
         player.tickVitals(dt);
         if (player.pos.y < -30.0) {
             // Fell out of world: damage through vitals path
@@ -1722,6 +1730,10 @@ pub fn main() !void {
                                             beacons[beacon_count] = .{ .x = px, .y = py, .z = pz };
                                             beacon_count += 1;
                                         }
+                                        if (place_type.is_campfire() and campfire_count < campfires.len) {
+                                            campfires[campfire_count] = .{ .x = px, .y = py, .z = pz, .is_soul = (place_type == .soul_campfire) };
+                                            campfire_count += 1;
+                                        }
                                         // Wither summon: completed skull-T consumes the pattern
                                         // and raises an empowered wither champion (30 HP).
                                         // ponytail: dedicated boss mob type + ranged skull attack
@@ -1978,6 +1990,25 @@ pub fn main() !void {
                 }
                 bi2 += 1;
             }
+            // Campfire smoke & signal fire emission
+            var cfi: usize = 0;
+            while (cfi < campfire_count) {
+                const cf = &campfires[cfi];
+                const cur_cb = manager.getBlockWorld(cf.x, cf.y, cf.z);
+                if (!cur_cb.is_campfire()) {
+                    campfires[cfi] = campfires[campfire_count - 1];
+                    campfire_count -= 1;
+                    continue;
+                }
+                const cdx = @as(f32, @floatFromInt(cf.x)) + 0.5 - player.pos.x;
+                const cdz = @as(f32, @floatFromInt(cf.z)) + 0.5 - player.pos.z;
+                if (cdx * cdx + cdz * cdz <= 32.0 * 32.0) {
+                    const block_below = manager.getBlockWorld(cf.x, cf.y - 1, cf.z);
+                    const is_signal = block_below.is_hay_bale();
+                    particles.spawnCampfireSmoke(cf.x, cf.y, cf.z, cf.is_soul, is_signal, 1);
+                }
+                cfi += 1;
+            }
         }
 
         // Thrown snowball physics: gravity arc, mob hit = 1 dmg + knockback, block hit = puff
@@ -2021,6 +2052,10 @@ pub fn main() !void {
                                         flames[flame_count] = .{ .x = mbx, .y = mby + 1, .z = mbz, .t = 0.0 };
                                         flame_count += 1;
                                     }
+                                    if (campfire_count < campfires.len) {
+                                        campfires[campfire_count] = .{ .x = mbx, .y = mby + 1, .z = mbz, .is_soul = (flame_block == .soul_campfire) };
+                                        campfire_count += 1;
+                                    }
                                     std.debug.print("fireball ignited flame\n", .{});
                                 }
                             }
@@ -2059,6 +2094,10 @@ pub fn main() !void {
                                     if (flame_count < flames.len) {
                                         flames[flame_count] = .{ .x = mbx, .y = mby + 1, .z = mbz, .t = 0.0 };
                                         flame_count += 1;
+                                    }
+                                    if (campfire_count < campfires.len) {
+                                        campfires[campfire_count] = .{ .x = mbx, .y = mby + 1, .z = mbz, .is_soul = (flame_block == .soul_campfire) };
+                                        campfire_count += 1;
                                     }
                                 }
                             }

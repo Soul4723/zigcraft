@@ -523,6 +523,43 @@ pub const ParticleSystem = struct {
         }
     }
 
+    /// Spawn rising campfire smoke particles. When signal_fire is true (hay bale beneath), particles rise much higher and persist longer.
+    pub fn spawnCampfireSmoke(self: *ParticleSystem, bx: i32, by: i32, bz: i32, is_soul: bool, signal_fire: bool, count: usize) void {
+        var i: usize = 0;
+        var seed: u32 = @as(u32, @bitCast(bx *% 73 +% by *% 37 +% bz *% 53)) +% @as(u32, @intCast(self.count));
+        while (i < count and self.count < MAX_PARTICLES) : (i += 1) {
+            seed = seed *% 1103515245 +% 12345;
+            const rx = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0 - 0.5;
+            const rz = @as(f32, @floatFromInt((seed >> 8) % 100)) / 100.0 - 0.5;
+            const px = @as(f32, @floatFromInt(bx)) + 0.5 + rx * 0.4;
+            const py = @as(f32, @floatFromInt(by)) + 0.45;
+            const pz = @as(f32, @floatFromInt(bz)) + 0.5 + rz * 0.4;
+
+            const base_color: [3]f32 = if (is_soul)
+                .{ 0.15, 0.28, 0.32 } // Ethereal cyan-tinted soul smoke
+            else
+                .{ 0.25, 0.25, 0.26 }; // Charcoal wood smoke
+
+            // Signal fire smoke particles live 3.5s and climb faster (up to ~24 blocks high)
+            const life: f32 = if (signal_fire) 3.5 else 1.4;
+            const vy: f32 = if (signal_fire) 4.2 + (rx * 0.5) else 1.6 + (rx * 0.3);
+
+            self.particles[self.count] = .{
+                .x = px,
+                .y = py,
+                .z = pz,
+                .vx = rx * 0.2,
+                .vy = vy,
+                .vz = rz * 0.2,
+                .life = life,
+                .max_life = life,
+                .color = base_color,
+                .size = if (signal_fire) 0.13 else 0.08,
+            };
+            self.count += 1;
+        }
+    }
+
     /// Spawn orbital vortex ring of ethereal particles circling player during portal charge
     pub fn spawnPortalVortex(self: *ParticleSystem, center: [3]f32, radius: f32, count: usize, time_offset: f32) void {
         var i: usize = 0;
@@ -570,14 +607,20 @@ pub const ParticleSystem = struct {
             const is_bubble = (p.color[0] > 0.6 and p.color[1] > 0.8 and p.color[2] > 0.9);
             const is_ember = (p.color[0] > 0.9 and p.color[2] < 0.2); // Fiery orange/yellow
             const is_smoke = (p.color[0] < 0.35 and p.color[1] < 0.35 and p.color[2] < 0.35); // Dark smoke
+            const is_signal_smoke = is_smoke and (p.max_life > 2.0);
             const is_portal = (p.color[0] > 0.6 and p.color[1] < 0.3 and p.color[2] > 0.8); // Purple ethereal
             const is_ash = (p.max_life >= 1.5 and p.color[0] < 0.9 and p.color[1] < 0.5 and p.color[2] < 0.45); // Nether ash flake
             const is_shimmer = (p.color[0] > 0.95 and p.color[1] > 0.8 and p.color[2] > 0.25); // Golden shimmer sparkle
             if (is_bubble) {
                 p.vy = @min(1.5, p.vy + 1.0 * dt);
+            } else if (is_signal_smoke) {
+                // High-altitude signal smoke lift
+                p.vy = @max(1.8, p.vy - 0.7 * dt);
+                p.size = @min(0.35, p.size + 0.04 * dt);
             } else if (is_ember or is_smoke) {
                 // Thermal lift: rising gently
                 p.vy = @max(0.2, p.vy - 3.0 * dt);
+                p.size = @min(0.22, p.size + 0.03 * dt);
             } else if (is_portal) {
                 // Weightless swirling drift
                 p.vy = p.vy * 0.98;
@@ -925,6 +968,27 @@ test "spawnSpawnerFlames creates orbiting particles" {
     try std.testing.expectEqual(@as(usize, 4), ps.count);
     try std.testing.expect(ps.particles[0].y >= 8.3);
     try std.testing.expectEqual(ps.particles[0].color[0], 1.0);
+}
+
+test "spawnCampfireSmoke creates standard and high-altitude signal smoke" {
+    var ps = ParticleSystem{
+        .particles = undefined,
+        .count = 0,
+        .vao = 0,
+        .vbo = 0,
+        .program = 0,
+    };
+    // Standard campfire smoke
+    ps.spawnCampfireSmoke(10, 5, 10, false, false, 2);
+    try std.testing.expectEqual(@as(usize, 2), ps.count);
+    try std.testing.expect(ps.particles[0].max_life < 2.0);
+    try std.testing.expect(ps.particles[0].vy < 3.0);
+
+    // Signal fire smoke
+    ps.spawnCampfireSmoke(10, 5, 10, false, true, 2);
+    try std.testing.expectEqual(@as(usize, 4), ps.count);
+    try std.testing.expect(ps.particles[2].max_life > 2.0);
+    try std.testing.expect(ps.particles[2].vy > 3.0);
 }
 
 test "spawnBeaconBeam creates ascending beam particles" {

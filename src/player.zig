@@ -152,7 +152,7 @@ pub const Player = struct {
     pub const water_drag_rate: f32 = 8.0;
 
     /// Advance physics by dt. Optional `ladder` detects climbing; `fluid` detects water buoyancy/swimming.
-    pub fn tickPhysics(self: *Player, solid: *const fn (x: i32, y: i32, z: i32) bool, ladder: ?*const fn (x: i32, y: i32, z: i32) bool, fluid: ?*const fn (x: i32, y: i32, z: i32) bool, move_x: f32, move_z: f32, jump: bool, dt: f32) void {
+    pub fn tickPhysicsFull(self: *Player, solid: *const fn (x: i32, y: i32, z: i32) bool, ladder: ?*const fn (x: i32, y: i32, z: i32) bool, fluid: ?*const fn (x: i32, y: i32, z: i32) bool, hay: ?*const fn (x: i32, y: i32, z: i32) bool, move_x: f32, move_z: f32, jump: bool, dt: f32) void {
         const clamped_dt = @min(dt, 0.05);
         const on_ladder = if (ladder) |l| isInsideLadder(self.pos, self.radius, self.height, l) else false;
         const now_in_water = if (fluid) |f| isInsideWater(self.pos, self.radius, self.height, f) else false;
@@ -235,9 +235,17 @@ pub const Player = struct {
         const fall_speed = if (self.in_water) 0.0 else self.vel_y;
         self.pos.y = collideAxis(self.pos, self.radius, self.height, solid, self.vel_y * clamped_dt, Axis.y, &self.vel_y, &self.on_ground);
         if (was_airborne and self.on_ground) {
-            const dmg = fallDamage(fall_speed);
+            const floor_y = @as(i32, @intFromFloat(@floor(self.pos.y - 0.1)));
+            const floor_x = @as(i32, @intFromFloat(@floor(self.pos.x)));
+            const floor_z = @as(i32, @intFromFloat(@floor(self.pos.z)));
+            const is_hay = if (hay) |h| h(floor_x, floor_y, floor_z) else false;
+            const dmg = fallDamageOnSurface(fall_speed, is_hay);
             if (dmg > 0.0) self.health = @max(0.0, self.health - dmg);
         }
+    }
+
+    pub fn tickPhysics(self: *Player, solid: *const fn (x: i32, y: i32, z: i32) bool, ladder: ?*const fn (x: i32, y: i32, z: i32) bool, fluid: ?*const fn (x: i32, y: i32, z: i32) bool, move_x: f32, move_z: f32, jump: bool, dt: f32) void {
+        self.tickPhysicsFull(solid, ladder, fluid, null, move_x, move_z, jump, dt);
     }
 
     pub fn tickLadder(self: *Player, solid: *const fn (x: i32, y: i32, z: i32) bool, ladder: ?*const fn (x: i32, y: i32, z: i32) bool, move_x: f32, move_z: f32, jump: bool, dt: f32) void {
@@ -246,11 +254,17 @@ pub const Player = struct {
 
     pub const safe_fall_speed: f32 = 12.0;
     pub const fall_damage_scale: f32 = 1.5;
+    pub const hay_cushion_multiplier: f32 = 0.20; // 80% fall damage reduction when landing on hay bale
 
     pub fn fallDamage(impact_vy: f32) f32 {
+        return fallDamageOnSurface(impact_vy, false);
+    }
+
+    pub fn fallDamageOnSurface(impact_vy: f32, is_hay: bool) f32 {
         const excess = -impact_vy - safe_fall_speed;
         if (excess <= 0.0) return 0.0;
-        return excess * fall_damage_scale;
+        const raw = excess * fall_damage_scale;
+        return if (is_hay) raw * hay_cushion_multiplier else raw;
     }
 
     pub fn tick(self: *Player, solid: *const fn (x: i32, y: i32, z: i32) bool, move_x: f32, move_z: f32, jump: bool, dt: f32) void {
@@ -543,6 +557,24 @@ test "fall damage thresholds" {
     try std.testing.expectEqual(Player.fallDamage(-12.0), 0.0);
     try std.testing.expect(Player.fallDamage(-20.0) > 0.0);
     try std.testing.expect(Player.fallDamage(-30.0) > Player.fallDamage(-20.0));
+    try std.testing.expectApproxEqAbs(Player.fallDamageOnSurface(-22.0, true), Player.fallDamage(-22.0) * 0.20, 0.001);
+}
+
+test "player landing on hay bale reduces fall damage by 80 percent" {
+    var player = Player.init(0.5, 1.5, 0.5);
+    player.vel_y = -20.0;
+    const FakeWorld = struct {
+        fn solid(_: i32, y: i32, _: i32) bool {
+            return y <= 0;
+        }
+        fn hay(_: i32, y: i32, _: i32) bool {
+            return y == 0;
+        }
+    };
+    player.tickPhysicsFull(FakeWorld.solid, null, null, FakeWorld.hay, 0.0, 0.0, false, 0.05);
+    // Standard damage for -20.0: (-(-20) - 12) * 1.5 = 12.0 dmg -> 8.0 hp left
+    // With 80% reduction: 12.0 * 0.20 = 2.4 dmg -> 17.6 hp left
+    try std.testing.expectApproxEqAbs(@as(f32, 17.225), player.health, 0.05);
 }
 
 pub const WalkVectors = struct {

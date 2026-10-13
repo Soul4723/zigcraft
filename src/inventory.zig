@@ -88,6 +88,7 @@ pub const ItemType = enum(u8) {
     weeping_vines = 82,
     twisting_vines = 83,
     target_block = 84,
+    hay_bale = 85,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -149,6 +150,7 @@ pub const ItemType = enum(u8) {
             .weeping_vines => .weeping_vines,
             .twisting_vines => .twisting_vines,
             .target_block => .target_block,
+            .hay_bale => .hay_bale,
             else => null,
         };
     }
@@ -217,6 +219,7 @@ pub const ItemType = enum(u8) {
             .weeping_vines => .weeping_vines,
             .twisting_vines => .twisting_vines,
             .target_block => .target_block,
+            .hay_bale => .hay_bale,
         };
     }
 
@@ -326,6 +329,7 @@ pub const ItemType = enum(u8) {
             .weeping_vines => "Weeping Vines",
             .twisting_vines => "Twisting Vines",
             .target_block => "Target Block",
+            .hay_bale => "Hay Bale",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -352,6 +356,7 @@ pub const ItemType = enum(u8) {
             .weeping_vines => .{ 0.75, 0.15, 0.22, 0.95 },
             .twisting_vines => .{ 0.15, 0.65, 0.60, 0.95 },
             .target_block => .{ 0.88, 0.22, 0.22, 0.95 },
+            .hay_bale => .{ 0.85, 0.75, 0.25, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -859,10 +864,25 @@ pub const Inventory = struct {
             }
         }
 
+        // Recipe 51: Hay Bale: 2 Wood Planks + 2 Saplings/Leaves (or 4 Saplings) -> 1 Hay Bale
+        if (non_empty == 4) {
+            var bio_count: u8 = 0;
+            var wood_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.isEmpty()) continue;
+                if (sl.item == .sapling or sl.item == .leaves) bio_count += 1
+                else if (sl.item == .wood_planks) wood_count += 1;
+            }
+            if ((bio_count == 2 and wood_count == 2) or bio_count == 4) {
+                self.craft_output = .{ .item = .hay_bale, .count = 1 };
+                return;
+            }
+        }
+
         // Recipe 50: Target Block: 1 Redstone Dust + 1 Wood Planks (or 1 Hay/Wheat) -> 1 Target Block
         if (non_empty == 2) {
             const has_red = (g0 == .redstone_dust or g1 == .redstone_dust or g2 == .redstone_dust or g3 == .redstone_dust);
-            const has_wood = (g0 == .wood_planks or g1 == .wood_planks or g2 == .wood_planks or g3 == .wood_planks);
+            const has_wood = (g0 == .wood_planks or g1 == .wood_planks or g2 == .wood_planks or g3 == .wood_planks or g0 == .hay_bale or g1 == .hay_bale or g2 == .hay_bale or g3 == .hay_bale);
             if (has_red and has_wood) {
                 self.craft_output = .{ .item = .target_block, .count = 1 };
                 return;
@@ -1570,6 +1590,27 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         }
         return 0;
     }
+}
+
+test "hay bale item roundtrip, drops, and crafting recipe" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .sapling, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .sapling, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .wood_planks, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .hay_bale);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.hay_bale.toBlockId().?, .hay_bale);
+    try std.testing.expectEqual(ItemType.fromBlockId(.hay_bale), .hay_bale);
+    try std.testing.expectEqualStrings(ItemType.hay_bale.name(), "Hay Bale");
+
+    var drops: [2]BlockDrop = undefined;
+    const n = getBlockDrops(.hay_bale, &drops);
+    try std.testing.expectEqual(n, 1);
+    try std.testing.expectEqual(drops[0].item, .hay_bale);
+    try std.testing.expectEqual(drops[0].count, 1);
 }
 
 test "target block item roundtrip, drops, and crafting recipe" {
