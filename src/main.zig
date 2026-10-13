@@ -1195,7 +1195,7 @@ pub fn main() !void {
         // Mob spawning and physics AI tick
         const is_night_spawn = @sin(world_time) <= 0.0;
         try mob_manager.ensureSpawnPopulation(&manager, player.pos.x, player.pos.z, is_night_spawn);
-        const held_warped_fungus = (inventory.slots[selected_slot].item == .warped_fungus);
+        const held_warped_fungus = (inventory.slots[selected_slot].item == .warped_fungus or inventory.slots[selected_slot].item == .warped_fungus_on_a_stick);
         mob_manager.tick(&pickSolid, &pickFluid, &pickBlockWorld, player.pos, player.radius, held_warped_fungus, &audio, dt);
 
         // Wolf bites & mob melee attacks: contact damage with per-second cooldown

@@ -92,6 +92,7 @@ pub const ItemType = enum(u8) {
     crimson_fungus = 86,
     warped_fungus = 87,
     shroomlight = 88,
+    warped_fungus_on_a_stick = 89,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -239,6 +240,7 @@ pub const ItemType = enum(u8) {
             .iron_sword => 100,
             .netherite_pickaxe => 350,
             .netherite_sword => 400,
+            .warped_fungus_on_a_stick => 100,
             else => 0,
         };
     }
@@ -250,7 +252,7 @@ pub const ItemType = enum(u8) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword => 1,
+            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick => 1,
             else => 64,
         };
     }
@@ -342,6 +344,7 @@ pub const ItemType = enum(u8) {
             .crimson_fungus => "Crimson Fungus",
             .warped_fungus => "Warped Fungus",
             .shroomlight => "Shroomlight",
+            .warped_fungus_on_a_stick => "Warped Fungus on a Stick",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -372,6 +375,7 @@ pub const ItemType = enum(u8) {
             .crimson_fungus => .{ 0.85, 0.15, 0.20, 0.95 },
             .warped_fungus => .{ 0.12, 0.70, 0.65, 0.95 },
             .shroomlight => .{ 0.98, 0.78, 0.45, 0.95 },
+            .warped_fungus_on_a_stick => .{ 0.15, 0.75, 0.70, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -875,6 +879,16 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 55: Warped Fungus on a Stick: 1 Stick + 1 Warped Fungus -> 1 Warped Fungus on a Stick
+        if (non_empty == 2) {
+            const has_stick = (g0 == .stick or g1 == .stick or g2 == .stick or g3 == .stick);
+            const has_wf = (g0 == .warped_fungus or g1 == .warped_fungus or g2 == .warped_fungus or g3 == .warped_fungus);
+            if (has_stick and has_wf) {
+                self.craft_output = .{ .item = .warped_fungus_on_a_stick, .count = 1 };
                 return;
             }
         }
@@ -2145,4 +2159,20 @@ test "shroomlight item roundtrip, drops, and Recipe 54" {
     try std.testing.expectEqual(n, 1);
     try std.testing.expectEqual(drops[0].item, .shroomlight);
     try std.testing.expectEqual(drops[0].count, 1);
+}
+
+test "warped fungus on a stick item properties, durability, and Recipe 55" {
+    var inv = Inventory.init();
+
+    // Recipe 55: 1 Stick + 1 Warped Fungus -> 1 Warped Fungus on a Stick
+    inv.craft_grid[0] = .{ .item = .stick, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .warped_fungus, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .warped_fungus_on_a_stick);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.warped_fungus_on_a_stick.maxDurability(), 100);
+    try std.testing.expect(ItemType.warped_fungus_on_a_stick.isTool());
+    try std.testing.expectEqual(ItemType.warped_fungus_on_a_stick.maxStackSize(), 1);
+    try std.testing.expectEqualStrings(ItemType.warped_fungus_on_a_stick.name(), "Warped Fungus on a Stick");
 }

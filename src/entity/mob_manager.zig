@@ -180,7 +180,16 @@ pub const MobManager = struct {
         var idx: usize = 0;
         while (idx < self.mobs.items.len) {
             var mob = &self.mobs.items[idx];
-            if (mob.mob_type == .wolf or mob.mob_type == .emberbeast or mob.mob_type == .wither_skeleton or mob.mob_type == .piglin or mob.mob_type == .piglin_brute) {
+            if (mob.mob_type == .pig and player_holding_fungus) {
+                // Pigs are lured by warped fungus (or warped fungus on a stick) within 10m
+                const pdx = player_pos.x - mob.pos.x;
+                const pdz = player_pos.z - mob.pos.z;
+                const pd_sq = pdx * pdx + pdz * pdz;
+                if (pd_sq <= 10.0 * 10.0 and pd_sq >= 1.5 * 1.5) {
+                    mob.yaw = std.math.atan2(pdx, pdz);
+                    mob.walk_timer = hunt_mod.walk_pulse;
+                }
+            } else if (mob.mob_type == .wolf or mob.mob_type == .emberbeast or mob.mob_type == .wither_skeleton or mob.mob_type == .piglin or mob.mob_type == .piglin_brute) {
                 var is_repelled = false;
                 if (mob.mob_type == .piglin) {
                     if (isPiglinRepelled(mob.pos, player_pos, player_holding_fungus, block_at)) |repel_source| {
@@ -710,4 +719,28 @@ test "mob manager piglin brute unpacified, fearless, and aggressive" {
     // Player is at (0.5, 1.0, 5.5) -> dz = 5.0, dx = 0.0 -> yaw towards player = atan2(0, 5) = 0.0
     mm.tick(MockFungusWorld.solid, MockFungusWorld.fluid, MockFungusWorld.block, math.Vec3.init(0.5, 1.0, 5.5), 0.4, true, null, 0.05);
     try std.testing.expectApproxEqAbs(mm.mobs.items[0].yaw, 0.0, 0.01);
+}
+
+test "mob manager pig luring by held warped fungus on stick" {
+    var mm = try MobManager.init(std.testing.allocator, 0);
+    defer mm.deinit();
+
+    const MockWorld = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return true; }
+        fn fluid(_: i32, _: i32, _: i32) bool { return false; }
+    };
+
+    try mm.spawnMob(.pig, 0.5, 1.0, 0.5);
+    try std.testing.expectEqual(mm.mobs.items[0].mob_type, .pig);
+
+    // Player holding fungus at (0.5, 1.0, 4.5) -> distance 4.0m
+    // Pig should turn and walk towards player: pdx = 0, pdz = 4.0 -> yaw = atan2(0, 4.0) = 0.0
+    mm.tick(MockWorld.solid, MockWorld.fluid, null, math.Vec3.init(0.5, 1.0, 4.5), 0.4, true, null, 0.05);
+    try std.testing.expectApproxEqAbs(mm.mobs.items[0].yaw, 0.0, 0.01);
+    try std.testing.expect(mm.mobs.items[0].walk_timer > 0.0);
+
+    // Not holding fungus -> pig wanders normally, not lured
+    mm.mobs.items[0].yaw = 1.23;
+    mm.tick(MockWorld.solid, MockWorld.fluid, null, math.Vec3.init(0.5, 1.0, 4.5), 0.4, false, null, 0.05);
+    try std.testing.expectApproxEqAbs(mm.mobs.items[0].yaw, 1.23, 0.01);
 }
