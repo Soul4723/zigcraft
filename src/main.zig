@@ -303,6 +303,9 @@ pub fn main() !void {
     const LoomState = struct { x: i32, y: i32, z: i32 };
     var looms: [cache_mod.loom_cap]LoomState = undefined;
     var loom_count: usize = 0;
+    const StonecutterState = struct { x: i32, y: i32, z: i32 };
+    var stonecutters: [cache_mod.stonecutter_cap]StonecutterState = undefined;
+    var stonecutter_count: usize = 0;
     const DropperState = struct { x: i32, y: i32, z: i32, powered: bool = false, items: [4]inventory_mod.ItemStack = undefined, count: usize = 0 };
     var droppers: [32]DropperState = undefined;
     var dropper_count: usize = 0;
@@ -2423,6 +2426,10 @@ pub fn main() !void {
                                             looms[loom_count] = .{ .x = px, .y = py, .z = pz };
                                             loom_count += 1;
                                         }
+                                        if (place_type == .stonecutter and stonecutter_count < stonecutters.len) {
+                                            stonecutters[stonecutter_count] = .{ .x = px, .y = py, .z = pz };
+                                            stonecutter_count += 1;
+                                        }
                                         if (place_type == .spawner_cage and spawner_count < spawners.len) {
                                             spawners[spawner_count] = .{ .x = px, .y = py, .z = pz };
                                             spawner_count += 1;
@@ -3566,6 +3573,39 @@ pub fn main() !void {
                             }
                             audio.playAt(.click_off, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
                         }
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .stonecutter) {
+                    var sc_opt = cache_mod.findStonecutter(&stonecutters, stonecutter_count, hit_f.x, hit_f.y, hit_f.z);
+                    if (sc_opt == null and stonecutter_count < stonecutters.len) {
+                        stonecutters[stonecutter_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z };
+                        sc_opt = stonecutter_count;
+                        stonecutter_count += 1;
+                    }
+
+                    const held_slot = &inventory.slots[selected_slot];
+                    if (held_slot.item == .stone) {
+                        // Masonry precision shaping: 1 Stone -> 1 Brick
+                        held_slot.decrement(1);
+                        _ = inventory.addItem(.brick, 1);
+                        audio.playAt(.stonecutter_saw, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 30.0);
+                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.75, 0.75, 0.75 }, 8);
+                        std.debug.print("precision stonecut 1 stone into brick at ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                    } else if (held_slot.item == .cobblestone) {
+                        // Masonry cobblestone smoothing: 1 Cobblestone -> 1 Stone
+                        held_slot.decrement(1);
+                        _ = inventory.addItem(.stone, 1);
+                        audio.playAt(.stonecutter_saw, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 30.0);
+                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.65, 0.65, 0.65 }, 8);
+                        std.debug.print("precision shaped 1 cobblestone into smooth stone at ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                    } else if (held_slot.item == .wooden_pickaxe or held_slot.item == .iron_pickaxe or held_slot.item == .netherite_pickaxe) {
+                        // True the pickaxe chisel head on circular saw guide
+                        tool_wear.uses[selected_slot] = 0;
+                        audio.playAt(.stonecutter_saw, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 28.0);
+                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.80, 0.80, 0.85 }, 8);
+                        std.debug.print("trued pickaxe head on stonecutter: {s}\n", .{ held_slot.item.name() });
+                    } else {
+                        audio.playAt(.stonecutter_saw, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.6, 20.0);
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .loom) {

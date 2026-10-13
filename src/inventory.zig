@@ -135,6 +135,7 @@ pub const ItemType = enum(u8) {
     loom = 129,
     smoker = 130,
     blast_furnace = 131,
+    stonecutter = 132,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -222,6 +223,7 @@ pub const ItemType = enum(u8) {
             .loom => .loom,
             .smoker => .smoker,
             .blast_furnace => .blast_furnace,
+            .stonecutter => .stonecutter,
             else => null,
         };
     }
@@ -315,6 +317,7 @@ pub const ItemType = enum(u8) {
             .loom => .loom,
             .smoker => .smoker,
             .blast_furnace => .blast_furnace,
+            .stonecutter => .stonecutter,
         };
     }
 
@@ -497,6 +500,7 @@ pub const ItemType = enum(u8) {
             .loom => "Loom",
             .smoker => "Smoker",
             .blast_furnace => "Blast Furnace",
+            .stonecutter => "Stonecutter",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -570,6 +574,7 @@ pub const ItemType = enum(u8) {
             .loom => .{ 0.65, 0.52, 0.38, 0.95 },
             .smoker => .{ 0.40, 0.38, 0.36, 0.95 },
             .blast_furnace => .{ 0.30, 0.32, 0.34, 0.95 },
+            .stonecutter => .{ 0.50, 0.50, 0.52, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1118,6 +1123,22 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 95: Stonecutter: 1 Iron Ingot + 1..3 Stone (or Cobblestone/Sandstone) -> 1 Stonecutter
+        if (non_empty >= 2 and non_empty <= 4) {
+            var iron_count: u8 = 0;
+            var stone_count: u8 = 0;
+            var other_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .iron_ingot) iron_count += 1
+                else if (sl.item == .stone or sl.item == .cobblestone or sl.item == .sandstone) stone_count += 1
+                else if (!sl.isEmpty()) other_count += 1;
+            }
+            if (iron_count == 1 and stone_count >= 1 and other_count == 0) {
+                self.craft_output = .{ .item = .stonecutter, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 94: Blast Furnace: 1 Furnace + 1 Iron Ingot (or Iron Ore) + 1 Stone (or Cobblestone/Sandstone) -> 1 Blast Furnace
         if (non_empty >= 3 and non_empty <= 5) {
@@ -3804,6 +3825,29 @@ test "loom item roundtrip, properties, and Recipe 92" {
     try std.testing.expectEqual(ItemType.loom.maxDurability(), 0);
     try std.testing.expect(!ItemType.loom.isTool());
     try std.testing.expectEqual(ItemType.loom.maxStackSize(), 64);
+}
+
+test "stonecutter item roundtrip, properties, and Recipe 95" {
+    var inv = Inventory.init();
+    // Recipe 95: 1 Iron Ingot + 1 Stone -> 1 Stonecutter
+    inv.craft_grid[0] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .stone, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .stonecutter);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Alternative: 1 Iron Ingot + 2 Cobblestone
+    inv.craft_grid[1] = .{ .item = .cobblestone, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .cobblestone, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .stonecutter);
+
+    try std.testing.expectEqual(ItemType.stonecutter.toBlockId().?, .stonecutter);
+    try std.testing.expectEqual(ItemType.fromBlockId(.stonecutter), .stonecutter);
+    try std.testing.expectEqualStrings(ItemType.stonecutter.name(), "Stonecutter");
+    try std.testing.expectEqual(ItemType.stonecutter.maxDurability(), 0);
+    try std.testing.expect(!ItemType.stonecutter.isTool());
+    try std.testing.expectEqual(ItemType.stonecutter.maxStackSize(), 64);
 }
 
 test "blast_furnace item roundtrip, properties, and Recipe 94" {
