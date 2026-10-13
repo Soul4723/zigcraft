@@ -362,3 +362,16 @@ test "findSmithingTable helper" {
     try std.testing.expectEqual(findSmithingTable(&st, 1, 14, 18, 22), @as(?usize, 0));
     try std.testing.expectEqual(findSmithingTable(&st, 1, 0, 0, 0), @as(?usize, null));
 }
+
+pub const cartography_table_cap: usize = 32;
+
+pub fn findCartographyTable(tables: anytype, n: usize, x: i32, y: i32, z: i32) ?usize {
+    return find2D(tables, n, x, y, z);
+}
+
+test "findCartographyTable helper" {
+    const FakeTable = struct { x: i32, y: i32, z: i32 };
+    var ct = [_]FakeTable{.{ .x = 16, .y = 20, .z = 24 }} ** 2;
+    try std.testing.expectEqual(findCartographyTable(&ct, 1, 16, 20, 24), @as(?usize, 0));
+    try std.testing.expectEqual(findCartographyTable(&ct, 1, 0, 0, 0), @as(?usize, null));
+}

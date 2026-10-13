@@ -128,6 +128,7 @@ pub const ItemType = enum(u8) {
     anvil = 122,
     grindstone = 123,
     smithing_table = 124,
+    cartography_table = 125,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -209,6 +210,7 @@ pub const ItemType = enum(u8) {
             .anvil => .anvil,
             .grindstone => .grindstone,
             .smithing_table => .smithing_table,
+            .cartography_table => .cartography_table,
             else => null,
         };
     }
@@ -296,6 +298,7 @@ pub const ItemType = enum(u8) {
             .anvil => .anvil,
             .grindstone => .grindstone,
             .smithing_table => .smithing_table,
+            .cartography_table => .cartography_table,
         };
     }
 
@@ -463,6 +466,7 @@ pub const ItemType = enum(u8) {
             .anvil => "Anvil",
             .grindstone => "Grindstone",
             .smithing_table => "Smithing Table",
+            .cartography_table => "Cartography Table",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -529,6 +533,7 @@ pub const ItemType = enum(u8) {
             .anvil => .{ 0.35, 0.35, 0.38, 0.95 },
             .grindstone => .{ 0.65, 0.60, 0.55, 0.95 },
             .smithing_table => .{ 0.30, 0.35, 0.42, 0.95 },
+            .cartography_table => .{ 0.85, 0.78, 0.58, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1077,6 +1082,22 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 89: Cartography Table: 1 Compass (or Lodestone Compass / Redstone Dust) + 1 Wood Planks + 1..2 Sticks -> 1 Cartography Table
+        if (non_empty >= 3 and non_empty <= 4) {
+            var nav_count: u8 = 0;
+            var plank_count: u8 = 0;
+            var stick_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .compass or sl.item == .lodestone_compass or sl.item == .redstone_dust) nav_count += 1;
+                if (sl.item == .wood_planks) plank_count += 1;
+                if (sl.item == .stick) stick_count += 1;
+            }
+            if (nav_count == 1 and plank_count == 1 and (stick_count == 1 or stick_count == 2)) {
+                self.craft_output = .{ .item = .cartography_table, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 88: Smithing Table: 2 Iron Ingots (or Iron Ore) + 2 Wood Planks -> 1 Smithing Table
         if (non_empty == 4) {
@@ -3571,4 +3592,32 @@ test "smithing table item roundtrip, properties, and Recipe 88" {
     try std.testing.expectEqual(ItemType.smithing_table.maxDurability(), 0);
     try std.testing.expect(!ItemType.smithing_table.isTool());
     try std.testing.expectEqual(ItemType.smithing_table.maxStackSize(), 64);
+}
+
+test "cartography table item roundtrip, properties, and Recipe 89" {
+    var inv = Inventory.init();
+    // Recipe 89: 1 Compass + 1 Wood Planks + 2 Sticks -> 1 Cartography Table
+    inv.craft_grid[0] = .{ .item = .compass, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .stick, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .stick, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .cartography_table);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Also works with Redstone Dust & 1 Stick
+    inv.craft_grid = [_]ItemStack{.{}} ** 4;
+    inv.craft_grid[0] = .{ .item = .redstone_dust, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .stick, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .cartography_table);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.cartography_table.toBlockId().?, .cartography_table);
+    try std.testing.expectEqual(ItemType.fromBlockId(.cartography_table), .cartography_table);
+    try std.testing.expectEqualStrings(ItemType.cartography_table.name(), "Cartography Table");
+    try std.testing.expectEqual(ItemType.cartography_table.maxDurability(), 0);
+    try std.testing.expect(!ItemType.cartography_table.isTool());
+    try std.testing.expectEqual(ItemType.cartography_table.maxStackSize(), 64);
 }
