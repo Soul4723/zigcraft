@@ -117,6 +117,9 @@ pub const ItemType = enum(u8) {
     water_bucket = 111,
     daylight_detector = 112,
     note_block = 113,
+    jukebox = 114,
+    music_disc_13 = 115,
+    music_disc_cat = 116,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -191,6 +194,7 @@ pub const ItemType = enum(u8) {
             .water_bucket => .water,
             .daylight_detector => .daylight_detector,
             .note_block => .note_block,
+            .jukebox => .jukebox,
             else => null,
         };
     }
@@ -271,6 +275,7 @@ pub const ItemType = enum(u8) {
             .cauldron => .cauldron,
             .daylight_detector, .daylight_detector_inverted => .daylight_detector,
             .note_block => .note_block,
+            .jukebox => .jukebox,
         };
     }
 
@@ -301,7 +306,7 @@ pub const ItemType = enum(u8) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .soul_speed_boots, .netherite_helmet, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow => 1,
+            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .soul_speed_boots, .netherite_helmet, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat => 1,
             else => 64,
         };
     }
@@ -418,6 +423,9 @@ pub const ItemType = enum(u8) {
             .water_bucket => "Water Bucket",
             .daylight_detector => "Daylight Detector",
             .note_block => "Note Block",
+            .jukebox => "Jukebox",
+            .music_disc_13 => "Music Disc (13)",
+            .music_disc_cat => "Music Disc (cat)",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -473,6 +481,9 @@ pub const ItemType = enum(u8) {
             .water_bucket => .{ 0.25, 0.50, 0.90, 0.95 },
             .daylight_detector => .{ 0.85, 0.75, 0.45, 0.95 },
             .note_block => .{ 0.70, 0.45, 0.25, 0.95 },
+            .jukebox => .{ 0.55, 0.32, 0.18, 0.95 },
+            .music_disc_13 => .{ 0.95, 0.82, 0.20, 0.95 },
+            .music_disc_cat => .{ 0.20, 0.75, 0.40, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1020,6 +1031,49 @@ pub const Inventory = struct {
 
 
 
+
+
+        // Recipe 78: Jukebox: 1 Gold Nugget / Nether Star / Nether Quartz + 2..3 Wood Planks -> 1 Jukebox
+        if (non_empty >= 3 and non_empty <= 4) {
+            var core_count: u8 = 0;
+            var plank_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .gold_nugget or sl.item == .nether_star or sl.item == .nether_quartz) core_count += 1;
+                if (sl.item == .wood_planks) plank_count += 1;
+            }
+            if (core_count == 1 and plank_count >= 2 and (core_count + plank_count == non_empty)) {
+                self.craft_output = .{ .item = .jukebox, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 79: Music Disc (13): 1 Gold Nugget + 1 Coal -> 1 Music Disc (13)
+        if (non_empty == 2) {
+            var gold_count: u8 = 0;
+            var coal_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .gold_nugget) gold_count += 1;
+                if (sl.item == .coal) coal_count += 1;
+            }
+            if (gold_count == 1 and coal_count == 1) {
+                self.craft_output = .{ .item = .music_disc_13, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 80: Music Disc (cat): 1 Warped Fungus + 1 Coal -> 1 Music Disc (cat)
+        if (non_empty == 2) {
+            var fungus_count: u8 = 0;
+            var coal_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .warped_fungus) fungus_count += 1;
+                if (sl.item == .coal) coal_count += 1;
+            }
+            if (fungus_count == 1 and coal_count == 1) {
+                self.craft_output = .{ .item = .music_disc_cat, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 77: Note Block: 1 Redstone Dust + 2..3 Wood Planks -> 1 Note Block
         if (non_empty >= 3 and non_empty <= 4) {
@@ -2483,7 +2537,14 @@ pub fn fortressLoot(wx: i32, wz: i32, out: *[4]ItemStack) void {
     } else {
         out[2] = .{};
     }
-    out[3] = .{};
+        const h4: u32 = @as(u32, @bitCast(wx *% 19 +% wz *% 73)) % 4;
+    if (h4 == 0) {
+        out[3] = .{ .item = .music_disc_13, .count = 1 };
+    } else if (h4 == 1) {
+        out[3] = .{ .item = .music_disc_cat, .count = 1 };
+    } else {
+        out[3] = .{};
+    }
 }
 
 test "fortress loot is deterministic and wart-weighted" {
@@ -3099,4 +3160,42 @@ test "note block item roundtrip, properties, and Recipe 77" {
     try std.testing.expectEqual(ItemType.note_block.maxDurability(), 0);
     try std.testing.expect(!ItemType.note_block.isTool());
     try std.testing.expectEqual(ItemType.note_block.maxStackSize(), 64);
+}
+
+test "jukebox and music discs item roundtrip, properties, and Recipes 78, 79, 80" {
+    var inv = Inventory.init();
+    // Recipe 78: 1 Gold Nugget + 2 Wood Planks -> 1 Jukebox
+    inv.craft_grid[0] = .{ .item = .gold_nugget, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .wood_planks, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .jukebox);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 79: 1 Gold Nugget + 1 Coal -> 1 Music Disc (13)
+    inv.craft_grid[0] = .{ .item = .gold_nugget, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .coal, .count = 1 };
+    inv.craft_grid[2].clear();
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .music_disc_13);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 80: 1 Warped Fungus + 1 Coal -> 1 Music Disc (cat)
+    inv.craft_grid[0] = .{ .item = .warped_fungus, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .coal, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .music_disc_cat);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.jukebox.toBlockId().?, .jukebox);
+    try std.testing.expectEqual(ItemType.fromBlockId(.jukebox), .jukebox);
+    try std.testing.expectEqualStrings(ItemType.jukebox.name(), "Jukebox");
+    try std.testing.expectEqual(ItemType.jukebox.maxDurability(), 0);
+    try std.testing.expect(!ItemType.jukebox.isTool());
+    try std.testing.expectEqual(ItemType.jukebox.maxStackSize(), 64);
+
+    try std.testing.expectEqual(ItemType.music_disc_13.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.music_disc_cat.maxStackSize(), 1);
+    try std.testing.expectEqualStrings(ItemType.music_disc_13.name(), "Music Disc (13)");
+    try std.testing.expectEqualStrings(ItemType.music_disc_cat.name(), "Music Disc (cat)");
 }

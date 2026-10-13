@@ -259,6 +259,9 @@ pub fn main() !void {
     const NoteBlockState = struct { x: i32, y: i32, z: i32, pitch: u5 = 0, powered: bool = false };
     var note_blocks: [32]NoteBlockState = undefined;
     var note_block_count: usize = 0;
+    const JukeboxState = struct { x: i32, y: i32, z: i32, playing_disc: ?inventory_mod.ItemType = null, play_timer: f32 = 0.0 };
+    var jukeboxes: [cache_mod.jukebox_cap]JukeboxState = undefined;
+    var jukebox_count: usize = 0;
     const DropperState = struct { x: i32, y: i32, z: i32, powered: bool = false, items: [4]inventory_mod.ItemStack = undefined, count: usize = 0 };
     var droppers: [32]DropperState = undefined;
     var dropper_count: usize = 0;
@@ -542,6 +545,30 @@ pub fn main() !void {
 
     
 
+
+        // Jukebox vinyl record playback and musical note particle shimmer
+        {
+            var jbi: usize = 0;
+            while (jbi < jukebox_count) {
+                const jb = &jukeboxes[jbi];
+                const cur_b = manager.getBlockWorld(jb.x, jb.y, jb.z);
+                if (cur_b != .jukebox) {
+                    cache_mod.swapRemove(&jukeboxes, &jukebox_count, jbi);
+                    continue;
+                }
+
+                if (jb.play_timer > 0.0) {
+                    jb.play_timer -= dt;
+                    // Spawn musical shimmer particle effect above jukebox while record spins
+                    particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(jb.x)) + 0.5, @as(f32, @floatFromInt(jb.y)) + 1.1, @as(f32, @floatFromInt(jb.z)) + 0.5 }, 1);
+                    if (jb.play_timer <= 0.0) {
+                        jb.playing_disc = null;
+                        jb.play_timer = 0.0;
+                    }
+                }
+                jbi += 1;
+            }
+        }
 
         // Note Block redstone rising-edge acoustic trigger
         {
@@ -2209,6 +2236,10 @@ pub fn main() !void {
                                             note_blocks[note_block_count] = .{ .x = px, .y = py, .z = pz, .pitch = 0 };
                                             note_block_count += 1;
                                         }
+                                        if (place_type == .jukebox and jukebox_count < jukeboxes.len) {
+                                            jukeboxes[jukebox_count] = .{ .x = px, .y = py, .z = pz };
+                                            jukebox_count += 1;
+                                        }
                                         if (place_type == .spawner_cage and spawner_count < spawners.len) {
                                             spawners[spawner_count] = .{ .x = px, .y = py, .z = pz };
                                             spawner_count += 1;
@@ -3196,6 +3227,41 @@ pub fn main() !void {
                         }
                     }
                     flint_cooldown = interact_mod.flint_feed_cooldown;
+                } else if (target == .jukebox) {
+                    var jb_opt = cache_mod.findJukebox(&jukeboxes, jukebox_count, hit_f.x, hit_f.y, hit_f.z);
+                    if (jb_opt == null and jukebox_count < jukeboxes.len) {
+                        jukeboxes[jukebox_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z };
+                        jb_opt = jukebox_count;
+                        jukebox_count += 1;
+                    }
+
+                    if (jb_opt) |ji| {
+                        const jb = &jukeboxes[ji];
+                        if (jb.playing_disc) |disc| {
+                            // Eject currently inserted disc back to player
+                            _ = inventory.addItem(disc, 1);
+                            jb.playing_disc = null;
+                            jb.play_timer = 0.0;
+                            audio.playAt(.click_off, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 30.0);
+                            std.debug.print("jukebox ejected {s} at ({d},{d},{d})\n", .{ disc.name(), hit_f.x, hit_f.y, hit_f.z });
+                        } else {
+                            // Check if player holds a music disc
+                            const held_slot = &inventory.slots[selected_slot];
+                            if (held_slot.item == .music_disc_13 or held_slot.item == .music_disc_cat) {
+                                const disc = held_slot.item;
+                                held_slot.count -= 1;
+                                if (held_slot.count == 0) held_slot.clear();
+
+                                jb.playing_disc = disc;
+                                jb.play_timer = 3.0;
+                                const track_sound: audio_mod.synth.SoundType = if (disc == .music_disc_13) .record_13 else .record_cat;
+                                audio.playAt(track_sound, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 48.0);
+                                particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 8);
+                                std.debug.print("jukebox now playing {s} at ({d},{d},{d})\n", .{ disc.name(), hit_f.x, hit_f.y, hit_f.z });
+                            }
+                        }
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .note_block) {
                     var nb_opt = cache_mod.findNoteBlock(&note_blocks, note_block_count, hit_f.x, hit_f.y, hit_f.z);
                     if (nb_opt == null and note_block_count < note_blocks.len) {

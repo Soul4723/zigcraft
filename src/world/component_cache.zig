@@ -284,3 +284,16 @@ test "findNoteBlock helper" {
     try std.testing.expectEqual(findNoteBlock(&nb, 1, 11, 22, 33), @as(?usize, 0));
     try std.testing.expectEqual(findNoteBlock(&nb, 1, 0, 0, 0), @as(?usize, null));
 }
+
+pub const jukebox_cap: usize = 32;
+
+pub fn findJukebox(boxes: anytype, n: usize, x: i32, y: i32, z: i32) ?usize {
+    return find2D(boxes, n, x, y, z);
+}
+
+test "findJukebox helper" {
+    const FakeJukebox = struct { x: i32, y: i32, z: i32 };
+    var jb = [_]FakeJukebox{.{ .x = 12, .y = 34, .z = 56 }} ** 2;
+    try std.testing.expectEqual(findJukebox(&jb, 1, 12, 34, 56), @as(?usize, 0));
+    try std.testing.expectEqual(findJukebox(&jb, 1, 0, 0, 0), @as(?usize, null));
+}
