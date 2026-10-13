@@ -245,3 +245,16 @@ test "findDepositSlot searches matching then empty" {
     try std.testing.expectEqual(@as(?usize, 2), findDepositSlot(&slots, @as(u8, 1)));
     try std.testing.expectEqual(@as(?usize, 2), findDepositSlot(&slots, @as(u8, 3)));
 }
+
+pub const brewing_stand_cap: usize = 32;
+
+pub fn findBrewingStand(stands: anytype, n: usize, x: i32, y: i32, z: i32) ?usize {
+    return find2D(stands, n, x, y, z);
+}
+
+test "findBrewingStand helper" {
+    const FakeBrewingStand = struct { x: i32, y: i32, z: i32 };
+    var bs = [_]FakeBrewingStand{.{ .x = 5, .y = 6, .z = 7 }} ** 2;
+    try std.testing.expectEqual(findBrewingStand(&bs, 1, 5, 6, 7), @as(?usize, 0));
+    try std.testing.expectEqual(findBrewingStand(&bs, 1, 0, 0, 0), @as(?usize, null));
+}

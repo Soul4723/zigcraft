@@ -249,6 +249,9 @@ pub fn main() !void {
     const HopperState = struct { x: i32, y: i32, z: i32, cooldown: f32 = 0.0, items: [4]inventory_mod.ItemStack = undefined };
     var hoppers: [32]HopperState = undefined;
     var hopper_count: usize = 0;
+    const BrewingStandState = struct { x: i32, y: i32, z: i32, progress: f32 = 0.0, fuel: u8 = 0, wart: u8 = 0, bottles: u8 = 0, potions: u8 = 0 };
+    var brewing_stands: [32]BrewingStandState = undefined;
+    var brewing_stand_count: usize = 0;
     const DropperState = struct { x: i32, y: i32, z: i32, powered: bool = false, items: [4]inventory_mod.ItemStack = undefined, count: usize = 0 };
     var droppers: [32]DropperState = undefined;
     var dropper_count: usize = 0;
@@ -532,6 +535,38 @@ pub fn main() !void {
 
     
 
+
+        // Brewing Stand: autonomous 2.5s distillation pipeline converting nether wart + glass into fire resistance potions
+        {
+            var bsi: usize = 0;
+            while (bsi < brewing_stand_count) {
+                const bs = &brewing_stands[bsi];
+                const cur_b = manager.getBlockWorld(bs.x, bs.y, bs.z);
+                if (cur_b != .brewing_stand) {
+                    cache_mod.swapRemove(&brewing_stands, &brewing_stand_count, bsi);
+                    continue;
+                }
+
+                // If active brew conditions are met (has fuel or fuel available, has wart, has bottle, room for potion)
+                if (bs.fuel > 0 and bs.wart > 0 and bs.bottles > 0 and bs.potions < 3) {
+                    bs.progress += dt;
+                    if (bs.progress >= 2.5) {
+                        bs.progress = 0.0;
+                        bs.fuel -= 1;
+                        bs.wart -= 1;
+                        bs.bottles -= 1;
+                        bs.potions += 1;
+                        audio.playAt(.lava_pop, .{ @as(f32, @floatFromInt(bs.x)) + 0.5, @as(f32, @floatFromInt(bs.y)) + 0.5, @as(f32, @floatFromInt(bs.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
+                        particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(bs.x)) + 0.5, @as(f32, @floatFromInt(bs.y)) + 0.7, @as(f32, @floatFromInt(bs.z)) + 0.5 }, 12);
+                        std.debug.print("brewed fire resistance potion at ({d},{d},{d}) (total potions={d})\n", .{ bs.x, bs.y, bs.z, bs.potions });
+                    }
+                } else {
+                    bs.progress = 0.0;
+                }
+
+                bsi += 1;
+            }
+        }
 
         // Hopper block: autonomous 4-tick (0.4s) item pipeline siphoning from above & funneling downward
         {
@@ -2118,6 +2153,10 @@ pub fn main() !void {
                                             chests[chest_count] = .{ .x = px, .y = py, .z = pz, .items = [_]inventory_mod.ItemStack{.{}} ** 4 };
                                             chest_count += 1;
                                         }
+                                        if (place_type == .brewing_stand and brewing_stand_count < brewing_stands.len) {
+                                            brewing_stands[brewing_stand_count] = .{ .x = px, .y = py, .z = pz };
+                                            brewing_stand_count += 1;
+                                        }
                                         if (place_type == .spawner_cage and spawner_count < spawners.len) {
                                             spawners[spawner_count] = .{ .x = px, .y = py, .z = pz };
                                             spawner_count += 1;
@@ -3102,6 +3141,45 @@ pub fn main() !void {
                                     break;
                                 }
                             }
+                        }
+                    }
+                    flint_cooldown = interact_mod.flint_feed_cooldown;
+                } else if (target == .brewing_stand) {
+                    var bs_opt = cache_mod.findBrewingStand(&brewing_stands, brewing_stand_count, hit_f.x, hit_f.y, hit_f.z);
+                    if (bs_opt == null and brewing_stand_count < brewing_stands.len) {
+                        brewing_stands[brewing_stand_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z };
+                        bs_opt = brewing_stand_count;
+                        brewing_stand_count += 1;
+                    }
+
+                    if (bs_opt) |bi| {
+                        const bs = &brewing_stands[bi];
+                        const held_item = inventory.slots[selected_slot].item;
+
+                        if (held_item == .blaze_powder and bs.fuel < 20) {
+                            bs.fuel += 1;
+                            inventory.slots[selected_slot].decrement(1);
+                            audio.play(.place_block, 0.7);
+                            particles.spawnFlame(hit_f.x, hit_f.y + 1, hit_f.z, 4);
+                            std.debug.print("loaded blaze powder fuel (fuel={d})\n", .{bs.fuel});
+                        } else if (held_item == .nether_wart and bs.wart < 16) {
+                            bs.wart += 1;
+                            inventory.slots[selected_slot].decrement(1);
+                            audio.play(.place_block, 0.7);
+                            std.debug.print("loaded nether wart reagent (wart={d})\n", .{bs.wart});
+                        } else if (held_item == .glass and bs.bottles < 3) {
+                            bs.bottles += 1;
+                            inventory.slots[selected_slot].decrement(1);
+                            audio.play(.place_block, 0.7);
+                            std.debug.print("loaded glass vial flask (bottles={d})\n", .{bs.bottles});
+                        } else if (held_item == .none and bs.potions > 0) {
+                            _ = inventory.addItem(.fire_resistance_potion, 1);
+                            bs.potions -= 1;
+                            audio.play(.break_block, 0.7);
+                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 6);
+                            std.debug.print("retrieved fire resistance potion (remaining={d})\n", .{bs.potions});
+                        } else {
+                            std.debug.print("brewing stand status: fuel={d}, wart={d}, bottles={d}, potions={d}\n", .{ bs.fuel, bs.wart, bs.bottles, bs.potions });
                         }
                     }
                     flint_cooldown = interact_mod.flint_feed_cooldown;

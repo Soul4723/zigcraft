@@ -112,6 +112,7 @@ pub const ItemType = enum(u8) {
     hopper = 106,
     blaze_rod = 107,
     blaze_powder = 108,
+    brewing_stand = 109,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -181,6 +182,7 @@ pub const ItemType = enum(u8) {
             .dispenser => .dispenser,
             .dropper => .dropper,
             .hopper => .hopper,
+            .brewing_stand => .brewing_stand,
             else => null,
         };
     }
@@ -257,6 +259,7 @@ pub const ItemType = enum(u8) {
             .dispenser => .dispenser,
             .dropper => .dropper,
             .hopper => .hopper,
+            .brewing_stand => .brewing_stand,
         };
     }
 
@@ -399,6 +402,7 @@ pub const ItemType = enum(u8) {
             .hopper => "Hopper",
             .blaze_rod => "Blaze Rod",
             .blaze_powder => "Blaze Powder",
+            .brewing_stand => "Brewing Stand",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -449,6 +453,7 @@ pub const ItemType = enum(u8) {
             .hopper => .{ 0.38, 0.38, 0.40, 0.95 },
             .blaze_rod => .{ 1.0, 0.72, 0.15, 0.95 },
             .blaze_powder => .{ 0.95, 0.55, 0.10, 0.95 },
+            .brewing_stand => .{ 0.88, 0.65, 0.22, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -989,6 +994,21 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+
+        // Recipe 74: Brewing Stand: 1 Blaze Rod + 1..3 Cobblestone -> 1 Brewing Stand
+        if (non_empty >= 2 and non_empty <= 4) {
+            var rod_count: u8 = 0;
+            var cobble_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .blaze_rod) rod_count += 1;
+                if (sl.item == .cobblestone) cobble_count += 1;
+            }
+            if (rod_count == 1 and cobble_count >= 1 and (rod_count + cobble_count == non_empty)) {
+                self.craft_output = .{ .item = .brewing_stand, .count = 1 };
                 return;
             }
         }
@@ -2934,4 +2954,26 @@ test "blaze mob drops and recipes 72 and 73" {
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .fire_charge);
     try std.testing.expectEqual(inv.craft_output.count, 3);
+}
+
+test "brewing stand item roundtrip, properties, and Recipe 74" {
+    var inv = Inventory.init();
+    // Recipe 74: 1 Blaze Rod + 1 Cobblestone -> 1 Brewing Stand
+    inv.craft_grid[0] = .{ .item = .blaze_rod, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .cobblestone, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .brewing_stand);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Also with 2 cobblestone
+    inv.craft_grid[3] = .{ .item = .cobblestone, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .brewing_stand);
+
+    try std.testing.expectEqual(ItemType.brewing_stand.toBlockId().?, .brewing_stand);
+    try std.testing.expectEqual(ItemType.fromBlockId(.brewing_stand), .brewing_stand);
+    try std.testing.expectEqualStrings(ItemType.brewing_stand.name(), "Brewing Stand");
+    try std.testing.expectEqual(ItemType.brewing_stand.maxDurability(), 0);
+    try std.testing.expect(!ItemType.brewing_stand.isTool());
+    try std.testing.expectEqual(ItemType.brewing_stand.maxStackSize(), 64);
 }
