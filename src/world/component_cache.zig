@@ -336,3 +336,16 @@ test "findAnvil helper" {
     try std.testing.expectEqual(findAnvil(&an, 1, 5, 12, 15), @as(?usize, 0));
     try std.testing.expectEqual(findAnvil(&an, 1, 0, 0, 0), @as(?usize, null));
 }
+
+pub const grindstone_cap: usize = 32;
+
+pub fn findGrindstone(grindstones: anytype, n: usize, x: i32, y: i32, z: i32) ?usize {
+    return find2D(grindstones, n, x, y, z);
+}
+
+test "findGrindstone helper" {
+    const FakeGrindstone = struct { x: i32, y: i32, z: i32 };
+    var gs = [_]FakeGrindstone{.{ .x = 7, .y = 9, .z = 11 }} ** 2;
+    try std.testing.expectEqual(findGrindstone(&gs, 1, 7, 9, 11), @as(?usize, 0));
+    try std.testing.expectEqual(findGrindstone(&gs, 1, 0, 0, 0), @as(?usize, null));
+}

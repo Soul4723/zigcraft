@@ -281,6 +281,9 @@ pub fn main() !void {
     const AnvilState = struct { x: i32, y: i32, z: i32, uses_left: u8 = 25 };
     var anvils: [cache_mod.anvil_cap]AnvilState = undefined;
     var anvil_count: usize = 0;
+    const GrindstoneState = struct { x: i32, y: i32, z: i32 };
+    var grindstones: [cache_mod.grindstone_cap]GrindstoneState = undefined;
+    var grindstone_count: usize = 0;
     const DropperState = struct { x: i32, y: i32, z: i32, powered: bool = false, items: [4]inventory_mod.ItemStack = undefined, count: usize = 0 };
     var droppers: [32]DropperState = undefined;
     var dropper_count: usize = 0;
@@ -2377,6 +2380,10 @@ pub fn main() !void {
                                             anvils[anvil_count] = .{ .x = px, .y = py, .z = pz };
                                             anvil_count += 1;
                                         }
+                                        if (place_type == .grindstone and grindstone_count < grindstones.len) {
+                                            grindstones[grindstone_count] = .{ .x = px, .y = py, .z = pz };
+                                            grindstone_count += 1;
+                                        }
                                         if (place_type == .spawner_cage and spawner_count < spawners.len) {
                                             spawners[spawner_count] = .{ .x = px, .y = py, .z = pz };
                                             spawner_count += 1;
@@ -3462,6 +3469,27 @@ pub fn main() !void {
                             }
                             audio.playAt(.click_off, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
                         }
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .grindstone) {
+                    var gs_opt = cache_mod.findGrindstone(&grindstones, grindstone_count, hit_f.x, hit_f.y, hit_f.z);
+                    if (gs_opt == null and grindstone_count < grindstones.len) {
+                        grindstones[grindstone_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z };
+                        gs_opt = grindstone_count;
+                        grindstone_count += 1;
+                    }
+
+                    const held_slot = &inventory.slots[selected_slot];
+                    if (held_slot.item.isTool()) {
+                        // Abrasive stone grinding wheel sharpening & restoration
+                        tool_wear.uses[selected_slot] = 0;
+                        audio.playAt(.grindstone_scrape, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 30.0);
+                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.70, 0.70, 0.75 }, 8);
+                        std.debug.print("sharpened and restored tool on grindstone: {s}\n", .{ held_slot.item.name() });
+                    } else {
+                        // Spinning stone wheel friction scrape tap
+                        audio.playAt(.grindstone_scrape, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.6, 20.0);
+                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.50, 0.50, 0.55 }, 3);
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .anvil) {
