@@ -1221,8 +1221,9 @@ pub fn main() !void {
                         std.debug.print("withered", .{});
                     }
                     audio.play(.hurt, 0.8);
-                    player.pos.x -= hit.knockback_x;
-                    player.pos.z -= hit.knockback_z;
+                    const has_leggings = inventory.hasItem(.netherite_leggings);
+                    player.pos.x -= combat_mod.applyKnockbackResistance(hit.knockback_x, has_leggings);
+                    player.pos.z -= combat_mod.applyKnockbackResistance(hit.knockback_z, has_leggings);
                     std.debug.print("mob attack (hp={d:.1}, type={s})\n", .{ player.health, @tagName(m.mob_type) });
                     wolf_bite_cooldown = combat_mod.wolf_bite_cooldown;
                     break;

@@ -96,6 +96,7 @@ pub const ItemType = enum(u8) {
     netherite_chestplate = 90,
     soul_speed_boots = 91,
     netherite_helmet = 92,
+    netherite_leggings = 93,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -247,6 +248,7 @@ pub const ItemType = enum(u8) {
             .netherite_chestplate => 500,
             .soul_speed_boots => 300,
             .netherite_helmet => 450,
+            .netherite_leggings => 475,
             else => 0,
         };
     }
@@ -258,7 +260,7 @@ pub const ItemType = enum(u8) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .soul_speed_boots, .netherite_helmet => 1,
+            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .soul_speed_boots, .netherite_helmet, .netherite_leggings => 1,
             else => 64,
         };
     }
@@ -354,6 +356,7 @@ pub const ItemType = enum(u8) {
             .netherite_chestplate => "Netherite Chestplate",
             .soul_speed_boots => "Soul Speed Boots",
             .netherite_helmet => "Netherite Helmet",
+            .netherite_leggings => "Netherite Leggings",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -388,6 +391,7 @@ pub const ItemType = enum(u8) {
             .netherite_chestplate => .{ 0.25, 0.22, 0.26, 0.95 },
             .soul_speed_boots => .{ 0.20, 0.85, 0.90, 0.95 },
             .netherite_helmet => .{ 0.26, 0.23, 0.28, 0.95 },
+            .netherite_leggings => .{ 0.24, 0.21, 0.25, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -898,6 +902,20 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 59: Netherite Leggings: 1 Netherite Ingot + 1 Obsidian (or 2 Netherite Scrap) -> 1 Netherite Leggings
+        if (non_empty == 2) {
+            const has_ni = (g0 == .netherite_ingot or g1 == .netherite_ingot or g2 == .netherite_ingot or g3 == .netherite_ingot);
+            const has_obs = (g0 == .obsidian or g1 == .obsidian or g2 == .obsidian or g3 == .obsidian);
+            var scraps: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .netherite_scrap) scraps += 1;
+            }
+            if ((has_ni and has_obs) or scraps == 2) {
+                self.craft_output = .{ .item = .netherite_leggings, .count = 1 };
                 return;
             }
         }
@@ -2293,4 +2311,27 @@ test "netherite helmet item properties, durability, and Recipe 58" {
     try std.testing.expect(ItemType.netherite_helmet.isTool());
     try std.testing.expectEqual(ItemType.netherite_helmet.maxStackSize(), 1);
     try std.testing.expectEqualStrings(ItemType.netherite_helmet.name(), "Netherite Helmet");
+}
+
+test "netherite leggings item properties, durability, and Recipe 59" {
+    var inv = Inventory.init();
+
+    // Recipe 59: 1 Netherite Ingot + 1 Obsidian -> 1 Netherite Leggings
+    inv.craft_grid[0] = .{ .item = .netherite_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .obsidian, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .netherite_leggings);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Also works with 2 Netherite Scraps
+    inv.craft_grid[0] = .{ .item = .netherite_scrap, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .netherite_scrap, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .netherite_leggings);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.netherite_leggings.maxDurability(), 475);
+    try std.testing.expect(ItemType.netherite_leggings.isTool());
+    try std.testing.expectEqual(ItemType.netherite_leggings.maxStackSize(), 1);
+    try std.testing.expectEqualStrings(ItemType.netherite_leggings.name(), "Netherite Leggings");
 }

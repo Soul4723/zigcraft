@@ -19,6 +19,15 @@ pub fn applyArmorReduction(raw_damage: f32, has_netherite_armor: bool) f32 {
     return raw_damage;
 }
 
+pub const netherite_knockback_resistance: f32 = 0.60; // 60% knockback reduction
+
+pub fn applyKnockbackResistance(raw_knockback: f32, has_netherite_leggings: bool) f32 {
+    if (has_netherite_leggings) {
+        return raw_knockback * (1.0 - netherite_knockback_resistance);
+    }
+    return raw_knockback;
+}
+
 pub fn inBiteRange(dx: f32, dz: f32, dy: f32) bool {
     return dx * dx + dz * dz < wolf_bite_range_sq and @abs(dy) < wolf_bite_height;
 }
@@ -104,4 +113,10 @@ test "applyArmorReduction absorbs 50% damage with netherite chestplate" {
     try std.testing.expectApproxEqAbs(applyArmorReduction(10.0, true), 5.0, 0.01);
     try std.testing.expectApproxEqAbs(applyArmorReduction(4.0, true), 2.0, 0.01);
     try std.testing.expectApproxEqAbs(applyArmorReduction(10.0, false), 10.0, 0.01);
+}
+
+test "applyKnockbackResistance dampens knockback by 60% with netherite leggings" {
+    try std.testing.expectApproxEqAbs(applyKnockbackResistance(1.0, true), 0.40, 0.01);
+    try std.testing.expectApproxEqAbs(applyKnockbackResistance(2.5, true), 1.00, 0.01);
+    try std.testing.expectApproxEqAbs(applyKnockbackResistance(1.0, false), 1.00, 0.01);
 }
