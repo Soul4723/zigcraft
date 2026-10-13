@@ -246,6 +246,9 @@ pub fn main() !void {
     const RedTorch = cache_mod.RedTorch;
     var red_torches: [cache_mod.red_torch_cap]RedTorch = undefined;
     var red_torch_count: usize = 0;
+    const DispenserState = struct { x: i32, y: i32, z: i32, powered: bool = false, ammo_count: u8 = 9 };
+    var dispensers: [32]DispenserState = undefined;
+    var dispenser_count: usize = 0;
     const TargetPulse = struct { x: i32, y: i32, z: i32, t: f32, strength: u4 };
     var target_pulses: [16]TargetPulse = undefined;
     var target_pulse_count: usize = 0;
@@ -521,7 +524,78 @@ pub fn main() !void {
                 nether_ambient_timer = 0.0;
             }
 
-            // Periodic ambient nether portal hum and particle swirl around player
+    
+        // Dispenser block: launches projectile into world upon redstone rising edge pulse
+        {
+            var di: usize = 0;
+            while (di < dispenser_count) {
+                const disp = &dispensers[di];
+                const cur_b = manager.getBlockWorld(disp.x, disp.y, disp.z);
+                if (cur_b != .dispenser) {
+                    cache_mod.swapRemove(&dispensers, &dispenser_count, di);
+                    continue;
+                }
+
+                const powered_now = redstone_mod.isDispenserPowered(&pickBlockWorld, disp.x, disp.y, disp.z);
+                if (powered_now and !disp.powered) {
+                    disp.powered = true;
+                    if (disp.ammo_count > 0 and thrown_count < thrown.len) {
+                        disp.ammo_count -= 1;
+                        // Determine launch vector (front face: north / -Z)
+                        const launch_x = @as(f32, @floatFromInt(disp.x)) + 0.5;
+                        const launch_y = @as(f32, @floatFromInt(disp.y)) + 0.5;
+                        const launch_z = @as(f32, @floatFromInt(disp.z)) - 0.6; // eject out front nozzle
+
+                        // Launch projectile (arrow / fireworks rocket / snowball)
+                        const cycle = disp.ammo_count % 3;
+                        if (cycle == 0) {
+                            // Arrow
+                            thrown[thrown_count] = .{
+                                .pos = math.Vec3.init(launch_x, launch_y, launch_z),
+                                .vel = math.Vec3.init(0.0, 1.0, -22.0),
+                                .life = proj_mod.throw_life,
+                                .kind = .arrow,
+                                .damage = 4,
+                            };
+                            thrown_count += 1;
+                            audio.play(.bow_shoot, 0.9);
+                        } else if (cycle == 1) {
+                            // Fireworks Rocket
+                            thrown[thrown_count] = .{
+                                .pos = math.Vec3.init(launch_x, launch_y, launch_z),
+                                .vel = math.Vec3.init(0.0, 2.5, -26.0),
+                                .life = proj_mod.firework_rocket_life,
+                                .kind = .firework_rocket,
+                                .damage = proj_mod.firework_explosion_damage,
+                            };
+                            thrown_count += 1;
+                            audio.play(.burn_sizzle, 0.8);
+                        } else {
+                            // Spectral Arrow
+                            thrown[thrown_count] = .{
+                                .pos = math.Vec3.init(launch_x, launch_y, launch_z),
+                                .vel = math.Vec3.init(0.0, 1.0, -22.0),
+                                .life = proj_mod.throw_life,
+                                .kind = .spectral_arrow,
+                                .damage = proj_mod.spectral_arrow_damage,
+                            };
+                            thrown_count += 1;
+                            audio.play(.glowstone_chime, 0.8);
+                        }
+                        particles.spawnFlame(disp.x, disp.y, disp.z, 4);
+                        particles.spawnCampfireSmoke(disp.x, disp.y, disp.z, false, false, 2);
+                        std.debug.print("dispenser triggered: projectile launched ({d} ammo remaining)\n", .{disp.ammo_count});
+                    } else {
+                        audio.play(.click_off, 0.6);
+                    }
+                } else if (!powered_now and disp.powered) {
+                    disp.powered = false;
+                }
+                di += 1;
+            }
+        }
+
+        // Periodic ambient nether portal hum and particle swirl around player
             portal_ambient_timer += dt;
             if (portal_ambient_timer >= 0.3) {
                 portal_ambient_timer = 0.0;

@@ -345,3 +345,28 @@ test "relaxWireStrength signal decay" {
     // Keeps higher existing strength
     try std.testing.expectEqual(@as(u4, 12), relaxWireStrength(12, &.{10}));
 }
+
+pub fn isDispenserPowered(get: *const fn (x: i32, y: i32, z: i32) BlockId, dx: i32, dy: i32, dz: i32) bool {
+    const adj_dirs = [_][3]i32{
+        .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 },
+        .{ 0, 1, 0 }, .{ 0, -1, 0 },
+    };
+    for (adj_dirs) |ad| {
+        const nb = get(dx + ad[0], dy + ad[1], dz + ad[2]);
+        if (nb == .redstone_wire_on or nb == .pressure_plate_down or nb == .lever_on or nb == .repeater_on or nb == .redstone_torch_on) {
+            return true;
+        }
+    }
+    return false;
+}
+
+test "isDispenserPowered adjacent detection" {
+    const mock = struct {
+        fn get(x: i32, y: i32, z: i32) BlockId {
+            if (x == 10 and y == 5 and z == 21) return .redstone_wire_on;
+            return .stone;
+        }
+    }.get;
+    try std.testing.expect(isDispenserPowered(mock, 10, 5, 20));
+    try std.testing.expect(!isDispenserPowered(mock, 10, 5, 10));
+}

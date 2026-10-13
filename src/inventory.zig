@@ -107,6 +107,7 @@ pub const ItemType = enum(u8) {
     lodestone_compass = 101,
     crossbow = 102,
     fireworks_rocket = 103,
+    dispenser = 104,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -173,6 +174,7 @@ pub const ItemType = enum(u8) {
             .warped_fungus => .warped_fungus,
             .shroomlight => .shroomlight,
             .chiseled_nether_brick => .chiseled_nether_brick,
+            .dispenser => .dispenser,
             else => null,
         };
     }
@@ -246,6 +248,7 @@ pub const ItemType = enum(u8) {
             .warped_fungus => .warped_fungus,
             .shroomlight => .shroomlight,
             .chiseled_nether_brick => .chiseled_nether_brick,
+            .dispenser => .dispenser,
         };
     }
 
@@ -383,6 +386,7 @@ pub const ItemType = enum(u8) {
             .lodestone_compass => "Lodestone Compass",
             .crossbow => "Crossbow",
             .fireworks_rocket => "Fireworks Rocket",
+            .dispenser => "Dispenser",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -428,6 +432,7 @@ pub const ItemType = enum(u8) {
             .lodestone_compass => .{ 0.35, 0.85, 0.95, 0.95 },
             .crossbow => .{ 0.48, 0.35, 0.22, 0.95 },
             .fireworks_rocket => .{ 0.92, 0.25, 0.30, 0.95 },
+            .dispenser => .{ 0.55, 0.55, 0.58, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -968,6 +973,22 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 69: Dispenser: 1 Bow/Crossbow + 1 Redstone Dust + 1..2 Cobblestone -> 1 Dispenser
+        if (non_empty >= 3) {
+            var has_launcher = false;
+            var has_red = false;
+            var cobble_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .bow or sl.item == .crossbow) has_launcher = true;
+                if (sl.item == .redstone_dust) has_red = true;
+                if (sl.item == .cobblestone) cobble_count += 1;
+            }
+            if (has_launcher and has_red and cobble_count >= 1 and ((if (has_launcher) @as(u8, 1) else 0) + (if (has_red) @as(u8, 1) else 0) + cobble_count == non_empty)) {
+                self.craft_output = .{ .item = .dispenser, .count = 1 };
                 return;
             }
         }
@@ -2746,4 +2767,29 @@ test "consumeCrossbowAmmo priority: rocket > spectral > arrow" {
     try std.testing.expectEqual(inv.consumeCrossbowAmmo(), .arrow);
     try std.testing.expectEqual(inv.consumeCrossbowAmmo(), .arrow);
     try std.testing.expect(inv.consumeCrossbowAmmo() == null);
+}
+
+test "dispenser item roundtrip, properties, and Recipe 69" {
+    var inv = Inventory.init();
+
+    // Recipe 69: 1 Bow + 1 Redstone Dust + 1 Cobblestone -> 1 Dispenser
+    inv.craft_grid[0] = .{ .item = .bow, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .redstone_dust, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .cobblestone, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .dispenser);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 69 with crossbow
+    inv.craft_grid[0] = .{ .item = .crossbow, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .dispenser);
+
+    // Properties
+    try std.testing.expectEqual(ItemType.dispenser.toBlockId().?, .dispenser);
+    try std.testing.expectEqual(ItemType.fromBlockId(.dispenser), .dispenser);
+    try std.testing.expectEqualStrings(ItemType.dispenser.name(), "Dispenser");
+    try std.testing.expectEqual(ItemType.dispenser.maxDurability(), 0);
+    try std.testing.expect(!ItemType.dispenser.isTool());
+    try std.testing.expectEqual(ItemType.dispenser.maxStackSize(), 64);
 }
