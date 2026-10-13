@@ -40,6 +40,12 @@ pub const Mob = struct {
     burn_timer: f32,
     barter_timer: f32 = 0.0,
     glow_timer: f32 = 0.0,
+    leashed_to_player: bool = false,
+    fence_post: ?struct { x: i32, y: i32, z: i32 } = null,
+
+    pub fn isLeashed(self: Mob) bool {
+        return self.leashed_to_player or self.fence_post != null;
+    }
 
     pub fn isGlowing(self: Mob) bool {
         return self.glow_timer > 0.0;
@@ -95,6 +101,8 @@ pub const Mob = struct {
             .burn_timer = 0.0,
             .barter_timer = 0.0,
             .glow_timer = 0.0,
+            .leashed_to_player = false,
+            .fence_post = null,
         };
     }
 
@@ -646,4 +654,50 @@ test "blaze mob properties: 20 HP, fire immunity and hovering" {
     try std.testing.expectEqual(@as(u8, 20), b.health);
     try std.testing.expectApproxEqAbs(b.height, 1.8, 0.01);
     try std.testing.expectEqual(b.mob_type, .blaze);
+}
+
+/// Leash tether tension force towards anchor point (player or fence post).
+/// Returns true if leash broke (exceeded max distance 10.0m).
+pub fn applyLeashTension(mob_pos: *math.Vec3, mob_vel: *math.Vec3, anchor_pos: math.Vec3, dt: f32) bool {
+    const dx = anchor_pos.x - mob_pos.x;
+    const dy = anchor_pos.y - mob_pos.y;
+    const dz = anchor_pos.z - mob_pos.z;
+    const dist_sq = dx * dx + dy * dy + dz * dz;
+
+    // Break leash if pulled past 10.0 meters
+    if (dist_sq > 100.0) {
+        return true;
+    }
+
+    // If beyond slack distance (3.0m), apply elastic spring tension
+    if (dist_sq > 9.0) {
+        const dist = @sqrt(dist_sq);
+        const pull = (dist - 3.0) * 2.8;
+        mob_vel.x += (dx / dist) * pull * dt;
+        mob_vel.y += (dy / dist) * pull * dt;
+        mob_vel.z += (dz / dist) * pull * dt;
+    }
+    return false;
+}
+
+test "mob leash tension and break distance" {
+    var pos = math.Vec3.init(0.0, 0.0, 0.0);
+    var vel = math.Vec3.init(0.0, 0.0, 0.0);
+
+    // Slack leash (< 3.0m) -> no velocity change
+    const anchor_slack = math.Vec3.init(2.0, 0.0, 0.0);
+    const broke_slack = applyLeashTension(&pos, &vel, anchor_slack, 0.05);
+    try std.testing.expect(!broke_slack);
+    try std.testing.expectEqual(vel.x, 0.0);
+
+    // Stretched leash (5.0m) -> accelerates toward anchor
+    const anchor_taut = math.Vec3.init(5.0, 0.0, 0.0);
+    const broke_taut = applyLeashTension(&pos, &vel, anchor_taut, 0.05);
+    try std.testing.expect(!broke_taut);
+    try std.testing.expect(vel.x > 0.1);
+
+    // Snapped leash (> 10.0m) -> returns true (broken)
+    const anchor_far = math.Vec3.init(12.0, 0.0, 0.0);
+    const broke_far = applyLeashTension(&pos, &vel, anchor_far, 0.05);
+    try std.testing.expect(broke_far);
 }

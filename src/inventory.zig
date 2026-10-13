@@ -120,6 +120,8 @@ pub const ItemType = enum(u8) {
     jukebox = 114,
     music_disc_13 = 115,
     music_disc_cat = 116,
+    oak_fence = 117,
+    lead = 118,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -195,6 +197,7 @@ pub const ItemType = enum(u8) {
             .daylight_detector => .daylight_detector,
             .note_block => .note_block,
             .jukebox => .jukebox,
+            .oak_fence => .oak_fence,
             else => null,
         };
     }
@@ -276,6 +279,7 @@ pub const ItemType = enum(u8) {
             .daylight_detector, .daylight_detector_inverted => .daylight_detector,
             .note_block => .note_block,
             .jukebox => .jukebox,
+            .oak_fence => .oak_fence,
         };
     }
 
@@ -426,6 +430,8 @@ pub const ItemType = enum(u8) {
             .jukebox => "Jukebox",
             .music_disc_13 => "Music Disc (13)",
             .music_disc_cat => "Music Disc (cat)",
+            .oak_fence => "Oak Fence",
+            .lead => "Lead",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -484,6 +490,8 @@ pub const ItemType = enum(u8) {
             .jukebox => .{ 0.55, 0.32, 0.18, 0.95 },
             .music_disc_13 => .{ 0.95, 0.82, 0.20, 0.95 },
             .music_disc_cat => .{ 0.20, 0.75, 0.40, 0.95 },
+            .oak_fence => .{ 0.65, 0.48, 0.28, 0.95 },
+            .lead => .{ 0.85, 0.75, 0.55, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1032,6 +1040,43 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 81: Oak Fence: 2 Wood Planks + 2 Sticks (4 items) or 2 Wood Planks vertically + 1 Stick (vertical column g0+g2 + g1 stick) -> 2 Oak Fences
+        if (non_empty == 3) {
+            // Vertical 2 planks (g0, g2) + stick (g1 or g3) or (g1, g3 planks + g0 or g2 stick)
+            if ((g0 == .wood_planks and g2 == .wood_planks and (g1 == .stick or g3 == .stick)) or
+                (g1 == .wood_planks and g3 == .wood_planks and (g0 == .stick or g2 == .stick)))
+            {
+                self.craft_output = .{ .item = .oak_fence, .count = 2 };
+                return;
+            }
+        }
+        if (non_empty == 4) {
+            var plank_count: u8 = 0;
+            var stick_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .wood_planks) plank_count += 1;
+                if (sl.item == .stick) stick_count += 1;
+            }
+            if (plank_count == 2 and stick_count == 2) {
+                self.craft_output = .{ .item = .oak_fence, .count = 2 };
+                return;
+            }
+        }
+
+        // Recipe 82: Lead: 1 Wool/Vines + 1 Stick (non_empty == 2) OR 1 Wool/Vines + 3 Sticks (non_empty == 4)
+        if (non_empty == 2) {
+            var string_fiber_count: u8 = 0;
+            var stick_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .wool or sl.item == .weeping_vines or sl.item == .twisting_vines) string_fiber_count += 1;
+                if (sl.item == .stick) stick_count += 1;
+            }
+            if (string_fiber_count == 1 and stick_count == 1) {
+                self.craft_output = .{ .item = .lead, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 78: Jukebox: 1 Gold Nugget / Nether Star / Nether Quartz + 2..3 Wood Planks -> 1 Jukebox
         if (non_empty >= 3 and non_empty <= 4) {
@@ -3198,4 +3243,43 @@ test "jukebox and music discs item roundtrip, properties, and Recipes 78, 79, 80
     try std.testing.expectEqual(ItemType.music_disc_cat.maxStackSize(), 1);
     try std.testing.expectEqualStrings(ItemType.music_disc_13.name(), "Music Disc (13)");
     try std.testing.expectEqualStrings(ItemType.music_disc_cat.name(), "Music Disc (cat)");
+}
+
+test "oak fence and lead item roundtrip, properties, and Recipes 81 and 82" {
+    var inv = Inventory.init();
+    // Recipe 81: 2 Wood Planks vertically + 1 Stick -> 2 Oak Fences
+    inv.craft_grid[0] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .stick, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .none, .count = 0 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .oak_fence);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+
+    // Recipe 82: 1 Wool + 1 Stick -> 1 Lead
+    inv.craft_grid[0] = .{ .item = .wool, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .stick, .count = 1 };
+    inv.craft_grid[2].clear();
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .lead);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Also craftable with weeping vines
+    inv.craft_grid[0] = .{ .item = .weeping_vines, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .lead);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.oak_fence.toBlockId().?, .oak_fence);
+    try std.testing.expectEqual(ItemType.fromBlockId(.oak_fence), .oak_fence);
+    try std.testing.expectEqualStrings(ItemType.oak_fence.name(), "Oak Fence");
+    try std.testing.expectEqual(ItemType.oak_fence.maxDurability(), 0);
+    try std.testing.expect(!ItemType.oak_fence.isTool());
+    try std.testing.expectEqual(ItemType.oak_fence.maxStackSize(), 64);
+
+    try std.testing.expectEqual(ItemType.lead.toBlockId(), null);
+    try std.testing.expectEqualStrings(ItemType.lead.name(), "Lead");
+    try std.testing.expectEqual(ItemType.lead.maxDurability(), 0);
+    try std.testing.expect(!ItemType.lead.isTool());
+    try std.testing.expectEqual(ItemType.lead.maxStackSize(), 64);
 }

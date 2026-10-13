@@ -1575,9 +1575,38 @@ pub fn main() !void {
         try mob_manager.ensureSpawnPopulation(&manager, player.pos.x, player.pos.z, is_night_spawn);
         const held_warped_fungus = (inventory.slots[selected_slot].item == .warped_fungus or inventory.slots[selected_slot].item == .warped_fungus_on_a_stick);
         mob_manager.tick(&pickSolid, &pickFluid, &pickBlockWorld, player.pos, player.radius, held_warped_fungus, &audio, dt);
-        for (mob_manager.mobs.items) |m| {
+        for (mob_manager.mobs.items) |*m| {
             if (m.isGlowing()) {
                 particles.spawnGlowstoneShimmer(.{ m.pos.x, m.pos.y + 0.4, m.pos.z }, 1);
+            }
+            if (m.leashed_to_player) {
+                const broke = entity_mod.mob.applyLeashTension(&m.pos, &m.vel, player.pos, dt);
+                if (broke) {
+                    m.leashed_to_player = false;
+                    _ = inventory.addItem(.lead, 1);
+                    audio.play(.click_off, 0.7);
+                    std.debug.print("lead snapped: excessive distance from player\n", .{});
+                } else {
+                    // Visual knot/tether string particles connecting mob to player
+                    particles.spawnBlockDebris(@intFromFloat(m.pos.x), @intFromFloat(m.pos.y + 0.5), @intFromFloat(m.pos.z), .{ 0.82, 0.74, 0.52 }, 1);
+                }
+            } else if (m.fence_post) |fp| {
+                const anchor = math.Vec3.init(@as(f32, @floatFromInt(fp.x)) + 0.5, @as(f32, @floatFromInt(fp.y)) + 0.5, @as(f32, @floatFromInt(fp.z)) + 0.5);
+                const cur_b = manager.getBlockWorld(fp.x, fp.y, fp.z);
+                if (!cur_b.is_fence()) {
+                    m.fence_post = null;
+                    _ = inventory.addItem(.lead, 1);
+                } else {
+                    const broke = entity_mod.mob.applyLeashTension(&m.pos, &m.vel, anchor, dt);
+                    if (broke) {
+                        m.fence_post = null;
+                        _ = inventory.addItem(.lead, 1);
+                        audio.play(.click_off, 0.7);
+                        std.debug.print("lead snapped: excessive distance from hitching post\n", .{});
+                    } else {
+                        particles.spawnBlockDebris(fp.x, fp.y, fp.z, .{ 0.82, 0.74, 0.52 }, 1);
+                    }
+                }
             }
         }
 
@@ -1999,8 +2028,25 @@ pub fn main() !void {
                         bartered = true;
                     }
                 }
+                var leashed_mob = false;
+                if (right and !right_down and !bartered) {
+                    const has_lead = inventory.slots[selected_slot].item == .lead;
+                    const leash_action = mob_manager.tryInteractLeash(cam.position, dir, combat_mod.melee_range, has_lead);
+                    if (leash_action == .attached_to_player) {
+                        inventory.slots[selected_slot].decrement(1);
+                        audio.play(.step_wood, 0.8);
+                        particles.spawnBlockDebris(@intFromFloat(player.pos.x), @intFromFloat(player.pos.y), @intFromFloat(player.pos.z), .{ 0.82, 0.74, 0.52 }, 6);
+                        std.debug.print("attached lead to mob\n", .{});
+                        leashed_mob = true;
+                    } else if (leash_action == .unleashed_to_item) {
+                        _ = inventory.addItem(.lead, 1);
+                        audio.play(.click_off, 0.8);
+                        std.debug.print("unleashed mob, lead recovered\n", .{});
+                        leashed_mob = true;
+                    }
+                }
 
-                const hit_mob_opt = if (!bartered and left and mob_hit_cooldown <= 0.0) mob_manager.tryHitMobDmg(cam.position, dir, combat_mod.melee_range, hit_dmg) else null;
+                const hit_mob_opt = if (!bartered and !leashed_mob and left and mob_hit_cooldown <= 0.0) mob_manager.tryHitMobDmg(cam.position, dir, combat_mod.melee_range, hit_dmg) else null;
                 if (!bartered) {
                 if (hit_mob_opt) |hit_mob| {
                     mob_hit_cooldown = combat_mod.melee_cooldown;
@@ -3227,6 +3273,23 @@ pub fn main() !void {
                         }
                     }
                     flint_cooldown = interact_mod.flint_feed_cooldown;
+                } else if (target.is_fence()) {
+                    // Fence hitching post interaction
+                    const hitched = mob_manager.tryHitchToFence(hit_f.x, hit_f.y, hit_f.z);
+                    if (hitched > 0) {
+                        audio.play(.step_wood, 0.9);
+                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.82, 0.74, 0.52 }, 8);
+                        std.debug.print("hitched {d} mob(s) to fence post at ({d},{d},{d})\n", .{ hitched, hit_f.x, hit_f.y, hit_f.z });
+                    } else {
+                        // Unhitch any mobs tied to this fence post
+                        const unhitched = mob_manager.unhitchFence(hit_f.x, hit_f.y, hit_f.z);
+                        if (unhitched > 0) {
+                            _ = inventory.addItem(.lead, @intCast(unhitched));
+                            audio.play(.click_off, 0.85);
+                            std.debug.print("unhitched {d} mob(s) from fence post at ({d},{d},{d})\n", .{ unhitched, hit_f.x, hit_f.y, hit_f.z });
+                        }
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .jukebox) {
                     var jb_opt = cache_mod.findJukebox(&jukeboxes, jukebox_count, hit_f.x, hit_f.y, hit_f.z);
                     if (jb_opt == null and jukebox_count < jukeboxes.len) {

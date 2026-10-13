@@ -92,6 +92,7 @@ pub const BlockId = enum(u8) {
     daylight_detector_inverted = 81,
     note_block = 82,
     jukebox = 83,
+    oak_fence = 84,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand;
@@ -125,6 +126,10 @@ pub const BlockId = enum(u8) {
         return self == .target_block;
     }
 
+    pub fn is_fence(self: BlockId) bool {
+        return self == .nether_brick_fence or self == .oak_fence;
+    }
+
     pub fn is_hay_bale(self: BlockId) bool {
         return self == .hay_bale;
     }
@@ -138,7 +143,7 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_transparent(self: BlockId) bool {
-        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .nether_brick_fence or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block or self == .beacon or self == .weeping_vines or self == .twisting_vines or self == .crimson_fungus or self == .warped_fungus or self == .brewing_stand;
+        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .nether_brick_fence or self == .oak_fence or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block or self == .beacon or self == .weeping_vines or self == .twisting_vines or self == .crimson_fungus or self == .warped_fungus or self == .brewing_stand;
     }
 
     /// 0.0 = lit by sun only. 1.0 = full glow even at midnight.
@@ -172,7 +177,7 @@ pub const BlockId = enum(u8) {
 
     pub fn isFlammable(self: BlockId) bool {
         return switch (self) {
-            .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest, .note_block, .jukebox, .wooden_door_closed, .wooden_door_open, .pressure_plate_up, .pressure_plate_down, .weeping_vines, .twisting_vines, .target_block, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight => true,
+            .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest, .note_block, .jukebox, .oak_fence, .wooden_door_closed, .wooden_door_open, .pressure_plate_up, .pressure_plate_down, .weeping_vines, .twisting_vines, .target_block, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight => true,
             else => false,
         };
     }
@@ -282,6 +287,7 @@ pub const BlockId = enum(u8) {
             .warped_fungus => .{ .x = 7, .y = 1 }, // Azure bioluminescent spore cap
             .shroomlight => .{ .x = 5, .y = 3 }, // Luminescent organic shroomlight vesicle
             .chiseled_nether_brick => .{ .x = 5, .y = 1 }, // Chiseled nether brick skull relief medallion
+            .oak_fence => .{ .x = 2, .y = 2 }, // Oak wood texture
             .jukebox => switch (face_idx) {
                 0 => .{ .x = 6, .y = 3 }, // Brass phonograph spindle aperture top
                 1 => .{ .x = 2, .y = 2 }, // Oak wood base bottom
@@ -421,7 +427,7 @@ pub fn hardness(block: BlockId) f32 {
         .cauldron => 2.0,
         .daylight_detector, .daylight_detector_inverted => 0.2,
         .note_block => 0.8,
-        .jukebox => 2.0,
+        .jukebox, .oak_fence => 2.0,
         .nether_wart => 0.3,
     };
 }
@@ -554,6 +560,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .daylight_detector_inverted = .{ .name = "daylight_detector_inverted", .solid = true, .transparent = false, .fluid = false },
     .note_block = .{ .name = "note_block", .solid = true, .transparent = false, .fluid = false },
     .jukebox = .{ .name = "jukebox", .solid = true, .transparent = false, .fluid = false },
+    .oak_fence = .{ .name = "oak_fence", .solid = true, .transparent = true, .fluid = false },
 });
 
 /// A beacon activates when the column directly above it up to world ceiling (y=15)
@@ -993,7 +1000,7 @@ pub fn footstepType(block: BlockId) FootstepType {
     return switch (block) {
         .grass, .weeping_vines, .twisting_vines, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight => .grass,
         .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron => .stone,
-        .wood, .target_block, .daylight_detector, .daylight_detector_inverted, .note_block, .jukebox => .wood,
+        .wood, .target_block, .daylight_detector, .daylight_detector_inverted, .note_block, .jukebox, .oak_fence => .wood,
         .dirt => .dirt,
         .sand => .sand,
         .snow => .snow,
@@ -1355,4 +1362,19 @@ test "jukebox block properties and textures" {
     const side_tex = BlockId.jukebox.getFaceTexture(2);
     try std.testing.expectEqual(@as(u32, 4), side_tex.x);
     try std.testing.expectEqual(@as(u32, 3), side_tex.y);
+}
+
+test "oak fence block properties and textures" {
+    try std.testing.expect(BlockId.oak_fence.is_solid());
+    try std.testing.expect(BlockId.oak_fence.is_transparent());
+    try std.testing.expect(!BlockId.oak_fence.is_fluid());
+    try std.testing.expect(BlockId.oak_fence.is_fence());
+    try std.testing.expect(BlockId.nether_brick_fence.is_fence());
+    try std.testing.expectEqual(hardness(.oak_fence), 2.0);
+    try std.testing.expectEqual(footstepType(.oak_fence), .wood);
+    try std.testing.expect(BlockId.oak_fence.isFlammable());
+
+    const tex = BlockId.oak_fence.getFaceTexture(0);
+    try std.testing.expectEqual(@as(u32, 2), tex.x);
+    try std.testing.expectEqual(@as(u32, 2), tex.y);
 }

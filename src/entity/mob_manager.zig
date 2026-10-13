@@ -416,6 +416,70 @@ pub const MobManager = struct {
         pos: math.Vec3,
     };
 
+    pub const LeashResult = enum {
+        attached_to_player,
+        unleashed_to_item,
+        none,
+    };
+
+    /// Right-click interact with a mob while holding or not holding a lead.
+    pub fn tryInteractLeash(self: *MobManager, origin: math.Vec3, dir: math.Vec3, max_dist: f32, has_lead: bool) LeashResult {
+        var closest_dist: f32 = max_dist;
+        var hit_idx: ?usize = null;
+
+        for (self.mobs.items, 0..) |mob, i| {
+            if (mob.rayIntersects(origin, dir, closest_dist)) |d| {
+                closest_dist = d;
+                hit_idx = i;
+            }
+        }
+
+        if (hit_idx) |i| {
+            var target_mob = &self.mobs.items[i];
+            if (target_mob.isLeashed()) {
+                // Unleash mob, drops lead back
+                target_mob.leashed_to_player = false;
+                target_mob.fence_post = null;
+                return .unleashed_to_item;
+            } else if (has_lead) {
+                // Attach lead to mob
+                target_mob.leashed_to_player = true;
+                target_mob.fence_post = null;
+                return .attached_to_player;
+            }
+        }
+        return .none;
+    }
+
+    /// Check if any mob leashed to player can be hitched to a clicked fence block.
+    /// Returns number of mobs hitched to the fence post.
+    pub fn tryHitchToFence(self: *MobManager, fence_x: i32, fence_y: i32, fence_z: i32) usize {
+        var hitched_count: usize = 0;
+        for (self.mobs.items) |*mob| {
+            if (mob.leashed_to_player) {
+                mob.leashed_to_player = false;
+                mob.fence_post = .{ .x = fence_x, .y = fence_y, .z = fence_z };
+                hitched_count += 1;
+            }
+        }
+        return hitched_count;
+    }
+
+    /// Unhitch all mobs attached to a fence post at (fence_x, fence_y, fence_z).
+    /// Returns number of leads dropped.
+    pub fn unhitchFence(self: *MobManager, fence_x: i32, fence_y: i32, fence_z: i32) usize {
+        var unhitched_count: usize = 0;
+        for (self.mobs.items) |*mob| {
+            if (mob.fence_post) |fp| {
+                if (fp.x == fence_x and fp.y == fence_y and fp.z == fence_z) {
+                    mob.fence_post = null;
+                    unhitched_count += 1;
+                }
+            }
+        }
+        return unhitched_count;
+    }
+
     /// Barter with a Piglin in raycast crosshairs: consumes gold and pacifies the mob.
     pub fn tryBarter(self: *MobManager, origin: math.Vec3, dir: math.Vec3, max_dist: f32) ?BarterResult {
         var closest_dist: f32 = max_dist;
@@ -744,4 +808,31 @@ test "mob manager pig luring by held warped fungus on stick" {
     mm.mobs.items[0].yaw = 1.23;
     mm.tick(MockWorld.solid, MockWorld.fluid, null, math.Vec3.init(0.5, 1.0, 4.5), 0.4, false, null, 0.05);
     try std.testing.expectApproxEqAbs(mm.mobs.items[0].yaw, 1.23, 0.01);
+}
+
+test "mob manager leash mob and hitch to fence post" {
+    var mm = try MobManager.init(std.testing.allocator, 0);
+    defer mm.deinit();
+
+    try mm.spawnMob(.sheep, 0.5, 1.0, 3.0);
+    try std.testing.expectEqual(@as(usize, 1), mm.mobs.items.len);
+    try std.testing.expect(!mm.mobs.items[0].isLeashed());
+
+    // Leash mob to player with held lead
+    const res = mm.tryInteractLeash(math.Vec3.init(0.5, 1.5, 0.0), math.Vec3.init(0.0, 0.0, 1.0), 5.0, true);
+    try std.testing.expectEqual(MobManager.LeashResult.attached_to_player, res);
+    try std.testing.expect(mm.mobs.items[0].leashed_to_player);
+    try std.testing.expect(mm.mobs.items[0].isLeashed());
+
+    // Hitch to fence post at (10, 1, 10)
+    const hitched = mm.tryHitchToFence(10, 1, 10);
+    try std.testing.expectEqual(@as(usize, 1), hitched);
+    try std.testing.expect(!mm.mobs.items[0].leashed_to_player);
+    try std.testing.expect(mm.mobs.items[0].fence_post != null);
+    try std.testing.expectEqual(mm.mobs.items[0].fence_post.?.x, 10);
+
+    // Unhitch fence
+    const unhitched = mm.unhitchFence(10, 1, 10);
+    try std.testing.expectEqual(@as(usize, 1), unhitched);
+    try std.testing.expect(!mm.mobs.items[0].isLeashed());
 }
