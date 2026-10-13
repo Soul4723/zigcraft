@@ -1195,7 +1195,8 @@ pub fn main() !void {
         // Mob spawning and physics AI tick
         const is_night_spawn = @sin(world_time) <= 0.0;
         try mob_manager.ensureSpawnPopulation(&manager, player.pos.x, player.pos.z, is_night_spawn);
-        mob_manager.tick(&pickSolid, &pickFluid, &pickBlockWorld, player.pos, player.radius, &audio, dt);
+        const held_warped_fungus = (inventory.slots[selected_slot].item == .warped_fungus);
+        mob_manager.tick(&pickSolid, &pickFluid, &pickBlockWorld, player.pos, player.radius, held_warped_fungus, &audio, dt);
 
         // Wolf bites & mob melee attacks: contact damage with per-second cooldown
         wolf_bite_cooldown = combat_mod.tickCooldown(wolf_bite_cooldown, dt);
@@ -1203,7 +1204,7 @@ pub fn main() !void {
             const held_gold = (inventory.slots[selected_slot].item == .gold_nugget or inventory.slots[selected_slot].item == .golden_apple);
             for (mob_manager.mobs.items) |m| {
                 if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin) continue;
-                if (m.mob_type == .piglin and (held_gold or m.barter_timer > 0.0)) continue;
+                if (m.mob_type == .piglin and (held_gold or m.barter_timer > 0.0 or entity_mod.mob_manager.MobManager.isPiglinRepelled(m.pos, player.pos, held_warped_fungus, &pickBlockWorld) != null)) continue;
                 const bdx = m.pos.x - player.pos.x;
                 const bdz = m.pos.z - player.pos.z;
                 const bdy = m.pos.y - player.pos.y;

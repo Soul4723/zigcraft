@@ -125,48 +125,112 @@ pub const MobManager = struct {
         }
     }
 
-    pub fn tick(self: *MobManager, solid: *const fn (x: i32, y: i32, z: i32) bool, fluid: *const fn (x: i32, y: i32, z: i32) bool, block_at: ?*const fn (x: i32, y: i32, z: i32) block_mod.BlockId, player_pos: math.Vec3, player_radius: f32, audio: ?*audio_mod.AudioSystem, dt: f32) void {
+    /// Check whether a position is within warped fungus repulsion range (8m)
+    /// of a placed BlockId.warped_fungus block.
+    pub fn findNearbyWarpedFungus(block_at: ?*const fn (x: i32, y: i32, z: i32) block_mod.BlockId, pos: math.Vec3, max_range: f32) ?math.Vec3 {
+        const bat = block_at orelse return null;
+        const cx: i32 = @intFromFloat(@floor(pos.x));
+        const cy: i32 = @intFromFloat(@floor(pos.y));
+        const cz: i32 = @intFromFloat(@floor(pos.z));
+        const r: i32 = @intFromFloat(@ceil(max_range));
+        const r_sq = max_range * max_range;
+        var closest_dist_sq: f32 = r_sq + 1.0;
+        var best: ?math.Vec3 = null;
+
+        var dy: i32 = -r;
+        while (dy <= r) : (dy += 1) {
+            const ny = cy + dy;
+            var dx: i32 = -r;
+            while (dx <= r) : (dx += 1) {
+                const nx = cx + dx;
+                var dz: i32 = -r;
+                while (dz <= r) : (dz += 1) {
+                    const nz = cz + dz;
+                    if (bat(nx, ny, nz) == .warped_fungus) {
+                        const fx = @as(f32, @floatFromInt(nx)) + 0.5;
+                        const fy = @as(f32, @floatFromInt(ny)) + 0.5;
+                        const fz = @as(f32, @floatFromInt(nz)) + 0.5;
+                        const d2 = (fx - pos.x) * (fx - pos.x) + (fz - pos.z) * (fz - pos.z) + (fy - pos.y) * (fy - pos.y);
+                        if (d2 <= r_sq and d2 < closest_dist_sq) {
+                            closest_dist_sq = d2;
+                            best = math.Vec3.init(fx, fy, fz);
+                        }
+                    }
+                }
+            }
+        }
+        return best;
+    }
+
+    /// Determine if a piglin at pos is repelled by either held warped fungus on player or nearby placed warped fungus.
+    pub fn isPiglinRepelled(pos: math.Vec3, player_pos: math.Vec3, player_holding_fungus: bool, block_at: ?*const fn (x: i32, y: i32, z: i32) block_mod.BlockId) ?math.Vec3 {
+        if (player_holding_fungus) {
+            const pdx = player_pos.x - pos.x;
+            const pdy = player_pos.y - pos.y;
+            const pdz = player_pos.z - pos.z;
+            if (pdx * pdx + pdy * pdy + pdz * pdz <= 8.0 * 8.0) {
+                return player_pos;
+            }
+        }
+        return findNearbyWarpedFungus(block_at, pos, 8.0);
+    }
+
+    pub fn tick(self: *MobManager, solid: *const fn (x: i32, y: i32, z: i32) bool, fluid: *const fn (x: i32, y: i32, z: i32) bool, block_at: ?*const fn (x: i32, y: i32, z: i32) block_mod.BlockId, player_pos: math.Vec3, player_radius: f32, player_holding_fungus: bool, audio: ?*audio_mod.AudioSystem, dt: f32) void {
         var idx: usize = 0;
         while (idx < self.mobs.items.len) {
             var mob = &self.mobs.items[idx];
             if (mob.mob_type == .wolf or mob.mob_type == .emberbeast or mob.mob_type == .wither_skeleton or mob.mob_type == .piglin) {
-                if (mob.mob_type == .piglin and mob.barter_timer > 0.0) {
+                var is_repelled = false;
+                if (mob.mob_type == .piglin) {
+                    if (isPiglinRepelled(mob.pos, player_pos, player_holding_fungus, block_at)) |repel_source| {
+                        is_repelled = true;
+                        const fdx = mob.pos.x - repel_source.x;
+                        const fdz = mob.pos.z - repel_source.z;
+                        if (fdx * fdx + fdz * fdz > 0.0001) {
+                            mob.yaw = std.math.atan2(fdx, fdz);
+                        }
+                        mob.walk_timer = hunt_mod.walk_pulse;
+                    }
+                }
+                if (is_repelled) {
+                    // Piglin fleeing warped fungus; hunting inhibited
+                } else if (mob.mob_type == .piglin and mob.barter_timer > 0.0) {
                     // Pacified piglin wanders peacefully instead of hunting player
                 } else {
-                const wdx = player_pos.x - mob.pos.x;
-                const wdz = player_pos.z - mob.pos.z;
-                const wd = @sqrt(wdx * wdx + wdz * wdz);
-                if (hunt_mod.shouldHunt(wd)) {
-                    // Try A* path around obstacles; fall back to line-of-sight
-                    const start_x: i32 = @intFromFloat(@floor(mob.pos.x));
-                    const start_z: i32 = @intFromFloat(@floor(mob.pos.z));
-                    const target_x: i32 = @intFromFloat(@floor(player_pos.x));
-                    const target_z: i32 = @intFromFloat(@floor(player_pos.z));
-                    const base_y: i32 = @intFromFloat(@floor(mob.pos.y));
+                    const wdx = player_pos.x - mob.pos.x;
+                    const wdz = player_pos.z - mob.pos.z;
+                    const wd = @sqrt(wdx * wdx + wdz * wdz);
+                    if (hunt_mod.shouldHunt(wd)) {
+                        // Try A* path around obstacles; fall back to line-of-sight
+                        const start_x: i32 = @intFromFloat(@floor(mob.pos.x));
+                        const start_z: i32 = @intFromFloat(@floor(mob.pos.z));
+                        const target_x: i32 = @intFromFloat(@floor(player_pos.x));
+                        const target_z: i32 = @intFromFloat(@floor(player_pos.z));
+                        const base_y: i32 = @intFromFloat(@floor(mob.pos.y));
 
-                    const WalkCtx = struct {
-                        s: *const fn (x: i32, y: i32, z: i32) bool,
-                        f: *const fn (x: i32, y: i32, z: i32) bool,
-                        y: i32,
+                        const WalkCtx = struct {
+                            s: *const fn (x: i32, y: i32, z: i32) bool,
+                            f: *const fn (x: i32, y: i32, z: i32) bool,
+                            y: i32,
 
-                        fn isWalkable(ctx: *const @This(), x: i32, z: i32) bool {
-                            // Needs solid floor (at base_y or base_y-1) and clear headroom
-                            const has_floor = ctx.s(x, ctx.y, z) or ctx.s(x, ctx.y - 1, z);
-                            if (!has_floor) return false;
-                            if (ctx.s(x, ctx.y + 1, z) or ctx.s(x, ctx.y + 2, z)) return false;
-                            if (ctx.f(x, ctx.y, z)) return false; // avoid water
-                            return true;
+                            fn isWalkable(ctx: *const @This(), x: i32, z: i32) bool {
+                                // Needs solid floor (at base_y or base_y-1) and clear headroom
+                                const has_floor = ctx.s(x, ctx.y, z) or ctx.s(x, ctx.y - 1, z);
+                                if (!has_floor) return false;
+                                if (ctx.s(x, ctx.y + 1, z) or ctx.s(x, ctx.y + 2, z)) return false;
+                                if (ctx.f(x, ctx.y, z)) return false; // avoid water
+                                return true;
+                            }
+                        };
+                        const walk_ctx = WalkCtx{ .s = solid, .f = fluid, .y = base_y };
+
+                        if (pathfind_mod.findNextStep(start_x, start_z, target_x, target_z, &walk_ctx, WalkCtx.isWalkable)) |step| {
+                            mob.yaw = step.toYaw();
+                        } else {
+                            mob.yaw = std.math.atan2(wdx, wdz);
                         }
-                    };
-                    const walk_ctx = WalkCtx{ .s = solid, .f = fluid, .y = base_y };
-
-                    if (pathfind_mod.findNextStep(start_x, start_z, target_x, target_z, &walk_ctx, WalkCtx.isWalkable)) |step| {
-                        mob.yaw = step.toYaw();
-                    } else {
-                        mob.yaw = std.math.atan2(wdx, wdz);
+                        mob.walk_timer = hunt_mod.walk_pulse;
                     }
-                    mob.walk_timer = hunt_mod.walk_pulse;
-                }
                 }
             }
             if (block_at) |bat| {
@@ -503,7 +567,7 @@ test "MobManager bubble column lift and whirlpool suction" {
         }
     };
 
-    mm.tick(MockWorld.solid, MockWorld.fluid, MockWorld.block, math.Vec3.init(50, 0, 0), 0.4, null, 0.05);
+    mm.tick(MockWorld.solid, MockWorld.fluid, MockWorld.block, math.Vec3.init(50, 0, 0), 0.4, false, null, 0.05);
 
     try std.testing.expect(mm.mobs.items[0].in_bubble_column);
     try std.testing.expect(!mm.mobs.items[0].in_whirlpool);
@@ -538,17 +602,17 @@ test "MobManager mob burn damage contact hazard on magma or campfire" {
     };
 
     // 1 second pass: 1 damage taken, 2 hp left
-    mm.tick(MockWorld.solid, MockWorld.fluid, MockWorld.block, math.Vec3.init(50, 0, 0), 0.4, null, 1.0);
+    mm.tick(MockWorld.solid, MockWorld.fluid, MockWorld.block, math.Vec3.init(50, 0, 0), 0.4, false, null, 1.0);
     try std.testing.expectEqual(@as(usize, 1), mm.mobs.items.len);
     try std.testing.expectEqual(@as(u8, 2), mm.mobs.items[0].health);
 
     // 1 second pass: 1 damage taken, 1 hp left
-    mm.tick(MockWorld.solid, MockWorld.fluid, MockWorld.block, math.Vec3.init(50, 0, 0), 0.4, null, 1.0);
+    mm.tick(MockWorld.solid, MockWorld.fluid, MockWorld.block, math.Vec3.init(50, 0, 0), 0.4, false, null, 1.0);
     try std.testing.expectEqual(@as(usize, 1), mm.mobs.items.len);
     try std.testing.expectEqual(@as(u8, 1), mm.mobs.items[0].health);
 
     // 1 second pass: mob dies and is removed
-    mm.tick(MockWorld.solid, MockWorld.fluid, MockWorld.block, math.Vec3.init(50, 0, 0), 0.4, null, 1.0);
+    mm.tick(MockWorld.solid, MockWorld.fluid, MockWorld.block, math.Vec3.init(50, 0, 0), 0.4, false, null, 1.0);
     try std.testing.expectEqual(@as(usize, 0), mm.mobs.items.len);
 }
 
@@ -579,4 +643,43 @@ test "mob manager hit reports champion status" {
     try std.testing.expect(hit != null);
     try std.testing.expect(hit.?.is_champion);
     try std.testing.expect(!hit.?.died);
+}
+
+test "mob manager piglin warped fungus repulsion and fleeing" {
+    var mm = try MobManager.init(std.testing.allocator, 0);
+    defer mm.deinit();
+
+    const MockFungusWorld = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return true; }
+        fn fluid(_: i32, _: i32, _: i32) bool { return false; }
+        fn block(x: i32, y: i32, z: i32) block_mod.BlockId {
+            // Placed warped fungus at (4, 1, 0)
+            if (x == 4 and y == 1 and z == 0) return .warped_fungus;
+            return .air;
+        }
+    };
+
+    // Piglin at (0.5, 1.0, 0.5) near placed warped fungus at (4, 1, 0) -> distance ~ 4m (<8m)
+    const piglin_pos = math.Vec3.init(0.5, 1.0, 0.5);
+    const repel_source = MobManager.isPiglinRepelled(piglin_pos, math.Vec3.init(20, 1, 20), false, MockFungusWorld.block);
+    try std.testing.expect(repel_source != null);
+    try std.testing.expectEqual(repel_source.?.x, 4.5);
+    try std.testing.expectEqual(repel_source.?.z, 0.5);
+
+    // Player holding fungus within 8m repels piglin even without placed block
+    const held_source = MobManager.isPiglinRepelled(piglin_pos, math.Vec3.init(3.5, 1.0, 0.5), true, null);
+    try std.testing.expect(held_source != null);
+    try std.testing.expectEqual(held_source.?.x, 3.5);
+
+    // Piglin out of range (>8m) is not repelled
+    const far_source = MobManager.isPiglinRepelled(math.Vec3.init(50, 1, 50), math.Vec3.init(0, 1, 0), false, MockFungusWorld.block);
+    try std.testing.expect(far_source == null);
+
+    // Tick test: piglin turns away from warped fungus
+    try mm.spawnMob(.piglin, 0.5, 1.0, 0.5);
+    mm.tick(MockFungusWorld.solid, MockFungusWorld.fluid, MockFungusWorld.block, math.Vec3.init(0.5, 1.0, -2.0), 0.4, false, null, 0.05);
+
+    // Piglin should face away from (4.5, 0.5): fdx = 0.5 - 4.5 = -4.0, fdz = 0.5 - 0.5 = 0.0
+    // yaw = atan2(-4.0, 0.0) = -pi/2 (-1.5707963...)
+    try std.testing.expectApproxEqAbs(mm.mobs.items[0].yaw, -std.math.pi * 0.5, 0.01);
 }
