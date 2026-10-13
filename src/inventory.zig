@@ -129,6 +129,7 @@ pub const ItemType = enum(u8) {
     grindstone = 123,
     smithing_table = 124,
     cartography_table = 125,
+    fletching_table = 126,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -211,6 +212,7 @@ pub const ItemType = enum(u8) {
             .grindstone => .grindstone,
             .smithing_table => .smithing_table,
             .cartography_table => .cartography_table,
+            .fletching_table => .fletching_table,
             else => null,
         };
     }
@@ -299,6 +301,7 @@ pub const ItemType = enum(u8) {
             .grindstone => .grindstone,
             .smithing_table => .smithing_table,
             .cartography_table => .cartography_table,
+            .fletching_table => .fletching_table,
         };
     }
 
@@ -467,6 +470,7 @@ pub const ItemType = enum(u8) {
             .grindstone => "Grindstone",
             .smithing_table => "Smithing Table",
             .cartography_table => "Cartography Table",
+            .fletching_table => "Fletching Table",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -534,6 +538,7 @@ pub const ItemType = enum(u8) {
             .grindstone => .{ 0.65, 0.60, 0.55, 0.95 },
             .smithing_table => .{ 0.30, 0.35, 0.42, 0.95 },
             .cartography_table => .{ 0.85, 0.78, 0.58, 0.95 },
+            .fletching_table => .{ 0.78, 0.68, 0.50, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1082,6 +1087,20 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 90: Fletching Table: 2 Sticks (or Coal / Arrows) + 2 Wood Planks -> 1 Fletching Table
+        if (non_empty == 4) {
+            var fletch_mat_count: u8 = 0;
+            var plank_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .stick or sl.item == .coal or sl.item == .arrow) fletch_mat_count += 1;
+                if (sl.item == .wood_planks) plank_count += 1;
+            }
+            if (fletch_mat_count == 2 and plank_count == 2) {
+                self.craft_output = .{ .item = .fletching_table, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 89: Cartography Table: 1 Compass (or Lodestone Compass / Redstone Dust) + 1 Wood Planks + 1..2 Sticks -> 1 Cartography Table
         if (non_empty >= 3 and non_empty <= 4) {
@@ -3620,4 +3639,29 @@ test "cartography table item roundtrip, properties, and Recipe 89" {
     try std.testing.expectEqual(ItemType.cartography_table.maxDurability(), 0);
     try std.testing.expect(!ItemType.cartography_table.isTool());
     try std.testing.expectEqual(ItemType.cartography_table.maxStackSize(), 64);
+}
+
+test "fletching table item roundtrip, properties, and Recipe 90" {
+    var inv = Inventory.init();
+    // Recipe 90: 2 Sticks + 2 Wood Planks -> 1 Fletching Table
+    inv.craft_grid[0] = .{ .item = .stick, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .stick, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .wood_planks, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .fletching_table);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Also works with Coal
+    inv.craft_grid[0] = .{ .item = .coal, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .fletching_table);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.fletching_table.toBlockId().?, .fletching_table);
+    try std.testing.expectEqual(ItemType.fromBlockId(.fletching_table), .fletching_table);
+    try std.testing.expectEqualStrings(ItemType.fletching_table.name(), "Fletching Table");
+    try std.testing.expectEqual(ItemType.fletching_table.maxDurability(), 0);
+    try std.testing.expect(!ItemType.fletching_table.isTool());
+    try std.testing.expectEqual(ItemType.fletching_table.maxStackSize(), 64);
 }

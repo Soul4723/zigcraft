@@ -375,3 +375,16 @@ test "findCartographyTable helper" {
     try std.testing.expectEqual(findCartographyTable(&ct, 1, 16, 20, 24), @as(?usize, 0));
     try std.testing.expectEqual(findCartographyTable(&ct, 1, 0, 0, 0), @as(?usize, null));
 }
+
+pub const fletching_table_cap: usize = 32;
+
+pub fn findFletchingTable(tables: anytype, n: usize, x: i32, y: i32, z: i32) ?usize {
+    return find2D(tables, n, x, y, z);
+}
+
+test "findFletchingTable helper" {
+    const FakeTable = struct { x: i32, y: i32, z: i32 };
+    var ft = [_]FakeTable{.{ .x = 18, .y = 22, .z = 26 }} ** 2;
+    try std.testing.expectEqual(findFletchingTable(&ft, 1, 18, 22, 26), @as(?usize, 0));
+    try std.testing.expectEqual(findFletchingTable(&ft, 1, 0, 0, 0), @as(?usize, null));
+}

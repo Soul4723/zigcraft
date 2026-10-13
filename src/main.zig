@@ -290,6 +290,9 @@ pub fn main() !void {
     const CartographyTableState = struct { x: i32, y: i32, z: i32 };
     var cartography_tables: [cache_mod.cartography_table_cap]CartographyTableState = undefined;
     var cartography_table_count: usize = 0;
+    const FletchingTableState = struct { x: i32, y: i32, z: i32 };
+    var fletching_tables: [cache_mod.fletching_table_cap]FletchingTableState = undefined;
+    var fletching_table_count: usize = 0;
     const DropperState = struct { x: i32, y: i32, z: i32, powered: bool = false, items: [4]inventory_mod.ItemStack = undefined, count: usize = 0 };
     var droppers: [32]DropperState = undefined;
     var dropper_count: usize = 0;
@@ -2398,6 +2401,10 @@ pub fn main() !void {
                                             cartography_tables[cartography_table_count] = .{ .x = px, .y = py, .z = pz };
                                             cartography_table_count += 1;
                                         }
+                                        if (place_type == .fletching_table and fletching_table_count < fletching_tables.len) {
+                                            fletching_tables[fletching_table_count] = .{ .x = px, .y = py, .z = pz };
+                                            fletching_table_count += 1;
+                                        }
                                         if (place_type == .spawner_cage and spawner_count < spawners.len) {
                                             spawners[spawner_count] = .{ .x = px, .y = py, .z = pz };
                                             spawner_count += 1;
@@ -3483,6 +3490,34 @@ pub fn main() !void {
                             }
                             audio.playAt(.click_off, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
                         }
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .fletching_table) {
+                    var ft_opt = cache_mod.findFletchingTable(&fletching_tables, fletching_table_count, hit_f.x, hit_f.y, hit_f.z);
+                    if (ft_opt == null and fletching_table_count < fletching_tables.len) {
+                        fletching_tables[fletching_table_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z };
+                        ft_opt = fletching_table_count;
+                        fletching_table_count += 1;
+                    }
+
+                    const held_slot = &inventory.slots[selected_slot];
+                    if (held_slot.item == .stick) {
+                        // Quick fletching: 1 Stick -> 2 Arrows
+                        held_slot.decrement(1);
+                        _ = inventory.addItem(.arrow, 2);
+                        audio.playAt(.fletching_snap, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 28.0);
+                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.85, 0.75, 0.50 }, 6);
+                        std.debug.print("fletched 2 arrows at ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                    } else if (held_slot.item == .bow or held_slot.item == .crossbow) {
+                        // Honing bow/crossbow string & alignment
+                        tool_wear.uses[selected_slot] = 0;
+                        audio.playAt(.fletching_snap, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 28.0);
+                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.70, 0.55, 0.35 }, 6);
+                        std.debug.print("calibrated ranged weapon: {s}\n", .{ held_slot.item.name() });
+                    } else {
+                        // Wooden nock snap tap
+                        audio.playAt(.fletching_snap, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.7, 20.0);
+                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.60, 0.45, 0.30 }, 3);
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .cartography_table) {

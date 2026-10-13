@@ -51,6 +51,7 @@ pub const SoundType = enum {
     grindstone_scrape,
     smithing_strike,
     map_rustle,
+    fletching_snap,
 };
 
 pub const SAMPLE_RATE: u32 = 44100;
@@ -132,6 +133,7 @@ pub const AudioMixer = struct {
             .grindstone_scrape => SAMPLE_RATE / 4, // ~250ms abrasive stone-on-metal sharpening friction hiss & friction rumble
             .smithing_strike => SAMPLE_RATE / 4, // ~250ms solid heavy wooden-iron bench hammer thud & anvil clack
             .map_rustle => SAMPLE_RATE / 5, // ~200ms crisp paper parchment flutter & drafting slide
+            .fletching_snap => SAMPLE_RATE / 6, // ~166ms precision arrow nock snap & wood dowel click
         };
 
         slot.?.* = .{
@@ -501,6 +503,14 @@ pub const AudioMixer = struct {
                 const v_env = (1.0 - progress * 0.2);
                 return (tone + crackle) * v_env * 0.70;
             },
+            .fletching_snap => {
+                // Precision wood nock snap: sharp transient click (1800Hz) + light arrow shaft twang (520Hz)
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const click = if (progress < 0.06) (rng.random().float(f32) * 2.0 - 1.0) * 0.75 else 0.0;
+                const twang = @sin(t * 520.0 * 2.0 * std.math.pi) * 0.45 * @exp(-progress * 12.0);
+                const snap = @sin(t * 1800.0 * 2.0 * std.math.pi) * 0.35 * @exp(-progress * 25.0);
+                return (click + twang + snap) * (1.0 - progress) * 0.80;
+            },
             .map_rustle => {
                 // Crisp dry parchment paper rustle: filtered noise flutter + soft page crinkle
                 const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
@@ -582,7 +592,7 @@ test "AudioMixer play voice produces non-zero samples" {
 
 test "AudioMixer all sound types render without overflow or crash" {
     var mixer = AudioMixer.init();
-    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .mob_roar, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle, .nether_wind, .glowstone_chime, .bow_shoot, .shield_block, .crossbow_shoot, .crossbow_load, .firework_blast, .note_harp, .note_bass, .note_snare, .note_chime, .record_13, .record_cat, .anvil_clang, .grindstone_scrape, .smithing_strike, .map_rustle };
+    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .mob_roar, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle, .nether_wind, .glowstone_chime, .bow_shoot, .shield_block, .crossbow_shoot, .crossbow_load, .firework_blast, .note_harp, .note_bass, .note_snare, .note_chime, .record_13, .record_cat, .anvil_clang, .grindstone_scrape, .smithing_strike, .map_rustle, .fletching_snap };
     for (sounds) |snd| {
         mixer.play(snd, 1.0);
     }
@@ -725,7 +735,7 @@ test "music disc vinyl audio synthesis voices" {
     var mixer = AudioMixer.init();
     var buf: [256]i16 = undefined;
 
-    const disc_types = [_]SoundType{ .record_13, .record_cat, .anvil_clang, .grindstone_scrape, .smithing_strike, .map_rustle };
+    const disc_types = [_]SoundType{ .record_13, .record_cat, .anvil_clang, .grindstone_scrape, .smithing_strike, .map_rustle, .fletching_snap };
     for (disc_types) |dt| {
         mixer.play(dt, 0.8);
         mixer.render(&buf);
