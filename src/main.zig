@@ -1625,6 +1625,15 @@ pub fn main() !void {
                                     particles.spawnWaterSplash(.{ player.pos.x, player.pos.y, player.pos.z }, 10);
                                     std.debug.print("boarded wooden boat\n", .{});
                                 }
+                            } else if (!hotbar_slot.isEmpty() and hotbar_slot.item == .weeping_vines) {
+                                const above_b = manager.getBlockWorld(px, py + 1, pz);
+                                if (above_b.is_solid() or above_b == .weeping_vines) {
+                                    if (try manager.editAndRemesh(px, py, pz, .weeping_vines)) {
+                                        audio.play(.place_block, 0.7);
+                                        hotbar_slot.decrement(1);
+                                        std.debug.print("hung weeping vines\n", .{});
+                                    }
+                                }
                             } else if (!hotbar_slot.isEmpty() and hotbar_slot.item == .fire_charge and manager.getBlockWorld(hit.x, hit.y, hit.z) == .tnt and fuse_count < fuses.len) {
                                 fuses[fuse_count] = .{ .x = hit.x, .y = hit.y, .z = hit.z, .t = 2.5 };
                                 fuse_count += 1;

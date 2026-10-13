@@ -71,9 +71,11 @@ pub const BlockId = enum(u8) {
     basalt = 64,
     blackstone = 65,
     gilded_blackstone = 66,
+    // ponytail: single weeping vine block with hanging attachments; upgrade with separate vine tip block when age/flowering lands.
+    weeping_vines = 67,
 
     pub fn is_solid(self: BlockId) bool {
-        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block;
+        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines;
     }
 
     pub fn is_campfire(self: BlockId) bool {
@@ -89,7 +91,11 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_ladder(self: BlockId) bool {
-        return self == .ladder;
+        return self == .ladder or self == .weeping_vines;
+    }
+
+    pub fn is_weeping_vines(self: BlockId) bool {
+        return self == .weeping_vines;
     }
 
     pub fn is_fluid(self: BlockId) bool {
@@ -97,7 +103,7 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_transparent(self: BlockId) bool {
-        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .nether_brick_fence or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block or self == .beacon;
+        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .nether_brick_fence or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block or self == .beacon or self == .weeping_vines;
     }
 
     /// 0.0 = lit by sun only. 1.0 = full glow even at midnight.
@@ -120,13 +126,14 @@ pub const BlockId = enum(u8) {
             .beacon => 1.0,
             .respawn_anchor => 0.85,
             .crying_obsidian => 0.7,
+            .weeping_vines => 0.35,
             else => 0.0,
         };
     }
 
     pub fn isFlammable(self: BlockId) bool {
         return switch (self) {
-            .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest, .wooden_door_closed, .wooden_door_open, .pressure_plate_up, .pressure_plate_down => true,
+            .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest, .wooden_door_closed, .wooden_door_open, .pressure_plate_up, .pressure_plate_down, .weeping_vines => true,
             else => false,
         };
     }
@@ -225,6 +232,7 @@ pub const BlockId = enum(u8) {
             },
             .blackstone => .{ .x = 2, .y = 5 }, // Dark charcoal volcanic bastion masonry
             .gilded_blackstone => .{ .x = 3, .y = 5 }, // Charcoal masonry studded with glittering gold seams
+            .weeping_vines => .{ .x = 6, .y = 1 }, // Crimson hanging tendrils and wart bulbs
             .respawn_anchor => switch (face_idx) {
                 0 => .{ .x = 5, .y = 2 }, // Radiant crystalline glowstone top portal core
                 else => .{ .x = 1, .y = 2 }, // Dense obsidian casing sides and bottom
@@ -268,6 +276,7 @@ pub fn hardness(block: BlockId) f32 {
         .snow => 0.3,
         .ladder => 0.4,
         .tnt => 0.0,
+        .weeping_vines => 0.2,
         .torch => 0.1,
         .soul_torch => 0.1,
         .redstone_torch_off, .redstone_torch_on => 0.0,
@@ -427,6 +436,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .basalt = .{ .name = "basalt", .solid = true, .transparent = false, .fluid = false },
     .blackstone = .{ .name = "blackstone", .solid = true, .transparent = false, .fluid = false },
     .gilded_blackstone = .{ .name = "gilded_blackstone", .solid = true, .transparent = false, .fluid = false },
+    .weeping_vines = .{ .name = "weeping_vines", .solid = false, .transparent = true, .fluid = false },
 });
 
 /// A beacon activates when the column directly above it up to world ceiling (y=15)
@@ -864,7 +874,7 @@ pub const FootstepType = enum {
 
 pub fn footstepType(block: BlockId) FootstepType {
     return switch (block) {
-        .grass => .grass,
+        .grass, .weeping_vines => .grass,
         .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone => .stone,
         .wood => .wood,
         .dirt => .dirt,
@@ -925,6 +935,21 @@ test "nether brick fence block properties and textures" {
 
     const tex = BlockId.nether_brick_fence.getFaceTexture(0);
     try std.testing.expectEqual(tex.x, 5);
+    try std.testing.expectEqual(tex.y, 1);
+}
+
+test "weeping vines block properties, climbing, and emissive glow" {
+    try std.testing.expect(!BlockId.weeping_vines.is_solid());
+    try std.testing.expect(BlockId.weeping_vines.is_transparent());
+    try std.testing.expect(BlockId.weeping_vines.is_ladder());
+    try std.testing.expect(BlockId.weeping_vines.is_weeping_vines());
+    try std.testing.expectApproxEqAbs(BlockId.weeping_vines.emissive(), 0.35, 0.001);
+    try std.testing.expectEqual(hardness(.weeping_vines), 0.2);
+    try std.testing.expectEqual(requiredTier(.weeping_vines), .hand);
+    try std.testing.expectEqual(footstepType(.weeping_vines), .grass);
+
+    const tex = BlockId.weeping_vines.getFaceTexture(0);
+    try std.testing.expectEqual(tex.x, 6);
     try std.testing.expectEqual(tex.y, 1);
 }
 

@@ -511,6 +511,19 @@ pub const NetherGenerator = struct {
         return h == 0;
     }
 
+    /// Check if cavern ceiling location (wx, wy, wz) grows a hanging weeping vine tendril (y = 8..12).
+    /// Tendrils hang downwards 1 to 3 blocks below the cavern netherrack ceiling in crimson clusters.
+    pub fn isWeepingVine(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
+        if (wy < 7 or wy > 12) return false;
+        // Tendrils cluster in crimson cavern patches
+        const v = valueNoise2D(self.seed +% 0x33A7C159, wx, wz, 0.10);
+        if (v < 0.25) return false;
+        const h: u32 = (@as(u32, @bitCast(wx *% 43 +% wz *% 67)) % 3) + 1; // 1..3 blocks long
+        const n2 = valueNoise2D(self.seed +% 0x12345678, wx, wz, 0.12);
+        const ceil_y: i32 = @intFromFloat(@floor(11.5 + n2 * 2.0));
+        return (wy < ceil_y and wy >= ceil_y - @as(i32, @intCast(h)));
+    }
+
     /// Check if soul sand shore column grows a wild nether wart patch.
     /// Subsets soul sand columns (same noise gate, sparser hash) so patches always sit on soul soil.
     fn isWartPatch(self: NetherGenerator, wx: i32, wz: i32) bool {
@@ -677,6 +690,8 @@ pub const NetherGenerator = struct {
                         if (y <= 4) {
                             chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .lava);
                             chunk.setLevel(@intCast(lx), @intCast(y), @intCast(lz), 7);
+                        } else if (self.isWeepingVine(wx, @intCast(y), wz)) {
+                            chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .weeping_vines);
                         } else {
                             chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .air);
                         }
@@ -870,6 +885,27 @@ test "NetherGenerator fortress loot chest and deterministic loot" {
     // Loot cell must not be a walkway/fence cell
     try std.testing.expect(!nether_gen.isFortress(23, 8, 24) or true);
 
+}
+
+test "NetherGenerator grows weeping vines hanging under cavern ceiling" {
+    const nether_gen = NetherGenerator.init(12345);
+    var found = false;
+    var x: i32 = -64;
+    while (x <= 64) : (x += 1) {
+        var z: i32 = -64;
+        while (z <= 64) : (z += 1) {
+            var y: i32 = 7;
+            while (y <= 12) : (y += 1) {
+                if (nether_gen.isWeepingVine(x, y, z)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found) break;
+        }
+        if (found) break;
+    }
+    try std.testing.expect(found);
 }
 
 test "NetherGenerator grows wild nether wart on soul sand" {

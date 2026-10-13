@@ -85,6 +85,7 @@ pub const ItemType = enum(u8) {
     blackstone = 79,
     gilded_blackstone = 80,
     gold_nugget = 81,
+    weeping_vines = 82,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -143,6 +144,7 @@ pub const ItemType = enum(u8) {
             .basalt => .basalt,
             .blackstone => .blackstone,
             .gilded_blackstone => .gilded_blackstone,
+            .weeping_vines => .weeping_vines,
             else => null,
         };
     }
@@ -208,6 +210,7 @@ pub const ItemType = enum(u8) {
             .basalt => .basalt,
             .blackstone => .blackstone,
             .gilded_blackstone => .gilded_blackstone,
+            .weeping_vines => .weeping_vines,
         };
     }
 
@@ -314,6 +317,7 @@ pub const ItemType = enum(u8) {
             .blackstone => "Blackstone",
             .gilded_blackstone => "Gilded Blackstone",
             .gold_nugget => "Gold Nugget",
+            .weeping_vines => "Weeping Vines",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -337,6 +341,7 @@ pub const ItemType = enum(u8) {
             .cobblestone => .{ 0.5, 0.5, 0.53, 0.95 },
             .coal => .{ 0.12, 0.12, 0.14, 0.95 },
             .iron_ore => .{ 0.72, 0.55, 0.42, 0.95 },
+            .weeping_vines => .{ 0.75, 0.15, 0.22, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -840,6 +845,16 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 48: Weeping Vines: 2 Nether Wart stacked vertically -> 2 Weeping Vines
+        if (non_empty == 2) {
+            if ((g0 == .nether_wart and g2 == .nether_wart and g1 == .none and g3 == .none) or
+                (g1 == .nether_wart and g3 == .nether_wart and g0 == .none and g2 == .none))
+            {
+                self.craft_output = .{ .item = .weeping_vines, .count = 2 };
                 return;
             }
         }
@@ -1524,6 +1539,25 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         }
         return 0;
     }
+}
+
+test "weeping vines item roundtrip, drops, and crafting recipe" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .nether_wart, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .nether_wart, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .weeping_vines);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+
+    try std.testing.expectEqual(ItemType.weeping_vines.toBlockId().?, .weeping_vines);
+    try std.testing.expectEqual(ItemType.fromBlockId(.weeping_vines), .weeping_vines);
+    try std.testing.expectEqualStrings(ItemType.weeping_vines.name(), "Weeping Vines");
+
+    var drops: [2]BlockDrop = undefined;
+    const n = getBlockDrops(.weeping_vines, &drops);
+    try std.testing.expectEqual(n, 1);
+    try std.testing.expectEqual(drops[0].item, .weeping_vines);
+    try std.testing.expectEqual(drops[0].count, 1);
 }
 
 test "gilded blackstone item roundtrip, drops, and gold recipes" {
