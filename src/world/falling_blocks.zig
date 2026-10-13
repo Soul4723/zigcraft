@@ -8,6 +8,7 @@ pub const FallSand = struct {
     z: i32,
     t: f32,
     dist: i32,
+    block_type: BlockId = .sand,
 };
 
 pub const FallAction = enum {
@@ -79,4 +80,18 @@ test "falling block find and hit detection" {
     try std.testing.expect(isHitByBlock(10.0, 5.0, 10.0, 10, 5, 10));
     // Entity away
     try std.testing.expect(!isHitByBlock(12.0, 5.0, 10.0, 10, 5, 10));
+}
+
+pub fn calculateAnvilImpactDamage(distance: i32) u8 {
+    if (distance < 1) return 0;
+    // Anvils deal heavy concussive crush damage: 2 dmg per meter, capped at 40
+    return @intCast(@min(distance * 2, 40));
+}
+
+test "anvil impact damage calculation" {
+    try std.testing.expectEqual(calculateAnvilImpactDamage(0), 0);
+    try std.testing.expectEqual(calculateAnvilImpactDamage(1), 2);
+    try std.testing.expectEqual(calculateAnvilImpactDamage(5), 10);
+    try std.testing.expectEqual(calculateAnvilImpactDamage(15), 30);
+    try std.testing.expectEqual(calculateAnvilImpactDamage(30), 40); // capped at 40
 }

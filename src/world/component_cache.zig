@@ -323,3 +323,16 @@ test "findEnchantmentTable helper" {
     try std.testing.expectEqual(findEnchantmentTable(&et, 1, 10, 20, 30), @as(?usize, 0));
     try std.testing.expectEqual(findEnchantmentTable(&et, 1, 0, 0, 0), @as(?usize, null));
 }
+
+pub const anvil_cap: usize = 32;
+
+pub fn findAnvil(anvils: anytype, n: usize, x: i32, y: i32, z: i32) ?usize {
+    return find2D(anvils, n, x, y, z);
+}
+
+test "findAnvil helper" {
+    const FakeAnvil = struct { x: i32, y: i32, z: i32 };
+    var an = [_]FakeAnvil{.{ .x = 5, .y = 12, .z = 15 }} ** 2;
+    try std.testing.expectEqual(findAnvil(&an, 1, 5, 12, 15), @as(?usize, 0));
+    try std.testing.expectEqual(findAnvil(&an, 1, 0, 0, 0), @as(?usize, null));
+}

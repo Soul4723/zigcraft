@@ -278,6 +278,9 @@ pub fn main() !void {
     const EnchantmentTableState = struct { x: i32, y: i32, z: i32 };
     var enchantment_tables: [cache_mod.enchantment_table_cap]EnchantmentTableState = undefined;
     var enchantment_table_count: usize = 0;
+    const AnvilState = struct { x: i32, y: i32, z: i32, uses_left: u8 = 25 };
+    var anvils: [cache_mod.anvil_cap]AnvilState = undefined;
+    var anvil_count: usize = 0;
     const DropperState = struct { x: i32, y: i32, z: i32, powered: bool = false, items: [4]inventory_mod.ItemStack = undefined, count: usize = 0 };
     var droppers: [32]DropperState = undefined;
     var dropper_count: usize = 0;
@@ -2370,6 +2373,10 @@ pub fn main() !void {
                                             enchantment_tables[enchantment_table_count] = .{ .x = px, .y = py, .z = pz };
                                             enchantment_table_count += 1;
                                         }
+                                        if (place_type == .anvil and anvil_count < anvils.len) {
+                                            anvils[anvil_count] = .{ .x = px, .y = py, .z = pz };
+                                            anvil_count += 1;
+                                        }
                                         if (place_type == .spawner_cage and spawner_count < spawners.len) {
                                             spawners[spawner_count] = .{ .x = px, .y = py, .z = pz };
                                             spawner_count += 1;
@@ -2503,13 +2510,14 @@ pub fn main() !void {
                         while (fz < 16) : (fz += 1) {
                             var fx: usize = 0;
                             while (fx < 16) : (fx += 1) {
-                                if (fch.blocks[fy][fz][fx] != .sand) continue;
+                                const f_block = fch.blocks[fy][fz][fx];
+                                if (!f_block.is_falling()) continue;
                                 if (fch.blocks[fy - 1][fz][fx] != .air) continue;
                                 const wx: i32 = fcx * 16 + @as(i32, @intCast(fx));
                                 const wy: i32 = @as(i32, @intCast(fy));
                                 const wz: i32 = fcz * 16 + @as(i32, @intCast(fz));
                                 if (falling_mod.findFalling(&fallings, falling_count, wx, wy, wz) == null and falling_count < fallings.len) {
-                                    fallings[falling_count] = .{ .x = wx, .y = wy, .z = wz, .t = 0.0, .dist = 0 };
+                                    fallings[falling_count] = .{ .x = wx, .y = wy, .z = wz, .t = 0.0, .dist = 0, .block_type = f_block };
                                     falling_count += 1;
                                 }
                                 if (falling_count >= fallings.len) break;
@@ -2523,7 +2531,7 @@ pub fn main() !void {
             var fi2: usize = 0;
             while (fi2 < falling_count) {
                 const f = &fallings[fi2];
-                if (manager.getBlockWorld(f.x, f.y, f.z) != .sand) {
+                if (manager.getBlockWorld(f.x, f.y, f.z) != f.block_type) {
                     cache_mod.swapRemove(&fallings, &falling_count, fi2);
                     continue;
                 }
@@ -2534,27 +2542,34 @@ pub fn main() !void {
                     const action = falling_mod.evaluateFallingStep(below, f.y);
                     switch (action) {
                         .drop_into_air => {
-                            _ = try manager.editAndRemesh(f.x, f.y - 1, f.z, .sand);
+                            _ = try manager.editAndRemesh(f.x, f.y - 1, f.z, f.block_type);
                             _ = try manager.editAndRemesh(f.x, f.y, f.z, .air);
                             f.y -= 1;
                             f.dist += 1;
                         },
                         .splash_into_water => {
-                            _ = try manager.editAndRemesh(f.x, f.y - 1, f.z, .sand);
+                            _ = try manager.editAndRemesh(f.x, f.y - 1, f.z, f.block_type);
                             _ = try manager.editAndRemesh(f.x, f.y, f.z, .air);
                             f.y -= 1;
                             f.dist += 1;
                             particles.spawnWaterSplash(.{ @as(f32, @floatFromInt(f.x)) + 0.5, @as(f32, @floatFromInt(f.y)), @as(f32, @floatFromInt(f.z)) + 0.5 }, 12);
+                            if (f.block_type == .anvil) {
+                                audio.playAt(.anvil_clang, .{ @as(f32, @floatFromInt(f.x)) + 0.5, @as(f32, @floatFromInt(f.y)), @as(f32, @floatFromInt(f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 30.0);
+                            }
                         },
                         .crush_non_solid => {
-                            _ = try manager.editAndRemesh(f.x, f.y - 1, f.z, .sand);
+                            _ = try manager.editAndRemesh(f.x, f.y - 1, f.z, f.block_type);
                             _ = try manager.editAndRemesh(f.x, f.y, f.z, .air);
                             f.y -= 1;
                             f.dist += 1;
                             particles.spawnBlockDebris(f.x, f.y, f.z, .{ 0.8, 0.7, 0.5 }, 4);
                         },
                         .land, .none => {
-                            const dmg = falling_mod.calculateImpactDamage(f.dist);
+                            const dmg: u8 = if (f.block_type == .anvil) falling_mod.calculateAnvilImpactDamage(f.dist) else falling_mod.calculateImpactDamage(f.dist);
+                            if (f.block_type == .anvil and f.dist > 0) {
+                                audio.playAt(.anvil_clang, .{ @as(f32, @floatFromInt(f.x)) + 0.5, @as(f32, @floatFromInt(f.y)) + 0.5, @as(f32, @floatFromInt(f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 40.0);
+                                particles.spawnBlockDebris(f.x, f.y, f.z, .{ 0.5, 0.5, 0.55 }, 8);
+                            }
                             if (dmg > 0) {
                                 for (mob_manager.mobs.items, 0..) |*m, mi| {
                                     if (falling_mod.isHitByBlock(m.pos.x, m.pos.y, m.pos.z, f.x, f.y, f.z)) {
@@ -3447,6 +3462,27 @@ pub fn main() !void {
                             }
                             audio.playAt(.click_off, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
                         }
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .anvil) {
+                    var an_opt = cache_mod.findAnvil(&anvils, anvil_count, hit_f.x, hit_f.y, hit_f.z);
+                    if (an_opt == null and anvil_count < anvils.len) {
+                        anvils[anvil_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z };
+                        an_opt = anvil_count;
+                        anvil_count += 1;
+                    }
+
+                    const held_slot = &inventory.slots[selected_slot];
+                    if (held_slot.item.isTool()) {
+                        // Heavy smithing metalworking: forge-repair worn tool completely
+                        tool_wear.uses[selected_slot] = 0;
+                        audio.playAt(.anvil_clang, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 36.0);
+                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.85, 0.70, 0.20 }, 10);
+                        std.debug.print("forged and restored tool: {s}\n", .{ held_slot.item.name() });
+                    } else {
+                        // Metallic resonant hammer tap
+                        audio.playAt(.anvil_clang, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.6, 24.0);
+                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.45, 0.45, 0.50 }, 4);
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .enchantment_table) {

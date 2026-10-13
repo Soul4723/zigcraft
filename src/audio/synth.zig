@@ -47,6 +47,7 @@ pub const SoundType = enum {
     note_chime,
     record_13,
     record_cat,
+    anvil_clang,
 };
 
 pub const SAMPLE_RATE: u32 = 44100;
@@ -124,6 +125,7 @@ pub const AudioMixer = struct {
             .note_harp, .note_bass, .note_chime => SAMPLE_RATE * 3 / 10, // ~300ms resonant melodic decay
             .note_snare => SAMPLE_RATE / 8, // ~125ms sharp percussion snare snap
             .record_13, .record_cat => SAMPLE_RATE * 3, // ~3000ms vinyl record melody phrase
+            .anvil_clang => SAMPLE_RATE / 3, // ~333ms resonant metallic iron anvil strike & overtone ringing
         };
 
         slot.?.* = .{
@@ -493,6 +495,18 @@ pub const AudioMixer = struct {
                 const v_env = (1.0 - progress * 0.2);
                 return (tone + crackle) * v_env * 0.70;
             },
+            .anvil_clang => {
+                // High resonant metallic overtone clang with fast initial transient hammer strike
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const impact_noise = if (progress < 0.08) (rng.random().float(f32) * 2.0 - 1.0) * 0.7 else 0.0;
+                // Metallic bell-like inharmonic partials: ~880Hz, 1760Hz, 2340Hz, 3520Hz
+                const p1 = @sin(t * 880.0 * 2.0 * std.math.pi) * 0.50;
+                const p2 = @sin(t * 1760.0 * 2.0 * std.math.pi) * 0.35;
+                const p3 = @sin(t * 2340.0 * 2.0 * std.math.pi) * 0.20;
+                const p4 = @sin(t * 3520.0 * 2.0 * std.math.pi) * 0.15;
+                const ring_decay = @exp(-progress * 6.0);
+                return (impact_noise + p1 + p2 + p3 + p4) * ring_decay * 0.85;
+            },
             .record_cat => {
                 // Record cat: warm cheerful synth melody with gentle vinyl surface noise (C major bouncing arpeggio)
                 const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
@@ -536,7 +550,7 @@ test "AudioMixer play voice produces non-zero samples" {
 
 test "AudioMixer all sound types render without overflow or crash" {
     var mixer = AudioMixer.init();
-    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .mob_roar, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle, .nether_wind, .glowstone_chime, .bow_shoot, .shield_block, .crossbow_shoot, .crossbow_load, .firework_blast, .note_harp, .note_bass, .note_snare, .note_chime, .record_13, .record_cat };
+    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .mob_roar, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle, .nether_wind, .glowstone_chime, .bow_shoot, .shield_block, .crossbow_shoot, .crossbow_load, .firework_blast, .note_harp, .note_bass, .note_snare, .note_chime, .record_13, .record_cat, .anvil_clang };
     for (sounds) |snd| {
         mixer.play(snd, 1.0);
     }
@@ -679,7 +693,7 @@ test "music disc vinyl audio synthesis voices" {
     var mixer = AudioMixer.init();
     var buf: [256]i16 = undefined;
 
-    const disc_types = [_]SoundType{ .record_13, .record_cat };
+    const disc_types = [_]SoundType{ .record_13, .record_cat, .anvil_clang };
     for (disc_types) |dt| {
         mixer.play(dt, 0.8);
         mixer.render(&buf);

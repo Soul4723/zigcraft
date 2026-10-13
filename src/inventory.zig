@@ -125,6 +125,7 @@ pub const ItemType = enum(u8) {
     armor_stand = 119,
     target_dummy = 120,
     enchantment_table = 121,
+    anvil = 122,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -203,6 +204,7 @@ pub const ItemType = enum(u8) {
             .oak_fence => .oak_fence,
             .armor_stand => .armor_stand,
             .enchantment_table => .enchantment_table,
+            .anvil => .anvil,
             else => null,
         };
     }
@@ -287,6 +289,7 @@ pub const ItemType = enum(u8) {
             .oak_fence => .oak_fence,
             .armor_stand => .armor_stand,
             .enchantment_table => .enchantment_table,
+            .anvil => .anvil,
         };
     }
 
@@ -451,6 +454,7 @@ pub const ItemType = enum(u8) {
             .armor_stand => "Armor Stand",
             .target_dummy => "Target Dummy",
             .enchantment_table => "Enchantment Table",
+            .anvil => "Anvil",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -514,6 +518,7 @@ pub const ItemType = enum(u8) {
             .armor_stand => .{ 0.75, 0.60, 0.42, 0.95 },
             .target_dummy => .{ 0.90, 0.80, 0.35, 0.95 },
             .enchantment_table => .{ 0.60, 0.20, 0.70, 0.95 },
+            .anvil => .{ 0.35, 0.35, 0.38, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1062,6 +1067,20 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 86: Anvil: 3 Iron Ingots (or Iron Ore) + 1 Cobblestone (or Stone) -> 1 Anvil
+        if (non_empty == 4) {
+            var iron_count: u8 = 0;
+            var base_stone_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .iron_ingot or sl.item == .iron_ore) iron_count += 1;
+                if (sl.item == .cobblestone or sl.item == .stone) base_stone_count += 1;
+            }
+            if (iron_count == 3 and base_stone_count == 1) {
+                self.craft_output = .{ .item = .anvil, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 85: Enchantment Table: 2 Obsidian + 1 Nether Quartz (or Nether Star / Gold Nugget) + 1 Wood Planks (or Wool) -> 1 Enchantment Table
         if (non_empty == 4) {
@@ -3436,4 +3455,30 @@ test "enchantment table item roundtrip, properties, and Recipe 85" {
     try std.testing.expectEqual(ItemType.enchantment_table.maxDurability(), 0);
     try std.testing.expect(!ItemType.enchantment_table.isTool());
     try std.testing.expectEqual(ItemType.enchantment_table.maxStackSize(), 64);
+}
+
+test "anvil item roundtrip, properties, and Recipe 86" {
+    var inv = Inventory.init();
+    // Recipe 86: 3 Iron Ingots + 1 Cobblestone -> 1 Anvil
+    inv.craft_grid[0] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .cobblestone, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .anvil);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Also works with Iron Ore & Stone
+    inv.craft_grid[0] = .{ .item = .iron_ore, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .stone, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .anvil);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.anvil.toBlockId().?, .anvil);
+    try std.testing.expectEqual(ItemType.fromBlockId(.anvil), .anvil);
+    try std.testing.expectEqualStrings(ItemType.anvil.name(), "Anvil");
+    try std.testing.expectEqual(ItemType.anvil.maxDurability(), 0);
+    try std.testing.expect(!ItemType.anvil.isTool());
+    try std.testing.expectEqual(ItemType.anvil.maxStackSize(), 64);
 }
