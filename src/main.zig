@@ -182,6 +182,7 @@ pub fn main() !void {
     var bed_cooldown: f32 = 0.0;
     var flint_cooldown: f32 = 0.0;
     var throw_cooldown: f32 = 0.0;
+    var bow_charge: f32 = 0.0;
     var wolf_bite_cooldown: f32 = 0.0;
     var fireball_cooldown: f32 = 0.0;
     var compass_cooldown: f32 = 0.0;
@@ -207,8 +208,8 @@ pub fn main() !void {
     const PortalTarget = portal_mod.PortalTarget;
     var portal_targets: [32]PortalTarget = undefined;
     var portal_target_count: usize = 0;
-    const ThrownKind = enum { snowball, hostile_fireball, player_fire_charge, spectral_arrow };
-    const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball };
+    const ThrownKind = enum { snowball, hostile_fireball, player_fire_charge, spectral_arrow, arrow };
+    const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball, damage: u8 = 1 };
     var thrown: [proj_mod.thrown_cap]Thrown = undefined;
     var thrown_count: usize = 0;
     const FurnaceJob = smelt_mod.FurnaceJob;
@@ -1403,7 +1404,8 @@ pub fn main() !void {
                 const rel = bearing - (std.math.pi / 2.0 - cam.yaw);
                 break :blk rel;
             } else -1.0;
-            ui.drawHUDWithCompass(aspect, selected_slot, &hotbar_colors, &hotbar_counts, mine_frac, player.health, player.hunger, player.regen_timer > 0.0, player.oxygen, player.fire_resistance_timer, player.wither_timer, compass_rel);
+            const hud_progress = if (bow_charge > 0.0) bow_charge else mine_frac;
+            ui.drawHUDWithCompass(aspect, selected_slot, &hotbar_colors, &hotbar_counts, hud_progress, player.health, player.hunger, player.regen_timer > 0.0, player.oxygen, player.fire_resistance_timer, player.wither_timer, compass_rel);
             if (portal_transit.inside_timer > 0.0) {
                 const vignette_intensity = portal_transit.inside_timer / portal_mod.PORTAL_TRIGGER_TIME;
                 ui.drawPortalVignette(aspect, vignette_intensity);
@@ -1695,7 +1697,7 @@ pub fn main() !void {
                                 std.debug.print("destroyed {s} ({d},{d},{d})\n", .{ @tagName(broken_block), hit.x, hit.y, hit.z });
                             }
                         }
-                    } else {
+                    } else if (inventory.slots[selected_slot].item != .bow) {
                         const px = hit.x + hit.nx;
                         const py = hit.y + hit.ny;
                         const pz = hit.z + hit.nz;
@@ -2197,9 +2199,14 @@ pub fn main() !void {
                             }
                             particles.spawnFlame(mbx, mby, mbz, 8);
                             audio.play(.burn_sizzle, 0.4);
-                        } else if (t.kind == .spectral_arrow) {
-                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(mbx)) + 0.5, @as(f32, @floatFromInt(mby)) + 0.5, @as(f32, @floatFromInt(mbz)) + 0.5 }, 10);
-                            audio.play(.glowstone_chime, 0.7);
+                        } else if (t.kind == .spectral_arrow or t.kind == .arrow) {
+                            if (t.kind == .spectral_arrow) {
+                                particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(mbx)) + 0.5, @as(f32, @floatFromInt(mby)) + 0.5, @as(f32, @floatFromInt(mbz)) + 0.5 }, 10);
+                                audio.play(.glowstone_chime, 0.7);
+                            } else {
+                                particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.8, 0.75, 0.7 }, 6);
+                                audio.play(.place_block, 0.6);
+                            }
                             if (struck == .target_block) {
                                 var found_tp = false;
                                 for (target_pulses[0..target_pulse_count]) |*tp| {
@@ -2245,7 +2252,9 @@ pub fn main() !void {
                             if (proj_mod.hitsMob(d[0], d[1], d[2])) {
                                 const is_fc = (t.kind == .player_fire_charge);
                                 const is_sa = (t.kind == .spectral_arrow);
-                                const died = if (is_fc or is_sa) m.takeHitDmg(cam.front(), proj_mod.spectral_arrow_damage) else m.takeHit(cam.front());
+                                const is_arr = (t.kind == .arrow);
+                                const hit_dmg = if (is_sa or is_arr) t.damage else if (is_fc) @as(u8, 2) else @as(u8, 1);
+                                const died = m.takeHitDmg(cam.front(), hit_dmg);
                                 if (is_fc) particles.spawnFlame(mbx, mby, mbz, 8);
                                 if (is_sa) {
                                     m.glow_timer = proj_mod.spectral_arrow_glow_duration;
@@ -2291,6 +2300,8 @@ pub fn main() !void {
                         particles.spawnFlame(mbx, mby, mbz, 1);
                     } else if (t.kind == .spectral_arrow) {
                         particles.spawnGlowstoneShimmer(.{ t.pos.x, t.pos.y, t.pos.z }, 1);
+                    } else if (t.kind == .arrow) {
+                        particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.85, 0.85, 0.85 }, 1);
                     } else {
                         particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.9, 0.92, 1.0 }, 1);
                     }
@@ -2298,20 +2309,75 @@ pub fn main() !void {
                 }
             }
         }
-        // G throws snowball / fire charge / spectral arrow
+        // Bow charging & shooting
+        const held_bow = inventory.slots[selected_slot].item == .bow;
+        if (held_bow and !inventory_open) {
+            if (right) {
+                bow_charge = @min(1.0, bow_charge + dt / proj_mod.bow_draw_time);
+            } else if (bow_charge > 0.05) {
+                if (inventory.consumeArrow()) |arrow_kind| {
+                    if (thrown_count < thrown.len) {
+                        const dir_b = cam.front();
+                        const speed = proj_mod.bowArrowSpeed(bow_charge);
+                        const dmg = proj_mod.bowArrowDamage(bow_charge);
+                        const vel_b = proj_mod.bowInitialVelocity(dir_b.x, dir_b.y, dir_b.z, speed);
+                        const k: ThrownKind = if (arrow_kind == .spectral_arrow) .spectral_arrow else .arrow;
+                        thrown[thrown_count] = .{
+                            .pos = cam.position,
+                            .vel = math.Vec3.init(vel_b[0], vel_b[1], vel_b[2]),
+                            .life = proj_mod.throw_life,
+                            .kind = k,
+                            .damage = dmg,
+                        };
+                        thrown_count += 1;
+                        audio.play(.bow_shoot, 0.9);
+                        if (bow_charge >= 0.95) {
+                            particles.spawnBurnSparks(.{ cam.position.x + dir_b.x * 0.8, cam.position.y + dir_b.y * 0.8, cam.position.z + dir_b.z * 0.8 }, 6);
+                            std.debug.print("bow critical shot (charge={d:.2}, dmg={d}, speed={d:.1})\n", .{ bow_charge, dmg, speed });
+                        } else {
+                            std.debug.print("bow shot (charge={d:.2}, dmg={d}, speed={d:.1})\n", .{ bow_charge, dmg, speed });
+                        }
+                        if (tool_wear.use(selected_slot, inventory_mod.ItemType.bow.maxDurability())) {
+                            inventory.slots[selected_slot].clear();
+                            audio.play(.break_block, 0.8);
+                            std.debug.print("bow broke\n", .{});
+                        }
+                    }
+                } else {
+                    audio.play(.click_off, 0.5);
+                }
+                bow_charge = 0.0;
+            } else {
+                bow_charge = 0.0;
+            }
+        } else {
+            bow_charge = 0.0;
+        }
+
+        // G throws snowball / fire charge / spectral arrow / arrow
         throw_cooldown = @max(0.0, throw_cooldown - dt);
         if (!inventory_open and throw_cooldown <= 0.0 and c.glfwGetKey(window, c.GLFW_KEY_G) == c.GLFW_PRESS) {
             const held_throw = inventory.slots[selected_slot].item;
-            if ((held_throw == .snowball or held_throw == .fire_charge or held_throw == .spectral_arrow) and thrown_count < thrown.len) {
+            if ((held_throw == .snowball or held_throw == .fire_charge or held_throw == .spectral_arrow or held_throw == .arrow) and thrown_count < thrown.len) {
                 const dir_g = cam.front();
                 const vel_g = proj_mod.initialVelocity(dir_g.x, dir_g.y, dir_g.z);
                 const k: ThrownKind = if (held_throw == .fire_charge)
                     .player_fire_charge
                 else if (held_throw == .spectral_arrow)
                     .spectral_arrow
+                else if (held_throw == .arrow)
+                    .arrow
                 else
                     .snowball;
-                thrown[thrown_count] = .{ .pos = cam.position, .vel = math.Vec3.init(vel_g[0], vel_g[1], vel_g[2]), .life = proj_mod.throw_life, .kind = k };
+                const dmg: u8 = if (held_throw == .spectral_arrow)
+                    proj_mod.spectral_arrow_damage
+                else if (held_throw == .arrow)
+                    2
+                else if (held_throw == .fire_charge)
+                    2
+                else
+                    1;
+                thrown[thrown_count] = .{ .pos = cam.position, .vel = math.Vec3.init(vel_g[0], vel_g[1], vel_g[2]), .life = proj_mod.throw_life, .kind = k, .damage = dmg };
                 thrown_count += 1;
                 inventory.slots[selected_slot].decrement(1);
                 if (held_throw == .fire_charge) {

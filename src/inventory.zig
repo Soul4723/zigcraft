@@ -100,6 +100,8 @@ pub const ItemType = enum(u8) {
     chiseled_nether_brick = 94,
     netherite_boots = 95,
     spectral_arrow = 96,
+    arrow = 97,
+    bow = 98,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -255,6 +257,7 @@ pub const ItemType = enum(u8) {
             .netherite_helmet => 450,
             .netherite_leggings => 475,
             .netherite_boots => 425,
+            .bow => 384,
             else => 0,
         };
     }
@@ -266,7 +269,7 @@ pub const ItemType = enum(u8) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .soul_speed_boots, .netherite_helmet, .netherite_leggings, .netherite_boots => 1,
+            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .soul_speed_boots, .netherite_helmet, .netherite_leggings, .netherite_boots, .bow => 1,
             else => 64,
         };
     }
@@ -366,6 +369,8 @@ pub const ItemType = enum(u8) {
             .chiseled_nether_brick => "Chiseled Nether Brick",
             .netherite_boots => "Netherite Boots",
             .spectral_arrow => "Spectral Arrow",
+            .arrow => "Arrow",
+            .bow => "Bow",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -404,6 +409,8 @@ pub const ItemType = enum(u8) {
             .chiseled_nether_brick => .{ 0.35, 0.15, 0.18, 0.95 },
             .netherite_boots => .{ 0.22, 0.20, 0.24, 0.95 },
             .spectral_arrow => .{ 1.0, 0.90, 0.25, 0.95 },
+            .arrow => .{ 0.75, 0.75, 0.78, 0.95 },
+            .bow => .{ 0.55, 0.38, 0.20, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -558,6 +565,22 @@ pub const Inventory = struct {
             if (slot.item == item and slot.count > 0) return true;
         }
         return false;
+    }
+
+    pub fn consumeItem(self: *Inventory, item: ItemType) bool {
+        for (&self.slots) |*slot| {
+            if (slot.item == item and slot.count > 0) {
+                slot.decrement(1);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    pub fn consumeArrow(self: *Inventory) ?ItemType {
+        if (self.consumeItem(.spectral_arrow)) return .spectral_arrow;
+        if (self.consumeItem(.arrow)) return .arrow;
+        return null;
     }
 
     pub fn addItem(self: *Inventory, item: ItemType, count: u8) u8 {
@@ -921,6 +944,31 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 64: Bow: 2 Sticks + 1 Wool (or 2 Sticks + 1 Twisting Vines/Weeping Vines) -> 1 Bow
+        if (non_empty == 3) {
+            var stick_count: u8 = 0;
+            var fiber_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .stick) stick_count += 1;
+                if (sl.item == .wool or sl.item == .twisting_vines or sl.item == .weeping_vines) fiber_count += 1;
+            }
+            if (stick_count == 2 and fiber_count == 1) {
+                self.craft_output = .{ .item = .bow, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 63: Arrow: 1 Stick + 1 Iron Ingot (or 1 Stick + 1 Nether Quartz) -> 4 Arrows
+        if (non_empty == 2) {
+            const has_stick = (g0 == .stick or g1 == .stick or g2 == .stick or g3 == .stick);
+            const has_point = (g0 == .iron_ingot or g1 == .iron_ingot or g2 == .iron_ingot or g3 == .iron_ingot or
+                               g0 == .nether_quartz or g1 == .nether_quartz or g2 == .nether_quartz or g3 == .nether_quartz);
+            if (has_stick and has_point) {
+                self.craft_output = .{ .item = .arrow, .count = 4 };
                 return;
             }
         }
@@ -2456,4 +2504,55 @@ test "spectral arrow item properties, stack, and Recipe 62" {
     try std.testing.expectEqual(ItemType.spectral_arrow.maxStackSize(), 64);
     try std.testing.expectEqualStrings(ItemType.spectral_arrow.name(), "Spectral Arrow");
     try std.testing.expect(ItemType.spectral_arrow.toBlockId() == null);
+}
+
+test "arrow and bow item properties, recipes 63 and 64, and consumeArrow" {
+    var inv = Inventory.init();
+
+    // Recipe 63: 1 Stick + 1 Iron Ingot -> 4 Arrows
+    inv.craft_grid[0] = .{ .item = .stick, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .iron_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .arrow);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    // Alternate: 1 Stick + 1 Nether Quartz -> 4 Arrows
+    inv.craft_grid[1] = .{ .item = .nether_quartz, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .arrow);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    // Recipe 64: 2 Sticks + 1 Wool -> 1 Bow
+    inv.craft_grid[0] = .{ .item = .stick, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .stick, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .wool, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .none, .count = 0 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .bow);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Alternate: 2 Sticks + 1 Twisting Vines -> 1 Bow
+    inv.craft_grid[2] = .{ .item = .twisting_vines, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .bow);
+
+    // Properties
+    try std.testing.expectEqual(ItemType.arrow.maxDurability(), 0);
+    try std.testing.expect(!ItemType.arrow.isTool());
+    try std.testing.expectEqual(ItemType.arrow.maxStackSize(), 64);
+    try std.testing.expectEqualStrings(ItemType.arrow.name(), "Arrow");
+
+    try std.testing.expectEqual(ItemType.bow.maxDurability(), 384);
+    try std.testing.expect(ItemType.bow.isTool());
+    try std.testing.expectEqual(ItemType.bow.maxStackSize(), 1);
+    try std.testing.expectEqualStrings(ItemType.bow.name(), "Bow");
+
+    // consumeArrow
+    try std.testing.expect(inv.consumeArrow() == null);
+    inv.slots[5] = .{ .item = .arrow, .count = 2 };
+    try std.testing.expectEqual(inv.consumeArrow(), .arrow);
+    try std.testing.expectEqual(inv.slots[5].count, 1);
+    inv.slots[4] = .{ .item = .spectral_arrow, .count = 1 };
+    try std.testing.expectEqual(inv.consumeArrow(), .spectral_arrow);
+    try std.testing.expectEqual(inv.slots[4].count, 0);
 }

@@ -135,3 +135,39 @@ test "spectral arrow constants" {
     try std.testing.expectEqual(@as(u8, 2), spectral_arrow_damage);
     try std.testing.expectEqual(@as(f32, 10.0), spectral_arrow_glow_duration);
 }
+
+pub const bow_draw_time: f32 = 1.0;
+pub const bow_min_speed: f32 = 12.0;
+pub const bow_max_speed: f32 = 32.0;
+pub const bow_durability: u16 = 384;
+
+pub fn bowArrowSpeed(charge: f32) f32 {
+    return bow_min_speed + (bow_max_speed - bow_min_speed) * std.math.clamp(charge, 0.0, 1.0);
+}
+
+pub fn bowArrowDamage(charge: f32) u8 {
+    return 1 + @as(u8, @intFromFloat(std.math.clamp(charge, 0.0, 1.0) * 5.0));
+}
+
+pub fn bowInitialVelocity(dir_x: f32, dir_y: f32, dir_z: f32, speed: f32) [3]f32 {
+    return .{
+        dir_x * speed,
+        dir_y * speed + 1.2,
+        dir_z * speed,
+    };
+}
+
+test "bow speed and damage scaling" {
+    try std.testing.expectApproxEqAbs(bowArrowSpeed(0.0), 12.0, 0.01);
+    try std.testing.expectApproxEqAbs(bowArrowSpeed(1.0), 32.0, 0.01);
+    try std.testing.expectApproxEqAbs(bowArrowSpeed(0.5), 22.0, 0.01);
+
+    try std.testing.expectEqual(@as(u8, 1), bowArrowDamage(0.0));
+    try std.testing.expectEqual(@as(u8, 3), bowArrowDamage(0.5));
+    try std.testing.expectEqual(@as(u8, 6), bowArrowDamage(1.0));
+
+    const vel = bowInitialVelocity(1.0, 0.0, 0.0, 20.0);
+    try std.testing.expectApproxEqAbs(vel[0], 20.0, 0.01);
+    try std.testing.expectApproxEqAbs(vel[1], 1.2, 0.01);
+    try std.testing.expectApproxEqAbs(vel[2], 0.0, 0.01);
+}
