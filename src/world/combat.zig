@@ -10,10 +10,17 @@ pub const sword_damage: u8 = 2;
 pub const netherite_sword_damage: u8 = 4;
 pub const hand_damage: u8 = 1;
 
-pub const netherite_armor_absorption: f32 = 0.50; // 50% damage reduction
+pub const netherite_armor_absorption: f32 = 0.50; // 50% chestplate reduction
+pub const netherite_full_set_absorption: f32 = 0.75; // 75% complete 4-piece set reduction
 
 pub fn applyArmorReduction(raw_damage: f32, has_netherite_armor: bool) f32 {
-    if (has_netherite_armor) {
+    return applyArmorReductionFullSet(raw_damage, has_netherite_armor, false);
+}
+
+pub fn applyArmorReductionFullSet(raw_damage: f32, has_netherite_armor: bool, has_full_set: bool) f32 {
+    if (has_full_set) {
+        return raw_damage * (1.0 - netherite_full_set_absorption);
+    } else if (has_netherite_armor) {
         return raw_damage * (1.0 - netherite_armor_absorption);
     }
     return raw_damage;
@@ -119,4 +126,10 @@ test "applyKnockbackResistance dampens knockback by 60% with netherite leggings"
     try std.testing.expectApproxEqAbs(applyKnockbackResistance(1.0, true), 0.40, 0.01);
     try std.testing.expectApproxEqAbs(applyKnockbackResistance(2.5, true), 1.00, 0.01);
     try std.testing.expectApproxEqAbs(applyKnockbackResistance(1.0, false), 1.00, 0.01);
+}
+
+test "applyArmorReductionFullSet absorbs 75% damage with full netherite set" {
+    try std.testing.expectApproxEqAbs(applyArmorReductionFullSet(10.0, true, true), 2.5, 0.01);
+    try std.testing.expectApproxEqAbs(applyArmorReductionFullSet(10.0, true, false), 5.0, 0.01);
+    try std.testing.expectApproxEqAbs(applyArmorReductionFullSet(10.0, false, false), 10.0, 0.01);
 }

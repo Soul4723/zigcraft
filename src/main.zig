@@ -418,7 +418,7 @@ pub fn main() !void {
 
             if (is_in_lava) {
                 particles.spawnFlame(px_i, py_i, pz_i, 3);
-                if (!player.isFireImmune()) {
+                if (!player.isFireImmune() and !inventory.hasFullNetheriteSet()) {
                     player.health = hazard_mod.applyDamageClamped(player.health, hazard_mod.lava_burn_rate, dt);
                     if (burn_sizzle_cooldown <= 0.0) {
                         audio.play(.burn_sizzle, 0.7);
@@ -427,7 +427,7 @@ pub fn main() !void {
                 }
             } else if (is_in_burn) {
                 particles.spawnBurnSparks(.{ player.pos.x, player.pos.y, player.pos.z }, 2);
-                if (!player.isFireImmune()) {
+                if (!player.isFireImmune() and !inventory.hasFullNetheriteSet()) {
                     player.health = hazard_mod.applyDamageClamped(player.health, hazard_mod.burn_rate, dt);
                     if (burn_sizzle_cooldown <= 0.0) {
                         audio.play(.burn_sizzle, 0.6);
@@ -1214,7 +1214,7 @@ pub fn main() !void {
                     const bonus = entity_mod.pack_hunt.packBonus(pack_count);
                     const hit = combat_mod.calculateWolfBite(bdx, bdz, bonus);
                     const raw_dmg = if (m.is_champion) hit.damage * 2.5 else if (m.mob_type == .piglin_brute) hit.damage * 2.5 else if (m.mob_type == .emberbeast) hit.damage * 2.0 else if (m.mob_type == .wither_skeleton or m.mob_type == .piglin) hit.damage * 1.5 else hit.damage;
-                    const dmg = combat_mod.applyArmorReduction(raw_dmg, inventory.hasItem(.netherite_chestplate));
+                    const dmg = combat_mod.applyArmorReductionFullSet(raw_dmg, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet());
                     player.health = @max(0.0, player.health - dmg);
                     if (m.mob_type == .wither_skeleton) {
                         player.applyWither();
@@ -2123,7 +2123,7 @@ pub fn main() !void {
                         if (pdx * pdx + pdy * pdy + pdz * pdz < 1.0) {
                             const resist = player.fire_resistance_timer > 0.0;
                             if (!resist) {
-                                player.health = @max(0.0, player.health - combat_mod.applyArmorReduction(proj_mod.fireball_damage, inventory.hasItem(.netherite_chestplate)));
+                                player.health = @max(0.0, player.health - combat_mod.applyArmorReductionFullSet(proj_mod.fireball_damage, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet()));
                                 audio.play(.hurt, 0.8);
                                 std.debug.print("fireball hit (hp={d:.1})\n", .{player.health});
                             } else {

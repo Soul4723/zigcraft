@@ -98,6 +98,7 @@ pub const ItemType = enum(u8) {
     netherite_helmet = 92,
     netherite_leggings = 93,
     chiseled_nether_brick = 94,
+    netherite_boots = 95,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -252,6 +253,7 @@ pub const ItemType = enum(u8) {
             .soul_speed_boots => 300,
             .netherite_helmet => 450,
             .netherite_leggings => 475,
+            .netherite_boots => 425,
             else => 0,
         };
     }
@@ -263,7 +265,7 @@ pub const ItemType = enum(u8) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .soul_speed_boots, .netherite_helmet, .netherite_leggings => 1,
+            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .soul_speed_boots, .netherite_helmet, .netherite_leggings, .netherite_boots => 1,
             else => 64,
         };
     }
@@ -361,6 +363,7 @@ pub const ItemType = enum(u8) {
             .netherite_helmet => "Netherite Helmet",
             .netherite_leggings => "Netherite Leggings",
             .chiseled_nether_brick => "Chiseled Nether Brick",
+            .netherite_boots => "Netherite Boots",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -397,6 +400,7 @@ pub const ItemType = enum(u8) {
             .netherite_helmet => .{ 0.26, 0.23, 0.28, 0.95 },
             .netherite_leggings => .{ 0.24, 0.21, 0.25, 0.95 },
             .chiseled_nether_brick => .{ 0.35, 0.15, 0.18, 0.95 },
+            .netherite_boots => .{ 0.22, 0.20, 0.24, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -537,6 +541,13 @@ pub const Inventory = struct {
     pub fn getHotbar(self: *Inventory, index: usize) ?*ItemStack {
         if (index >= HOTBAR_SIZE) return null;
         return &self.slots[index];
+    }
+
+    pub fn hasFullNetheriteSet(self: *const Inventory) bool {
+        return self.hasItem(.netherite_helmet) and
+               self.hasItem(.netherite_chestplate) and
+               self.hasItem(.netherite_leggings) and
+               (self.hasItem(.netherite_boots) or self.hasItem(.soul_speed_boots));
     }
 
     pub fn hasItem(self: *const Inventory, item: ItemType) bool {
@@ -907,6 +918,17 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 61: Netherite Boots: 1 Netherite Ingot + 1 Gold Nugget (or 1 Netherite Scrap + 1 Gold Nugget) -> 1 Netherite Boots
+        if (non_empty == 2) {
+            const has_ni = (g0 == .netherite_ingot or g1 == .netherite_ingot or g2 == .netherite_ingot or g3 == .netherite_ingot or
+                            g0 == .netherite_scrap or g1 == .netherite_scrap or g2 == .netherite_scrap or g3 == .netherite_scrap);
+            const has_gold = (g0 == .gold_nugget or g1 == .gold_nugget or g2 == .gold_nugget or g3 == .gold_nugget);
+            if (has_ni and has_gold) {
+                self.craft_output = .{ .item = .netherite_boots, .count = 1 };
                 return;
             }
         }
@@ -2372,4 +2394,29 @@ test "chiseled nether brick item roundtrip, drops, and Recipe 60" {
     try std.testing.expectEqual(n, 1);
     try std.testing.expectEqual(drops[0].item, .chiseled_nether_brick);
     try std.testing.expectEqual(drops[0].count, 1);
+}
+
+test "netherite boots item properties, durability, recipe 61, and full set check" {
+    var inv = Inventory.init();
+
+    // Recipe 61: 1 Netherite Ingot + 1 Gold Nugget -> 1 Netherite Boots
+    inv.craft_grid[0] = .{ .item = .netherite_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .gold_nugget, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .netherite_boots);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.netherite_boots.maxDurability(), 425);
+    try std.testing.expect(ItemType.netherite_boots.isTool());
+    try std.testing.expectEqual(ItemType.netherite_boots.maxStackSize(), 1);
+    try std.testing.expectEqualStrings(ItemType.netherite_boots.name(), "Netherite Boots");
+
+    // Full set check: helmet + chestplate + leggings + boots
+    try std.testing.expect(!inv.hasFullNetheriteSet());
+    inv.slots[10] = .{ .item = .netherite_helmet, .count = 1 };
+    inv.slots[11] = .{ .item = .netherite_chestplate, .count = 1 };
+    inv.slots[12] = .{ .item = .netherite_leggings, .count = 1 };
+    try std.testing.expect(!inv.hasFullNetheriteSet());
+    inv.slots[13] = .{ .item = .netherite_boots, .count = 1 };
+    try std.testing.expect(inv.hasFullNetheriteSet());
 }
