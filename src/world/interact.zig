@@ -69,3 +69,42 @@ test "toggleWoodenDoor transitions" {
     try std.testing.expectEqual(block_mod.BlockId.wooden_door_closed, toggleWoodenDoor(.wooden_door_open).?);
     try std.testing.expectEqual(@as(?block_mod.BlockId, null), toggleWoodenDoor(.iron_door_closed));
 }
+
+pub const AnchorAction = enum {
+    charge_success,
+    set_spawn,
+    overworld_explode,
+    already_full,
+    no_charge_cannot_set,
+};
+
+pub fn evaluateAnchorInteract(is_nether: bool, current_charges: u8, held_glowstone: bool) AnchorAction {
+    if (held_glowstone) {
+        if (current_charges < 4) return .charge_success;
+        return .already_full;
+    }
+    if (current_charges > 0) {
+        if (is_nether) return .set_spawn;
+        return .overworld_explode;
+    }
+    return .no_charge_cannot_set;
+}
+
+test "evaluateAnchorInteract charging, spawn setting, and overworld explosion" {
+    // Charging with glowstone
+    try std.testing.expectEqual(AnchorAction.charge_success, evaluateAnchorInteract(true, 0, true));
+    try std.testing.expectEqual(AnchorAction.charge_success, evaluateAnchorInteract(false, 3, true));
+    try std.testing.expectEqual(AnchorAction.already_full, evaluateAnchorInteract(true, 4, true));
+
+    // Right clicking in Nether with charges -> sets spawn
+    try std.testing.expectEqual(AnchorAction.set_spawn, evaluateAnchorInteract(true, 1, false));
+    try std.testing.expectEqual(AnchorAction.set_spawn, evaluateAnchorInteract(true, 4, false));
+
+    // Right clicking in Overworld with charges -> overcharge explodes!
+    try std.testing.expectEqual(AnchorAction.overworld_explode, evaluateAnchorInteract(false, 1, false));
+    try std.testing.expectEqual(AnchorAction.overworld_explode, evaluateAnchorInteract(false, 4, false));
+
+    // Right clicking uncharged anchor without glowstone -> cannot set
+    try std.testing.expectEqual(AnchorAction.no_charge_cannot_set, evaluateAnchorInteract(true, 0, false));
+    try std.testing.expectEqual(AnchorAction.no_charge_cannot_set, evaluateAnchorInteract(false, 0, false));
+}

@@ -201,6 +201,9 @@ pub fn main() !void {
     const Campfire = struct { x: i32, y: i32, z: i32, is_soul: bool };
     var campfires: [32]Campfire = undefined;
     var campfire_count: usize = 0;
+    const AnchorState = struct { x: i32, y: i32, z: i32, charges: u8 };
+    var anchors: [16]AnchorState = undefined;
+    var anchor_count: usize = 0;
     const ThrownKind = enum { snowball, hostile_fireball, player_fire_charge };
     const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball };
     var thrown: [proj_mod.thrown_cap]Thrown = undefined;
@@ -524,6 +527,23 @@ pub fn main() !void {
         if (player.isDead()) {
             audio.play(.hurt, 0.8);
             std.debug.print("you died; respawning\n", .{});
+            // If spawn point is near an anchor, consume 1 charge from it
+            const spx: i32 = @intFromFloat(@floor(player.spawn_point.x));
+            const spy: i32 = @intFromFloat(@floor(player.spawn_point.y - 0.5));
+            const spz: i32 = @intFromFloat(@floor(player.spawn_point.z));
+            var found_anc: ?usize = null;
+            for (anchors[0..anchor_count], 0..) |anc, ai| {
+                if (anc.x == spx and anc.y == spy and anc.z == spz) {
+                    found_anc = ai;
+                    break;
+                }
+            }
+            if (found_anc) |ai| {
+                if (anchors[ai].charges > 0) {
+                    anchors[ai].charges -= 1;
+                    std.debug.print("respawn anchor charge consumed ({d}/4 remain)\n", .{anchors[ai].charges});
+                }
+            }
             player.respawn(player.spawn_point.x, player.spawn_point.y, player.spawn_point.z);
         }
         cam.position = player.eyePos();
@@ -2511,10 +2531,83 @@ pub fn main() !void {
                     flint_cooldown = interact_mod.flint_edge_cooldown;
                 } else
                 if (target == .respawn_anchor) {
-                    player.spawn_point = math.Vec3.init(@as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5);
-                    audio.play(.portal_hum, 0.85);
-                    particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 12);
-                    std.debug.print("respawn anchor set ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                    var anc_idx: ?usize = null;
+                    for (anchors[0..anchor_count], 0..) |anc, ai| {
+                        if (anc.x == hit_f.x and anc.y == hit_f.y and anc.z == hit_f.z) {
+                            anc_idx = ai;
+                            break;
+                        }
+                    }
+                    if (anc_idx == null and anchor_count < anchors.len) {
+                        anchors[anchor_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z, .charges = 0 };
+                        anc_idx = anchor_count;
+                        anchor_count += 1;
+                    }
+                    const cur_charges = if (anc_idx) |ai| anchors[ai].charges else 0;
+                    const held_glow = (inventory.slots[selected_slot].item == .glowstone);
+                    const action = interact_mod.evaluateAnchorInteract(manager.is_nether, cur_charges, held_glow);
+                    switch (action) {
+                        .charge_success => {
+                            if (anc_idx) |ai| {
+                                anchors[ai].charges += 1;
+                                inventory.slots[selected_slot].decrement(1);
+                                audio.play(.glowstone_chime, 0.9);
+                                particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 16);
+                                std.debug.print("respawn anchor charged: {d}/4\n", .{anchors[ai].charges});
+                            }
+                        },
+                        .set_spawn => {
+                            player.spawn_point = math.Vec3.init(@as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5);
+                            audio.play(.portal_hum, 0.85);
+                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 12);
+                            std.debug.print("respawn anchor spawn point set ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                        },
+                        .overworld_explode => {
+                            // Violent overcharge detonation in Overworld!
+                            const ex = hit_f.x;
+                            const ey = hit_f.y;
+                            const ez = hit_f.z;
+                            _ = try manager.editAndRemesh(ex, ey, ez, .air);
+                            audio.play(.break_block, 1.0);
+                            particles.spawnBlockDebris(ex, ey, ez, .{ 0.95, 0.85, 0.2 }, 32);
+                            particles.spawnFlame(ex, ey, ez, 24);
+                            if (anc_idx) |ai| {
+                                anchors[ai] = anchors[anchor_count - 1];
+                                anchor_count -= 1;
+                            }
+                            // Sphere crater
+                            var rx: i32 = -boom_mod.blast_radius;
+                            while (rx <= boom_mod.blast_radius) : (rx += 1) {
+                                var ry: i32 = -boom_mod.blast_radius;
+                                while (ry <= boom_mod.blast_radius) : (ry += 1) {
+                                    var rz: i32 = -boom_mod.blast_radius;
+                                    while (rz <= boom_mod.blast_radius) : (rz += 1) {
+                                        if (boom_mod.inBlast(rx, ry, rz)) {
+                                            const bx = ex + rx;
+                                            const by = ey + ry;
+                                            const bz = ez + rz;
+                                            if (by > 0) _ = try manager.editAndRemesh(bx, by, bz, .air);
+                                        }
+                                    }
+                                }
+                            }
+                            if (boom_mod.calculatePlayerBlastImpulse(player.pos.x, player.pos.y, player.pos.z, ex, ey, ez)) |imp| {
+                                player.health = @max(0.0, player.health - imp.damage);
+                                player.vel_y = imp.vel_y;
+                                player.pos.x += imp.push_x;
+                                player.pos.z += imp.push_z;
+                                audio.play(.hurt, 1.0);
+                            }
+                            std.debug.print("overcharged respawn anchor exploded in Overworld!\n", .{});
+                        },
+                        .already_full => {
+                            std.debug.print("respawn anchor already fully charged (4/4)\n", .{});
+                        },
+                        .no_charge_cannot_set => {
+                            audio.play(.click_off, 0.6);
+                            std.debug.print("respawn anchor has no charges (glowstone required)\n", .{});
+                        },
+                    }
                     flint_cooldown = interact_mod.flint_edge_cooldown;
                 } else
                 if (target.isFlammable()) {
