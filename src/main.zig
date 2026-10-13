@@ -204,6 +204,9 @@ pub fn main() !void {
     const AnchorState = struct { x: i32, y: i32, z: i32, charges: u8 };
     var anchors: [16]AnchorState = undefined;
     var anchor_count: usize = 0;
+    const PortalTarget = portal_mod.PortalTarget;
+    var portal_targets: [32]PortalTarget = undefined;
+    var portal_target_count: usize = 0;
     const ThrownKind = enum { snowball, hostile_fireball, player_fire_charge };
     const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball };
     var thrown: [proj_mod.thrown_cap]Thrown = undefined;
@@ -468,14 +471,23 @@ pub fn main() !void {
             }
             if (portal_transit.tick(in_portal, dt)) {
                 // Dimension warp triggered!
-                const warp_target = portal_mod.PortalTransitState.calculateWarpPosition(
-                    if (portal_transit.current_dim == .nether) .overworld else .nether,
-                    player.pos.x,
-                    player.pos.y,
-                    player.pos.z,
-                );
-                player.pos.x = warp_target[0];
-                player.pos.z = warp_target[2];
+                const from_dim: portal_mod.Dimension = if (portal_transit.current_dim == .nether) .overworld else .nether;
+                // Query linked portal in target destination dimension
+                if (portal_mod.findLinkedPortal(portal_targets[0..portal_target_count], from_dim, player.pos.x, player.pos.y, player.pos.z, portal_mod.PORTAL_LINK_SEARCH_RADIUS)) |linked| {
+                    player.pos.x = @as(f32, @floatFromInt(linked.x)) + 0.5;
+                    player.pos.y = @as(f32, @floatFromInt(linked.y)) + 0.1;
+                    player.pos.z = @as(f32, @floatFromInt(linked.z)) + 0.5;
+                    std.debug.print("linked portal matched at ({d},{d},{d})\n", .{ linked.x, linked.y, linked.z });
+                } else {
+                    const warp_target = portal_mod.PortalTransitState.calculateWarpPosition(
+                        from_dim,
+                        player.pos.x,
+                        player.pos.y,
+                        player.pos.z,
+                    );
+                    player.pos.x = warp_target[0];
+                    player.pos.z = warp_target[2];
+                }
                 manager.is_nether = (portal_transit.current_dim == .nether);
                 portal_flash_timer = 1.0;
                 // Burst effects and audio warp
@@ -2510,6 +2522,16 @@ pub fn main() !void {
                                     _ = try manager.editAndRemesh(cx, cy, cz, .nether_portal);
                                     particles.spawnPortalParticles(.{ @as(f32, @floatFromInt(cx)) + 0.5, @as(f32, @floatFromInt(cy)) + 0.5, @as(f32, @floatFromInt(cz)) + 0.5 }, 5);
                                 }
+                            }
+                            if (portal_target_count < portal_targets.len) {
+                                const cur_dim: portal_mod.Dimension = if (manager.is_nether) .nether else .overworld;
+                                portal_targets[portal_target_count] = .{
+                                    .x = frame.interior_min_x,
+                                    .y = frame.interior_min_y,
+                                    .z = frame.interior_min_z,
+                                    .dim = cur_dim,
+                                };
+                                portal_target_count += 1;
                             }
                             audio.play(.portal_hum, 0.9);
                             std.debug.print("activated nether portal frame ({d}x{d}) at ({d},{d},{d})\n", .{ frame.width, frame.height, frame.interior_min_x, frame.interior_min_y, frame.interior_min_z });

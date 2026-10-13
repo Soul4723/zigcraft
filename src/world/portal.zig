@@ -318,3 +318,59 @@ test "PortalTransitState coordinate scaling 8:1 ratio" {
     try std.testing.expectEqual(@as(f32, 64.0), overworld_pos[1]);
     try std.testing.expectEqual(@as(f32, -80.0), overworld_pos[2]);
 }
+
+pub const PortalTarget = struct {
+    x: i32,
+    y: i32,
+    z: i32,
+    dim: Dimension,
+};
+
+pub const PORTAL_LINK_SEARCH_RADIUS: f32 = 128.0;
+
+/// Find closest active portal in the target destination dimension within search radius.
+pub fn findLinkedPortal(portals: []const PortalTarget, from_dim: Dimension, ox: f32, oy: f32, oz: f32, search_radius: f32) ?PortalTarget {
+    const target_dim: Dimension = if (from_dim == .overworld) .nether else .overworld;
+    const ideal = PortalTransitState.calculateWarpPosition(from_dim, ox, oy, oz);
+    var closest: ?PortalTarget = null;
+    var min_dist_sq: f32 = search_radius * search_radius;
+
+    for (portals) |pt| {
+        if (pt.dim != target_dim) continue;
+        const ptx = @as(f32, @floatFromInt(pt.x)) + 0.5;
+        const pty = @as(f32, @floatFromInt(pt.y));
+        const ptz = @as(f32, @floatFromInt(pt.z)) + 0.5;
+        const dx = ptx - ideal[0];
+        const dy = (pty - ideal[1]) * 0.5; // Bias towards horizontal alignment
+        const dz = ptz - ideal[2];
+        const dist_sq = dx * dx + dy * dy + dz * dz;
+        if (dist_sq <= min_dist_sq) {
+            min_dist_sq = dist_sq;
+            closest = pt;
+        }
+    }
+    return closest;
+}
+
+test "findLinkedPortal matches closest portal in target dimension within search radius" {
+    const portals = [_]PortalTarget{
+        .{ .x = 10, .y = 60, .z = 10, .dim = .nether }, // Nether portal near (10, 60, 10)
+        .{ .x = 80, .y = 60, .z = 80, .dim = .overworld }, // Overworld portal
+    };
+
+    // Warp from Overworld (80, 60, 80) -> ideal Nether coord is (10, 60, 10). Should match first portal!
+    const match = findLinkedPortal(&portals, .overworld, 80.0, 60.0, 80.0, 128.0);
+    try std.testing.expect(match != null);
+    try std.testing.expectEqual(@as(i32, 10), match.?.x);
+    try std.testing.expectEqual(Dimension.nether, match.?.dim);
+
+    // Warp from Nether (10, 60, 10) -> ideal Overworld coord is (80, 60, 80). Should match second portal!
+    const return_match = findLinkedPortal(&portals, .nether, 10.0, 60.0, 10.0, 128.0);
+    try std.testing.expect(return_match != null);
+    try std.testing.expectEqual(@as(i32, 80), return_match.?.x);
+    try std.testing.expectEqual(Dimension.overworld, return_match.?.dim);
+
+    // Far portal outside search radius returns null
+    const far_match = findLinkedPortal(&portals, .overworld, 2000.0, 60.0, 2000.0, 64.0);
+    try std.testing.expect(far_match == null);
+}
