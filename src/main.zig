@@ -312,8 +312,9 @@ pub fn main() !void {
         selected_slot = hotbar_mod.clampSlot(selected_slot);
 
         // Keyboard input: poll movement keys and calculate wish direction
+        const is_blocking = !inventory_open and (c.glfwGetMouseButton(window, c.GLFW_MOUSE_BUTTON_RIGHT) == c.GLFW_PRESS) and inventory.slots[selected_slot].item == .shield;
         const walk_vecs = player_mod.computeWalkVectors(cam.front());
-        const walk_speed = 6.0;
+        const walk_speed: f32 = if (is_blocking) 6.0 * combat_mod.shield_blocking_speed_mult else 6.0;
         const key_w = c.glfwGetKey(window, c.GLFW_KEY_W) == c.GLFW_PRESS;
         const key_s = c.glfwGetKey(window, c.GLFW_KEY_S) == c.GLFW_PRESS;
         const key_d = c.glfwGetKey(window, c.GLFW_KEY_D) == c.GLFW_PRESS;
@@ -1209,7 +1210,7 @@ pub fn main() !void {
         wolf_bite_cooldown = combat_mod.tickCooldown(wolf_bite_cooldown, dt);
         if (wolf_bite_cooldown <= 0.0) {
             const held_gold = (inventory.slots[selected_slot].item == .gold_nugget or inventory.slots[selected_slot].item == .golden_apple);
-            for (mob_manager.mobs.items) |m| {
+            for (mob_manager.mobs.items) |*m| {
                 if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute) continue;
                 if (m.mob_type == .piglin and (held_gold or m.barter_timer > 0.0 or entity_mod.mob_manager.MobManager.isPiglinRepelled(m.pos, player.pos, held_warped_fungus, &pickBlockWorld) != null)) continue;
                 const bdx = m.pos.x - player.pos.x;
@@ -1219,18 +1220,38 @@ pub fn main() !void {
                     const pack_count = mob_manager.countNearbyWolves(m.pos, entity_mod.pack_hunt.pack_rally_radius);
                     const bonus = entity_mod.pack_hunt.packBonus(pack_count);
                     const hit = combat_mod.calculateWolfBite(bdx, bdz, bonus);
-                    const raw_dmg = if (m.is_champion) hit.damage * 2.5 else if (m.mob_type == .piglin_brute) hit.damage * 2.5 else if (m.mob_type == .emberbeast) hit.damage * 2.0 else if (m.mob_type == .wither_skeleton or m.mob_type == .piglin) hit.damage * 1.5 else hit.damage;
-                    const dmg = combat_mod.applyArmorReductionFullSet(raw_dmg, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet());
-                    player.health = @max(0.0, player.health - dmg);
-                    if (m.mob_type == .wither_skeleton) {
-                        player.applyWither();
-                        std.debug.print("withered", .{});
+                    const cf = cam.front();
+                    const blocked = is_blocking and combat_mod.canBlockAttack(cf.x, cf.z, bdx, bdz);
+                    if (blocked) {
+                        audio.play(.shield_block, 0.9);
+                        const bx: i32 = @intFromFloat(@floor(player.pos.x + cf.x * 0.6));
+                        const by: i32 = @intFromFloat(@floor(player.pos.y + 0.8));
+                        const bz: i32 = @intFromFloat(@floor(player.pos.z + cf.z * 0.6));
+                        particles.spawnBlockDebris(bx, by, bz, .{ 0.72, 0.68, 0.60 }, 8);
+                        player.pos.x -= hit.knockback_x * (1.0 - combat_mod.shield_knockback_absorption);
+                        player.pos.z -= hit.knockback_z * (1.0 - combat_mod.shield_knockback_absorption);
+                        m.vel.x = bdx * 1.5;
+                        m.vel.z = bdz * 1.5;
+                        if (tool_wear.use(selected_slot, inventory_mod.ItemType.shield.maxDurability())) {
+                            inventory.slots[selected_slot].clear();
+                            audio.play(.break_block, 0.8);
+                            std.debug.print("shield broke\n", .{});
+                        }
+                        std.debug.print("shield blocked attack from {s}\n", .{@tagName(m.mob_type)});
+                    } else {
+                        const raw_dmg = if (m.is_champion) hit.damage * 2.5 else if (m.mob_type == .piglin_brute) hit.damage * 2.5 else if (m.mob_type == .emberbeast) hit.damage * 2.0 else if (m.mob_type == .wither_skeleton or m.mob_type == .piglin) hit.damage * 1.5 else hit.damage;
+                        const dmg = combat_mod.applyArmorReductionFullSet(raw_dmg, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet());
+                        player.health = @max(0.0, player.health - dmg);
+                        if (m.mob_type == .wither_skeleton) {
+                            player.applyWither();
+                            std.debug.print("withered", .{});
+                        }
+                        audio.play(.hurt, 0.8);
+                        const has_leggings = inventory.hasItem(.netherite_leggings);
+                        player.pos.x -= combat_mod.applyKnockbackResistance(hit.knockback_x, has_leggings);
+                        player.pos.z -= combat_mod.applyKnockbackResistance(hit.knockback_z, has_leggings);
+                        std.debug.print("mob attack (hp={d:.1}, type={s})\n", .{ player.health, @tagName(m.mob_type) });
                     }
-                    audio.play(.hurt, 0.8);
-                    const has_leggings = inventory.hasItem(.netherite_leggings);
-                    player.pos.x -= combat_mod.applyKnockbackResistance(hit.knockback_x, has_leggings);
-                    player.pos.z -= combat_mod.applyKnockbackResistance(hit.knockback_z, has_leggings);
-                    std.debug.print("mob attack (hp={d:.1}, type={s})\n", .{ player.health, @tagName(m.mob_type) });
                     wolf_bite_cooldown = combat_mod.wolf_bite_cooldown;
                     break;
                 }
@@ -1697,7 +1718,7 @@ pub fn main() !void {
                                 std.debug.print("destroyed {s} ({d},{d},{d})\n", .{ @tagName(broken_block), hit.x, hit.y, hit.z });
                             }
                         }
-                    } else if (inventory.slots[selected_slot].item != .bow) {
+                    } else if (inventory.slots[selected_slot].item != .bow and !is_blocking) {
                         const px = hit.x + hit.nx;
                         const py = hit.y + hit.ny;
                         const pz = hit.z + hit.nz;
@@ -2128,15 +2149,28 @@ pub fn main() !void {
                         const pdy = (player.pos.y + 1.0) - t.pos.y;
                         const pdz = player.pos.z - t.pos.z;
                         if (pdx * pdx + pdy * pdy + pdz * pdz < 1.0) {
-                            const resist = player.fire_resistance_timer > 0.0;
-                            if (!resist) {
-                                player.health = @max(0.0, player.health - combat_mod.applyArmorReductionFullSet(proj_mod.fireball_damage, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet()));
-                                audio.play(.hurt, 0.8);
-                                std.debug.print("fireball hit (hp={d:.1})\n", .{player.health});
+                            const cf = cam.front();
+                            const blocked = is_blocking and combat_mod.canBlockAttack(cf.x, cf.z, -pdx, -pdz);
+                            if (blocked) {
+                                audio.play(.shield_block, 0.9);
+                                particles.spawnBurnSparks(.{ player.pos.x + cf.x * 0.6, player.pos.y + 0.8, player.pos.z + cf.z * 0.6 }, 10);
+                                if (tool_wear.use(selected_slot, inventory_mod.ItemType.shield.maxDurability())) {
+                                    inventory.slots[selected_slot].clear();
+                                    audio.play(.break_block, 0.8);
+                                    std.debug.print("shield broke\n", .{});
+                                }
+                                std.debug.print("shield blocked fireball\n", .{});
                             } else {
-                                std.debug.print("fireball resisted\n", .{});
+                                const resist = player.fire_resistance_timer > 0.0;
+                                if (!resist) {
+                                    player.health = @max(0.0, player.health - combat_mod.applyArmorReductionFullSet(proj_mod.fireball_damage, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet()));
+                                    audio.play(.hurt, 0.8);
+                                    std.debug.print("fireball hit (hp={d:.1})\n", .{player.health});
+                                } else {
+                                    std.debug.print("fireball resisted\n", .{});
+                                }
+                                particles.spawnFlame(mbx, mby, mbz, 8);
                             }
-                            particles.spawnFlame(mbx, mby, mbz, 8);
                             dead = true;
                         } else if (pickSolid(mbx, mby, mbz)) {
                             // Ignite flammable floors: set struck cell's air above ablaze as campfire or soul campfire.

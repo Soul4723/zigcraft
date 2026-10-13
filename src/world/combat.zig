@@ -133,3 +133,31 @@ test "applyArmorReductionFullSet absorbs 75% damage with full netherite set" {
     try std.testing.expectApproxEqAbs(applyArmorReductionFullSet(10.0, true, false), 5.0, 0.01);
     try std.testing.expectApproxEqAbs(applyArmorReductionFullSet(10.0, false, false), 10.0, 0.01);
 }
+
+pub const shield_durability: u16 = 336;
+pub const shield_blocking_speed_mult: f32 = 0.58; // 3.5 m/s vs 6.0 m/s
+pub const shield_knockback_absorption: f32 = 0.80; // 80% knockback reduction while blocking
+
+/// Checks if an incoming attack vector (attacker_pos - player_pos) is blocked by player facing front.
+/// Returns true if the attacker is in the front 180-degree hemisphere (dot product > 0).
+pub fn canBlockAttack(look_x: f32, look_z: f32, attack_dx: f32, attack_dz: f32) bool {
+    const dot = look_x * attack_dx + look_z * attack_dz;
+    return dot > 0.0;
+}
+
+test "shield combat blocking hemisphere check" {
+    // Looking forward (+Z), attacker in front (+Z)
+    try std.testing.expect(canBlockAttack(0.0, 1.0, 0.0, 2.0));
+    // Looking forward (+Z), attacker behind (-Z)
+    try std.testing.expect(!canBlockAttack(0.0, 1.0, 0.0, -2.0));
+    // Looking East (+X), attacker to East (+X)
+    try std.testing.expect(canBlockAttack(1.0, 0.0, 3.0, 1.0));
+    // Looking East (+X), attacker to West (-X)
+    try std.testing.expect(!canBlockAttack(1.0, 0.0, -3.0, 0.0));
+}
+
+test "shield blocking speed multiplier and durability constants" {
+    try std.testing.expectEqual(@as(u16, 336), shield_durability);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.58), shield_blocking_speed_mult, 0.01);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.80), shield_knockback_absorption, 0.01);
+}

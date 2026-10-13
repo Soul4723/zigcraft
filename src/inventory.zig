@@ -102,6 +102,7 @@ pub const ItemType = enum(u8) {
     spectral_arrow = 96,
     arrow = 97,
     bow = 98,
+    shield = 99,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -258,6 +259,7 @@ pub const ItemType = enum(u8) {
             .netherite_leggings => 475,
             .netherite_boots => 425,
             .bow => 384,
+            .shield => 336,
             else => 0,
         };
     }
@@ -269,7 +271,7 @@ pub const ItemType = enum(u8) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .soul_speed_boots, .netherite_helmet, .netherite_leggings, .netherite_boots, .bow => 1,
+            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .soul_speed_boots, .netherite_helmet, .netherite_leggings, .netherite_boots, .bow, .shield => 1,
             else => 64,
         };
     }
@@ -371,6 +373,7 @@ pub const ItemType = enum(u8) {
             .spectral_arrow => "Spectral Arrow",
             .arrow => "Arrow",
             .bow => "Bow",
+            .shield => "Shield",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -411,6 +414,7 @@ pub const ItemType = enum(u8) {
             .spectral_arrow => .{ 1.0, 0.90, 0.25, 0.95 },
             .arrow => .{ 0.75, 0.75, 0.78, 0.95 },
             .bow => .{ 0.55, 0.38, 0.20, 0.95 },
+            .shield => .{ 0.65, 0.62, 0.60, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -944,6 +948,20 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 65: Shield: 1 Iron Ingot + 2 Wood Planks (or 1 Iron Ingot + 3 Wood Planks) -> 1 Shield
+        if (non_empty == 3 or non_empty == 4) {
+            var iron_count: u8 = 0;
+            var plank_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .iron_ingot) iron_count += 1;
+                if (sl.item == .wood_planks) plank_count += 1;
+            }
+            if (iron_count == 1 and (plank_count == 2 or plank_count == 3) and (iron_count + plank_count == non_empty)) {
+                self.craft_output = .{ .item = .shield, .count = 1 };
                 return;
             }
         }
@@ -2555,4 +2573,30 @@ test "arrow and bow item properties, recipes 63 and 64, and consumeArrow" {
     inv.slots[4] = .{ .item = .spectral_arrow, .count = 1 };
     try std.testing.expectEqual(inv.consumeArrow(), .spectral_arrow);
     try std.testing.expectEqual(inv.slots[4].count, 0);
+}
+
+test "shield item properties, durability, tool check, and Recipe 65" {
+    var inv = Inventory.init();
+
+    // Recipe 65 (3-item): 1 Iron Ingot + 2 Wood Planks -> 1 Shield
+    inv.craft_grid[0] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .none, .count = 0 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .shield);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 65 (4-item): 1 Iron Ingot + 3 Wood Planks -> 1 Shield
+    inv.craft_grid[3] = .{ .item = .wood_planks, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .shield);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Properties
+    try std.testing.expectEqual(ItemType.shield.maxDurability(), 336);
+    try std.testing.expect(ItemType.shield.isTool());
+    try std.testing.expectEqual(ItemType.shield.maxStackSize(), 1);
+    try std.testing.expectEqualStrings(ItemType.shield.name(), "Shield");
+    try std.testing.expect(ItemType.shield.toBlockId() == null);
 }

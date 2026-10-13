@@ -29,6 +29,7 @@ pub const SoundType = enum {
     nether_wind,
     glowstone_chime,
     bow_shoot,
+    shield_block,
 };
 
 pub const SAMPLE_RATE: u32 = 44100;
@@ -99,6 +100,7 @@ pub const AudioMixer = struct {
             .nether_wind => SAMPLE_RATE * 3 / 2, // ~1500ms ominous hollow gust & subterranean rumble
             .glowstone_chime => SAMPLE_RATE * 2 / 5, // ~400ms crystalline harmonic chime bell
             .bow_shoot => SAMPLE_RATE / 5, // ~200ms bow string snap & twang
+            .shield_block => SAMPLE_RATE / 6, // ~166ms heavy wooden-iron clang
         };
 
         slot.?.* = .{
@@ -388,6 +390,14 @@ pub const AudioMixer = struct {
                 const twang = @sin(t * freq * 2.0 * std.math.pi) * 0.7 + 0.3 * @sin(t * freq * 4.0 * std.math.pi);
                 return (twang + click) * envelope * 0.7;
             },
+            .shield_block => {
+                // Shield block thud: heavy wooden-iron clang (180Hz fundamental + 540Hz iron harmonic + transient thud)
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const click = (rng.random().float(f32) * 2.0 - 1.0) * 0.6 * (1.0 - @min(1.0, progress * 10.0));
+                const wood = @sin(t * 180.0 * 2.0 * std.math.pi) * 0.6;
+                const iron = @sin(t * 540.0 * 2.0 * std.math.pi) * 0.35 * @exp(-progress * 6.0);
+                return (wood + iron + click) * envelope * 0.75;
+            },
         }
     }
 };
@@ -419,7 +429,7 @@ test "AudioMixer play voice produces non-zero samples" {
 
 test "AudioMixer all sound types render without overflow or crash" {
     var mixer = AudioMixer.init();
-    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .mob_roar, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle, .nether_wind, .glowstone_chime, .bow_shoot };
+    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .mob_roar, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle, .nether_wind, .glowstone_chime, .bow_shoot, .shield_block };
     for (sounds) |snd| {
         mixer.play(snd, 1.0);
     }
@@ -481,6 +491,21 @@ test "glowstone_chime sound synthesis non-zero harmonic output" {
 test "bow_shoot sound synthesis non-zero output" {
     var mixer = AudioMixer.init();
     mixer.play(.bow_shoot, 0.8);
+    var buf: [512]i16 = undefined;
+    mixer.render(&buf);
+    var non_zero = false;
+    for (buf) |s| {
+        if (s != 0) {
+            non_zero = true;
+            break;
+        }
+    }
+    try std.testing.expect(non_zero);
+}
+
+test "shield_block sound synthesis non-zero output" {
+    var mixer = AudioMixer.init();
+    mixer.play(.shield_block, 0.85);
     var buf: [512]i16 = undefined;
     mixer.render(&buf);
     var non_zero = false;
