@@ -91,6 +91,7 @@ pub const ItemType = enum(u8) {
     hay_bale = 85,
     crimson_fungus = 86,
     warped_fungus = 87,
+    shroomlight = 88,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -155,6 +156,7 @@ pub const ItemType = enum(u8) {
             .hay_bale => .hay_bale,
             .crimson_fungus => .crimson_fungus,
             .warped_fungus => .warped_fungus,
+            .shroomlight => .shroomlight,
             else => null,
         };
     }
@@ -226,6 +228,7 @@ pub const ItemType = enum(u8) {
             .hay_bale => .hay_bale,
             .crimson_fungus => .crimson_fungus,
             .warped_fungus => .warped_fungus,
+            .shroomlight => .shroomlight,
         };
     }
 
@@ -338,6 +341,7 @@ pub const ItemType = enum(u8) {
             .hay_bale => "Hay Bale",
             .crimson_fungus => "Crimson Fungus",
             .warped_fungus => "Warped Fungus",
+            .shroomlight => "Shroomlight",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -367,6 +371,7 @@ pub const ItemType = enum(u8) {
             .hay_bale => .{ 0.85, 0.75, 0.25, 0.95 },
             .crimson_fungus => .{ 0.85, 0.15, 0.20, 0.95 },
             .warped_fungus => .{ 0.12, 0.70, 0.65, 0.95 },
+            .shroomlight => .{ 0.98, 0.78, 0.45, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -870,6 +875,17 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 54: Shroomlight: 1 Glowstone + 1 Fungus (Crimson or Warped) -> 1 Shroomlight
+        if (non_empty == 2) {
+            const has_glow = (g0 == .glowstone or g1 == .glowstone or g2 == .glowstone or g3 == .glowstone);
+            const has_fungus = (g0 == .crimson_fungus or g1 == .crimson_fungus or g2 == .crimson_fungus or g3 == .crimson_fungus or
+                                g0 == .warped_fungus or g1 == .warped_fungus or g2 == .warped_fungus or g3 == .warped_fungus);
+            if (has_glow and has_fungus) {
+                self.craft_output = .{ .item = .shroomlight, .count = 1 };
                 return;
             }
         }
@@ -2102,4 +2118,31 @@ test "soul campfire crafting recipe and item conversion" {
     const sc = ItemType.fromBlockId(.soul_campfire);
     try std.testing.expectEqual(sc, .soul_campfire);
     try std.testing.expectEqualStrings(sc.name(), "Soul Campfire");
+}
+
+test "shroomlight item roundtrip, drops, and Recipe 54" {
+    var inv = Inventory.init();
+
+    // Recipe 54: 1 Glowstone + 1 Crimson Fungus -> 1 Shroomlight
+    inv.craft_grid[0] = .{ .item = .glowstone, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .crimson_fungus, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .shroomlight);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Also works with Warped Fungus
+    inv.craft_grid[1] = .{ .item = .warped_fungus, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .shroomlight);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.shroomlight.toBlockId().?, .shroomlight);
+    try std.testing.expectEqual(ItemType.fromBlockId(.shroomlight), .shroomlight);
+    try std.testing.expectEqualStrings(ItemType.shroomlight.name(), "Shroomlight");
+
+    var drops: [2]BlockDrop = undefined;
+    const n = getBlockDrops(.shroomlight, &drops);
+    try std.testing.expectEqual(n, 1);
+    try std.testing.expectEqual(drops[0].item, .shroomlight);
+    try std.testing.expectEqual(drops[0].count, 1);
 }

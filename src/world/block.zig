@@ -81,6 +81,7 @@ pub const BlockId = enum(u8) {
     hay_bale = 70,
     crimson_fungus = 71,
     warped_fungus = 72,
+    shroomlight = 73,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus;
@@ -153,13 +154,14 @@ pub const BlockId = enum(u8) {
             .weeping_vines => 0.35,
             .twisting_vines => 0.4,
             .warped_fungus => 0.35,
+            .shroomlight => 1.0,
             else => 0.0,
         };
     }
 
     pub fn isFlammable(self: BlockId) bool {
         return switch (self) {
-            .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest, .wooden_door_closed, .wooden_door_open, .pressure_plate_up, .pressure_plate_down, .weeping_vines, .twisting_vines, .target_block, .hay_bale, .crimson_fungus, .warped_fungus => true,
+            .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest, .wooden_door_closed, .wooden_door_open, .pressure_plate_up, .pressure_plate_down, .weeping_vines, .twisting_vines, .target_block, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight => true,
             else => false,
         };
     }
@@ -267,6 +269,7 @@ pub const BlockId = enum(u8) {
             },
             .crimson_fungus => .{ .x = 6, .y = 1 }, // Crimson spore cap and yellow speckles
             .warped_fungus => .{ .x = 7, .y = 1 }, // Azure bioluminescent spore cap
+            .shroomlight => .{ .x = 5, .y = 3 }, // Luminescent organic shroomlight vesicle
             .respawn_anchor => switch (face_idx) {
                 0 => .{ .x = 5, .y = 2 }, // Radiant crystalline glowstone top portal core
                 else => .{ .x = 1, .y = 2 }, // Dense obsidian casing sides and bottom
@@ -307,6 +310,7 @@ pub fn hardness(block: BlockId) f32 {
         .sandstone => 1.8,
         .wool => 0.4,
         .target_block => 0.6,
+        .shroomlight => 1.0,
         .hay_bale => 0.5,
         .crimson_fungus, .warped_fungus => 0.0,
         .furnace => 2.5,
@@ -479,6 +483,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .hay_bale = .{ .name = "hay_bale", .solid = true, .transparent = false, .fluid = false },
     .crimson_fungus = .{ .name = "crimson_fungus", .solid = false, .transparent = true, .fluid = false },
     .warped_fungus = .{ .name = "warped_fungus", .solid = false, .transparent = true, .fluid = false },
+    .shroomlight = .{ .name = "shroomlight", .solid = true, .transparent = false, .fluid = false },
 });
 
 /// A beacon activates when the column directly above it up to world ceiling (y=15)
@@ -916,7 +921,7 @@ pub const FootstepType = enum {
 
 pub fn footstepType(block: BlockId) FootstepType {
     return switch (block) {
-        .grass, .weeping_vines, .twisting_vines, .hay_bale, .crimson_fungus, .warped_fungus => .grass,
+        .grass, .weeping_vines, .twisting_vines, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight => .grass,
         .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone => .stone,
         .wood, .target_block => .wood,
         .dirt => .dirt,
@@ -1104,3 +1109,18 @@ test "spawner cage properties and texture" {
     try std.testing.expectEqual(tex.x, 5);
     try std.testing.expectEqual(tex.y, 0);
 }
+
+test "shroomlight block definition, properties, and emissive" {
+    try std.testing.expect(BlockId.shroomlight.is_solid());
+    try std.testing.expect(!BlockId.shroomlight.is_transparent());
+    try std.testing.expect(BlockId.shroomlight.isFlammable());
+    try std.testing.expectApproxEqAbs(BlockId.shroomlight.emissive(), 1.0, 0.001);
+    try std.testing.expectEqual(hardness(.shroomlight), 1.0);
+    try std.testing.expectEqual(requiredTier(.shroomlight), .hand);
+    try std.testing.expectEqual(footstepType(.shroomlight), .grass);
+
+    const tex = BlockId.shroomlight.getFaceTexture(0);
+    try std.testing.expectEqual(tex.x, 5);
+    try std.testing.expectEqual(tex.y, 3);
+}
+

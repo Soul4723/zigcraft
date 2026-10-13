@@ -511,6 +511,16 @@ pub const NetherGenerator = struct {
         return h == 0;
     }
 
+    /// Check if cavern ceiling/shelf location grows organic shroomlight clusters (y = 7..10).
+    /// Shroomlights embed in luminous clusters beneath cavern overhangs and fungi shelves.
+    pub fn isShroomlight(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
+        if (wy < 7 or wy > 10) return false;
+        const v = valueNoise2D(self.seed +% 0x48B2C917, wx, wz, 0.11);
+        if (v < 0.29) return false;
+        const h: u32 = (@as(u32, @bitCast(wx *% 61 +% wy *% 41 +% wz *% 73)) % 11);
+        return h == 0;
+    }
+
     /// Check if cavern floor location grows a crimson fungus (y = 6 atop netherrack cavern floor).
     pub fn isCrimsonFungus(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
         if (wy != 6) return false;
@@ -716,6 +726,10 @@ pub const NetherGenerator = struct {
                     } else {
                         // Preserve wild wart planted at y=6 by the y=5 soul sand pass
                         if (chunk.getBlock(@intCast(lx), @intCast(y), @intCast(lz)) == .nether_wart) {
+                            continue;
+                        }
+                        if (self.isShroomlight(wx, @intCast(y), wz)) {
+                            chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .shroomlight);
                             continue;
                         }
                         if (self.isCrimsonFungus(wx, @intCast(y), wz)) {
@@ -1039,4 +1053,25 @@ test "NetherGenerator places spawner cage at fortress junction alcoves" {
     try std.testing.expect(has_spawner);
     try std.testing.expect(!nether_gen.isFortressSpawner(0, 8, 0));
     try std.testing.expect(!nether_gen.isFortressSpawner(24, 7, 24));
+}
+
+test "NetherGenerator procedural shroomlight cluster generation" {
+    const nether_gen = NetherGenerator.init(42);
+    var found = false;
+    var x: i32 = -32;
+    while (x < 32) : (x += 1) {
+        var z: i32 = -32;
+        while (z < 32) : (z += 1) {
+            var y: i32 = 7;
+            while (y <= 10) : (y += 1) {
+                if (nether_gen.isShroomlight(x, y, z)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found) break;
+        }
+        if (found) break;
+    }
+    try std.testing.expect(found);
 }
