@@ -212,7 +212,7 @@ pub fn main() !void {
     const PortalTarget = portal_mod.PortalTarget;
     var portal_targets: [32]PortalTarget = undefined;
     var portal_target_count: usize = 0;
-    const ThrownKind = enum { snowball, hostile_fireball, player_fire_charge, spectral_arrow, arrow };
+    const ThrownKind = enum { snowball, hostile_fireball, player_fire_charge, spectral_arrow, arrow, firework_rocket };
     const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball, damage: u8 = 1 };
     var thrown: [proj_mod.thrown_cap]Thrown = undefined;
     var thrown_count: usize = 0;
@@ -2168,6 +2168,22 @@ pub fn main() !void {
                 const mby = mbc[1];
                 const mbz = mbc[2];
                 var dead = proj_mod.isExpired(t.life);
+                if (dead and t.kind == .firework_rocket) {
+                    // Firework fuse expired in flight -> blast!
+                    particles.spawnFireworkBurst(.{ t.pos.x, t.pos.y, t.pos.z }, 32);
+                    audio.playAt(.firework_blast, .{ t.pos.x, t.pos.y, t.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 35.0);
+                    // Area of effect damage to nearby mobs
+                    for (mob_manager.mobs.items) |*m| {
+                        const mdx = m.pos.x - t.pos.x;
+                        const mdy = m.pos.y - t.pos.y;
+                        const mdz = m.pos.z - t.pos.z;
+                        if (mdx * mdx + mdy * mdy + mdz * mdz <= proj_mod.firework_explosion_radius * proj_mod.firework_explosion_radius) {
+                            m.health = if (m.health > proj_mod.firework_explosion_damage) m.health - proj_mod.firework_explosion_damage else 0;
+                            audio.play(.hurt, 0.6);
+                        }
+                    }
+                    std.debug.print("firework rocket airburst exploded\n", .{});
+                }
                 if (!dead) {
                     if (t.kind == .hostile_fireball) {
                         // Fireball vs player: 3 dmg on close pass, flame burst on block
@@ -2238,6 +2254,21 @@ pub fn main() !void {
                         }
                     }
                     if (!dead and t.kind != .hostile_fireball and pickSolid(mbx, mby, mbz)) {
+                        if (t.kind == .firework_rocket) {
+                            particles.spawnFireworkBurst(.{ t.pos.x, t.pos.y, t.pos.z }, 32);
+                            audio.playAt(.firework_blast, .{ t.pos.x, t.pos.y, t.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 35.0);
+                            for (mob_manager.mobs.items) |*m| {
+                                const mdx = m.pos.x - t.pos.x;
+                                const mdy = m.pos.y - t.pos.y;
+                                const mdz = m.pos.z - t.pos.z;
+                                if (mdx * mdx + mdy * mdy + mdz * mdz <= proj_mod.firework_explosion_radius * proj_mod.firework_explosion_radius) {
+                                    m.health = if (m.health > proj_mod.firework_explosion_damage) m.health - proj_mod.firework_explosion_damage else 0;
+                                    audio.play(.hurt, 0.6);
+                                }
+                            }
+                            dead = true;
+                            std.debug.print("firework rocket impact burst\n", .{});
+                        }
                         const struck = manager.getBlockWorld(mbx, mby, mbz);
                         if (t.kind == .player_fire_charge) {
                             if (struck == .tnt and fuse_count < fuses.len) {
@@ -2366,6 +2397,9 @@ pub fn main() !void {
                         particles.spawnFlame(mbx, mby, mbz, 1);
                     } else if (t.kind == .spectral_arrow) {
                         particles.spawnGlowstoneShimmer(.{ t.pos.x, t.pos.y, t.pos.z }, 1);
+                    } else if (t.kind == .firework_rocket) {
+                        particles.spawnFlame(mbx, mby, mbz, 1);
+                        particles.spawnCampfireSmoke(mbx, mby, mbz, false, false, 1);
                     } else if (t.kind == .arrow) {
                         particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.85, 0.85, 0.85 }, 1);
                     } else {
@@ -2481,11 +2515,11 @@ pub fn main() !void {
             bow_charge = 0.0;
         }
 
-        // G throws snowball / fire charge / spectral arrow / arrow
+        // G throws snowball / fire charge / spectral arrow / arrow / fireworks rocket
         throw_cooldown = @max(0.0, throw_cooldown - dt);
         if (!inventory_open and throw_cooldown <= 0.0 and c.glfwGetKey(window, c.GLFW_KEY_G) == c.GLFW_PRESS) {
             const held_throw = inventory.slots[selected_slot].item;
-            if ((held_throw == .snowball or held_throw == .fire_charge or held_throw == .spectral_arrow or held_throw == .arrow) and thrown_count < thrown.len) {
+            if ((held_throw == .snowball or held_throw == .fire_charge or held_throw == .spectral_arrow or held_throw == .arrow or held_throw == .fireworks_rocket) and thrown_count < thrown.len) {
                 const dir_g = cam.front();
                 const vel_g = proj_mod.initialVelocity(dir_g.x, dir_g.y, dir_g.z);
                 const k: ThrownKind = if (held_throw == .fire_charge)
@@ -2494,6 +2528,8 @@ pub fn main() !void {
                     .spectral_arrow
                 else if (held_throw == .arrow)
                     .arrow
+                else if (held_throw == .fireworks_rocket)
+                    .firework_rocket
                 else
                     .snowball;
                 const dmg: u8 = if (held_throw == .spectral_arrow)
@@ -2502,15 +2538,21 @@ pub fn main() !void {
                     2
                 else if (held_throw == .fire_charge)
                     2
+                else if (held_throw == .fireworks_rocket)
+                    proj_mod.firework_explosion_damage
                 else
                     1;
-                thrown[thrown_count] = .{ .pos = cam.position, .vel = math.Vec3.init(vel_g[0], vel_g[1], vel_g[2]), .life = proj_mod.throw_life, .kind = k, .damage = dmg };
+                const life_g: f32 = if (held_throw == .fireworks_rocket) proj_mod.firework_rocket_life else proj_mod.throw_life;
+                const vel_final = if (held_throw == .fireworks_rocket) proj_mod.fireworkInitialVelocity(dir_g.x, dir_g.y, dir_g.z) else vel_g;
+                thrown[thrown_count] = .{ .pos = cam.position, .vel = math.Vec3.init(vel_final[0], vel_final[1], vel_final[2]), .life = life_g, .kind = k, .damage = dmg };
                 thrown_count += 1;
                 inventory.slots[selected_slot].decrement(1);
                 if (held_throw == .fire_charge) {
                     audio.play(.lava_pop, 0.6);
                 } else if (held_throw == .spectral_arrow) {
                     audio.play(.glowstone_chime, 0.8);
+                } else if (held_throw == .fireworks_rocket) {
+                    audio.play(.burn_sizzle, 0.8);
                 } else {
                     audio.play(.place_block, 0.4);
                 }

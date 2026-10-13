@@ -194,3 +194,26 @@ test "crossbow velocity and damage constants" {
     try std.testing.expectApproxEqAbs(vel[1], 0.6, 0.01);
     try std.testing.expectApproxEqAbs(vel[2], 42.0, 0.01);
 }
+
+pub const firework_rocket_speed: f32 = 24.0;
+pub const firework_rocket_life: f32 = 1.1; // Explodes after ~1.1s flight
+pub const firework_explosion_damage: u8 = 6;
+pub const firework_explosion_radius: f32 = 3.5;
+
+pub fn fireworkInitialVelocity(dir_x: f32, dir_y: f32, dir_z: f32) [3]f32 {
+    return .{
+        dir_x * firework_rocket_speed,
+        dir_y * firework_rocket_speed + 2.5, // slight upward boost
+        dir_z * firework_rocket_speed,
+    };
+}
+
+test "firework rocket trajectory constants and velocity" {
+    try std.testing.expectEqual(@as(u8, 6), firework_explosion_damage);
+    try std.testing.expectApproxEqAbs(firework_rocket_speed, 24.0, 0.01);
+    try std.testing.expectApproxEqAbs(firework_explosion_radius, 3.5, 0.01);
+    const vel = fireworkInitialVelocity(0.0, 1.0, 0.0);
+    try std.testing.expectApproxEqAbs(vel[0], 0.0, 0.01);
+    try std.testing.expectApproxEqAbs(vel[1], 26.5, 0.01);
+    try std.testing.expectApproxEqAbs(vel[2], 0.0, 0.01);
+}

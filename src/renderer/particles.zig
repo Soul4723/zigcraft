@@ -637,6 +637,55 @@ pub const ParticleSystem = struct {
         }
     }
 
+    /// Spawn vibrant radial multicolored firework burst particles
+    pub fn spawnFireworkBurst(self: *ParticleSystem, pos: [3]f32, count: usize) void {
+        var i: usize = 0;
+        var seed: u32 = @as(u32, @bitCast(@as(i32, @intFromFloat(pos[0] * 64.0)))) *% 59 +%
+            @as(u32, @bitCast(@as(i32, @intFromFloat(pos[1] * 64.0)))) *% 41 +%
+            @as(u32, @bitCast(@as(i32, @intFromFloat(pos[2] * 64.0)))) *% 29 +%
+            @as(u32, @intCast(self.count));
+        while (i < count and self.count < MAX_PARTICLES) : (i += 1) {
+            seed = seed *% 1103515245 +% 12345;
+            const u = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            seed = seed *% 1103515245 +% 12345;
+            const v = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            seed = seed *% 1103515245 +% 12345;
+            const speed_mult = 3.5 + 3.0 * (@as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0);
+
+            // Uniform sphere distribution
+            const theta = u * 2.0 * std.math.pi;
+            const phi = std.math.acos(2.0 * v - 1.0);
+            const dx = @sin(phi) * @cos(theta);
+            const dy = @cos(phi);
+            const dz = @sin(phi) * @sin(theta);
+
+            // Multicolored palette: red, green, blue, gold, purple, cyan
+            const col_idx = (seed >> 8) % 6;
+            const col = switch (col_idx) {
+                0 => [3]f32{ 1.0, 0.20, 0.25 }, // Ruby red
+                1 => [3]f32{ 0.20, 0.95, 0.30 }, // Emerald green
+                2 => [3]f32{ 0.25, 0.55, 1.0 },  // Sapphire blue
+                3 => [3]f32{ 1.0, 0.85, 0.15 },  // Gold
+                4 => [3]f32{ 0.90, 0.25, 0.95 }, // Magenta
+                else => [3]f32{ 0.20, 0.90, 0.95 }, // Cyan
+            };
+
+            self.particles[self.count] = .{
+                .x = pos[0],
+                .y = pos[1],
+                .z = pos[2],
+                .vx = dx * speed_mult,
+                .vy = dy * speed_mult + 1.2,
+                .vz = dz * speed_mult,
+                .life = 0.75 + 0.35 * u,
+                .max_life = 0.75 + 0.35 * u,
+                .color = col,
+                .size = 0.07 + 0.03 * v,
+            };
+            self.count += 1;
+        }
+    }
+
     pub fn tick(self: *ParticleSystem, dt: f32) void {
         var i: usize = 0;
         const gravity: f32 = 18.0;
@@ -658,6 +707,7 @@ pub const ParticleSystem = struct {
             const is_ash = (p.max_life >= 1.5 and p.color[0] < 0.9 and p.color[1] < 0.5 and p.color[2] < 0.45); // Nether ash flake
             const is_shimmer = (p.color[0] > 0.95 and p.color[1] > 0.8 and p.color[2] > 0.25); // Golden shimmer sparkle
             const is_lodestone_spark = (p.color[0] < 0.40 and p.color[1] > 0.80 and p.color[2] > 0.90); // Cyan magnetic attunement spark
+            const is_firework = (p.max_life >= 0.75 and p.max_life <= 1.20 and (@abs(p.vx) > 0.5 or @abs(p.vz) > 0.5));
             if (is_bubble) {
                 p.vy = @min(1.5, p.vy + 1.0 * dt);
             } else if (is_signal_smoke) {
@@ -685,6 +735,11 @@ pub const ParticleSystem = struct {
                 p.vy = @max(0.05, p.vy * 0.95);
                 p.vx = p.vx * 0.94;
                 p.vz = p.vz * 0.94;
+            } else if (is_firework) {
+                // High-speed firework spark deceleration & slow downward arc
+                p.vy -= 6.0 * dt;
+                p.vx *= 0.92;
+                p.vz *= 0.92;
             } else {
                 p.vy -= gravity * dt;
             }
@@ -1075,4 +1130,24 @@ test "spawnLodestoneAttunement creates cyan magnetic sparks with inward swirl" {
         try std.testing.expect(p.color[2] > 0.90);
         try std.testing.expect(p.max_life >= 0.6);
     }
+}
+
+test "spawnFireworkBurst creates radial multicolored spark sphere" {
+    var ps = ParticleSystem{
+        .particles = undefined,
+        .count = 0,
+        .vao = 0,
+        .vbo = 0,
+        .program = 0,
+    };
+    ps.spawnFireworkBurst(.{ 5.0, 10.0, 5.0 }, 16);
+    try std.testing.expectEqual(@as(usize, 16), ps.count);
+    var has_positive_vx = false;
+    var has_negative_vx = false;
+    for (ps.particles[0..16]) |p| {
+        if (p.vx > 0.5) has_positive_vx = true;
+        if (p.vx < -0.5) has_negative_vx = true;
+        try std.testing.expect(p.max_life >= 0.75);
+    }
+    try std.testing.expect(has_positive_vx and has_negative_vx);
 }

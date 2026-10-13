@@ -106,6 +106,7 @@ pub const ItemType = enum(u8) {
     compass = 100,
     lodestone_compass = 101,
     crossbow = 102,
+    fireworks_rocket = 103,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -381,6 +382,7 @@ pub const ItemType = enum(u8) {
             .compass => "Compass",
             .lodestone_compass => "Lodestone Compass",
             .crossbow => "Crossbow",
+            .fireworks_rocket => "Fireworks Rocket",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -425,6 +427,7 @@ pub const ItemType = enum(u8) {
             .compass => .{ 0.78, 0.75, 0.72, 0.95 },
             .lodestone_compass => .{ 0.35, 0.85, 0.95, 0.95 },
             .crossbow => .{ 0.48, 0.35, 0.22, 0.95 },
+            .fireworks_rocket => .{ 0.92, 0.25, 0.30, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -958,6 +961,17 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 68: Fireworks Rocket: 1 Fire Charge + 1 Wool (or 1 Fire Charge + 1 Wood Planks) -> 3 Fireworks Rockets
+        if (non_empty == 2) {
+            const has_fire = (g0 == .fire_charge or g1 == .fire_charge or g2 == .fire_charge or g3 == .fire_charge);
+            const has_casing = (g0 == .wool or g1 == .wool or g2 == .wool or g3 == .wool or
+                                g0 == .wood_planks or g1 == .wood_planks or g2 == .wood_planks or g3 == .wood_planks);
+            if (has_fire and has_casing) {
+                self.craft_output = .{ .item = .fireworks_rocket, .count = 3 };
                 return;
             }
         }
@@ -2683,4 +2697,28 @@ test "crossbow item properties, durability, tool check, and Recipe 67" {
     try std.testing.expectEqual(ItemType.crossbow.maxStackSize(), 1);
     try std.testing.expectEqualStrings(ItemType.crossbow.name(), "Crossbow");
     try std.testing.expect(ItemType.crossbow.toBlockId() == null);
+}
+
+test "fireworks_rocket item properties and Recipe 68" {
+    var inv = Inventory.init();
+
+    // Recipe 68: 1 Fire Charge + 1 Wool -> 3 Fireworks Rockets
+    inv.craft_grid[0] = .{ .item = .fire_charge, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wool, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .fireworks_rocket);
+    try std.testing.expectEqual(inv.craft_output.count, 3);
+
+    // Recipe 68 with wood planks
+    inv.craft_grid[1] = .{ .item = .wood_planks, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .fireworks_rocket);
+    try std.testing.expectEqual(inv.craft_output.count, 3);
+
+    // Properties
+    try std.testing.expectEqual(ItemType.fireworks_rocket.maxDurability(), 0);
+    try std.testing.expect(!ItemType.fireworks_rocket.isTool());
+    try std.testing.expectEqual(ItemType.fireworks_rocket.maxStackSize(), 64);
+    try std.testing.expectEqualStrings(ItemType.fireworks_rocket.name(), "Fireworks Rocket");
+    try std.testing.expect(ItemType.fireworks_rocket.toBlockId() == null);
 }
