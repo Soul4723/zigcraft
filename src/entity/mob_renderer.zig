@@ -453,6 +453,23 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
             try appendBox(allocator, verts, inds, math.Vec3.init(-0.12, 0.28, 0 + leg_swing), math.Vec3.init(0.13, 0.56, 0.13), mob.yaw, mob.pos, uv_skin, uv_skin);
             try appendBox(allocator, verts, inds, math.Vec3.init(0.12, 0.28, 0 - leg_swing), math.Vec3.init(0.13, 0.56, 0.13), mob.yaw, mob.pos, uv_skin, uv_skin);
         },
+        .target_dummy => {
+            const uv_hay = texture.getTileUV(1, 4); // Hay bale textured body
+            const uv_post = texture.getTileUV(2, 2); // Wood post & crossbar
+            const uv_head = texture.getTileUV(3, 3); // Medallion practice face
+
+            // 1. Vertical mounting post: 0.15 x 0.6 x 0.15 centered at (0, 0.3, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.3, 0), math.Vec3.init(0.15, 0.6, 0.15), mob.yaw, mob.pos, uv_post, uv_post);
+
+            // 2. Hay bale stuffed torso: 0.5 x 0.7 x 0.4 centered at (0, 0.9, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.9, 0), math.Vec3.init(0.5, 0.7, 0.4), mob.yaw, mob.pos, uv_hay, uv_hay);
+
+            // 3. Wooden crossbar shoulder arms: 0.9 x 0.12 x 0.12 centered at (0, 1.1, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 1.1, 0), math.Vec3.init(0.9, 0.12, 0.12), mob.yaw, mob.pos, uv_post, uv_post);
+
+            // 4. Stuffed sack target head: 0.35 x 0.35 x 0.35 centered at (0, 1.45, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 1.45, 0), math.Vec3.init(0.35, 0.35, 0.35), mob.yaw, mob.pos, uv_head, uv_head);
+        },
         .blaze => {
             const uv_core = texture.getTileUV(4, 2); // fiery ember texture
             const uv_rod = texture.getTileUV(5, 2); // golden blaze rod texture
@@ -601,4 +618,17 @@ test "appendMobMesh blaze mob generates head and 12 orbiting rods" {
     // 13 boxes * 36 inds = 468 inds
     try std.testing.expectEqual(@as(usize, 312), verts.items.len);
     try std.testing.expectEqual(@as(usize, 468), inds.items.len);
+}
+
+test "target dummy mob mesh generation" {
+    var verts = std.ArrayList(MobVertex).empty;
+    defer verts.deinit(std.testing.allocator);
+    var inds = std.ArrayList(u32).empty;
+    defer inds.deinit(std.testing.allocator);
+
+    const dummy = mob_mod.Mob.init(.target_dummy, 0, 0, 0);
+    try appendMobMesh(std.testing.allocator, &verts, &inds, dummy);
+    // 4 boxes * 24 = 96 verts, 4 boxes * 36 = 144 indices
+    try std.testing.expectEqual(@as(usize, 96), verts.items.len);
+    try std.testing.expectEqual(@as(usize, 144), inds.items.len);
 }

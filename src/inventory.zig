@@ -123,6 +123,7 @@ pub const ItemType = enum(u8) {
     oak_fence = 117,
     lead = 118,
     armor_stand = 119,
+    target_dummy = 120,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -321,7 +322,7 @@ pub const ItemType = enum(u8) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .armor_stand => 16,
+            .armor_stand, .target_dummy => 16,
             .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .soul_speed_boots, .netherite_helmet, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat => 1,
             else => 64,
         };
@@ -445,6 +446,7 @@ pub const ItemType = enum(u8) {
             .oak_fence => "Oak Fence",
             .lead => "Lead",
             .armor_stand => "Armor Stand",
+            .target_dummy => "Target Dummy",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -506,6 +508,7 @@ pub const ItemType = enum(u8) {
             .oak_fence => .{ 0.65, 0.48, 0.28, 0.95 },
             .lead => .{ 0.85, 0.75, 0.55, 0.95 },
             .armor_stand => .{ 0.75, 0.60, 0.42, 0.95 },
+            .target_dummy => .{ 0.90, 0.80, 0.35, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1054,6 +1057,22 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 84: Target Dummy: 1 Hay Bale + 1..2 Sticks + 1 Wood Planks (or Wool) -> 1 Target Dummy
+        if (non_empty >= 3 and non_empty <= 4) {
+            var hay_count: u8 = 0;
+            var stick_count: u8 = 0;
+            var wood_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .hay_bale) hay_count += 1;
+                if (sl.item == .stick) stick_count += 1;
+                if (sl.item == .wood_planks or sl.item == .wool) wood_count += 1;
+            }
+            if (hay_count == 1 and stick_count >= 1 and wood_count >= 1 and (hay_count + stick_count + wood_count == non_empty)) {
+                self.craft_output = .{ .item = .target_dummy, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 83: Armor Stand: 1 Stone (smooth stone base) + 2..3 Sticks -> 1 Armor Stand
         if (non_empty >= 3 and non_empty <= 4) {
@@ -2095,7 +2114,7 @@ pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
     return held == .wooden_pickaxe or held == .iron_pickaxe or held == .netherite_pickaxe;
 }
 
-pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze };
+pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy };
 
 pub fn getMobMeatDrop(mob_type: MobType) ItemType {
     return switch (mob_type) {
@@ -2106,6 +2125,7 @@ pub fn getMobMeatDrop(mob_type: MobType) ItemType {
         .wither_skeleton => .coal,
         .piglin, .piglin_brute => .gold_nugget,
         .blaze => .blaze_rod,
+        .target_dummy => .hay_bale,
     };
 }
 
@@ -3343,4 +3363,30 @@ test "armor stand item roundtrip, properties, isArmor check, and Recipe 83" {
     try std.testing.expect(ItemType.soul_speed_boots.isArmor());
     try std.testing.expect(!ItemType.iron_sword.isArmor());
     try std.testing.expect(!ItemType.armor_stand.isArmor());
+}
+
+test "target dummy item properties, mob drop, and Recipe 84" {
+    var inv = Inventory.init();
+    // Recipe 84: 1 Hay Bale + 1 Stick + 1 Wood Planks -> 1 Target Dummy
+    inv.craft_grid[0] = .{ .item = .hay_bale, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .stick, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[3].clear();
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .target_dummy);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Also craftable with wool
+    inv.craft_grid[2] = .{ .item = .wool, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .target_dummy);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.target_dummy.toBlockId(), null);
+    try std.testing.expectEqualStrings(ItemType.target_dummy.name(), "Target Dummy");
+    try std.testing.expectEqual(ItemType.target_dummy.maxDurability(), 0);
+    try std.testing.expect(!ItemType.target_dummy.isTool());
+    try std.testing.expectEqual(ItemType.target_dummy.maxStackSize(), 16);
+
+    try std.testing.expectEqual(ItemType.hay_bale, getMobMeatDrop(.target_dummy));
 }

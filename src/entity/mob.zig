@@ -60,6 +60,7 @@ pub const Mob = struct {
             .wither_skeleton => 0.6,
             .piglin, .piglin_brute => 0.6,
             .blaze => 0.6,
+            .target_dummy => 0.6,
         };
         const h: f32 = switch (mob_type) {
             .sheep => 0.9,
@@ -69,6 +70,7 @@ pub const Mob = struct {
             .wither_skeleton => 1.6,
             .piglin, .piglin_brute => 1.5,
             .blaze => 1.8,
+            .target_dummy => 1.8,
         };
         const spd: f32 = switch (mob_type) {
             .sheep => 1.4,
@@ -79,6 +81,7 @@ pub const Mob = struct {
             .piglin => 2.6,
             .piglin_brute => 3.0,
             .blaze => 2.4,
+            .target_dummy => 0.0,
         };
         return .{
             .mob_type = mob_type,
@@ -94,7 +97,7 @@ pub const Mob = struct {
             .anim_time = 0.0,
             .change_dir_timer = 2.0,
             .wants_sound = false,
-            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze) 20 else if (mob_type == .piglin_brute) 15 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
+            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze) 20 else if (mob_type == .piglin_brute) 15 else if (mob_type == .target_dummy) 50 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
             .in_water = false,
             .in_bubble_column = false,
             .in_whirlpool = false,
@@ -112,6 +115,14 @@ pub const Mob = struct {
 
         self.barter_timer = @max(0.0, self.barter_timer - clamped_dt);
         self.glow_timer = @max(0.0, self.glow_timer - clamped_dt);
+        if (self.mob_type == .target_dummy) {
+            // Stationary practice target
+            self.walk_timer = 0.0;
+            self.vel.x = 0.0;
+            self.vel.z = 0.0;
+            return;
+        }
+
         self.change_dir_timer -= clamped_dt;
         if (self.change_dir_timer <= 0.0) {
             const roll = rng.random().float(f32);
@@ -506,6 +517,7 @@ pub fn getSound(mob_type: MobType) ?@import("../audio/synth.zig").SoundType {
         .blaze => .mob_roar,
         .wither_skeleton => .mob_growl,
         .piglin, .piglin_brute => .mob_oink,
+        .target_dummy => .step_wood,
     };
 }
 
@@ -700,4 +712,24 @@ test "mob leash tension and break distance" {
     const anchor_far = math.Vec3.init(12.0, 0.0, 0.0);
     const broke_far = applyLeashTension(&pos, &vel, anchor_far, 0.05);
     try std.testing.expect(broke_far);
+}
+
+test "target dummy mob properties and stationary behavior" {
+    var dummy = Mob.init(.target_dummy, 10.0, 1.0, 10.0);
+    try std.testing.expectEqual(dummy.mob_type, .target_dummy);
+    try std.testing.expectEqual(dummy.health, 50);
+    try std.testing.expectEqual(dummy.walk_speed, 0.0);
+    try std.testing.expectEqual(dummy.height, 1.8);
+    try std.testing.expectEqual(getSound(.target_dummy), .step_wood);
+
+    var rng = std.Random.DefaultPrng.init(5555);
+    const Mock = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return true; }
+        fn dry(_: i32, _: i32, _: i32) bool { return false; }
+    };
+    dummy.tick(Mock.solid, Mock.dry, 0.5, &rng);
+    try std.testing.expectEqual(dummy.pos.x, 10.0);
+    try std.testing.expectEqual(dummy.pos.z, 10.0);
+    try std.testing.expectEqual(dummy.vel.x, 0.0);
+    try std.testing.expectEqual(dummy.vel.z, 0.0);
 }

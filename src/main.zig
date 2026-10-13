@@ -2093,13 +2093,23 @@ pub fn main() !void {
                             inventory.slots[selected_slot].clear();
                         }
                     }
-                    if (entity_mod.mob.getSound(hit_mob.mob_type)) |hit_sound| {
-                        audio.playAt(hit_sound, .{ hit_mob.pos.x, hit_mob.pos.y, hit_mob.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
-                    }
                     const px: i32 = @intFromFloat(@floor(hit_mob.pos.x));
                     const py: i32 = @intFromFloat(@floor(hit_mob.pos.y));
                     const pz: i32 = @intFromFloat(@floor(hit_mob.pos.z));
-                    particles.spawnBlockDebris(px, py, pz, .{ 0.85, 0.2, 0.2 }, 8);
+                    if (hit_mob.mob_type == .target_dummy) {
+                        // Target dummy practice feedback
+                        audio.playAt(.step_wood, .{ hit_mob.pos.x, hit_mob.pos.y, hit_mob.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 30.0);
+                        particles.spawnBlockDebris(px, py, pz, .{ 0.90, 0.80, 0.35 }, 12);
+                        particles.spawnGlowstoneShimmer(.{ hit_mob.pos.x, hit_mob.pos.y + 1.2, hit_mob.pos.z }, 4);
+                        toast.timer = 1.2;
+                        toast.color = .{ 1.0, 0.6, 0.2 };
+                        std.debug.print("hit target dummy: dmg={d} (died={})\n", .{ hit_dmg, hit_mob.died });
+                    } else {
+                        if (entity_mod.mob.getSound(hit_mob.mob_type)) |hit_sound| {
+                            audio.playAt(hit_sound, .{ hit_mob.pos.x, hit_mob.pos.y, hit_mob.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
+                        }
+                        particles.spawnBlockDebris(px, py, pz, .{ 0.85, 0.2, 0.2 }, 8);
+                    }
                     if (hit_mob.died) {
                         const drop = inventory_mod.getMobMeatDrop(hit_mob.mob_type);
                         _ = inventory.addItem(drop, 1);
@@ -2263,6 +2273,15 @@ pub fn main() !void {
                                         std.debug.print("hung weeping vines\n", .{});
                                     }
                                 }
+                            } else if (!hotbar_slot.isEmpty() and hotbar_slot.item == .target_dummy) {
+                                const dx: f32 = @as(f32, @floatFromInt(px)) + 0.5;
+                                const dy: f32 = @as(f32, @floatFromInt(py));
+                                const dz: f32 = @as(f32, @floatFromInt(pz)) + 0.5;
+                                try mob_manager.spawnMob(.target_dummy, dx, dy, dz);
+                                hotbar_slot.decrement(1);
+                                audio.play(.place_block, 0.8);
+                                particles.spawnBlockDebris(px, py, pz, .{ 0.90, 0.80, 0.35 }, 8);
+                                std.debug.print("placed target dummy at ({d},{d},{d})\n", .{ px, py, pz });
                             } else if (!hotbar_slot.isEmpty() and hotbar_slot.item == .fire_charge and manager.getBlockWorld(hit.x, hit.y, hit.z) == .tnt and fuse_count < fuses.len) {
                                 fuses[fuse_count] = .{ .x = hit.x, .y = hit.y, .z = hit.z, .t = 2.5 };
                                 fuse_count += 1;
