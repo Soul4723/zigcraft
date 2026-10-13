@@ -2338,8 +2338,11 @@ pub fn main() !void {
                                 std.debug.print("fire charge lit TNT fuse\n", .{});
                             } else if (!hotbar_slot.isEmpty()) {
                                 if (hotbar_slot.item.toBlockId()) |place_type| {
-                                    const is_furnace_place = place_type == .furnace;
-                                    if (try manager.editAndRemesh(px, py, pz, place_type)) {
+                                    if (place_type == .lantern and !block_mod.canSupportLantern(&pickBlockWorld, px, py, pz)) {
+                                        // Lantern requires solid floor or ceiling support
+                                    } else {
+                                        const is_furnace_place = place_type == .furnace;
+                                        if (try manager.editAndRemesh(px, py, pz, place_type)) {
                                         if (place_type == .water) _ = manager.setWaterLevel(px, py, pz, 7);
                                         // Fluid reaction on placement: adjacent water and lava interact
                                         if (place_type == .water or place_type == .lava) {
@@ -2479,6 +2482,7 @@ pub fn main() !void {
                                         }
                                         hotbar_slot.decrement(1);
                                         std.debug.print("placed {s} ({d},{d},{d})\n", .{ @tagName(place_type), px, py, pz });
+                                    }
                                     }
                                 }
                             }
