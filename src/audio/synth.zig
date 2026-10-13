@@ -30,6 +30,8 @@ pub const SoundType = enum {
     glowstone_chime,
     bow_shoot,
     shield_block,
+    crossbow_shoot,
+    crossbow_load,
 };
 
 pub const SAMPLE_RATE: u32 = 44100;
@@ -101,6 +103,8 @@ pub const AudioMixer = struct {
             .glowstone_chime => SAMPLE_RATE * 2 / 5, // ~400ms crystalline harmonic chime bell
             .bow_shoot => SAMPLE_RATE / 5, // ~200ms bow string snap & twang
             .shield_block => SAMPLE_RATE / 6, // ~166ms heavy wooden-iron clang
+            .crossbow_shoot => SAMPLE_RATE / 6, // ~166ms powerful latch release snap & whip
+            .crossbow_load => SAMPLE_RATE / 5, // ~200ms ratchet latch click & tension creak
         };
 
         slot.?.* = .{
@@ -398,6 +402,21 @@ pub const AudioMixer = struct {
                 const iron = @sin(t * 540.0 * 2.0 * std.math.pi) * 0.35 * @exp(-progress * 6.0);
                 return (wood + iron + click) * envelope * 0.75;
             },
+            .crossbow_shoot => {
+                // Crossbow trigger latch release: powerful sharp mechanical snap & whip (420Hz -> 210Hz)
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const snap = (rng.random().float(f32) * 2.0 - 1.0) * 0.75 * (1.0 - @min(1.0, progress * 12.0));
+                const freq: f32 = 420.0 * (1.0 - progress * 0.5);
+                const whip = @sin(t * freq * 2.0 * std.math.pi) * 0.75;
+                return (whip + snap) * envelope * 0.85;
+            },
+            .crossbow_load => {
+                // Crossbow wind ratchet: tension creak (130Hz) + metal latch clicks
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const ratchet = if (@sin(progress * 30.0) > 0.7) (rng.random().float(f32) * 0.6) else 0.0;
+                const creak = @sin(t * 130.0 * 2.0 * std.math.pi) * 0.45;
+                return (creak + ratchet) * envelope * 0.65;
+            },
         }
     }
 };
@@ -429,7 +448,7 @@ test "AudioMixer play voice produces non-zero samples" {
 
 test "AudioMixer all sound types render without overflow or crash" {
     var mixer = AudioMixer.init();
-    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .mob_roar, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle, .nether_wind, .glowstone_chime, .bow_shoot, .shield_block };
+    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .mob_roar, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle, .nether_wind, .glowstone_chime, .bow_shoot, .shield_block, .crossbow_shoot, .crossbow_load };
     for (sounds) |snd| {
         mixer.play(snd, 1.0);
     }
@@ -516,4 +535,20 @@ test "shield_block sound synthesis non-zero output" {
         }
     }
     try std.testing.expect(non_zero);
+}
+
+test "crossbow sound synthesis non-zero output" {
+    var mixer = AudioMixer.init();
+    mixer.play(.crossbow_shoot, 0.8);
+    mixer.play(.crossbow_load, 0.7);
+    var buf: [256]i16 = undefined;
+    mixer.render(&buf);
+    var has_nonzero = false;
+    for (buf) |s| {
+        if (s != 0) {
+            has_nonzero = true;
+            break;
+        }
+    }
+    try std.testing.expect(has_nonzero);
 }

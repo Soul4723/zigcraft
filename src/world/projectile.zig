@@ -171,3 +171,26 @@ test "bow speed and damage scaling" {
     try std.testing.expectApproxEqAbs(vel[1], 1.2, 0.01);
     try std.testing.expectApproxEqAbs(vel[2], 0.0, 0.01);
 }
+
+pub const crossbow_load_time: f32 = 1.25;
+pub const crossbow_arrow_speed: f32 = 42.0;
+pub const crossbow_arrow_damage: u8 = 8;
+pub const crossbow_durability: u16 = 465;
+
+pub fn crossbowInitialVelocity(dir_x: f32, dir_y: f32, dir_z: f32) [3]f32 {
+    return .{
+        dir_x * crossbow_arrow_speed,
+        dir_y * crossbow_arrow_speed + 0.6,
+        dir_z * crossbow_arrow_speed,
+    };
+}
+
+test "crossbow velocity and damage constants" {
+    try std.testing.expectEqual(@as(u8, 8), crossbow_arrow_damage);
+    try std.testing.expectEqual(@as(u16, 465), crossbow_durability);
+    try std.testing.expectApproxEqAbs(crossbow_arrow_speed, 42.0, 0.01);
+    const vel = crossbowInitialVelocity(0.0, 0.0, 1.0);
+    try std.testing.expectApproxEqAbs(vel[0], 0.0, 0.01);
+    try std.testing.expectApproxEqAbs(vel[1], 0.6, 0.01);
+    try std.testing.expectApproxEqAbs(vel[2], 42.0, 0.01);
+}

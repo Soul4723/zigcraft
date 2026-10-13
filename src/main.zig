@@ -184,6 +184,9 @@ pub fn main() !void {
     var flint_cooldown: f32 = 0.0;
     var throw_cooldown: f32 = 0.0;
     var bow_charge: f32 = 0.0;
+    var crossbow_charge: f32 = 0.0;
+    var crossbow_loaded: bool = false;
+    var crossbow_loaded_kind: ?inventory_mod.ItemType = null;
     var wolf_bite_cooldown: f32 = 0.0;
     var fireball_cooldown: f32 = 0.0;
     var compass_cooldown: f32 = 0.0;
@@ -315,7 +318,8 @@ pub fn main() !void {
         // Keyboard input: poll movement keys and calculate wish direction
         const is_blocking = !inventory_open and (c.glfwGetMouseButton(window, c.GLFW_MOUSE_BUTTON_RIGHT) == c.GLFW_PRESS) and inventory.slots[selected_slot].item == .shield;
         const walk_vecs = player_mod.computeWalkVectors(cam.front());
-        const walk_speed: f32 = if (is_blocking) 6.0 * combat_mod.shield_blocking_speed_mult else 6.0;
+        const is_loading_crossbow = !inventory_open and (c.glfwGetMouseButton(window, c.GLFW_MOUSE_BUTTON_RIGHT) == c.GLFW_PRESS) and inventory.slots[selected_slot].item == .crossbow and !crossbow_loaded;
+        const walk_speed: f32 = if (is_blocking or is_loading_crossbow) 6.0 * combat_mod.shield_blocking_speed_mult else 6.0;
         const key_w = c.glfwGetKey(window, c.GLFW_KEY_W) == c.GLFW_PRESS;
         const key_s = c.glfwGetKey(window, c.GLFW_KEY_S) == c.GLFW_PRESS;
         const key_d = c.glfwGetKey(window, c.GLFW_KEY_D) == c.GLFW_PRESS;
@@ -1439,7 +1443,7 @@ pub fn main() !void {
                 break :blk compass_mod.calculateNeedleAngle(0.0, 0.0, player.pos.x, player.pos.z, cam.yaw);
             } else compass_mod.compass_hidden;
 
-            const hud_progress = if (bow_charge > 0.0) bow_charge else mine_frac;
+            const hud_progress = if (bow_charge > 0.0) bow_charge else if (crossbow_charge > 0.0) crossbow_charge else if (crossbow_loaded and inventory.slots[selected_slot].item == .crossbow) 1.0 else mine_frac;
             ui.drawHUDWithCompass(aspect, selected_slot, &hotbar_colors, &hotbar_counts, hud_progress, player.health, player.hunger, player.regen_timer > 0.0, player.oxygen, player.fire_resistance_timer, player.wither_timer, compass_rel, is_lodestone);
             if (portal_transit.inside_timer > 0.0) {
                 const vignette_intensity = portal_transit.inside_timer / portal_mod.PORTAL_TRIGGER_TIME;
@@ -1732,7 +1736,7 @@ pub fn main() !void {
                                 std.debug.print("destroyed {s} ({d},{d},{d})\n", .{ @tagName(broken_block), hit.x, hit.y, hit.z });
                             }
                         }
-                    } else if (inventory.slots[selected_slot].item != .bow and !is_blocking) {
+                    } else if (inventory.slots[selected_slot].item != .bow and inventory.slots[selected_slot].item != .crossbow and !is_blocking) {
                         const px = hit.x + hit.nx;
                         const py = hit.y + hit.ny;
                         const pz = hit.z + hit.nz;
@@ -2367,6 +2371,67 @@ pub fn main() !void {
                 }
             }
         }
+
+        // Crossbow loading & firing mechanics
+        const held_crossbow = inventory.slots[selected_slot].item == .crossbow;
+        if (held_crossbow and !inventory_open) {
+            if (crossbow_loaded) {
+                // Loaded crossbow: right-click releases loaded projectile instantly with high speed (42 m/s)
+                if (right and !right_down) {
+                    if (thrown_count < thrown.len) {
+                        const dir_cb = cam.front();
+                        const vel_cb = proj_mod.crossbowInitialVelocity(dir_cb.x, dir_cb.y, dir_cb.z);
+                        const k: ThrownKind = if (crossbow_loaded_kind == .spectral_arrow) .spectral_arrow else .arrow;
+                        thrown[thrown_count] = .{
+                            .pos = cam.position,
+                            .vel = math.Vec3.init(vel_cb[0], vel_cb[1], vel_cb[2]),
+                            .life = proj_mod.throw_life,
+                            .kind = k,
+                            .damage = proj_mod.crossbow_arrow_damage,
+                        };
+                        thrown_count += 1;
+                        audio.play(.crossbow_shoot, 0.95);
+                        particles.spawnBurnSparks(.{ cam.position.x + dir_cb.x * 0.9, cam.position.y + dir_cb.y * 0.9, cam.position.z + dir_cb.z * 0.9 }, 8);
+                        std.debug.print("crossbow bolt fired (dmg={d}, speed={d:.1})\n", .{ proj_mod.crossbow_arrow_damage, proj_mod.crossbow_arrow_speed });
+
+                        if (tool_wear.use(selected_slot, inventory_mod.ItemType.crossbow.maxDurability())) {
+                            inventory.slots[selected_slot].clear();
+                            audio.play(.break_block, 0.8);
+                            std.debug.print("crossbow broke\n", .{});
+                        }
+                    }
+                    crossbow_loaded = false;
+                    crossbow_loaded_kind = null;
+                    crossbow_charge = 0.0;
+                }
+            } else {
+                // Unloaded crossbow: holding right-click loads bolt (1.25s)
+                if (right) {
+                    const prev_charge = crossbow_charge;
+                    crossbow_charge = @min(1.0, crossbow_charge + dt / proj_mod.crossbow_load_time);
+                    if (prev_charge < 0.2 and crossbow_charge >= 0.2) {
+                        audio.play(.crossbow_load, 0.7);
+                    }
+                    if (crossbow_charge >= 1.0) {
+                        if (inventory.consumeArrow()) |arrow_kind| {
+                            crossbow_loaded = true;
+                            crossbow_loaded_kind = arrow_kind;
+                            crossbow_charge = 0.0;
+                            audio.play(.click_on, 0.8);
+                            std.debug.print("crossbow loaded with {s}\n", .{@tagName(arrow_kind)});
+                        } else {
+                            crossbow_charge = 0.0;
+                            audio.play(.click_off, 0.5);
+                        }
+                    }
+                } else {
+                    crossbow_charge = 0.0;
+                }
+            }
+        } else {
+            crossbow_charge = 0.0;
+        }
+
         // Bow charging & shooting
         const held_bow = inventory.slots[selected_slot].item == .bow;
         if (held_bow and !inventory_open) {

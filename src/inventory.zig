@@ -105,6 +105,7 @@ pub const ItemType = enum(u8) {
     shield = 99,
     compass = 100,
     lodestone_compass = 101,
+    crossbow = 102,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -262,6 +263,7 @@ pub const ItemType = enum(u8) {
             .netherite_boots => 425,
             .bow => 384,
             .shield => 336,
+            .crossbow => 465,
             else => 0,
         };
     }
@@ -273,7 +275,7 @@ pub const ItemType = enum(u8) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .soul_speed_boots, .netherite_helmet, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass => 1,
+            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .soul_speed_boots, .netherite_helmet, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow => 1,
             else => 64,
         };
     }
@@ -378,6 +380,7 @@ pub const ItemType = enum(u8) {
             .shield => "Shield",
             .compass => "Compass",
             .lodestone_compass => "Lodestone Compass",
+            .crossbow => "Crossbow",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -421,6 +424,7 @@ pub const ItemType = enum(u8) {
             .shield => .{ 0.65, 0.62, 0.60, 0.95 },
             .compass => .{ 0.78, 0.75, 0.72, 0.95 },
             .lodestone_compass => .{ 0.35, 0.85, 0.95, 0.95 },
+            .crossbow => .{ 0.48, 0.35, 0.22, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -954,6 +958,22 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 67: Crossbow: 1 Iron Ingot + 1 Stick + 1 Wool/Vines (or 1 Iron + 2 Sticks + 1 Wool/Vines) -> 1 Crossbow
+        if (non_empty >= 3) {
+            var iron_count: u8 = 0;
+            var stick_count: u8 = 0;
+            var fiber_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .iron_ingot) iron_count += 1;
+                if (sl.item == .stick) stick_count += 1;
+                if (sl.item == .wool or sl.item == .twisting_vines or sl.item == .weeping_vines) fiber_count += 1;
+            }
+            if (iron_count >= 1 and stick_count >= 1 and fiber_count >= 1 and (iron_count + stick_count + fiber_count == non_empty)) {
+                self.craft_output = .{ .item = .crossbow, .count = 1 };
                 return;
             }
         }
@@ -2639,4 +2659,28 @@ test "compass and lodestone compass item properties, stack, and Recipe 66" {
     try std.testing.expectEqual(ItemType.lodestone_compass.maxStackSize(), 1);
     try std.testing.expectEqualStrings(ItemType.lodestone_compass.name(), "Lodestone Compass");
     try std.testing.expect(ItemType.lodestone_compass.toBlockId() == null);
+}
+
+test "crossbow item properties, durability, tool check, and Recipe 67" {
+    var inv = Inventory.init();
+
+    // Recipe 67: 1 Iron Ingot + 1 Stick + 1 Wool -> 1 Crossbow
+    inv.craft_grid[0] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .stick, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .wool, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .crossbow);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 67 with twisting vines
+    inv.craft_grid[2] = .{ .item = .twisting_vines, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .crossbow);
+
+    // Properties
+    try std.testing.expectEqual(ItemType.crossbow.maxDurability(), 465);
+    try std.testing.expect(ItemType.crossbow.isTool());
+    try std.testing.expectEqual(ItemType.crossbow.maxStackSize(), 1);
+    try std.testing.expectEqualStrings(ItemType.crossbow.name(), "Crossbow");
+    try std.testing.expect(ItemType.crossbow.toBlockId() == null);
 }
