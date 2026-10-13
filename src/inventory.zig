@@ -1417,7 +1417,7 @@ pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
     return held == .wooden_pickaxe or held == .iron_pickaxe or held == .netherite_pickaxe;
 }
 
-pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton };
+pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin };
 
 pub fn getMobMeatDrop(mob_type: MobType) ItemType {
     return switch (mob_type) {
@@ -1426,6 +1426,28 @@ pub fn getMobMeatDrop(mob_type: MobType) ItemType {
         .wolf => .none,
         .emberbeast => .coal,
         .wither_skeleton => .coal,
+        .piglin => .gold_nugget,
+    };
+}
+
+pub const BarterReward = struct {
+    item: ItemType,
+    count: u8,
+};
+
+// ponytail: 8-entry Nether bartering table; upgrade with enchanted books/soul speed when enchanting lands.
+pub fn getPiglinBarter(seed: u32) BarterReward {
+    const roll = seed % 8;
+    return switch (roll) {
+        0 => .{ .item = .crying_obsidian, .count = 1 },
+        1 => .{ .item = .obsidian, .count = 1 },
+        2 => .{ .item = .fire_charge, .count = 2 },
+        3 => .{ .item = .nether_quartz, .count = 3 },
+        4 => .{ .item = .soul_sand, .count = 2 },
+        5 => .{ .item = .blackstone, .count = 4 },
+        6 => .{ .item = .magma_cream, .count = 1 },
+        7 => .{ .item = .nether_brick, .count = 4 },
+        else => .{ .item = .blackstone, .count = 2 },
     };
 }
 
@@ -1439,6 +1461,19 @@ pub fn getEmberBonus(wx: i32, wz: i32) u8 {
 pub fn dropsWitherSkull(wx: i32, wy: i32, wz: i32) bool {
     const h: u32 = @as(u32, @bitCast(wx *% 13 +% wy *% 29 +% wz *% 7)) % 8;
     return h == 0;
+}
+
+test "piglin drops gold nugget and barters nether wares" {
+    try std.testing.expectEqual(getMobMeatDrop(.piglin), .gold_nugget);
+    var i: u32 = 0;
+    while (i < 8) : (i += 1) {
+        const reward = getPiglinBarter(i);
+        try std.testing.expect(reward.count > 0);
+        try std.testing.expect(reward.item != .none);
+    }
+    try std.testing.expectEqual(getPiglinBarter(0).item, .crying_obsidian);
+    try std.testing.expectEqual(getPiglinBarter(1).item, .obsidian);
+    try std.testing.expectEqual(getPiglinBarter(2).item, .fire_charge);
 }
 
 test "wither skeleton drops skull rarely" {

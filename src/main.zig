@@ -1102,11 +1102,13 @@ pub fn main() !void {
         try mob_manager.ensureSpawnPopulation(&manager, player.pos.x, player.pos.z, is_night_spawn);
         mob_manager.tick(&pickSolid, &pickFluid, &pickBlockWorld, player.pos, player.radius, &audio, dt);
 
-        // Wolf bites: contact damage with per-second cooldown
+        // Wolf bites & mob melee attacks: contact damage with per-second cooldown
         wolf_bite_cooldown = combat_mod.tickCooldown(wolf_bite_cooldown, dt);
         if (wolf_bite_cooldown <= 0.0) {
+            const held_gold = (inventory.slots[selected_slot].item == .gold_nugget or inventory.slots[selected_slot].item == .golden_apple);
             for (mob_manager.mobs.items) |m| {
-                if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton) continue;
+                if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin) continue;
+                if (m.mob_type == .piglin and (held_gold or m.barter_timer > 0.0)) continue;
                 const bdx = m.pos.x - player.pos.x;
                 const bdz = m.pos.z - player.pos.z;
                 const bdy = m.pos.y - player.pos.y;
@@ -1114,7 +1116,7 @@ pub fn main() !void {
                     const pack_count = mob_manager.countNearbyWolves(m.pos, entity_mod.pack_hunt.pack_rally_radius);
                     const bonus = entity_mod.pack_hunt.packBonus(pack_count);
                     const hit = combat_mod.calculateWolfBite(bdx, bdz, bonus);
-                    const dmg = if (m.is_champion) hit.damage * 2.5 else if (m.mob_type == .emberbeast) hit.damage * 2.0 else if (m.mob_type == .wither_skeleton) hit.damage * 1.5 else hit.damage;
+                    const dmg = if (m.is_champion) hit.damage * 2.5 else if (m.mob_type == .emberbeast) hit.damage * 2.0 else if (m.mob_type == .wither_skeleton or m.mob_type == .piglin) hit.damage * 1.5 else hit.damage;
                     player.health = @max(0.0, player.health - dmg);
                     if (m.mob_type == .wither_skeleton) {
                         player.applyWither();
@@ -1123,7 +1125,7 @@ pub fn main() !void {
                     audio.play(.hurt, 0.8);
                     player.pos.x -= hit.knockback_x;
                     player.pos.z -= hit.knockback_z;
-                    std.debug.print("wolf bite (hp={d:.1}, pack={d}, bonus={d:.1})\n", .{ player.health, pack_count, bonus });
+                    std.debug.print("mob attack (hp={d:.1}, type={s})\n", .{ player.health, @tagName(m.mob_type) });
                     wolf_bite_cooldown = combat_mod.wolf_bite_cooldown;
                     break;
                 }
@@ -1471,7 +1473,23 @@ pub fn main() !void {
                 mob_hit_cooldown = combat_mod.tickCooldown(mob_hit_cooldown, dt);
                 const held_weapon = inventory.slots[selected_slot].item;
                 const hit_dmg: u8 = combat_mod.weaponDamage(held_weapon == .netherite_sword, held_weapon == .iron_sword);
-                const hit_mob_opt = if (left and mob_hit_cooldown <= 0.0) mob_manager.tryHitMobDmg(cam.position, dir, combat_mod.melee_range, hit_dmg) else null;
+
+                var bartered = false;
+                if (right and !right_down and inventory.slots[selected_slot].item == .gold_nugget) {
+                    if (mob_manager.tryBarter(cam.position, dir, combat_mod.melee_range)) |b| {
+                        inventory.slots[selected_slot].decrement(1);
+                        _ = inventory.addItem(b.item, b.count);
+                        audio.play(.glowstone_chime, 0.9);
+                        particles.spawnBurnSparks(.{ b.pos.x, b.pos.y + 0.8, b.pos.z }, 12);
+                        toast.timer = 1.5;
+                        toast.color = .{ 1.0, 0.85, 0.2 };
+                        std.debug.print("bartered with piglin: {s} x{d}\n", .{ b.item.name(), b.count });
+                        bartered = true;
+                    }
+                }
+
+                const hit_mob_opt = if (!bartered and left and mob_hit_cooldown <= 0.0) mob_manager.tryHitMobDmg(cam.position, dir, combat_mod.melee_range, hit_dmg) else null;
+                if (!bartered) {
                 if (hit_mob_opt) |hit_mob| {
                     mob_hit_cooldown = combat_mod.melee_cooldown;
                     if (held_weapon.isTool()) {
@@ -1694,6 +1712,7 @@ pub fn main() !void {
                             }
                         }
                     }
+                }
                 }
             }
         }

@@ -164,6 +164,13 @@ test "day vs night mob type selection" {
     try std.testing.expectEqual(selectMobType(0.9, true), .sheep);
 }
 
+/// Bastion spawn: blackstone or gilded blackstone floor with headroom (piglin guard posts).
+pub fn isBastionSpawn(world: anytype, x: i32, y: i32, z: i32) bool {
+    const ground = world.getBlockWorld(x, y, z);
+    if (ground != .blackstone and ground != .gilded_blackstone) return false;
+    return hasHeadroom(world.getBlockWorld(x, y + 1, z), world.getBlockWorld(x, y + 2, z));
+}
+
 /// Fortress spawn: nether brick floor with headroom (wither skeleton guard posts).
 pub fn isFortressSpawn(world: anytype, x: i32, y: i32, z: i32) bool {
     const ground = world.getBlockWorld(x, y, z);
@@ -191,6 +198,31 @@ test "nether spawn needs nether ground and headroom" {
     try std.testing.expect(isNetherSpawn(NetherFlat{}, 0, 5, 0));
     try std.testing.expect(!isNetherSpawn(NetherFlat{}, 0, 6, 0));
     try std.testing.expect(!isNetherSpawn(FlatWorld{}, 0, 5, 0));
+}
+
+test "bastion spawn needs blackstone or gilded blackstone and headroom" {
+    const BastionFlat = struct {
+        pub fn getBlockWorld(_: @This(), x: i32, y: i32, z: i32) BlockId {
+            _ = x;
+            _ = z;
+            if (y == 7) return .blackstone;
+            if (y == 8 or y == 9) return .air;
+            return .netherrack;
+        }
+    };
+    try std.testing.expect(isBastionSpawn(BastionFlat{}, 0, 7, 0));
+    try std.testing.expect(!isBastionSpawn(BastionFlat{}, 0, 8, 0));
+
+    const GildedFlat = struct {
+        pub fn getBlockWorld(_: @This(), x: i32, y: i32, z: i32) BlockId {
+            _ = x;
+            _ = z;
+            if (y == 7) return .gilded_blackstone;
+            if (y == 8 or y == 9) return .air;
+            return .netherrack;
+        }
+    };
+    try std.testing.expect(isBastionSpawn(GildedFlat{}, 0, 7, 0));
 }
 
 test "fortress spawn needs nether brick and headroom" {

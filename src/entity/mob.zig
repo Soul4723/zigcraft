@@ -38,6 +38,7 @@ pub const Mob = struct {
     in_bubble_column: bool,
     in_whirlpool: bool,
     burn_timer: f32,
+    barter_timer: f32 = 0.0,
 
     pub fn init(mob_type: MobType, x: f32, y: f32, z: f32) Mob {
         const w: f32 = switch (mob_type) {
@@ -46,6 +47,7 @@ pub const Mob = struct {
             .wolf => 0.6,
             .emberbeast => 0.7,
             .wither_skeleton => 0.6,
+            .piglin => 0.6,
         };
         const h: f32 = switch (mob_type) {
             .sheep => 0.9,
@@ -53,6 +55,7 @@ pub const Mob = struct {
             .wolf => 0.8,
             .emberbeast => 1.0,
             .wither_skeleton => 1.6,
+            .piglin => 1.5,
         };
         const spd: f32 = switch (mob_type) {
             .sheep => 1.4,
@@ -60,6 +63,7 @@ pub const Mob = struct {
             .wolf => 3.2,
             .emberbeast => 3.6,
             .wither_skeleton => 2.8,
+            .piglin => 2.6,
         };
         return .{
             .mob_type = mob_type,
@@ -75,11 +79,12 @@ pub const Mob = struct {
             .anim_time = 0.0,
             .change_dir_timer = 2.0,
             .wants_sound = false,
-            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .wither_skeleton) 10 else 3,
+            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
             .in_water = false,
             .in_bubble_column = false,
             .in_whirlpool = false,
             .burn_timer = 0.0,
+            .barter_timer = 0.0,
         };
     }
 
@@ -87,6 +92,7 @@ pub const Mob = struct {
     pub fn tick(self: *Mob, solid: *const fn (x: i32, y: i32, z: i32) bool, fluid: *const fn (x: i32, y: i32, z: i32) bool, dt: f32, rng: *std.Random.DefaultPrng) void {
         const clamped_dt = @min(dt, 0.05);
 
+        self.barter_timer = @max(0.0, self.barter_timer - clamped_dt);
         self.change_dir_timer -= clamped_dt;
         if (self.change_dir_timer <= 0.0) {
             const roll = rng.random().float(f32);
@@ -476,7 +482,25 @@ pub fn getSound(mob_type: MobType) ?@import("../audio/synth.zig").SoundType {
         .wolf => .mob_growl,
         .emberbeast => .mob_roar,
         .wither_skeleton => .mob_growl,
+        .piglin => .mob_oink,
     };
+}
+
+test "piglin mob stats and barter timer decay" {
+    var p = Mob.init(.piglin, 1.0, 2.0, 3.0);
+    try std.testing.expectEqual(p.mob_type, .piglin);
+    try std.testing.expectEqual(p.health, 10);
+    try std.testing.expectEqual(p.height, 1.5);
+    try std.testing.expectEqual(p.walk_speed, 2.6);
+    try std.testing.expectEqual(getSound(.piglin), .mob_oink);
+    p.barter_timer = 5.0;
+    var rng = std.Random.DefaultPrng.init(1234);
+    const Mock = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return true; }
+        fn dry(_: i32, _: i32, _: i32) bool { return false; }
+    };
+    p.tick(Mock.solid, Mock.dry, 1.0, &rng);
+    try std.testing.expect(p.barter_timer < 5.0);
 }
 
 test "mob sound mapping" {

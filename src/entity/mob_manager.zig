@@ -13,6 +13,7 @@ const hunt_mod = @import("pack_hunt.zig");
 const spawn_rules = @import("../world/spawn_rules.zig");
 const block_mod = @import("../world/block.zig");
 const hazard_mod = @import("../world/hazard.zig");
+const inventory_mod = @import("../inventory.zig");
 
 pub const MobManager = struct {
     allocator: std.mem.Allocator,
@@ -83,6 +84,21 @@ pub const MobManager = struct {
             break;
         }
 
+        // Nether bastion pass: piglins guard blackstone ruins and ramparts.
+        var bastion_attempts: usize = 0;
+        while (self.mobs.items.len < 8 and bastion_attempts < 6) : (bastion_attempts += 1) {
+            const rx = center_x + (self.rng.random().float(f32) * 36.0 - 18.0);
+            const rz = center_z + (self.rng.random().float(f32) * 36.0 - 18.0);
+            const ix: i32 = @intFromFloat(@floor(rx));
+            const iz: i32 = @intFromFloat(@floor(rz));
+            var iy: i32 = 10;
+            while (iy >= 5) : (iy -= 1) {
+                if (!spawn_rules.isBastionSpawn(chunk_manager, ix, iy, iz)) continue;
+                try self.spawnMob(.piglin, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
+                break;
+            }
+        }
+
         // Nether pass: emberbeasts stalk netherrack wastes and fortress bridges.
         var nether_attempts: usize = 0;
         while (self.mobs.items.len < 8 and nether_attempts < 6) : (nether_attempts += 1) {
@@ -113,7 +129,10 @@ pub const MobManager = struct {
         var idx: usize = 0;
         while (idx < self.mobs.items.len) {
             var mob = &self.mobs.items[idx];
-            if (mob.mob_type == .wolf or mob.mob_type == .emberbeast or mob.mob_type == .wither_skeleton) {
+            if (mob.mob_type == .wolf or mob.mob_type == .emberbeast or mob.mob_type == .wither_skeleton or mob.mob_type == .piglin) {
+                if (mob.mob_type == .piglin and mob.barter_timer > 0.0) {
+                    // Pacified piglin wanders peacefully instead of hunting player
+                } else {
                 const wdx = player_pos.x - mob.pos.x;
                 const wdz = player_pos.z - mob.pos.z;
                 const wd = @sqrt(wdx * wdx + wdz * wdz);
@@ -147,6 +166,7 @@ pub const MobManager = struct {
                         mob.yaw = std.math.atan2(wdx, wdz);
                     }
                     mob.walk_timer = hunt_mod.walk_pulse;
+                }
                 }
             }
             if (block_at) |bat| {
@@ -300,6 +320,9 @@ pub const MobManager = struct {
         if (hit_idx) |i| {
             const mtype = self.mobs.items[i].mob_type;
             const was_champ = self.mobs.items[i].is_champion;
+            if (mtype == .piglin) {
+                self.mobs.items[i].barter_timer = 0.0;
+            }
             const died = self.mobs.items[i].takeHitDmg(dir, dmg);
             if (died) {
                 const pos = self.mobs.items[i].pos;
@@ -307,6 +330,42 @@ pub const MobManager = struct {
                 return .{ .mob_type = mtype, .pos = pos, .died = true, .drop = mtype, .wool = mtype == .sheep, .is_champion = was_champ };
             }
             return .{ .mob_type = mtype, .pos = self.mobs.items[i].pos, .died = false, .drop = null, .wool = false, .is_champion = was_champ };
+        }
+
+        return null;
+    }
+
+    pub const BarterResult = struct {
+        item: inventory_mod.ItemType,
+        count: u8,
+        pos: math.Vec3,
+    };
+
+    /// Barter with a Piglin in raycast crosshairs: consumes gold and pacifies the mob.
+    pub fn tryBarter(self: *MobManager, origin: math.Vec3, dir: math.Vec3, max_dist: f32) ?BarterResult {
+        var closest_dist: f32 = max_dist;
+        var hit_idx: ?usize = null;
+
+        for (self.mobs.items, 0..) |mob, i| {
+            if (mob.mob_type != .piglin) continue;
+            if (mob.rayIntersects(origin, dir, closest_dist)) |d| {
+                closest_dist = d;
+                hit_idx = i;
+            }
+        }
+
+        if (hit_idx) |i| {
+            var piglin = &self.mobs.items[i];
+            piglin.barter_timer = 20.0;
+            const px: i32 = @intFromFloat(@floor(piglin.pos.x));
+            const pz: i32 = @intFromFloat(@floor(piglin.pos.z));
+            const seed = @as(u32, @bitCast(px *% 37 +% pz *% 53)) +% self.rng.random().int(u32);
+            const reward = inventory_mod.getPiglinBarter(seed);
+            return .{
+                .item = reward.item,
+                .count = reward.count,
+                .pos = piglin.pos,
+            };
         }
 
         return null;
@@ -324,7 +383,7 @@ pub const MobManager = struct {
         var count: usize = 0;
         const r_sq = radius * radius;
         for (self.mobs.items) |m| {
-            if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton) continue;
+            if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin) continue;
             const dx = m.pos.x - center.x;
             const dy = m.pos.y - center.y;
             const dz = m.pos.z - center.z;
@@ -491,6 +550,24 @@ test "MobManager mob burn damage contact hazard on magma or campfire" {
     // 1 second pass: mob dies and is removed
     mm.tick(MockWorld.solid, MockWorld.fluid, MockWorld.block, math.Vec3.init(50, 0, 0), 0.4, null, 1.0);
     try std.testing.expectEqual(@as(usize, 0), mm.mobs.items.len);
+}
+
+test "mob manager piglin barter and pacification" {
+    var mm = try MobManager.init(std.testing.allocator, 0);
+    defer mm.deinit();
+
+    try mm.spawnMob(.piglin, 0.5, 1.0, 3.0);
+    try std.testing.expectEqual(@as(usize, 1), mm.mobs.items.len);
+    try std.testing.expectEqual(mm.mobs.items[0].barter_timer, 0.0);
+
+    const b = mm.tryBarter(math.Vec3.init(0.5, 1.5, 0.0), math.Vec3.init(0.0, 0.0, 1.0), 5.0);
+    try std.testing.expect(b != null);
+    try std.testing.expect(b.?.count > 0);
+    try std.testing.expect(mm.mobs.items[0].barter_timer > 10.0);
+
+    // Hitting piglin clears pacification timer
+    _ = mm.tryHitMobDmg(math.Vec3.init(0.5, 1.5, 0.0), math.Vec3.init(0.0, 0.0, 1.0), 5.0, 1);
+    try std.testing.expectEqual(mm.mobs.items[0].barter_timer, 0.0);
 }
 
 test "mob manager hit reports champion status" {

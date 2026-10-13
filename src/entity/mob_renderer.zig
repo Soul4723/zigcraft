@@ -428,6 +428,29 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
             try appendBox(allocator, verts, inds, math.Vec3.init(-0.12, 0.3, 0 + leg_swing), math.Vec3.init(0.12, 0.6, 0.12), mob.yaw, mob.pos, uv_bone, uv_bone);
             try appendBox(allocator, verts, inds, math.Vec3.init(0.12, 0.3, 0 - leg_swing), math.Vec3.init(0.12, 0.6, 0.12), mob.yaw, mob.pos, uv_bone, uv_bone);
         },
+        .piglin => {
+            const uv_skin = texture.getTileUV(5, 4);
+            const uv_face = texture.getTileUV(6, 4);
+            const uv_gold = texture.getTileUV(3, 5); // gold seam / golden weapon
+
+            // 1. Torso: bipedal 0.44 x 0.58 x 0.30 at (0, 0.82, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.82, 0), math.Vec3.init(0.44, 0.58, 0.30), mob.yaw, mob.pos, uv_skin, uv_skin);
+            // 2. Head: 0.34 cube at (0, 1.22 + head_bob_y, 0.06)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 1.22 + head_bob_y, 0.06), math.Vec3.init(0.34, 0.34, 0.34), mob.yaw, mob.pos, uv_face, uv_skin);
+            // 3. Snout: 0.16 x 0.10 x 0.10 at (0, 1.15 + head_bob_y, 0.25)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 1.15 + head_bob_y, 0.25), math.Vec3.init(0.16, 0.10, 0.10), mob.yaw, mob.pos, uv_face, uv_face);
+            // 4-5. Floppy ears flanking head
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.21, 1.18 + head_bob_y, 0.06), math.Vec3.init(0.06, 0.20, 0.08), mob.yaw, mob.pos, uv_skin, uv_skin);
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.21, 1.18 + head_bob_y, 0.06), math.Vec3.init(0.06, 0.20, 0.08), mob.yaw, mob.pos, uv_skin, uv_skin);
+            // 6-7. Arms with walking swing
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.28, 0.82, 0 + leg_swing), math.Vec3.init(0.12, 0.55, 0.12), mob.yaw, mob.pos, uv_skin, uv_skin);
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.28, 0.82, 0 - leg_swing), math.Vec3.init(0.12, 0.55, 0.12), mob.yaw, mob.pos, uv_skin, uv_skin);
+            // 8. Golden sword held in right hand
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.28, 0.46, 0.16 - leg_swing), math.Vec3.init(0.08, 0.44, 0.08), mob.yaw, mob.pos, uv_gold, uv_gold);
+            // 9-10. Legs
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.12, 0.28, 0 + leg_swing), math.Vec3.init(0.13, 0.56, 0.13), mob.yaw, mob.pos, uv_skin, uv_skin);
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.12, 0.28, 0 - leg_swing), math.Vec3.init(0.13, 0.56, 0.13), mob.yaw, mob.pos, uv_skin, uv_skin);
+        },
     }
 }
 
@@ -460,6 +483,14 @@ test "appendMobMesh generates correct vertex and index counts" {
     try appendMobMesh(std.testing.allocator, &verts, &inds, wither);
     try std.testing.expectEqual(@as(usize, 168), verts.items.len);
     try std.testing.expectEqual(@as(usize, 252), inds.items.len);
+
+    // Piglin: 10 boxes (torso, head, snout, 2 ears, 2 arms, sword, 2 legs) = 240 verts, 360 indices
+    verts.clearRetainingCapacity();
+    inds.clearRetainingCapacity();
+    const piglin = mob_mod.Mob.init(.piglin, 0, 0, 0);
+    try appendMobMesh(std.testing.allocator, &verts, &inds, piglin);
+    try std.testing.expectEqual(@as(usize, 240), verts.items.len);
+    try std.testing.expectEqual(@as(usize, 360), inds.items.len);
 
     // Pig test: 7 boxes (body, head, snout, 4 legs) = 7 * 24 = 168 verts, 7 * 36 = 252 indices
     verts.clearRetainingCapacity();
