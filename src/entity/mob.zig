@@ -39,6 +39,11 @@ pub const Mob = struct {
     in_whirlpool: bool,
     burn_timer: f32,
     barter_timer: f32 = 0.0,
+    glow_timer: f32 = 0.0,
+
+    pub fn isGlowing(self: Mob) bool {
+        return self.glow_timer > 0.0;
+    }
 
     pub fn init(mob_type: MobType, x: f32, y: f32, z: f32) Mob {
         const w: f32 = switch (mob_type) {
@@ -86,6 +91,7 @@ pub const Mob = struct {
             .in_whirlpool = false,
             .burn_timer = 0.0,
             .barter_timer = 0.0,
+            .glow_timer = 0.0,
         };
     }
 
@@ -94,6 +100,7 @@ pub const Mob = struct {
         const clamped_dt = @min(dt, 0.05);
 
         self.barter_timer = @max(0.0, self.barter_timer - clamped_dt);
+        self.glow_timer = @max(0.0, self.glow_timer - clamped_dt);
         self.change_dir_timer -= clamped_dt;
         if (self.change_dir_timer <= 0.0) {
             const roll = rng.random().float(f32);
@@ -601,4 +608,28 @@ test "piglin brute mob stats and sounds" {
     try std.testing.expectEqual(b.health, 15);
     try std.testing.expectApproxEqAbs(b.walk_speed, 3.0, 0.01);
     try std.testing.expectEqual(getSound(.piglin_brute), .mob_oink);
+}
+
+test "mob glowing status timer and decay" {
+    var mob = Mob.init(.sheep, 0, 0, 0);
+    try std.testing.expect(!mob.isGlowing());
+    try std.testing.expectEqual(@as(f32, 0.0), mob.glow_timer);
+
+    mob.glow_timer = 10.0;
+    try std.testing.expect(mob.isGlowing());
+
+    const solid = struct {
+        fn s(_: i32, _: i32, _: i32) bool {
+            return false;
+        }
+    }.s;
+    const fluid = struct {
+        fn f(_: i32, _: i32, _: i32) bool {
+            return false;
+        }
+    }.f;
+    var rng = std.Random.DefaultPrng.init(42);
+    mob.tick(solid, fluid, 0.05, &rng);
+    try std.testing.expectApproxEqAbs(mob.glow_timer, 9.95, 0.001);
+    try std.testing.expect(mob.isGlowing());
 }

@@ -205,6 +205,7 @@ fn appendBox(
 }
 
 pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVertex), inds: *std.ArrayList(u32), mob: mob_mod.Mob) !void {
+    const start_v = verts.items.len;
     const leg_swing = if (mob.in_water) @sin(mob.anim_time * 2.5) * 0.08 else @sin(mob.anim_time) * 0.12;
     // Head bobs up and down when swimming to keep snout out of water
     const head_bob_y: f32 = if (mob.in_water) 0.08 + @sin(mob.anim_time * 4.0) * 0.04 else 0.0;
@@ -453,6 +454,12 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
             try appendBox(allocator, verts, inds, math.Vec3.init(0.12, 0.28, 0 - leg_swing), math.Vec3.init(0.13, 0.56, 0.13), mob.yaw, mob.pos, uv_skin, uv_skin);
         },
     }
+
+    if (mob.isGlowing()) {
+        for (verts.items[start_v..]) |*v| {
+            v.emissive = 1.0;
+        }
+    }
 }
 
 test "appendMobMesh generates correct vertex and index counts" {
@@ -538,4 +545,19 @@ test "piglin brute mob mesh generation" {
     // 10 boxes (torso, head, snout, 2 ears, 2 arms, weapon, 2 legs) = 240 verts, 360 indices
     try std.testing.expectEqual(@as(usize, 240), verts.items.len);
     try std.testing.expectEqual(@as(usize, 360), inds.items.len);
+}
+
+test "appendMobMesh glowing mob sets emissive vertices" {
+    var verts = std.ArrayList(MobVertex).empty;
+    defer verts.deinit(std.testing.allocator);
+    var inds = std.ArrayList(u32).empty;
+    defer inds.deinit(std.testing.allocator);
+
+    var mob = mob_mod.Mob.init(.sheep, 0, 0, 0);
+    mob.glow_timer = 10.0;
+    try appendMobMesh(std.testing.allocator, &verts, &inds, mob);
+    try std.testing.expect(verts.items.len > 0);
+    for (verts.items) |v| {
+        try std.testing.expectEqual(@as(f32, 1.0), v.emissive);
+    }
 }

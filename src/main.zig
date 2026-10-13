@@ -207,7 +207,7 @@ pub fn main() !void {
     const PortalTarget = portal_mod.PortalTarget;
     var portal_targets: [32]PortalTarget = undefined;
     var portal_target_count: usize = 0;
-    const ThrownKind = enum { snowball, hostile_fireball, player_fire_charge };
+    const ThrownKind = enum { snowball, hostile_fireball, player_fire_charge, spectral_arrow };
     const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball };
     var thrown: [proj_mod.thrown_cap]Thrown = undefined;
     var thrown_count: usize = 0;
@@ -1198,6 +1198,11 @@ pub fn main() !void {
         try mob_manager.ensureSpawnPopulation(&manager, player.pos.x, player.pos.z, is_night_spawn);
         const held_warped_fungus = (inventory.slots[selected_slot].item == .warped_fungus or inventory.slots[selected_slot].item == .warped_fungus_on_a_stick);
         mob_manager.tick(&pickSolid, &pickFluid, &pickBlockWorld, player.pos, player.radius, held_warped_fungus, &audio, dt);
+        for (mob_manager.mobs.items) |m| {
+            if (m.isGlowing()) {
+                particles.spawnGlowstoneShimmer(.{ m.pos.x, m.pos.y + 0.4, m.pos.z }, 1);
+            }
+        }
 
         // Wolf bites & mob melee attacks: contact damage with per-second cooldown
         wolf_bite_cooldown = combat_mod.tickCooldown(wolf_bite_cooldown, dt);
@@ -2192,6 +2197,26 @@ pub fn main() !void {
                             }
                             particles.spawnFlame(mbx, mby, mbz, 8);
                             audio.play(.burn_sizzle, 0.4);
+                        } else if (t.kind == .spectral_arrow) {
+                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(mbx)) + 0.5, @as(f32, @floatFromInt(mby)) + 0.5, @as(f32, @floatFromInt(mbz)) + 0.5 }, 10);
+                            audio.play(.glowstone_chime, 0.7);
+                            if (struck == .target_block) {
+                                var found_tp = false;
+                                for (target_pulses[0..target_pulse_count]) |*tp| {
+                                    if (tp.x == mbx and tp.y == mby and tp.z == mbz) {
+                                        tp.t = redstone_mod.target_pulse_duration;
+                                        found_tp = true;
+                                        break;
+                                    }
+                                }
+                                if (!found_tp and target_pulse_count < target_pulses.len) {
+                                    target_pulses[target_pulse_count] = .{ .x = mbx, .y = mby, .z = mbz, .t = redstone_mod.target_pulse_duration };
+                                    target_pulse_count += 1;
+                                }
+                                audio.play(.click_on, 0.8);
+                                particles.spawnBurnSparks(.{ @as(f32, @floatFromInt(mbx)) + 0.5, @as(f32, @floatFromInt(mby)) + 0.5, @as(f32, @floatFromInt(mbz)) + 0.5 }, 12);
+                                std.debug.print("target block struck: emitting redstone signal\n", .{});
+                            }
                         } else {
                             particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.93, 0.95, 1.0 }, 6);
                             if (struck == .target_block) {
@@ -2219,8 +2244,15 @@ pub fn main() !void {
                             const d = proj_mod.mobDelta(m.pos.x, m.pos.y, m.pos.z, t.pos.x, t.pos.y, t.pos.z);
                             if (proj_mod.hitsMob(d[0], d[1], d[2])) {
                                 const is_fc = (t.kind == .player_fire_charge);
-                                const died = if (is_fc) m.takeHitDmg(cam.front(), 2) else m.takeHit(cam.front());
+                                const is_sa = (t.kind == .spectral_arrow);
+                                const died = if (is_fc or is_sa) m.takeHitDmg(cam.front(), proj_mod.spectral_arrow_damage) else m.takeHit(cam.front());
                                 if (is_fc) particles.spawnFlame(mbx, mby, mbz, 8);
+                                if (is_sa) {
+                                    m.glow_timer = proj_mod.spectral_arrow_glow_duration;
+                                    particles.spawnGlowstoneShimmer(.{ m.pos.x, m.pos.y + 0.5, m.pos.z }, 12);
+                                    audio.play(.glowstone_chime, 0.9);
+                                    std.debug.print("spectral arrow hit: mob glowing 10s\n", .{});
+                                }
                                 audio.play(.hurt, 0.5);
                                 particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.93, 0.95, 1.0 }, 8);
                                 if (died) {
@@ -2257,6 +2289,8 @@ pub fn main() !void {
                     // trail puff
                     if (t.kind == .hostile_fireball) {
                         particles.spawnFlame(mbx, mby, mbz, 1);
+                    } else if (t.kind == .spectral_arrow) {
+                        particles.spawnGlowstoneShimmer(.{ t.pos.x, t.pos.y, t.pos.z }, 1);
                     } else {
                         particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.9, 0.92, 1.0 }, 1);
                     }
@@ -2264,19 +2298,26 @@ pub fn main() !void {
                 }
             }
         }
-        // G throws snowball
+        // G throws snowball / fire charge / spectral arrow
         throw_cooldown = @max(0.0, throw_cooldown - dt);
         if (!inventory_open and throw_cooldown <= 0.0 and c.glfwGetKey(window, c.GLFW_KEY_G) == c.GLFW_PRESS) {
             const held_throw = inventory.slots[selected_slot].item;
-            if ((held_throw == .snowball or held_throw == .fire_charge) and thrown_count < thrown.len) {
+            if ((held_throw == .snowball or held_throw == .fire_charge or held_throw == .spectral_arrow) and thrown_count < thrown.len) {
                 const dir_g = cam.front();
                 const vel_g = proj_mod.initialVelocity(dir_g.x, dir_g.y, dir_g.z);
-                const k: ThrownKind = if (held_throw == .fire_charge) .player_fire_charge else .snowball;
+                const k: ThrownKind = if (held_throw == .fire_charge)
+                    .player_fire_charge
+                else if (held_throw == .spectral_arrow)
+                    .spectral_arrow
+                else
+                    .snowball;
                 thrown[thrown_count] = .{ .pos = cam.position, .vel = math.Vec3.init(vel_g[0], vel_g[1], vel_g[2]), .life = proj_mod.throw_life, .kind = k };
                 thrown_count += 1;
                 inventory.slots[selected_slot].decrement(1);
                 if (held_throw == .fire_charge) {
                     audio.play(.lava_pop, 0.6);
+                } else if (held_throw == .spectral_arrow) {
+                    audio.play(.glowstone_chime, 0.8);
                 } else {
                     audio.play(.place_block, 0.4);
                 }

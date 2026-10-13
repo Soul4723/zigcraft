@@ -99,6 +99,7 @@ pub const ItemType = enum(u8) {
     netherite_leggings = 93,
     chiseled_nether_brick = 94,
     netherite_boots = 95,
+    spectral_arrow = 96,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -364,6 +365,7 @@ pub const ItemType = enum(u8) {
             .netherite_leggings => "Netherite Leggings",
             .chiseled_nether_brick => "Chiseled Nether Brick",
             .netherite_boots => "Netherite Boots",
+            .spectral_arrow => "Spectral Arrow",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -401,6 +403,7 @@ pub const ItemType = enum(u8) {
             .netherite_leggings => .{ 0.24, 0.21, 0.25, 0.95 },
             .chiseled_nether_brick => .{ 0.35, 0.15, 0.18, 0.95 },
             .netherite_boots => .{ 0.22, 0.20, 0.24, 0.95 },
+            .spectral_arrow => .{ 1.0, 0.90, 0.25, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -918,6 +921,17 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 62: Spectral Arrow: 1 Glowstone + 1 Stick (or 1 Glowstone + 1 Iron Ingot) -> 2 Spectral Arrows
+        if (non_empty == 2) {
+            const has_glow = (g0 == .glowstone or g1 == .glowstone or g2 == .glowstone or g3 == .glowstone);
+            const has_shaft = (g0 == .stick or g1 == .stick or g2 == .stick or g3 == .stick or
+                               g0 == .iron_ingot or g1 == .iron_ingot or g2 == .iron_ingot or g3 == .iron_ingot);
+            if (has_glow and has_shaft) {
+                self.craft_output = .{ .item = .spectral_arrow, .count = 2 };
                 return;
             }
         }
@@ -2419,4 +2433,27 @@ test "netherite boots item properties, durability, recipe 61, and full set check
     try std.testing.expect(!inv.hasFullNetheriteSet());
     inv.slots[13] = .{ .item = .netherite_boots, .count = 1 };
     try std.testing.expect(inv.hasFullNetheriteSet());
+}
+
+test "spectral arrow item properties, stack, and Recipe 62" {
+    var inv = Inventory.init();
+
+    // Recipe 62: 1 Glowstone + 1 Stick -> 2 Spectral Arrows
+    inv.craft_grid[0] = .{ .item = .glowstone, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .stick, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .spectral_arrow);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+
+    // Alternate: 1 Glowstone + 1 Iron Ingot -> 2 Spectral Arrows
+    inv.craft_grid[1] = .{ .item = .iron_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .spectral_arrow);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+
+    try std.testing.expectEqual(ItemType.spectral_arrow.maxDurability(), 0);
+    try std.testing.expect(!ItemType.spectral_arrow.isTool());
+    try std.testing.expectEqual(ItemType.spectral_arrow.maxStackSize(), 64);
+    try std.testing.expectEqualStrings(ItemType.spectral_arrow.name(), "Spectral Arrow");
+    try std.testing.expect(ItemType.spectral_arrow.toBlockId() == null);
 }

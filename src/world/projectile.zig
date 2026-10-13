@@ -127,3 +127,11 @@ test "fireball range and velocity" {
     try std.testing.expectApproxEqAbs(v[1], 0.0, 0.001);
     try std.testing.expectApproxEqAbs(v[2], 8.0, 0.001);
 }
+
+pub const spectral_arrow_damage: u8 = 2;
+pub const spectral_arrow_glow_duration: f32 = 10.0;
+
+test "spectral arrow constants" {
+    try std.testing.expectEqual(@as(u8, 2), spectral_arrow_damage);
+    try std.testing.expectEqual(@as(f32, 10.0), spectral_arrow_glow_duration);
+}
