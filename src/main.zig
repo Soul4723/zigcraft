@@ -1480,7 +1480,7 @@ pub fn main() !void {
         if (wolf_bite_cooldown <= 0.0) {
             const held_gold = (inventory.slots[selected_slot].item == .gold_nugget or inventory.slots[selected_slot].item == .golden_apple);
             for (mob_manager.mobs.items) |*m| {
-                if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute) continue;
+                if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze) continue;
                 if (m.mob_type == .piglin and (held_gold or m.barter_timer > 0.0 or entity_mod.mob_manager.MobManager.isPiglinRepelled(m.pos, player.pos, held_warped_fungus, &pickBlockWorld) != null)) continue;
                 const bdx = m.pos.x - player.pos.x;
                 const bdz = m.pos.z - player.pos.z;
@@ -1508,7 +1508,7 @@ pub fn main() !void {
                         }
                         std.debug.print("shield blocked attack from {s}\n", .{@tagName(m.mob_type)});
                     } else {
-                        const raw_dmg = if (m.is_champion) hit.damage * 2.5 else if (m.mob_type == .piglin_brute) hit.damage * 2.5 else if (m.mob_type == .emberbeast) hit.damage * 2.0 else if (m.mob_type == .wither_skeleton or m.mob_type == .piglin) hit.damage * 1.5 else hit.damage;
+                        const raw_dmg = if (m.is_champion) hit.damage * 2.5 else if (m.mob_type == .piglin_brute) hit.damage * 2.5 else if (m.mob_type == .blaze or m.mob_type == .emberbeast) hit.damage * 2.0 else if (m.mob_type == .wither_skeleton or m.mob_type == .piglin) hit.damage * 1.5 else hit.damage;
                         const dmg = combat_mod.applyArmorReductionFullSet(raw_dmg, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet());
                         player.health = @max(0.0, player.health - dmg);
                         if (m.mob_type == .wither_skeleton) {
@@ -2857,7 +2857,7 @@ pub fn main() !void {
         fireball_cooldown = combat_mod.tickCooldown(fireball_cooldown, dt);
         if (fireball_cooldown <= 0.0) {
             for (mob_manager.mobs.items) |m| {
-                if (m.mob_type != .emberbeast and m.mob_type != .wither_skeleton) continue;
+                if (m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .blaze) continue;
                 const fdx = player.pos.x - m.pos.x;
                 const fdz = player.pos.z - m.pos.z;
                 const fdy = (player.pos.y + 1.0) - (m.pos.y + 0.7);

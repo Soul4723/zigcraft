@@ -453,6 +453,31 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
             try appendBox(allocator, verts, inds, math.Vec3.init(-0.12, 0.28, 0 + leg_swing), math.Vec3.init(0.13, 0.56, 0.13), mob.yaw, mob.pos, uv_skin, uv_skin);
             try appendBox(allocator, verts, inds, math.Vec3.init(0.12, 0.28, 0 - leg_swing), math.Vec3.init(0.13, 0.56, 0.13), mob.yaw, mob.pos, uv_skin, uv_skin);
         },
+        .blaze => {
+            const uv_core = texture.getTileUV(4, 2); // fiery ember texture
+            const uv_rod = texture.getTileUV(5, 2); // golden blaze rod texture
+
+            // 1. Central head/core: 0.36 cube centered at (0, 1.25, 0)
+            const head_y = 1.25 + @sin(mob.anim_time * 2.0) * 0.05;
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, head_y, 0), math.Vec3.init(0.36, 0.36, 0.36), mob.yaw, mob.pos, uv_core, uv_core);
+
+            // 12 orbiting rods in 3 tiers (4 rods per tier)
+            const tiers = [_]struct { y: f32, radius: f32, speed: f32, offset: f32 }{
+                .{ .y = 1.15, .radius = 0.38, .speed = 2.5, .offset = 0.0 },
+                .{ .y = 0.70, .radius = 0.32, .speed = -2.0, .offset = 0.785 },
+                .{ .y = 0.25, .radius = 0.26, .speed = 1.8, .offset = 0.392 },
+            };
+
+            for (tiers) |t| {
+                var ri: usize = 0;
+                while (ri < 4) : (ri += 1) {
+                    const angle = mob.anim_time * t.speed + t.offset + @as(f32, @floatFromInt(ri)) * (std.math.pi * 0.5);
+                    const rx = @cos(angle) * t.radius;
+                    const rz = @sin(angle) * t.radius;
+                    try appendBox(allocator, verts, inds, math.Vec3.init(rx, t.y, rz), math.Vec3.init(0.08, 0.32, 0.08), mob.yaw, mob.pos, uv_rod, uv_rod);
+                }
+            }
+        },
     }
 
     if (mob.isGlowing()) {
@@ -560,4 +585,20 @@ test "appendMobMesh glowing mob sets emissive vertices" {
     for (verts.items) |v| {
         try std.testing.expectEqual(@as(f32, 1.0), v.emissive);
     }
+}
+
+test "appendMobMesh blaze mob generates head and 12 orbiting rods" {
+    var verts = std.ArrayList(MobVertex).empty;
+    defer verts.deinit(std.testing.allocator);
+    var inds = std.ArrayList(u32).empty;
+    defer inds.deinit(std.testing.allocator);
+
+    const blaze = mob_mod.Mob.init(.blaze, 0, 0, 0);
+    try appendMobMesh(std.testing.allocator, &verts, &inds, blaze);
+
+    // 1 head + 12 rods = 13 boxes
+    // 13 boxes * 24 verts = 312 verts
+    // 13 boxes * 36 inds = 468 inds
+    try std.testing.expectEqual(@as(usize, 312), verts.items.len);
+    try std.testing.expectEqual(@as(usize, 468), inds.items.len);
 }

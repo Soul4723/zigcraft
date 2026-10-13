@@ -189,7 +189,7 @@ pub const MobManager = struct {
                     mob.yaw = std.math.atan2(pdx, pdz);
                     mob.walk_timer = hunt_mod.walk_pulse;
                 }
-            } else if (mob.mob_type == .wolf or mob.mob_type == .emberbeast or mob.mob_type == .wither_skeleton or mob.mob_type == .piglin or mob.mob_type == .piglin_brute) {
+            } else if (mob.mob_type == .wolf or mob.mob_type == .emberbeast or mob.mob_type == .wither_skeleton or mob.mob_type == .piglin or mob.mob_type == .piglin_brute or mob.mob_type == .blaze) {
                 var is_repelled = false;
                 if (mob.mob_type == .piglin) {
                     if (isPiglinRepelled(mob.pos, player_pos, player_holding_fungus, block_at)) |repel_source| {
@@ -254,7 +254,7 @@ pub const MobManager = struct {
                 // Contact heat hazard check: floor block under feet or immersed block
                 const floor_b = bat(mx, @intFromFloat(@floor(mob.pos.y - 0.1)), mz);
                 const body_b = bat(mx, my, mz);
-                if (mob.mob_type != .emberbeast and mob.mob_type != .wither_skeleton and (hazard_mod.checkBurnContact(floor_b) or hazard_mod.checkBurnContact(body_b) or hazard_mod.checkLavaHazard(floor_b) or hazard_mod.checkLavaHazard(body_b))) {
+                if (mob.mob_type != .emberbeast and mob.mob_type != .wither_skeleton and mob.mob_type != .blaze and (hazard_mod.checkBurnContact(floor_b) or hazard_mod.checkBurnContact(body_b) or hazard_mod.checkLavaHazard(floor_b) or hazard_mod.checkLavaHazard(body_b))) {
                     const prev_hp = mob.health;
                     if (mob.applyBurnTick(dt)) {
                         if (audio) |a| {
@@ -299,7 +299,7 @@ pub const MobManager = struct {
             self.spawner_timer = 0.0;
             var near: usize = 0;
             for (self.mobs.items) |mob| {
-                if (mob.mob_type != .emberbeast and mob.mob_type != .wither_skeleton) continue;
+                if (mob.mob_type != .emberbeast and mob.mob_type != .wither_skeleton and mob.mob_type != .blaze) continue;
                 const dx = mob.pos.x - player_pos.x;
                 const dz = mob.pos.z - player_pos.z;
                 if (dx * dx + dz * dz < 24.0 * 24.0) near += 1;
@@ -343,7 +343,8 @@ pub const MobManager = struct {
                                 const g = bat(gx, gy, gz);
                                 if (g == .netherrack or g == .nether_brick or g == .soul_sand) {
                                     if (bat(gx, gy + 1, gz) == .air and bat(gx, gy + 2, gz) == .air) {
-                                        self.spawnMob(.emberbeast, @as(f32, @floatFromInt(gx)) + 0.5, @as(f32, @floatFromInt(gy + 1)), @as(f32, @floatFromInt(gz)) + 0.5) catch {};
+                                        const spawn_type: mob_mod.MobType = if (spawner_found and self.rng.random().float(f32) < 0.6) .blaze else .emberbeast;
+                                        self.spawnMob(spawn_type, @as(f32, @floatFromInt(gx)) + 0.5, @as(f32, @floatFromInt(gy + 1)), @as(f32, @floatFromInt(gz)) + 0.5) catch {};
                                         if (audio) |a| {
                                             a.playAt(.mob_roar, .{ @as(f32, @floatFromInt(gx)), @as(f32, @floatFromInt(gy + 1)), @as(f32, @floatFromInt(gz)) }, .{ player_pos.x, player_pos.y, player_pos.z }, 0.8, 30.0);
                                         }
@@ -457,7 +458,7 @@ pub const MobManager = struct {
         var count: usize = 0;
         const r_sq = radius * radius;
         for (self.mobs.items) |m| {
-            if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute) continue;
+            if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze) continue;
             const dx = m.pos.x - center.x;
             const dy = m.pos.y - center.y;
             const dz = m.pos.z - center.z;

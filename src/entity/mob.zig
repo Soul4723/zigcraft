@@ -53,6 +53,7 @@ pub const Mob = struct {
             .emberbeast => 0.7,
             .wither_skeleton => 0.6,
             .piglin, .piglin_brute => 0.6,
+            .blaze => 0.6,
         };
         const h: f32 = switch (mob_type) {
             .sheep => 0.9,
@@ -61,6 +62,7 @@ pub const Mob = struct {
             .emberbeast => 1.0,
             .wither_skeleton => 1.6,
             .piglin, .piglin_brute => 1.5,
+            .blaze => 1.8,
         };
         const spd: f32 = switch (mob_type) {
             .sheep => 1.4,
@@ -70,6 +72,7 @@ pub const Mob = struct {
             .wither_skeleton => 2.8,
             .piglin => 2.6,
             .piglin_brute => 3.0,
+            .blaze => 2.4,
         };
         return .{
             .mob_type = mob_type,
@@ -85,7 +88,7 @@ pub const Mob = struct {
             .anim_time = 0.0,
             .change_dir_timer = 2.0,
             .wants_sound = false,
-            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .piglin_brute) 15 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
+            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze) 20 else if (mob_type == .piglin_brute) 15 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
             .in_water = false,
             .in_bubble_column = false,
             .in_whirlpool = false,
@@ -128,7 +131,7 @@ pub const Mob = struct {
             wish_z = @cos(self.yaw) * self.walk_speed;
             self.anim_time += clamped_dt * 6.0;
         } else {
-            self.anim_time = 0.0;
+            self.anim_time = if (self.mob_type == .blaze) self.anim_time + clamped_dt * 3.0 else 0.0;
         }
 
         // Water detection & current push on mobs
@@ -190,6 +193,9 @@ pub const Mob = struct {
                 self.vel.y = @min(1.8, self.vel.y + 8.0 * clamped_dt);
                 self.on_ground = false;
             }
+        } else if (self.mob_type == .blaze) {
+            // Blaze hovers gently without falling
+            self.vel.y = @sin(self.anim_time * 2.5) * 0.4;
         } else {
             self.vel.y -= 25.0 * clamped_dt;
             if (self.vel.y < -30.0) self.vel.y = -30.0;
@@ -489,6 +495,7 @@ pub fn getSound(mob_type: MobType) ?@import("../audio/synth.zig").SoundType {
         .pig => .mob_oink,
         .wolf => .mob_growl,
         .emberbeast => .mob_roar,
+        .blaze => .mob_roar,
         .wither_skeleton => .mob_growl,
         .piglin, .piglin_brute => .mob_oink,
     };
@@ -632,4 +639,11 @@ test "mob glowing status timer and decay" {
     mob.tick(solid, fluid, 0.05, &rng);
     try std.testing.expectApproxEqAbs(mob.glow_timer, 9.95, 0.001);
     try std.testing.expect(mob.isGlowing());
+}
+
+test "blaze mob properties: 20 HP, fire immunity and hovering" {
+    const b = Mob.init(.blaze, 10.0, 5.0, 10.0);
+    try std.testing.expectEqual(@as(u8, 20), b.health);
+    try std.testing.expectApproxEqAbs(b.height, 1.8, 0.01);
+    try std.testing.expectEqual(b.mob_type, .blaze);
 }

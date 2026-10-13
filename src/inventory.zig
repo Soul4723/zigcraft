@@ -110,6 +110,8 @@ pub const ItemType = enum(u8) {
     dispenser = 104,
     dropper = 105,
     hopper = 106,
+    blaze_rod = 107,
+    blaze_powder = 108,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -395,6 +397,8 @@ pub const ItemType = enum(u8) {
             .dispenser => "Dispenser",
             .dropper => "Dropper",
             .hopper => "Hopper",
+            .blaze_rod => "Blaze Rod",
+            .blaze_powder => "Blaze Powder",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -443,6 +447,8 @@ pub const ItemType = enum(u8) {
             .dispenser => .{ 0.55, 0.55, 0.58, 0.95 },
             .dropper => .{ 0.62, 0.62, 0.64, 0.95 },
             .hopper => .{ 0.38, 0.38, 0.40, 0.95 },
+            .blaze_rod => .{ 1.0, 0.72, 0.15, 0.95 },
+            .blaze_powder => .{ 0.95, 0.55, 0.10, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -983,6 +989,28 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 72: Blaze Powder: 1 Blaze Rod -> 2 Blaze Powder
+        if (non_empty == 1) {
+            if (g0 == .blaze_rod or g1 == .blaze_rod or g2 == .blaze_rod or g3 == .blaze_rod) {
+                self.craft_output = .{ .item = .blaze_powder, .count = 2 };
+                return;
+            }
+        }
+
+        // Recipe 73: Fire Charge: 1 Blaze Powder + 1 Coal -> 3 Fire Charges
+        if (non_empty == 2) {
+            var powder_count: u8 = 0;
+            var coal_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .blaze_powder) powder_count += 1;
+                if (sl.item == .coal) coal_count += 1;
+            }
+            if (powder_count == 1 and coal_count == 1) {
+                self.craft_output = .{ .item = .fire_charge, .count = 3 };
                 return;
             }
         }
@@ -1856,7 +1884,7 @@ pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
     return held == .wooden_pickaxe or held == .iron_pickaxe or held == .netherite_pickaxe;
 }
 
-pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute };
+pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze };
 
 pub fn getMobMeatDrop(mob_type: MobType) ItemType {
     return switch (mob_type) {
@@ -1866,6 +1894,7 @@ pub fn getMobMeatDrop(mob_type: MobType) ItemType {
         .emberbeast => .coal,
         .wither_skeleton => .coal,
         .piglin, .piglin_brute => .gold_nugget,
+        .blaze => .blaze_rod,
     };
 }
 
@@ -2402,6 +2431,7 @@ test "magma cream recipe and potion brewing" {
 test "fire charge recipe from cream and coal" {
     var inv = Inventory.init();
     inv.craft_grid[0] = .{ .item = .magma_cream, .count = 1 };
+    inv.craft_grid[0] = .{ .item = .blaze_powder, .count = 1 };
     inv.craft_grid[1] = .{ .item = .coal, .count = 1 };
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .fire_charge);
@@ -2881,4 +2911,27 @@ test "hopper item roundtrip, properties, and Recipe 71" {
     try std.testing.expectEqual(ItemType.hopper.maxDurability(), 0);
     try std.testing.expect(!ItemType.hopper.isTool());
     try std.testing.expectEqual(ItemType.hopper.maxStackSize(), 64);
+}
+
+test "blaze mob drops and recipes 72 and 73" {
+    try std.testing.expectEqual(ItemType.blaze_rod, getMobMeatDrop(.blaze));
+    try std.testing.expectEqualStrings(ItemType.blaze_rod.name(), "Blaze Rod");
+    try std.testing.expectEqualStrings(ItemType.blaze_powder.name(), "Blaze Powder");
+    try std.testing.expectEqual(ItemType.blaze_rod.maxDurability(), 0);
+    try std.testing.expect(!ItemType.blaze_rod.isTool());
+    try std.testing.expectEqual(ItemType.blaze_rod.maxStackSize(), 64);
+
+    var inv = Inventory.init();
+    // Recipe 72: 1 Blaze Rod -> 2 Blaze Powder
+    inv.craft_grid[0] = .{ .item = .blaze_rod, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .blaze_powder);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+
+    // Recipe 73: 1 Blaze Powder + 1 Coal -> 3 Fire Charges
+    inv.craft_grid[0] = .{ .item = .blaze_powder, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .coal, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .fire_charge);
+    try std.testing.expectEqual(inv.craft_output.count, 3);
 }
