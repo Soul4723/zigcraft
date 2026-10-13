@@ -134,6 +134,7 @@ pub const ItemType = enum(u8) {
     bone_meal = 128,
     loom = 129,
     smoker = 130,
+    blast_furnace = 131,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -220,6 +221,7 @@ pub const ItemType = enum(u8) {
             .composter => .composter,
             .loom => .loom,
             .smoker => .smoker,
+            .blast_furnace => .blast_furnace,
             else => null,
         };
     }
@@ -312,6 +314,7 @@ pub const ItemType = enum(u8) {
             .composter => .composter,
             .loom => .loom,
             .smoker => .smoker,
+            .blast_furnace => .blast_furnace,
         };
     }
 
@@ -493,6 +496,7 @@ pub const ItemType = enum(u8) {
             .bone_meal => "Bone Meal",
             .loom => "Loom",
             .smoker => "Smoker",
+            .blast_furnace => "Blast Furnace",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -565,6 +569,7 @@ pub const ItemType = enum(u8) {
             .bone_meal => .{ 0.92, 0.92, 0.88, 0.95 },
             .loom => .{ 0.65, 0.52, 0.38, 0.95 },
             .smoker => .{ 0.40, 0.38, 0.36, 0.95 },
+            .blast_furnace => .{ 0.30, 0.32, 0.34, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1113,6 +1118,24 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 94: Blast Furnace: 1 Furnace + 1 Iron Ingot (or Iron Ore) + 1 Stone (or Cobblestone/Sandstone) -> 1 Blast Furnace
+        if (non_empty >= 3 and non_empty <= 5) {
+            var furnace_count: u8 = 0;
+            var iron_count: u8 = 0;
+            var stone_count: u8 = 0;
+            var other_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .furnace) furnace_count += 1
+                else if (sl.item == .iron_ingot or sl.item == .iron_ore) iron_count += 1
+                else if (sl.item == .stone or sl.item == .cobblestone or sl.item == .sandstone) stone_count += 1
+                else if (!sl.isEmpty()) other_count += 1;
+            }
+            if (furnace_count == 1 and iron_count >= 1 and stone_count >= 1 and other_count == 0) {
+                self.craft_output = .{ .item = .blast_furnace, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 93: Smoker: 1 Furnace + 1 Wood Planks (or Wood Log) -> 1 Smoker
         if (non_empty >= 2 and non_empty <= 4) {
@@ -3781,6 +3804,30 @@ test "loom item roundtrip, properties, and Recipe 92" {
     try std.testing.expectEqual(ItemType.loom.maxDurability(), 0);
     try std.testing.expect(!ItemType.loom.isTool());
     try std.testing.expectEqual(ItemType.loom.maxStackSize(), 64);
+}
+
+test "blast_furnace item roundtrip, properties, and Recipe 94" {
+    var inv = Inventory.init();
+    // Recipe 94: 1 Furnace + 1 Iron Ingot + 1 Stone -> 1 Blast Furnace
+    inv.craft_grid[0] = .{ .item = .furnace, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .stone, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .blast_furnace);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Alternative: 1 Furnace + 1 Iron Ore + 1 Cobblestone
+    inv.craft_grid[1] = .{ .item = .iron_ore, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .cobblestone, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .blast_furnace);
+
+    try std.testing.expectEqual(ItemType.blast_furnace.toBlockId().?, .blast_furnace);
+    try std.testing.expectEqual(ItemType.fromBlockId(.blast_furnace), .blast_furnace);
+    try std.testing.expectEqualStrings(ItemType.blast_furnace.name(), "Blast Furnace");
+    try std.testing.expectEqual(ItemType.blast_furnace.maxDurability(), 0);
+    try std.testing.expect(!ItemType.blast_furnace.isTool());
+    try std.testing.expectEqual(ItemType.blast_furnace.maxStackSize(), 64);
 }
 
 test "smoker item roundtrip, properties, and Recipe 93" {

@@ -221,6 +221,8 @@ pub fn main() !void {
     var furnace_count: usize = 0;
     var smokers: [smelt_mod.furnace_cap]FurnaceJob = undefined;
     var smoker_count: usize = 0;
+    var blast_furnaces: [smelt_mod.furnace_cap]FurnaceJob = undefined;
+    var blast_furnace_count: usize = 0;
     const Chest = struct { x: i32, y: i32, z: i32, items: [4]inventory_mod.ItemStack };
     var chests: [cache_mod.chest_cap]Chest = undefined;
     var chest_count: usize = 0;
@@ -2464,6 +2466,10 @@ pub fn main() !void {
                                             smokers[smoker_count] = .{ .x = px, .y = py, .z = pz, .t = 0, .fuel = 0, .input = smelt_mod.None };
                                             smoker_count += 1;
                                         }
+                                        if (place_type == .blast_furnace and cache_mod.canCreateFurnace(blast_furnace_count, blast_furnaces.len)) {
+                                            blast_furnaces[blast_furnace_count] = .{ .x = px, .y = py, .z = pz, .t = 0, .fuel = 0, .input = smelt_mod.None };
+                                            blast_furnace_count += 1;
+                                        }
                                         hotbar_slot.decrement(1);
                                         std.debug.print("placed {s} ({d},{d},{d})\n", .{ @tagName(place_type), px, py, pz });
                                     }
@@ -2545,6 +2551,31 @@ pub fn main() !void {
                     std.debug.print("smoked food: {s}\n", .{done.name()});
                 }
                 smk_i += 1;
+            }
+        }
+
+        // Blast Furnace tick: high-speed ore smelting (5s per item) and fiery spark burst
+        {
+            var bfi: usize = 0;
+            while (bfi < blast_furnace_count) {
+                const bf = &blast_furnaces[bfi];
+                if (manager.getBlockWorld(bf.x, bf.y, bf.z) != .blast_furnace) {
+                    cache_mod.swapRemove(&blast_furnaces, &blast_furnace_count, bfi);
+                    continue;
+                }
+                const outcome = smelt_mod.tickBlastFurnaceJob(&bf.t, &bf.fuel, &bf.input, dt);
+                if (bf.fuel > 0 and bf.input != smelt_mod.None) {
+                    // Fiery sparks spraying from blast smelting chamber
+                    particles.spawnBurnSparks(.{ @as(f32, @floatFromInt(bf.x)) + 0.5, @as(f32, @floatFromInt(bf.y)) + 0.9, @as(f32, @floatFromInt(bf.z)) + 0.5 }, 3);
+                }
+                if (outcome.done_item) |done_tag| {
+                    const done: inventory_mod.ItemType = @enumFromInt(done_tag);
+                    _ = inventory.addItem(done, 1);
+                    audio.play(.craft_item, 0.8);
+                    particles.spawnFlame(bf.x, bf.y + 1, bf.z, 4);
+                    std.debug.print("blast smelted ore: {s}\n", .{done.name()});
+                }
+                bfi += 1;
             }
         }
 
@@ -3894,6 +3925,36 @@ pub fn main() !void {
                         }
                     }
                     flint_cooldown = interact_mod.flint_feed_cooldown;
+                } else if (target == .blast_furnace) {
+                    const held_f = inventory.slots[selected_slot];
+                    const is_ore = smelt_mod.isOreItem(@intFromEnum(held_f.item));
+                    var fed = false;
+                    var k_opt = cache_mod.findBlastFurnace(&blast_furnaces, blast_furnace_count, hit_f.x, hit_f.y, hit_f.z);
+                    if (k_opt == null and cache_mod.canCreateFurnace(blast_furnace_count, blast_furnaces.len)) {
+                        blast_furnaces[blast_furnace_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z, .t = 0, .fuel = 0, .input = smelt_mod.None };
+                        k_opt = blast_furnace_count;
+                        blast_furnace_count += 1;
+                    }
+                    if (k_opt) |k| {
+                        switch (smelt_mod.evaluateFurnaceFeed(held_f.item == .coal, is_ore, blast_furnaces[k].fuel, blast_furnaces[k].input)) {
+                            .add_fuel => {
+                                blast_furnaces[k].fuel += 1;
+                                inventory.slots[selected_slot].decrement(1);
+                                fed = true;
+                            },
+                            .set_input => {
+                                blast_furnaces[k].input = @intFromEnum(held_f.item);
+                                inventory.slots[selected_slot].decrement(1);
+                                fed = true;
+                            },
+                            .none => {},
+                        }
+                    }
+                    if (fed) {
+                        audio.play(.place_block, 0.7);
+                        particles.spawnBurnSparks(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.9, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 6);
+                    }
+                    flint_cooldown = interact_mod.flint_edge_cooldown;
                 } else if (target == .smoker) {
                     const held_f = inventory.slots[selected_slot];
                     const is_meat = smelt_mod.isFoodItem(@intFromEnum(held_f.item));

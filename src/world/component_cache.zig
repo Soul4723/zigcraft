@@ -427,3 +427,16 @@ test "findSmoker helper" {
     try std.testing.expectEqual(findSmoker(&sm, 1, 25, 29, 33), @as(?usize, 0));
     try std.testing.expectEqual(findSmoker(&sm, 1, 0, 0, 0), @as(?usize, null));
 }
+
+pub const blast_furnace_cap: usize = 16;
+
+pub fn findBlastFurnace(blast_furnaces: anytype, n: usize, x: i32, y: i32, z: i32) ?usize {
+    return find2D(blast_furnaces, n, x, y, z);
+}
+
+test "findBlastFurnace helper" {
+    const FakeBF = struct { x: i32, y: i32, z: i32 };
+    var bfs = [_]FakeBF{.{ .x = 10, .y = 12, .z = 14 }} ** 2;
+    try std.testing.expectEqual(findBlastFurnace(&bfs, 1, 10, 12, 14), @as(?usize, 0));
+    try std.testing.expectEqual(findBlastFurnace(&bfs, 1, 0, 0, 0), @as(?usize, null));
+}

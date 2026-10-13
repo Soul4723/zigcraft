@@ -184,3 +184,60 @@ test "tickSmokerJob high-speed food smoking" {
     const r3 = tickSmokerJob(&t, &fuel, &input, 5.0);
     try std.testing.expectEqual(@as(?u8, null), r3.done_item);
 }
+
+pub const blast_furnace_time: f32 = 5.0;
+
+pub fn isOreItem(input: u8) bool {
+    return input == IronOre or input == AncientDebris or input == Sand;
+}
+
+pub fn tickBlastFurnaceJob(t: *f32, fuel: *u8, input: *u8, dt: f32) SmeltTickOutcome {
+    if (input.* != None and fuel.* > 0 and isOreItem(input.*)) {
+        t.* += dt;
+        if (t.* >= blast_furnace_time) {
+            t.* = 0.0;
+            fuel.* -= 1;
+            const res = smeltResult(input.*);
+            input.* = None;
+            return .{
+                .done_item = if (res != None) res else null,
+                .fuel_consumed = true,
+                .reset_timer = true,
+            };
+        }
+        return .{
+            .done_item = null,
+            .fuel_consumed = false,
+            .reset_timer = false,
+        };
+    } else {
+        t.* = 0.0;
+        return .{
+            .done_item = null,
+            .fuel_consumed = false,
+            .reset_timer = true,
+        };
+    }
+}
+
+test "tickBlastFurnaceJob high-speed ore smelting" {
+    var t: f32 = 0.0;
+    var fuel: u8 = 1;
+    var input: u8 = IronOre;
+
+    // 2.5 seconds: not done
+    const r1 = tickBlastFurnaceJob(&t, &fuel, &input, 2.5);
+    try std.testing.expectEqual(@as(?u8, null), r1.done_item);
+
+    // Another 2.5s: total 5.0s -> done!
+    const r2 = tickBlastFurnaceJob(&t, &fuel, &input, 2.5);
+    try std.testing.expectEqual(@as(?u8, IronIngot), r2.done_item);
+    try std.testing.expectEqual(@as(u8, 0), fuel);
+    try std.testing.expectEqual(None, input);
+
+    // Non-ore food in blast furnace rejected
+    fuel = 1;
+    input = RawPork;
+    const r3 = tickBlastFurnaceJob(&t, &fuel, &input, 5.0);
+    try std.testing.expectEqual(@as(?u8, null), r3.done_item);
+}
