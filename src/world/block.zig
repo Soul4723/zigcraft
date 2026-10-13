@@ -90,6 +90,7 @@ pub const BlockId = enum(u8) {
     cauldron = 79,
     daylight_detector = 80,
     daylight_detector_inverted = 81,
+    note_block = 82,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand;
@@ -170,7 +171,7 @@ pub const BlockId = enum(u8) {
 
     pub fn isFlammable(self: BlockId) bool {
         return switch (self) {
-            .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest, .wooden_door_closed, .wooden_door_open, .pressure_plate_up, .pressure_plate_down, .weeping_vines, .twisting_vines, .target_block, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight => true,
+            .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest, .note_block, .wooden_door_closed, .wooden_door_open, .pressure_plate_up, .pressure_plate_down, .weeping_vines, .twisting_vines, .target_block, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight => true,
             else => false,
         };
     }
@@ -280,6 +281,10 @@ pub const BlockId = enum(u8) {
             .warped_fungus => .{ .x = 7, .y = 1 }, // Azure bioluminescent spore cap
             .shroomlight => .{ .x = 5, .y = 3 }, // Luminescent organic shroomlight vesicle
             .chiseled_nether_brick => .{ .x = 5, .y = 1 }, // Chiseled nether brick skull relief medallion
+            .note_block => switch (face_idx) {
+                0, 1 => .{ .x = 2, .y = 2 }, // Wooden soundboard top & bottom
+                else => .{ .x = 4, .y = 3 }, // Carved acoustic wooden sound hole sides
+            },
             .daylight_detector => switch (face_idx) {
                 0 => .{ .x = 3, .y = 7 }, // Radiant solar quartz photovoltaic cell top (day)
                 1 => .{ .x = 2, .y = 2 }, // Oak wood base bottom
@@ -409,6 +414,7 @@ pub fn hardness(block: BlockId) f32 {
         .brewing_stand => 2.0,
         .cauldron => 2.0,
         .daylight_detector, .daylight_detector_inverted => 0.2,
+        .note_block => 0.8,
         .nether_wart => 0.3,
     };
 }
@@ -539,6 +545,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .cauldron = .{ .name = "cauldron", .solid = true, .transparent = false, .fluid = false },
     .daylight_detector = .{ .name = "daylight_detector", .solid = true, .transparent = false, .fluid = false },
     .daylight_detector_inverted = .{ .name = "daylight_detector_inverted", .solid = true, .transparent = false, .fluid = false },
+    .note_block = .{ .name = "note_block", .solid = true, .transparent = false, .fluid = false },
 });
 
 /// A beacon activates when the column directly above it up to world ceiling (y=15)
@@ -978,7 +985,7 @@ pub fn footstepType(block: BlockId) FootstepType {
     return switch (block) {
         .grass, .weeping_vines, .twisting_vines, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight => .grass,
         .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron => .stone,
-        .wood, .target_block, .daylight_detector, .daylight_detector_inverted => .wood,
+        .wood, .target_block, .daylight_detector, .daylight_detector_inverted, .note_block => .wood,
         .dirt => .dirt,
         .sand => .sand,
         .snow => .snow,
@@ -1306,4 +1313,21 @@ test "daylight detector block properties and textures" {
     const night_top = BlockId.daylight_detector_inverted.getFaceTexture(0);
     try std.testing.expectEqual(@as(u32, 7), night_top.x);
     try std.testing.expectEqual(@as(u32, 1), night_top.y);
+}
+
+test "note block block properties and textures" {
+    try std.testing.expect(BlockId.note_block.is_solid());
+    try std.testing.expect(!BlockId.note_block.is_transparent());
+    try std.testing.expect(!BlockId.note_block.is_fluid());
+    try std.testing.expectEqual(hardness(.note_block), 0.8);
+    try std.testing.expectEqual(footstepType(.note_block), .wood);
+    try std.testing.expect(BlockId.note_block.isFlammable());
+
+    const top_tex = BlockId.note_block.getFaceTexture(0);
+    try std.testing.expectEqual(@as(u32, 2), top_tex.x);
+    try std.testing.expectEqual(@as(u32, 2), top_tex.y);
+
+    const side_tex = BlockId.note_block.getFaceTexture(2);
+    try std.testing.expectEqual(@as(u32, 4), side_tex.x);
+    try std.testing.expectEqual(@as(u32, 3), side_tex.y);
 }

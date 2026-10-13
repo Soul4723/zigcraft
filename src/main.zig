@@ -256,6 +256,9 @@ pub fn main() !void {
     const CauldronState = struct { x: i32, y: i32, z: i32, fluid: CauldronFluid = .empty, level: u8 = 0 };
     var cauldrons: [32]CauldronState = undefined;
     var cauldron_count: usize = 0;
+    const NoteBlockState = struct { x: i32, y: i32, z: i32, pitch: u5 = 0, powered: bool = false };
+    var note_blocks: [32]NoteBlockState = undefined;
+    var note_block_count: usize = 0;
     const DropperState = struct { x: i32, y: i32, z: i32, powered: bool = false, items: [4]inventory_mod.ItemStack = undefined, count: usize = 0 };
     var droppers: [32]DropperState = undefined;
     var dropper_count: usize = 0;
@@ -539,6 +542,40 @@ pub fn main() !void {
 
     
 
+
+        // Note Block redstone rising-edge acoustic trigger
+        {
+            var nbi: usize = 0;
+            while (nbi < note_block_count) {
+                const nb = &note_blocks[nbi];
+                const cur_b = manager.getBlockWorld(nb.x, nb.y, nb.z);
+                if (cur_b != .note_block) {
+                    cache_mod.swapRemove(&note_blocks, &note_block_count, nbi);
+                    continue;
+                }
+
+                const is_pwr = redstone_mod.isDispenserPowered(&pickBlockWorld, nb.x, nb.y, nb.z);
+                if (is_pwr and !nb.powered) {
+                    nb.powered = true;
+                    // Play note instrument based on floor block underneath (y - 1)
+                    const floor_b = manager.getBlockWorld(nb.x, nb.y - 1, nb.z);
+                    const inst = redstone_mod.getNoteInstrument(floor_b);
+                    const snd: audio_mod.synth.SoundType = switch (inst) {
+                        .bass => .note_bass,
+                        .snare => .note_snare,
+                        .chime => .note_chime,
+                        .harp => .note_harp,
+                    };
+                    audio.playAt(snd, .{ @as(f32, @floatFromInt(nb.x)) + 0.5, @as(f32, @floatFromInt(nb.y)) + 0.5, @as(f32, @floatFromInt(nb.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 32.0);
+                    particles.spawnFlame(nb.x, nb.y + 1, nb.z, 2);
+                    std.debug.print("note block struck by redstone: {s} (pitch={d})\n", .{ @tagName(inst), nb.pitch });
+                } else if (!is_pwr) {
+                    nb.powered = false;
+                }
+
+                nbi += 1;
+            }
+        }
 
         // Brewing Stand: autonomous 2.5s distillation pipeline converting nether wart + glass into fire resistance potions
         {
@@ -2168,6 +2205,10 @@ pub fn main() !void {
                                             cauldrons[cauldron_count] = .{ .x = px, .y = py, .z = pz };
                                             cauldron_count += 1;
                                         }
+                                        if (place_type == .note_block and note_block_count < note_blocks.len) {
+                                            note_blocks[note_block_count] = .{ .x = px, .y = py, .z = pz, .pitch = 0 };
+                                            note_block_count += 1;
+                                        }
                                         if (place_type == .spawner_cage and spawner_count < spawners.len) {
                                             spawners[spawner_count] = .{ .x = px, .y = py, .z = pz };
                                             spawner_count += 1;
@@ -3155,6 +3196,32 @@ pub fn main() !void {
                         }
                     }
                     flint_cooldown = interact_mod.flint_feed_cooldown;
+                } else if (target == .note_block) {
+                    var nb_opt = cache_mod.findNoteBlock(&note_blocks, note_block_count, hit_f.x, hit_f.y, hit_f.z);
+                    if (nb_opt == null and note_block_count < note_blocks.len) {
+                        note_blocks[note_block_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z, .pitch = 0 };
+                        nb_opt = note_block_count;
+                        note_block_count += 1;
+                    }
+
+                    if (nb_opt) |ni| {
+                        const nb = &note_blocks[ni];
+                        nb.pitch = if (nb.pitch < 24) nb.pitch + 1 else 0;
+
+                        // Play sound when tuned
+                        const floor_b = manager.getBlockWorld(hit_f.x, hit_f.y - 1, hit_f.z);
+                        const inst = redstone_mod.getNoteInstrument(floor_b);
+                        const snd: audio_mod.synth.SoundType = switch (inst) {
+                            .bass => .note_bass,
+                            .snare => .note_snare,
+                            .chime => .note_chime,
+                            .harp => .note_harp,
+                        };
+                        audio.playAt(snd, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 32.0);
+                        particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 4);
+                        std.debug.print("tuned note block: {s} (semitones={d})\n", .{ @tagName(inst), nb.pitch });
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .daylight_detector or target == .daylight_detector_inverted) {
                     const new_mode: block_mod.BlockId = if (target == .daylight_detector) .daylight_detector_inverted else .daylight_detector;
                     if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, new_mode)) {

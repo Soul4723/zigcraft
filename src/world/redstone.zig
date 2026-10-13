@@ -402,3 +402,37 @@ test "daylightSignalStrength day and inverted night scaling" {
     try std.testing.expectEqual(@as(u4, 0), daylightSignalStrength(-0.9, false));
     try std.testing.expectEqual(@as(u4, 15), daylightSignalStrength(-0.9, true));
 }
+
+pub const NoteInstrument = enum { harp, bass, snare, chime };
+
+pub fn getNoteInstrument(floor_block: BlockId) NoteInstrument {
+    return switch (floor_block) {
+        .wood, .wood_planks, .crafting_table => .bass,
+        .sand, .soul_sand => .snare,
+        .glass, .glowstone, .beacon => .chime,
+        else => .harp, // dirt, stone, air, etc. default to acoustic piano/harp
+    };
+}
+
+pub fn notePitchFrequencyMultiplier(pitch_semitones: u5) f32 {
+    // 24 semitones (2 full octaves): 2^(semitones / 12)
+    const st = @as(f32, @floatFromInt(pitch_semitones));
+    return @exp(st * 0.057762265); // ln(2)/12 = 0.057762265
+}
+
+test "getNoteInstrument acoustic mapping" {
+    try std.testing.expectEqual(NoteInstrument.bass, getNoteInstrument(.wood));
+    try std.testing.expectEqual(NoteInstrument.bass, getNoteInstrument(.wood_planks));
+    try std.testing.expectEqual(NoteInstrument.snare, getNoteInstrument(.sand));
+    try std.testing.expectEqual(NoteInstrument.snare, getNoteInstrument(.soul_sand));
+    try std.testing.expectEqual(NoteInstrument.chime, getNoteInstrument(.glass));
+    try std.testing.expectEqual(NoteInstrument.chime, getNoteInstrument(.glowstone));
+    try std.testing.expectEqual(NoteInstrument.harp, getNoteInstrument(.dirt));
+    try std.testing.expectEqual(NoteInstrument.harp, getNoteInstrument(.stone));
+}
+
+test "notePitchFrequencyMultiplier two octave progression" {
+    try std.testing.expectApproxEqAbs(notePitchFrequencyMultiplier(0), 1.0, 0.01);
+    try std.testing.expectApproxEqAbs(notePitchFrequencyMultiplier(12), 2.0, 0.02);
+    try std.testing.expectApproxEqAbs(notePitchFrequencyMultiplier(24), 4.0, 0.05);
+}

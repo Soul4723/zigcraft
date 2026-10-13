@@ -33,6 +33,10 @@ pub const SoundType = enum {
     crossbow_shoot,
     crossbow_load,
     firework_blast,
+    note_harp,
+    note_bass,
+    note_snare,
+    note_chime,
 };
 
 pub const SAMPLE_RATE: u32 = 44100;
@@ -107,6 +111,8 @@ pub const AudioMixer = struct {
             .crossbow_shoot => SAMPLE_RATE / 6, // ~166ms powerful latch release snap & whip
             .crossbow_load => SAMPLE_RATE / 5, // ~200ms ratchet latch click & tension creak
             .firework_blast => SAMPLE_RATE * 2 / 5, // ~400ms explosive thud & cascading crackle
+            .note_harp, .note_bass, .note_chime => SAMPLE_RATE * 3 / 10, // ~300ms resonant melodic decay
+            .note_snare => SAMPLE_RATE / 8, // ~125ms sharp percussion snare snap
         };
 
         slot.?.* = .{
@@ -427,6 +433,43 @@ pub const AudioMixer = struct {
                 const crackle = (rng.random().float(f32) * 2.0 - 1.0) * 0.5 * crackle_gate * (1.0 - progress);
                 return (punch + crackle) * envelope * 0.85;
             },
+            .note_harp => {
+                // Plucked wooden acoustic harp/piano tone: rich warm harmonics (261.6Hz Middle C base)
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const fund: f32 = 261.63; // C4
+                const h1 = @sin(t * fund * 2.0 * std.math.pi) * 0.65;
+                const h2 = @sin(t * fund * 4.0 * std.math.pi) * 0.25;
+                const h3 = @sin(t * fund * 6.0 * std.math.pi) * 0.10;
+                const harp_env = @exp(-progress * 5.0);
+                return (h1 + h2 + h3) * harp_env * 0.85;
+            },
+            .note_bass => {
+                // Deep acoustic double bass / wood floor thud: punchy low-end sine + warm sub (130.8Hz C3 base)
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const fund: f32 = 130.81; // C3
+                const sub = @sin(t * fund * 2.0 * std.math.pi) * 0.75;
+                const punch = @sin(t * fund * 4.0 * std.math.pi) * 0.25 * @exp(-progress * 8.0);
+                const bass_env = @exp(-progress * 4.0);
+                return (sub + punch) * bass_env * 0.90;
+            },
+            .note_snare => {
+                // Sand/gravel crisp acoustic percussion snare: high-passed noise burst + crisp skin snap
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const noise = (rng.random().float(f32) * 2.0 - 1.0) * 0.65;
+                const snap = @sin(t * 330.0 * 2.0 * std.math.pi) * 0.35 * @exp(-progress * 12.0);
+                const snare_env = @exp(-progress * 8.0);
+                return (noise + snap) * snare_env * 0.80;
+            },
+            .note_chime => {
+                // Glass / glowstone bell chime: pure crystalline high-frequency bell (523.25Hz C5 base)
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const fund: f32 = 523.25; // C5
+                const b1 = @sin(t * fund * 2.0 * std.math.pi) * 0.60;
+                const b2 = @sin(t * fund * 6.0 * std.math.pi) * 0.30;
+                const b3 = @sin(t * fund * 10.0 * std.math.pi) * 0.10;
+                const chime_env = @exp(-progress * 4.5);
+                return (b1 + b2 + b3) * chime_env * 0.75;
+            },
         }
     }
 };
@@ -458,7 +501,7 @@ test "AudioMixer play voice produces non-zero samples" {
 
 test "AudioMixer all sound types render without overflow or crash" {
     var mixer = AudioMixer.init();
-    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .mob_roar, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle, .nether_wind, .glowstone_chime, .bow_shoot, .shield_block, .crossbow_shoot, .crossbow_load, .firework_blast };
+    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .mob_roar, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle, .nether_wind, .glowstone_chime, .bow_shoot, .shield_block, .crossbow_shoot, .crossbow_load, .firework_blast, .note_harp, .note_bass, .note_snare, .note_chime };
     for (sounds) |snd| {
         mixer.play(snd, 1.0);
     }
@@ -576,4 +619,23 @@ test "firework_blast sound synthesis non-zero output" {
         }
     }
     try std.testing.expect(has_nonzero);
+}
+
+test "note block instrumental audio synthesis voices" {
+    var mixer = AudioMixer.init();
+    var buf: [256]i16 = undefined;
+
+    const note_types = [_]SoundType{ .note_harp, .note_bass, .note_snare, .note_chime };
+    for (note_types) |nt| {
+        mixer.play(nt, 0.8);
+        mixer.render(&buf);
+        var non_zero = false;
+        for (buf) |s| {
+            if (s != 0) {
+                non_zero = true;
+                break;
+            }
+        }
+        try std.testing.expect(non_zero);
+    }
 }

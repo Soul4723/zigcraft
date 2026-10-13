@@ -271,3 +271,16 @@ test "findCauldron helper" {
     try std.testing.expectEqual(findCauldron(&cs, 1, 10, 20, 30), @as(?usize, 0));
     try std.testing.expectEqual(findCauldron(&cs, 1, 0, 0, 0), @as(?usize, null));
 }
+
+pub const note_block_cap: usize = 32;
+
+pub fn findNoteBlock(notes: anytype, n: usize, x: i32, y: i32, z: i32) ?usize {
+    return find2D(notes, n, x, y, z);
+}
+
+test "findNoteBlock helper" {
+    const FakeNoteBlock = struct { x: i32, y: i32, z: i32 };
+    var nb = [_]FakeNoteBlock{.{ .x = 11, .y = 22, .z = 33 }} ** 2;
+    try std.testing.expectEqual(findNoteBlock(&nb, 1, 11, 22, 33), @as(?usize, 0));
+    try std.testing.expectEqual(findNoteBlock(&nb, 1, 0, 0, 0), @as(?usize, null));
+}
