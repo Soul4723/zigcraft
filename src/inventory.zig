@@ -122,6 +122,7 @@ pub const ItemType = enum(u8) {
     music_disc_cat = 116,
     oak_fence = 117,
     lead = 118,
+    armor_stand = 119,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -198,6 +199,7 @@ pub const ItemType = enum(u8) {
             .note_block => .note_block,
             .jukebox => .jukebox,
             .oak_fence => .oak_fence,
+            .armor_stand => .armor_stand,
             else => null,
         };
     }
@@ -280,6 +282,15 @@ pub const ItemType = enum(u8) {
             .note_block => .note_block,
             .jukebox => .jukebox,
             .oak_fence => .oak_fence,
+            .armor_stand => .armor_stand,
+        };
+    }
+
+
+    pub fn isArmor(self: ItemType) bool {
+        return switch (self) {
+            .netherite_helmet, .netherite_chestplate, .netherite_leggings, .netherite_boots, .soul_speed_boots => true,
+            else => false,
         };
     }
 
@@ -310,6 +321,7 @@ pub const ItemType = enum(u8) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
+            .armor_stand => 16,
             .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .soul_speed_boots, .netherite_helmet, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat => 1,
             else => 64,
         };
@@ -432,6 +444,7 @@ pub const ItemType = enum(u8) {
             .music_disc_cat => "Music Disc (cat)",
             .oak_fence => "Oak Fence",
             .lead => "Lead",
+            .armor_stand => "Armor Stand",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -492,6 +505,7 @@ pub const ItemType = enum(u8) {
             .music_disc_cat => .{ 0.20, 0.75, 0.40, 0.95 },
             .oak_fence => .{ 0.65, 0.48, 0.28, 0.95 },
             .lead => .{ 0.85, 0.75, 0.55, 0.95 },
+            .armor_stand => .{ 0.75, 0.60, 0.42, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1040,6 +1054,20 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 83: Armor Stand: 1 Stone (smooth stone base) + 2..3 Sticks -> 1 Armor Stand
+        if (non_empty >= 3 and non_empty <= 4) {
+            var stone_count: u8 = 0;
+            var stick_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .stone or sl.item == .cobblestone) stone_count += 1;
+                if (sl.item == .stick) stick_count += 1;
+            }
+            if (stone_count == 1 and stick_count >= 2 and (stone_count + stick_count == non_empty)) {
+                self.craft_output = .{ .item = .armor_stand, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 81: Oak Fence: 2 Wood Planks + 2 Sticks (4 items) or 2 Wood Planks vertically + 1 Stick (vertical column g0+g2 + g1 stick) -> 2 Oak Fences
         if (non_empty == 3) {
@@ -3282,4 +3310,37 @@ test "oak fence and lead item roundtrip, properties, and Recipes 81 and 82" {
     try std.testing.expectEqual(ItemType.lead.maxDurability(), 0);
     try std.testing.expect(!ItemType.lead.isTool());
     try std.testing.expectEqual(ItemType.lead.maxStackSize(), 64);
+}
+
+test "armor stand item roundtrip, properties, isArmor check, and Recipe 83" {
+    var inv = Inventory.init();
+    // Recipe 83: 1 Stone + 2 Sticks -> 1 Armor Stand
+    inv.craft_grid[0] = .{ .item = .stone, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .stick, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .stick, .count = 1 };
+    inv.craft_grid[3].clear();
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .armor_stand);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Also craftable with cobblestone
+    inv.craft_grid[0] = .{ .item = .cobblestone, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .armor_stand);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.armor_stand.toBlockId().?, .armor_stand);
+    try std.testing.expectEqual(ItemType.fromBlockId(.armor_stand), .armor_stand);
+    try std.testing.expectEqualStrings(ItemType.armor_stand.name(), "Armor Stand");
+    try std.testing.expectEqual(ItemType.armor_stand.maxDurability(), 0);
+    try std.testing.expect(!ItemType.armor_stand.isTool());
+    try std.testing.expectEqual(ItemType.armor_stand.maxStackSize(), 16);
+
+    try std.testing.expect(ItemType.netherite_helmet.isArmor());
+    try std.testing.expect(ItemType.netherite_chestplate.isArmor());
+    try std.testing.expect(ItemType.netherite_leggings.isArmor());
+    try std.testing.expect(ItemType.netherite_boots.isArmor());
+    try std.testing.expect(ItemType.soul_speed_boots.isArmor());
+    try std.testing.expect(!ItemType.iron_sword.isArmor());
+    try std.testing.expect(!ItemType.armor_stand.isArmor());
 }

@@ -262,6 +262,19 @@ pub fn main() !void {
     const JukeboxState = struct { x: i32, y: i32, z: i32, playing_disc: ?inventory_mod.ItemType = null, play_timer: f32 = 0.0 };
     var jukeboxes: [cache_mod.jukebox_cap]JukeboxState = undefined;
     var jukebox_count: usize = 0;
+    const ArmorStandPose = enum(u8) { default_standing, salute, pointing, guarding };
+    const ArmorStandState = struct {
+        x: i32,
+        y: i32,
+        z: i32,
+        pose: ArmorStandPose = .default_standing,
+        head: ?inventory_mod.ItemType = null,
+        chest: ?inventory_mod.ItemType = null,
+        legs: ?inventory_mod.ItemType = null,
+        feet: ?inventory_mod.ItemType = null,
+    };
+    var armor_stands: [cache_mod.armor_stand_cap]ArmorStandState = undefined;
+    var armor_stand_count: usize = 0;
     const DropperState = struct { x: i32, y: i32, z: i32, powered: bool = false, items: [4]inventory_mod.ItemStack = undefined, count: usize = 0 };
     var droppers: [32]DropperState = undefined;
     var dropper_count: usize = 0;
@@ -545,6 +558,31 @@ pub fn main() !void {
 
     
 
+
+        // Armor stand block maintenance & equipment visual shimmer
+        {
+            var asi: usize = 0;
+            while (asi < armor_stand_count) {
+                const as_stand = &armor_stands[asi];
+                const cur_b = manager.getBlockWorld(as_stand.x, as_stand.y, as_stand.z);
+                if (cur_b != .armor_stand) {
+                    // Dropped items when stand is destroyed
+                    if (as_stand.head) |it| _ = inventory.addItem(it, 1);
+                    if (as_stand.chest) |it| _ = inventory.addItem(it, 1);
+                    if (as_stand.legs) |it| _ = inventory.addItem(it, 1);
+                    if (as_stand.feet) |it| _ = inventory.addItem(it, 1);
+                    cache_mod.swapRemove(&armor_stands, &armor_stand_count, asi);
+                    continue;
+                }
+                // Ambient particle hint if holding equipped armor
+                if (as_stand.head != null or as_stand.chest != null or as_stand.legs != null or as_stand.feet != null) {
+                    if (asi % 4 == sand_scan % 4) {
+                        particles.spawnBlockDebris(as_stand.x, as_stand.y, as_stand.z, .{ 0.75, 0.60, 0.42 }, 1);
+                    }
+                }
+                asi += 1;
+            }
+        }
 
         // Jukebox vinyl record playback and musical note particle shimmer
         {
@@ -2286,6 +2324,10 @@ pub fn main() !void {
                                             jukeboxes[jukebox_count] = .{ .x = px, .y = py, .z = pz };
                                             jukebox_count += 1;
                                         }
+                                        if (place_type == .armor_stand and armor_stand_count < armor_stands.len) {
+                                            armor_stands[armor_stand_count] = .{ .x = px, .y = py, .z = pz };
+                                            armor_stand_count += 1;
+                                        }
                                         if (place_type == .spawner_cage and spawner_count < spawners.len) {
                                             spawners[spawner_count] = .{ .x = px, .y = py, .z = pz };
                                             spawner_count += 1;
@@ -3287,6 +3329,81 @@ pub fn main() !void {
                             _ = inventory.addItem(.lead, @intCast(unhitched));
                             audio.play(.click_off, 0.85);
                             std.debug.print("unhitched {d} mob(s) from fence post at ({d},{d},{d})\n", .{ unhitched, hit_f.x, hit_f.y, hit_f.z });
+                        }
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .armor_stand) {
+                    var as_opt = cache_mod.findArmorStand(&armor_stands, armor_stand_count, hit_f.x, hit_f.y, hit_f.z);
+                    if (as_opt == null and armor_stand_count < armor_stands.len) {
+                        armor_stands[armor_stand_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z };
+                        as_opt = armor_stand_count;
+                        armor_stand_count += 1;
+                    }
+
+                    if (as_opt) |ai| {
+                        const as_stand = &armor_stands[ai];
+                        const held_slot = &inventory.slots[selected_slot];
+                        const held_item = held_slot.item;
+
+                        if (held_item.isArmor()) {
+                            // Mount armor into appropriate equipment slot
+                            var mounted = false;
+                            switch (held_item) {
+                                .netherite_helmet => {
+                                    if (as_stand.head) |prev| _ = inventory.addItem(prev, 1);
+                                    as_stand.head = held_item;
+                                    mounted = true;
+                                },
+                                .netherite_chestplate => {
+                                    if (as_stand.chest) |prev| _ = inventory.addItem(prev, 1);
+                                    as_stand.chest = held_item;
+                                    mounted = true;
+                                },
+                                .netherite_leggings => {
+                                    if (as_stand.legs) |prev| _ = inventory.addItem(prev, 1);
+                                    as_stand.legs = held_item;
+                                    mounted = true;
+                                },
+                                .netherite_boots, .soul_speed_boots => {
+                                    if (as_stand.feet) |prev| _ = inventory.addItem(prev, 1);
+                                    as_stand.feet = held_item;
+                                    mounted = true;
+                                },
+                                else => {},
+                            }
+                            if (mounted) {
+                                held_slot.decrement(1);
+                                audio.playAt(.step_wood, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 30.0);
+                                particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.85, 0.75, 0.60 }, 8);
+                                std.debug.print("mounted {s} onto armor stand at ({d},{d},{d})\n", .{ held_item.name(), hit_f.x, hit_f.y, hit_f.z });
+                            }
+                        } else if (held_item == .none) {
+                            // Cycle pose when empty-handed
+                            as_stand.pose = switch (as_stand.pose) {
+                                .default_standing => .salute,
+                                .salute => .pointing,
+                                .pointing => .guarding,
+                                .guarding => .default_standing,
+                            };
+                            audio.playAt(.click_on, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
+                            particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.75, 0.60, 0.42 }, 4);
+                            std.debug.print("armor stand pose cycled to {s}\n", .{ @tagName(as_stand.pose) });
+                        } else {
+                            // Eject topmost equipped armor piece back to player
+                            if (as_stand.head) |it| {
+                                _ = inventory.addItem(it, 1);
+                                as_stand.head = null;
+                            } else if (as_stand.chest) |it| {
+                                _ = inventory.addItem(it, 1);
+                                as_stand.chest = null;
+                            } else if (as_stand.legs) |it| {
+                                _ = inventory.addItem(it, 1);
+                                as_stand.legs = null;
+                            } else if (as_stand.feet) |it| {
+                                _ = inventory.addItem(it, 1);
+                                as_stand.feet = null;
+                            }
+                            audio.playAt(.click_off, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
                         }
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;

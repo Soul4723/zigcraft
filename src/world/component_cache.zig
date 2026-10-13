@@ -297,3 +297,16 @@ test "findJukebox helper" {
     try std.testing.expectEqual(findJukebox(&jb, 1, 12, 34, 56), @as(?usize, 0));
     try std.testing.expectEqual(findJukebox(&jb, 1, 0, 0, 0), @as(?usize, null));
 }
+
+pub const armor_stand_cap: usize = 32;
+
+pub fn findArmorStand(stands: anytype, n: usize, x: i32, y: i32, z: i32) ?usize {
+    return find2D(stands, n, x, y, z);
+}
+
+test "findArmorStand helper" {
+    const FakeArmorStand = struct { x: i32, y: i32, z: i32 };
+    var as_arr = [_]FakeArmorStand{.{ .x = 15, .y = 30, .z = 45 }} ** 2;
+    try std.testing.expectEqual(findArmorStand(&as_arr, 1, 15, 30, 45), @as(?usize, 0));
+    try std.testing.expectEqual(findArmorStand(&as_arr, 1, 0, 0, 0), @as(?usize, null));
+}
