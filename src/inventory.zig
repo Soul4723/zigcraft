@@ -93,6 +93,7 @@ pub const ItemType = enum(u8) {
     warped_fungus = 87,
     shroomlight = 88,
     warped_fungus_on_a_stick = 89,
+    netherite_chestplate = 90,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -241,6 +242,7 @@ pub const ItemType = enum(u8) {
             .netherite_pickaxe => 350,
             .netherite_sword => 400,
             .warped_fungus_on_a_stick => 100,
+            .netherite_chestplate => 500,
             else => 0,
         };
     }
@@ -252,7 +254,7 @@ pub const ItemType = enum(u8) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick => 1,
+            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate => 1,
             else => 64,
         };
     }
@@ -345,6 +347,7 @@ pub const ItemType = enum(u8) {
             .warped_fungus => "Warped Fungus",
             .shroomlight => "Shroomlight",
             .warped_fungus_on_a_stick => "Warped Fungus on a Stick",
+            .netherite_chestplate => "Netherite Chestplate",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -376,6 +379,7 @@ pub const ItemType = enum(u8) {
             .warped_fungus => .{ 0.12, 0.70, 0.65, 0.95 },
             .shroomlight => .{ 0.98, 0.78, 0.45, 0.95 },
             .warped_fungus_on_a_stick => .{ 0.15, 0.75, 0.70, 0.95 },
+            .netherite_chestplate => .{ 0.25, 0.22, 0.26, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -516,6 +520,13 @@ pub const Inventory = struct {
     pub fn getHotbar(self: *Inventory, index: usize) ?*ItemStack {
         if (index >= HOTBAR_SIZE) return null;
         return &self.slots[index];
+    }
+
+    pub fn hasItem(self: *const Inventory, item: ItemType) bool {
+        for (self.slots) |slot| {
+            if (slot.item == item and slot.count > 0) return true;
+        }
+        return false;
     }
 
     pub fn addItem(self: *Inventory, item: ItemType, count: u8) u8 {
@@ -879,6 +890,16 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 56: Netherite Chestplate: 1 Netherite Ingot + 1 Iron Ingot (or 3 Netherite Ingot) -> 1 Netherite Chestplate
+        if (non_empty == 2) {
+            const has_ni = (g0 == .netherite_ingot or g1 == .netherite_ingot or g2 == .netherite_ingot or g3 == .netherite_ingot);
+            const has_iron = (g0 == .iron_ingot or g1 == .iron_ingot or g2 == .iron_ingot or g3 == .iron_ingot);
+            if (has_ni and has_iron) {
+                self.craft_output = .{ .item = .netherite_chestplate, .count = 1 };
                 return;
             }
         }
@@ -2175,4 +2196,25 @@ test "warped fungus on a stick item properties, durability, and Recipe 55" {
     try std.testing.expect(ItemType.warped_fungus_on_a_stick.isTool());
     try std.testing.expectEqual(ItemType.warped_fungus_on_a_stick.maxStackSize(), 1);
     try std.testing.expectEqualStrings(ItemType.warped_fungus_on_a_stick.name(), "Warped Fungus on a Stick");
+}
+
+test "netherite chestplate item properties, recipe 56, and hasItem" {
+    var inv = Inventory.init();
+
+    // Recipe 56: 1 Netherite Ingot + 1 Iron Ingot -> 1 Netherite Chestplate
+    inv.craft_grid[0] = .{ .item = .netherite_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .iron_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .netherite_chestplate);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.netherite_chestplate.maxDurability(), 500);
+    try std.testing.expect(ItemType.netherite_chestplate.isTool());
+    try std.testing.expectEqual(ItemType.netherite_chestplate.maxStackSize(), 1);
+    try std.testing.expectEqualStrings(ItemType.netherite_chestplate.name(), "Netherite Chestplate");
+
+    // hasItem check
+    try std.testing.expect(!inv.hasItem(.netherite_chestplate));
+    inv.slots[10] = .{ .item = .netherite_chestplate, .count = 1 };
+    try std.testing.expect(inv.hasItem(.netherite_chestplate));
 }

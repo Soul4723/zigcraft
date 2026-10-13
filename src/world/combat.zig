@@ -10,6 +10,15 @@ pub const sword_damage: u8 = 2;
 pub const netherite_sword_damage: u8 = 4;
 pub const hand_damage: u8 = 1;
 
+pub const netherite_armor_absorption: f32 = 0.50; // 50% damage reduction
+
+pub fn applyArmorReduction(raw_damage: f32, has_netherite_armor: bool) f32 {
+    if (has_netherite_armor) {
+        return raw_damage * (1.0 - netherite_armor_absorption);
+    }
+    return raw_damage;
+}
+
 pub fn inBiteRange(dx: f32, dz: f32, dy: f32) bool {
     return dx * dx + dz * dz < wolf_bite_range_sq and @abs(dy) < wolf_bite_height;
 }
@@ -89,4 +98,10 @@ test "calculateWolfBite knockback and damage" {
 test "fireball burn application" {
     // Fireball deals flat damage; fire resistance handled at player effect layer.
     try std.testing.expectEqual(@as(f32, 3.0), @import("projectile.zig").fireball_damage);
+}
+
+test "applyArmorReduction absorbs 50% damage with netherite chestplate" {
+    try std.testing.expectApproxEqAbs(applyArmorReduction(10.0, true), 5.0, 0.01);
+    try std.testing.expectApproxEqAbs(applyArmorReduction(4.0, true), 2.0, 0.01);
+    try std.testing.expectApproxEqAbs(applyArmorReduction(10.0, false), 10.0, 0.01);
 }
