@@ -374,3 +374,62 @@ test "findLinkedPortal matches closest portal in target dimension within search 
     const far_match = findLinkedPortal(&portals, .overworld, 2000.0, 60.0, 2000.0, 64.0);
     try std.testing.expect(far_match == null);
 }
+
+/// Check if a given portal cell still resides within a fully intact obsidian frame.
+pub fn isPortalCellValid(lookup: BlockLookupFn, x: i32, y: i32, z: i32) bool {
+    return detectPortalFrame(lookup, x, y, z) != null;
+}
+
+/// Extinguish connected portal cells when frame is broken or breached by water.
+pub fn collectPortalCellsToExtinguish(lookup: BlockLookupFn, x: i32, y: i32, z: i32, out: *[6][3]i32) usize {
+    var count: usize = 0;
+    // Scan local 3x4x3 volume around the broken/quenched point for connected nether_portal blocks
+    var dx: i32 = -2;
+    while (dx <= 2) : (dx += 1) {
+        var dy: i32 = -3;
+        while (dy <= 3) : (dy += 1) {
+            var dz: i32 = -2;
+            while (dz <= 2) : (dz += 1) {
+                const cx = x + dx;
+                const cy = y + dy;
+                const cz = z + dz;
+                if (lookup(cx, cy, cz) == .nether_portal) {
+                    if (count < 6) {
+                        out[count] = .{ cx, cy, cz };
+                        count += 1;
+                    }
+                }
+            }
+        }
+    }
+    return count;
+}
+
+test "isPortalCellValid detects broken frame and collectPortalCellsToExtinguish finds cells" {
+    // Intact frame:
+    const MockIntact = struct {
+        fn get(x: i32, y: i32, z: i32) BlockId {
+            if (z != 5) return .air;
+            if (x < 10 or x > 13 or y < 20 or y > 24) return .air;
+            if ((x == 11 or x == 12) and (y >= 21 and y <= 23)) return .nether_portal;
+            return .obsidian;
+        }
+    };
+    try std.testing.expect(isPortalCellValid(MockIntact.get, 11, 21, 5));
+
+    // Broken frame (missing jamb at x=10):
+    const MockBroken = struct {
+        fn get(x: i32, y: i32, z: i32) BlockId {
+            if (z != 5) return .air;
+            if (x == 10 and y == 21) return .air; // broken!
+            if (x < 10 or x > 13 or y < 20 or y > 24) return .air;
+            if ((x == 11 or x == 12) and (y >= 21 and y <= 23)) return .nether_portal;
+            return .obsidian;
+        }
+    };
+    try std.testing.expect(!isPortalCellValid(MockBroken.get, 11, 21, 5));
+
+    var cells: [6][3]i32 = undefined;
+    const n = collectPortalCellsToExtinguish(MockBroken.get, 11, 21, 5, &cells);
+    try std.testing.expectEqual(@as(usize, 6), n);
+}

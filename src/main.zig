@@ -837,6 +837,35 @@ pub fn main() !void {
                 }
                 ppi += 1;
             }
+            // Water contact quenches nether portal: check 8x8 volume around player
+            const pxi_w: i32 = @intFromFloat(@floor(player.pos.x));
+            const pyi_w: i32 = @intFromFloat(@floor(player.pos.y));
+            const pzi_w: i32 = @intFromFloat(@floor(player.pos.z));
+            var qx: i32 = -4;
+            while (qx <= 4) : (qx += 1) {
+                var qy: i32 = -2;
+                while (qy <= 3) : (qy += 1) {
+                    var qz: i32 = -4;
+                    while (qz <= 4) : (qz += 1) {
+                        const wx = pxi_w + qx;
+                        const wy = pyi_w + qy;
+                        const wz = pzi_w + qz;
+                        if (manager.getBlockWorld(wx, wy, wz) == .nether_portal) {
+                            const adj_water = (manager.getBlockWorld(wx, wy + 1, wz) == .water or
+                                               manager.getBlockWorld(wx + 1, wy, wz) == .water or
+                                               manager.getBlockWorld(wx - 1, wy, wz) == .water or
+                                               manager.getBlockWorld(wx, wy, wz + 1) == .water or
+                                               manager.getBlockWorld(wx, wy, wz - 1) == .water);
+                            if (adj_water) {
+                                _ = try manager.editAndRemesh(wx, wy, wz, .air);
+                                particles.spawnPortalParticles(.{ @as(f32, @floatFromInt(wx)) + 0.5, @as(f32, @floatFromInt(wy)) + 0.5, @as(f32, @floatFromInt(wz)) + 0.5 }, 12);
+                                audio.play(.burn_sizzle, 0.7);
+                                std.debug.print("water quenched nether portal at ({d},{d},{d})\n", .{ wx, wy, wz });
+                            }
+                        }
+                    }
+                }
+            }
         }
 
                 // Redstone wire power: BFS signal strength from sources (15 max, -1/wire).
@@ -1609,6 +1638,19 @@ pub fn main() !void {
                                 particles.spawnBlockDebris(hit.x, hit.y, hit.z, .{ drop_col[0], drop_col[1], drop_col[2] }, 16);
                                 const held = inventory.slots[selected_slot].item;
                                 const tier_ok = inventory_mod.canHarvestBlock(held, broken_block);
+                                // If obsidian is broken, extinguish adjacent portal cells whose frame is no longer intact
+                                if (broken_block == .obsidian) {
+                                    var ext_cells: [6][3]i32 = undefined;
+                                    const ext_n = portal_mod.collectPortalCellsToExtinguish(&pickBlockWorld, hit.x, hit.y, hit.z, &ext_cells);
+                                    for (ext_cells[0..ext_n]) |cell_coord| {
+                                        if (!portal_mod.isPortalCellValid(&pickBlockWorld, cell_coord[0], cell_coord[1], cell_coord[2])) {
+                                            _ = try manager.editAndRemesh(cell_coord[0], cell_coord[1], cell_coord[2], .air);
+                                            particles.spawnPortalParticles(.{ @as(f32, @floatFromInt(cell_coord[0])) + 0.5, @as(f32, @floatFromInt(cell_coord[1])) + 0.5, @as(f32, @floatFromInt(cell_coord[2])) + 0.5 }, 12);
+                                            audio.play(.burn_sizzle, 0.7);
+                                            std.debug.print("portal frame broken; extinguished portal cell at ({d},{d},{d})\n", .{ cell_coord[0], cell_coord[1], cell_coord[2] });
+                                        }
+                                    }
+                                }
                                 if (tier_ok) {
                                     if (broken_block == .chest) {
                                         if (cache_mod.findChest(&chests, chest_count, hit.x, hit.y, hit.z)) |ci| {
@@ -2297,6 +2339,16 @@ pub fn main() !void {
                                         },
                                         .destroy_block => {
                                             _ = try manager.editAndRemesh(bx, by, bz, .air);
+                                            if (old_b == .obsidian or old_b == .nether_portal) {
+                                                var ext_cells: [6][3]i32 = undefined;
+                                                const ext_n = portal_mod.collectPortalCellsToExtinguish(&pickBlockWorld, bx, by, bz, &ext_cells);
+                                                for (ext_cells[0..ext_n]) |cell_coord| {
+                                                    if (!portal_mod.isPortalCellValid(&pickBlockWorld, cell_coord[0], cell_coord[1], cell_coord[2])) {
+                                                        _ = try manager.editAndRemesh(cell_coord[0], cell_coord[1], cell_coord[2], .air);
+                                                        particles.spawnPortalParticles(.{ @as(f32, @floatFromInt(cell_coord[0])) + 0.5, @as(f32, @floatFromInt(cell_coord[1])) + 0.5, @as(f32, @floatFromInt(cell_coord[2])) + 0.5 }, 8);
+                                                    }
+                                                }
+                                            }
                                         },
                                         .ignore => {},
                                     }
