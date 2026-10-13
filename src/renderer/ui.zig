@@ -227,10 +227,10 @@ pub const UIRenderer = struct {
     }
 
     pub fn drawHUDWithProgressVitals(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool, oxygen: f32, fire_res_timer: f32, wither_timer: f32) void {
-        self.drawHUDWithCompass(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, health, hunger, regen, oxygen, fire_res_timer, wither_timer, -1.0);
+        self.drawHUDWithCompass(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, health, hunger, regen, oxygen, fire_res_timer, wither_timer, -999.0, false);
     }
 
-    pub fn drawHUDWithCompass(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool, oxygen: f32, fire_res_timer: f32, wither_timer: f32, compass_rel: f32) void {
+    pub fn drawHUDWithCompass(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool, oxygen: f32, fire_res_timer: f32, wither_timer: f32, compass_rel: f32, is_lodestone: bool) void {
         var verts: [1024]UIVertex = undefined;
         var count: usize = 0;
 
@@ -323,20 +323,38 @@ pub const UIRenderer = struct {
             }
         }
 
-        // Fortress compass needle above crosshair (Nether only, -1 hides).
-        // rel_rad: junction bearing minus camera yaw. Arrow rotates in screen plane.
-        if (compass_rel >= 0.0) {
+        // Compass dial & needle above crosshair (hidden when < -50.0).
+        if (compass_rel > -50.0) {
             const ncx: f32 = 0.0;
             const ncy: f32 = 0.115;
-            const nlen: f32 = 0.035;
+            const dial_r: f32 = 0.042;
+            const dr_x = dial_r / aspect;
+            const dr_y = dial_r;
+
+            // Brass outer casing & dark dial disc
+            const rim_col = if (is_lodestone) [4]f32{ 0.15, 0.35, 0.42, 0.85 } else [4]f32{ 0.40, 0.32, 0.15, 0.85 };
+            const face_col = [4]f32{ 0.08, 0.08, 0.09, 0.80 };
+            addQuad(&verts, &count, ncx - dr_x, ncy - dr_y, ncx + dr_x, ncy + dr_y, rim_col);
+            addQuad(&verts, &count, ncx - dr_x * 0.88, ncy - dr_y * 0.88, ncx + dr_x * 0.88, ncy + dr_y * 0.88, face_col);
+
+            // Cardinal marks (top N indicator dot)
+            const nmark_col = if (is_lodestone) [4]f32{ 0.40, 0.90, 1.0, 0.90 } else [4]f32{ 0.95, 0.85, 0.30, 0.90 };
+            addQuad(&verts, &count, ncx - 0.003 / aspect, ncy + dr_y * 0.65, ncx + 0.003 / aspect, ncy + dr_y * 0.85, nmark_col);
+
+            const nlen: f32 = 0.032;
             const tip_x = ncx + @sin(compass_rel) * nlen;
             const tip_y = ncy + @cos(compass_rel) * nlen;
-            const nbase_x = ncx - @sin(compass_rel) * nlen * 0.4;
-            const nbase_y = ncy - @cos(compass_rel) * nlen * 0.4;
-            const pw: f32 = 0.006 / aspect;
-            // Needle shaft (crimson) + tip dot (gold)
-            addQuad(&verts, &count, @min(nbase_x, tip_x) - pw, @min(nbase_y, tip_y), @max(nbase_x, tip_x) + pw, @max(nbase_y, tip_y), .{ 0.85, 0.2, 0.2, 0.95 });
-            addQuad(&verts, &count, tip_x - 0.005 / aspect, tip_y - 0.005, tip_x + 0.005 / aspect, tip_y + 0.005, .{ 1.0, 0.8, 0.25, 1.0 });
+            const nbase_x = ncx - @sin(compass_rel) * nlen * 0.45;
+            const nbase_y = ncy - @cos(compass_rel) * nlen * 0.45;
+            const pw: f32 = 0.005 / aspect;
+            const shaft_col = if (is_lodestone) [4]f32{ 0.20, 0.85, 0.95, 0.95 } else [4]f32{ 0.88, 0.22, 0.22, 0.95 };
+            const tip_col = if (is_lodestone) [4]f32{ 0.90, 1.0, 1.0, 1.0 } else [4]f32{ 1.0, 0.80, 0.25, 1.0 };
+            addQuad(&verts, &count, @min(nbase_x, tip_x) - pw, @min(nbase_y, tip_y), @max(nbase_x, tip_x) + pw, @max(nbase_y, tip_y), shaft_col);
+            addQuad(&verts, &count, tip_x - 0.005 / aspect, tip_y - 0.005, tip_x + 0.005 / aspect, tip_y + 0.005, tip_col);
+
+            // Center brass pin
+            const pin_col = [4]f32{ 0.85, 0.80, 0.60, 1.0 };
+            addQuad(&verts, &count, ncx - 0.003 / aspect, ncy - 0.003, ncx + 0.003 / aspect, ncy + 0.003, pin_col);
         }
 
         // Mining progress bar above crosshair

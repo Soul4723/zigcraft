@@ -49,6 +49,7 @@ pub fn build(b: *std.Build) void {
         "src/world/fluid_wash.zig",
         "src/world/component_cache.zig",
         "src/world/spawn_rules.zig",
+        "src/world/compass.zig",
         "src/world/sapling.zig",
         "src/world/explosives.zig",
         "src/world/smelting.zig",

@@ -15,6 +15,7 @@ const falling_mod = @import("world/falling_blocks.zig");
 const hazard_mod = @import("world/hazard.zig");
 const portal_mod = @import("world/portal.zig");
 const summon_mod = @import("world/summon.zig");
+const compass_mod = @import("world/compass.zig");
 const std = @import("std");
 const c = @cImport({
     @cDefine("GL_GLEXT_PROTOTYPES", "1");
@@ -536,6 +537,9 @@ pub fn main() !void {
                     const gl_pos = [3]f32{ @as(f32, @floatFromInt(pox)) + 0.5, @as(f32, @floatFromInt(poy)) + 0.5, @as(f32, @floatFromInt(poz)) + 0.5 };
                     particles.spawnGlowstoneShimmer(gl_pos, 3);
                     audio.playAt(.glowstone_chime, gl_pos, .{ player.pos.x, player.pos.y, player.pos.z }, 0.6, 16.0);
+                } else if (near_b == .lodestone) {
+                    const lode_pos = [3]f32{ @as(f32, @floatFromInt(pox)) + 0.5, @as(f32, @floatFromInt(poy)) + 0.5, @as(f32, @floatFromInt(poz)) + 0.5 };
+                    particles.spawnLodestoneAttunement(lode_pos, 2);
                 }
             }
         }
@@ -1415,18 +1419,28 @@ pub fn main() !void {
 
         if (!inventory_open) {
             const mine_frac: f32 = mine.fraction();
+            const has_compass = inventory.hasItem(.compass);
+            const has_lode_compass = inventory.hasItem(.lodestone_compass);
+            var is_lodestone = false;
             const compass_rel: f32 = if (player.lodestone_target) |lt| blk: {
-                const bearing = std.math.atan2(lt.x - player.pos.x, lt.z - player.pos.z);
-                const rel = bearing - (std.math.pi / 2.0 - cam.yaw);
-                break :blk rel;
+                if (has_lode_compass or has_compass or manager.is_nether) {
+                    is_lodestone = true;
+                    break :blk compass_mod.calculateNeedleAngle(lt.x, lt.z, player.pos.x, player.pos.z, cam.yaw);
+                }
+                break :blk compass_mod.compass_hidden;
             } else if (manager.is_nether) blk: {
-                const j = spawn_mod.nearestJunction(player.pos.x, player.pos.z);
-                const bearing = std.math.atan2(@as(f32, @floatFromInt(j.jx)) - player.pos.x, @as(f32, @floatFromInt(j.jz)) - player.pos.z);
-                const rel = bearing - (std.math.pi / 2.0 - cam.yaw);
-                break :blk rel;
-            } else -1.0;
+                if (has_compass) {
+                    break :blk compass_mod.netherSpinAngle(world_time, cam.yaw);
+                } else {
+                    const j = spawn_mod.nearestJunction(player.pos.x, player.pos.z);
+                    break :blk compass_mod.calculateNeedleAngle(@as(f32, @floatFromInt(j.jx)), @as(f32, @floatFromInt(j.jz)), player.pos.x, player.pos.z, cam.yaw);
+                }
+            } else if (has_compass) blk: {
+                break :blk compass_mod.calculateNeedleAngle(0.0, 0.0, player.pos.x, player.pos.z, cam.yaw);
+            } else compass_mod.compass_hidden;
+
             const hud_progress = if (bow_charge > 0.0) bow_charge else mine_frac;
-            ui.drawHUDWithCompass(aspect, selected_slot, &hotbar_colors, &hotbar_counts, hud_progress, player.health, player.hunger, player.regen_timer > 0.0, player.oxygen, player.fire_resistance_timer, player.wither_timer, compass_rel);
+            ui.drawHUDWithCompass(aspect, selected_slot, &hotbar_colors, &hotbar_counts, hud_progress, player.health, player.hunger, player.regen_timer > 0.0, player.oxygen, player.fire_resistance_timer, player.wither_timer, compass_rel, is_lodestone);
             if (portal_transit.inside_timer > 0.0) {
                 const vignette_intensity = portal_transit.inside_timer / portal_mod.PORTAL_TRIGGER_TIME;
                 ui.drawPortalVignette(aspect, vignette_intensity);
@@ -1896,17 +1910,27 @@ pub fn main() !void {
         bed_cooldown = interact_mod.tickCooldown(bed_cooldown, dt);
         compass_cooldown = interact_mod.tickCooldown(compass_cooldown, dt);
         const sun_y_now = @sin(world_time);
-        if (!inventory_open and (manager.is_nether or player.lodestone_target != null) and c.glfwGetKey(window, c.GLFW_KEY_C) == c.GLFW_PRESS and interact_mod.ready(compass_cooldown)) {
+        if (!inventory_open and (manager.is_nether or player.lodestone_target != null or inventory.hasItem(.compass) or inventory.hasItem(.lodestone_compass)) and c.glfwGetKey(window, c.GLFW_KEY_C) == c.GLFW_PRESS and interact_mod.ready(compass_cooldown)) {
             if (player.lodestone_target) |lt| {
                 const dx = lt.x - player.pos.x;
                 const dz = lt.z - player.pos.z;
                 const dist = @sqrt(dx * dx + dz * dz);
+                audio.play(.glowstone_chime, 0.6);
                 std.debug.print("lodestone compass: target ({d:.0},{d:.0},{d:.0}) {d:.0}m\n", .{ lt.x, lt.y, lt.z, dist });
-            } else {
-                const j = spawn_mod.nearestJunction(player.pos.x, player.pos.z);
-                std.debug.print("fortress compass: junction ({d},{d}) {d:.0}m\n", .{ j.jx, j.jz, j.dist });
+            } else if (manager.is_nether) {
+                if (inventory.hasItem(.compass)) {
+                    audio.play(.click_on, 0.6);
+                    std.debug.print("compass: spinning erratically in nether\n", .{});
+                } else {
+                    const j = spawn_mod.nearestJunction(player.pos.x, player.pos.z);
+                    audio.play(.click_on, 0.5);
+                    std.debug.print("fortress compass: junction ({d},{d}) {d:.0}m\n", .{ j.jx, j.jz, j.dist });
+                }
+            } else if (inventory.hasItem(.compass)) {
+                const dist = @sqrt(player.pos.x * player.pos.x + player.pos.z * player.pos.z);
+                audio.play(.click_on, 0.5);
+                std.debug.print("compass: pointing to world spawn (0,0) {d:.0}m\n", .{dist});
             }
-            audio.play(.click_on, 0.5);
             compass_cooldown = 1.0;
         }
         if (!inventory_open and interact_mod.ready(bed_cooldown) and c.glfwGetKey(window, c.GLFW_KEY_B) == c.GLFW_PRESS) {
@@ -2755,9 +2779,19 @@ pub fn main() !void {
                 } else
                 if (target == .lodestone) {
                     player.lodestone_target = math.Vec3.init(@as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5);
-                    audio.play(.click_on, 0.75);
-                    particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.8, 0.8, 0.9 }, 8);
-                    std.debug.print("lodestone compass target bound ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                    var attuned_item = false;
+                    if (inventory.slots[selected_slot].item == .compass) {
+                        inventory.slots[selected_slot].item = .lodestone_compass;
+                        attuned_item = true;
+                    }
+                    audio.play(.glowstone_chime, 0.9);
+                    particles.spawnLodestoneAttunement(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 24);
+                    particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 12);
+                    if (attuned_item) {
+                        std.debug.print("lodestone compass attuned at ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                    } else {
+                        std.debug.print("lodestone target bound ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                    }
                     flint_cooldown = interact_mod.flint_edge_cooldown;
                 } else
                 if (target == .respawn_anchor) {

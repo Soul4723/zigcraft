@@ -103,6 +103,8 @@ pub const ItemType = enum(u8) {
     arrow = 97,
     bow = 98,
     shield = 99,
+    compass = 100,
+    lodestone_compass = 101,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -271,7 +273,7 @@ pub const ItemType = enum(u8) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .soul_speed_boots, .netherite_helmet, .netherite_leggings, .netherite_boots, .bow, .shield => 1,
+            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .soul_speed_boots, .netherite_helmet, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass => 1,
             else => 64,
         };
     }
@@ -374,6 +376,8 @@ pub const ItemType = enum(u8) {
             .arrow => "Arrow",
             .bow => "Bow",
             .shield => "Shield",
+            .compass => "Compass",
+            .lodestone_compass => "Lodestone Compass",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -415,6 +419,8 @@ pub const ItemType = enum(u8) {
             .arrow => .{ 0.75, 0.75, 0.78, 0.95 },
             .bow => .{ 0.55, 0.38, 0.20, 0.95 },
             .shield => .{ 0.65, 0.62, 0.60, 0.95 },
+            .compass => .{ 0.78, 0.75, 0.72, 0.95 },
+            .lodestone_compass => .{ 0.35, 0.85, 0.95, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -948,6 +954,16 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 66: Compass: 1 Iron Ingot + 1 Redstone Dust -> 1 Compass
+        if (non_empty == 2) {
+            const has_iron = (g0 == .iron_ingot or g1 == .iron_ingot or g2 == .iron_ingot or g3 == .iron_ingot);
+            const has_red = (g0 == .redstone_dust or g1 == .redstone_dust or g2 == .redstone_dust or g3 == .redstone_dust);
+            if (has_iron and has_red) {
+                self.craft_output = .{ .item = .compass, .count = 1 };
                 return;
             }
         }
@@ -2599,4 +2615,28 @@ test "shield item properties, durability, tool check, and Recipe 65" {
     try std.testing.expectEqual(ItemType.shield.maxStackSize(), 1);
     try std.testing.expectEqualStrings(ItemType.shield.name(), "Shield");
     try std.testing.expect(ItemType.shield.toBlockId() == null);
+}
+
+test "compass and lodestone compass item properties, stack, and Recipe 66" {
+    var inv = Inventory.init();
+
+    // Recipe 66: 1 Iron Ingot + 1 Redstone Dust -> 1 Compass
+    inv.craft_grid[0] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .redstone_dust, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .compass);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Properties
+    try std.testing.expectEqual(ItemType.compass.maxDurability(), 0);
+    try std.testing.expect(!ItemType.compass.isTool());
+    try std.testing.expectEqual(ItemType.compass.maxStackSize(), 64);
+    try std.testing.expectEqualStrings(ItemType.compass.name(), "Compass");
+    try std.testing.expect(ItemType.compass.toBlockId() == null);
+
+    try std.testing.expectEqual(ItemType.lodestone_compass.maxDurability(), 0);
+    try std.testing.expect(!ItemType.lodestone_compass.isTool());
+    try std.testing.expectEqual(ItemType.lodestone_compass.maxStackSize(), 1);
+    try std.testing.expectEqualStrings(ItemType.lodestone_compass.name(), "Lodestone Compass");
+    try std.testing.expect(ItemType.lodestone_compass.toBlockId() == null);
 }

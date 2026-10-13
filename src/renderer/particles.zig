@@ -591,6 +591,52 @@ pub const ParticleSystem = struct {
         }
     }
 
+    /// Spawn magnetic attunement particles swirling around a lodestone block upon compass binding
+    pub fn spawnLodestoneAttunement(self: *ParticleSystem, pos: [3]f32, count: usize) void {
+        var i: usize = 0;
+        var seed: u32 = @as(u32, @bitCast(@as(i32, @intFromFloat(pos[0] * 64.0)))) *% 43 +%
+            @as(u32, @bitCast(@as(i32, @intFromFloat(pos[1] * 64.0)))) *% 31 +%
+            @as(u32, @bitCast(@as(i32, @intFromFloat(pos[2] * 64.0)))) *% 23 +%
+            @as(u32, @intCast(self.count));
+        while (i < count and self.count < MAX_PARTICLES) : (i += 1) {
+            seed = seed *% 1103515245 +% 12345;
+            const rx = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            seed = seed *% 1103515245 +% 12345;
+            const ry = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            seed = seed *% 1103515245 +% 12345;
+            const rz = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+
+            const angle = rx * std.math.pi * 2.0;
+            const dist = 0.5 + 0.5 * ry;
+            const px = pos[0] + @cos(angle) * dist;
+            const pz = pos[2] + @sin(angle) * dist;
+            const py = pos[1] + 0.1 + 0.8 * rz;
+
+            // Swirling inward magnetic velocity
+            const inward_x = (pos[0] - px) * 1.5;
+            const inward_z = (pos[2] - pz) * 1.5;
+            const tang_x = -@sin(angle) * 1.2;
+            const tang_z = @cos(angle) * 1.2;
+
+            // Radiant cyan-teal magnetic hue
+            const col = [3]f32{ 0.20 + 0.15 * rx, 0.85 + 0.12 * ry, 0.95 };
+
+            self.particles[self.count] = .{
+                .x = px,
+                .y = py,
+                .z = pz,
+                .vx = inward_x + tang_x,
+                .vy = 0.4 + 0.5 * rz,
+                .vz = inward_z + tang_z,
+                .life = 0.6 + 0.3 * ry,
+                .max_life = 0.6 + 0.3 * ry,
+                .color = col,
+                .size = 0.05 + 0.03 * rx,
+            };
+            self.count += 1;
+        }
+    }
+
     pub fn tick(self: *ParticleSystem, dt: f32) void {
         var i: usize = 0;
         const gravity: f32 = 18.0;
@@ -611,6 +657,7 @@ pub const ParticleSystem = struct {
             const is_portal = (p.color[0] > 0.6 and p.color[1] < 0.3 and p.color[2] > 0.8); // Purple ethereal
             const is_ash = (p.max_life >= 1.5 and p.color[0] < 0.9 and p.color[1] < 0.5 and p.color[2] < 0.45); // Nether ash flake
             const is_shimmer = (p.color[0] > 0.95 and p.color[1] > 0.8 and p.color[2] > 0.25); // Golden shimmer sparkle
+            const is_lodestone_spark = (p.color[0] < 0.40 and p.color[1] > 0.80 and p.color[2] > 0.90); // Cyan magnetic attunement spark
             if (is_bubble) {
                 p.vy = @min(1.5, p.vy + 1.0 * dt);
             } else if (is_signal_smoke) {
@@ -633,6 +680,11 @@ pub const ParticleSystem = struct {
                 p.vy = @max(-0.4, p.vy * 0.96);
                 p.vx = p.vx * 0.96;
                 p.vz = p.vz * 0.96;
+            } else if (is_lodestone_spark) {
+                // Magnetic spark gentle upward float and drag
+                p.vy = @max(0.05, p.vy * 0.95);
+                p.vx = p.vx * 0.94;
+                p.vz = p.vz * 0.94;
             } else {
                 p.vy -= gravity * dt;
             }
@@ -1005,4 +1057,22 @@ test "spawnBeaconBeam creates ascending beam particles" {
     try std.testing.expect(ps.particles[0].y > 5.0);
     // Colors should be cyan or white core
     try std.testing.expect(ps.particles[0].color[2] > 0.8);
+}
+
+test "spawnLodestoneAttunement creates cyan magnetic sparks with inward swirl" {
+    var ps = ParticleSystem{
+        .particles = undefined,
+        .count = 0,
+        .vao = 0,
+        .vbo = 0,
+        .program = 0,
+    };
+    ps.spawnLodestoneAttunement(.{ 10.0, 15.0, 20.0 }, 6);
+    try std.testing.expectEqual(@as(usize, 6), ps.count);
+    for (ps.particles[0..6]) |p| {
+        try std.testing.expect(p.color[0] < 0.40);
+        try std.testing.expect(p.color[1] > 0.80);
+        try std.testing.expect(p.color[2] > 0.90);
+        try std.testing.expect(p.max_life >= 0.6);
+    }
 }
