@@ -89,6 +89,8 @@ pub const ItemType = enum(u8) {
     twisting_vines = 83,
     target_block = 84,
     hay_bale = 85,
+    crimson_fungus = 86,
+    warped_fungus = 87,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -151,6 +153,8 @@ pub const ItemType = enum(u8) {
             .twisting_vines => .twisting_vines,
             .target_block => .target_block,
             .hay_bale => .hay_bale,
+            .crimson_fungus => .crimson_fungus,
+            .warped_fungus => .warped_fungus,
             else => null,
         };
     }
@@ -220,6 +224,8 @@ pub const ItemType = enum(u8) {
             .twisting_vines => .twisting_vines,
             .target_block => .target_block,
             .hay_bale => .hay_bale,
+            .crimson_fungus => .crimson_fungus,
+            .warped_fungus => .warped_fungus,
         };
     }
 
@@ -330,6 +336,8 @@ pub const ItemType = enum(u8) {
             .twisting_vines => "Twisting Vines",
             .target_block => "Target Block",
             .hay_bale => "Hay Bale",
+            .crimson_fungus => "Crimson Fungus",
+            .warped_fungus => "Warped Fungus",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -357,6 +365,8 @@ pub const ItemType = enum(u8) {
             .twisting_vines => .{ 0.15, 0.65, 0.60, 0.95 },
             .target_block => .{ 0.88, 0.22, 0.22, 0.95 },
             .hay_bale => .{ 0.85, 0.75, 0.25, 0.95 },
+            .crimson_fungus => .{ 0.85, 0.15, 0.20, 0.95 },
+            .warped_fungus => .{ 0.12, 0.70, 0.65, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -860,6 +870,28 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 53: Warped Fungus: 1 Twisting Vines + 1 Sapling (or 1 Crimson Fungus + 1 Soul Sand) -> 2 Warped Fungus
+        if (non_empty == 2) {
+            const has_twist = (g0 == .twisting_vines or g1 == .twisting_vines or g2 == .twisting_vines or g3 == .twisting_vines);
+            const has_sap = (g0 == .sapling or g1 == .sapling or g2 == .sapling or g3 == .sapling);
+            const has_crim = (g0 == .crimson_fungus or g1 == .crimson_fungus or g2 == .crimson_fungus or g3 == .crimson_fungus);
+            const has_soul = (g0 == .soul_sand or g1 == .soul_sand or g2 == .soul_sand or g3 == .soul_sand);
+            if ((has_twist and has_sap) or (has_crim and has_soul)) {
+                self.craft_output = .{ .item = .warped_fungus, .count = 2 };
+                return;
+            }
+        }
+
+        // Recipe 52: Crimson Fungus: 1 Nether Wart + 1 Sapling -> 2 Crimson Fungus
+        if (non_empty == 2) {
+            const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
+            const has_sap = (g0 == .sapling or g1 == .sapling or g2 == .sapling or g3 == .sapling);
+            if (has_wart and has_sap) {
+                self.craft_output = .{ .item = .crimson_fungus, .count = 2 };
                 return;
             }
         }
@@ -1590,6 +1622,42 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         }
         return 0;
     }
+}
+
+test "crimson and warped fungi item roundtrip, drops, and crafting recipes" {
+    var inv = Inventory.init();
+    // Recipe 52: Nether wart + sapling -> 2 crimson fungus
+    inv.craft_grid[0] = .{ .item = .nether_wart, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .sapling, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .crimson_fungus);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+
+    // Recipe 53: Twisting vines + sapling -> 2 warped fungus
+    inv.craft_grid[0] = .{ .item = .twisting_vines, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .sapling, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .warped_fungus);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+
+    try std.testing.expectEqual(ItemType.crimson_fungus.toBlockId().?, .crimson_fungus);
+    try std.testing.expectEqual(ItemType.fromBlockId(.crimson_fungus), .crimson_fungus);
+    try std.testing.expectEqualStrings(ItemType.crimson_fungus.name(), "Crimson Fungus");
+
+    try std.testing.expectEqual(ItemType.warped_fungus.toBlockId().?, .warped_fungus);
+    try std.testing.expectEqual(ItemType.fromBlockId(.warped_fungus), .warped_fungus);
+    try std.testing.expectEqualStrings(ItemType.warped_fungus.name(), "Warped Fungus");
+
+    var drops: [2]BlockDrop = undefined;
+    const n_cr = getBlockDrops(.crimson_fungus, &drops);
+    try std.testing.expectEqual(n_cr, 1);
+    try std.testing.expectEqual(drops[0].item, .crimson_fungus);
+    try std.testing.expectEqual(drops[0].count, 1);
+
+    const n_wa = getBlockDrops(.warped_fungus, &drops);
+    try std.testing.expectEqual(n_wa, 1);
+    try std.testing.expectEqual(drops[0].item, .warped_fungus);
+    try std.testing.expectEqual(drops[0].count, 1);
 }
 
 test "hay bale item roundtrip, drops, and crafting recipe" {

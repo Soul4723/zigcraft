@@ -1742,6 +1742,17 @@ pub fn main() !void {
                                         std.debug.print("planted twisting vines\n", .{});
                                     }
                                 }
+                            } else if (!hotbar_slot.isEmpty() and (hotbar_slot.item == .crimson_fungus or hotbar_slot.item == .warped_fungus)) {
+                                const below_b = manager.getBlockWorld(px, py - 1, pz);
+                                // Fungi plant on solid floors (netherrack, soul sand, dirt, grass)
+                                if (below_b.is_solid()) {
+                                    const fungus_block = hotbar_slot.item.toBlockId().?;
+                                    if (try manager.editAndRemesh(px, py, pz, fungus_block)) {
+                                        audio.play(.place_block, 0.7);
+                                        hotbar_slot.decrement(1);
+                                        std.debug.print("planted {s}\n", .{ @tagName(fungus_block) });
+                                    }
+                                }
                             } else if (!hotbar_slot.isEmpty() and hotbar_slot.item == .weeping_vines) {
                                 const above_b = manager.getBlockWorld(px, py + 1, pz);
                                 if (above_b.is_solid() or above_b == .weeping_vines) {

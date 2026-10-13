@@ -511,6 +511,26 @@ pub const NetherGenerator = struct {
         return h == 0;
     }
 
+    /// Check if cavern floor location grows a crimson fungus (y = 6 atop netherrack cavern floor).
+    pub fn isCrimsonFungus(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
+        if (wy != 6) return false;
+        if (self.isSoulSand(wx, wz)) return false; // Crimson prefers netherrack
+        const v = valueNoise2D(self.seed +% 0x51A8D413, wx, wz, 0.12);
+        if (v < 0.28) return false;
+        const h: u32 = (@as(u32, @bitCast(wx *% 29 +% wz *% 71)) % 5);
+        return h == 0;
+    }
+
+    /// Check if soul sand shore location grows a warped fungus (y = 6 atop soul sand shore).
+    pub fn isWarpedFungus(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
+        if (wy != 6) return false;
+        if (!self.isSoulSand(wx, wz)) return false; // Warped prefers soul sand
+        const v = valueNoise2D(self.seed +% 0x7E319A05, wx, wz, 0.13);
+        if (v < 0.26) return false;
+        const h: u32 = (@as(u32, @bitCast(wx *% 31 +% wz *% 83)) % 4);
+        return h == 0;
+    }
+
     /// Check if soul sand floor location (wx, wy, wz) grows an upward twisting vine stalk (y = 6..9).
     /// Twisting vines rise vertically 1 to 4 blocks from soul sand shore floors in cyan warped patches.
     pub fn isTwistingVine(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
@@ -696,6 +716,14 @@ pub const NetherGenerator = struct {
                     } else {
                         // Preserve wild wart planted at y=6 by the y=5 soul sand pass
                         if (chunk.getBlock(@intCast(lx), @intCast(y), @intCast(lz)) == .nether_wart) {
+                            continue;
+                        }
+                        if (self.isCrimsonFungus(wx, @intCast(y), wz)) {
+                            chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .crimson_fungus);
+                            continue;
+                        }
+                        if (self.isWarpedFungus(wx, @intCast(y), wz)) {
+                            chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .warped_fungus);
                             continue;
                         }
                         if (self.isTwistingVine(wx, @intCast(y), wz)) {
@@ -971,6 +999,22 @@ test "NetherGenerator grows wild nether wart on soul sand" {
         }
     }
     try std.testing.expect(found_wart);
+}
+
+test "NetherGenerator generates crimson and warped fungi on cavern floors" {
+    const nether = NetherGenerator.init(12345);
+    var found_crimson = false;
+    var found_warped = false;
+    var x: i32 = -32;
+    while (x <= 32) : (x += 1) {
+        var z: i32 = -32;
+        while (z <= 32) : (z += 1) {
+            if (nether.isCrimsonFungus(x, 6, z)) found_crimson = true;
+            if (nether.isWarpedFungus(x, 6, z)) found_warped = true;
+        }
+    }
+    try std.testing.expect(found_crimson);
+    try std.testing.expect(found_warped);
 }
 
 test "NetherGenerator mounts ambient soul torches on fortress balustrades" {
