@@ -1209,6 +1209,9 @@ pub fn main() !void {
                     if (redstone_mod.isSource(nb)) {
                         strength[wi] = redstone_mod.max_strength;
                         break;
+                    } else if (nb == .daylight_detector or nb == .daylight_detector_inverted) {
+                        const dl_str = if (manager.is_nether) 0 else redstone_mod.daylightSignalStrength(@sin(world_time), nb == .daylight_detector_inverted);
+                        strength[wi] = @max(strength[wi], dl_str);
                     } else if (nb == .target_block) {
                         for (target_pulses[0..target_pulse_count]) |tp| {
                             if (tp.x == w.x + ad[0] and tp.y == w.y + ad[1] and tp.z == w.z + ad[2]) {
@@ -3152,6 +3155,14 @@ pub fn main() !void {
                         }
                     }
                     flint_cooldown = interact_mod.flint_feed_cooldown;
+                } else if (target == .daylight_detector or target == .daylight_detector_inverted) {
+                    const new_mode: block_mod.BlockId = if (target == .daylight_detector) .daylight_detector_inverted else .daylight_detector;
+                    if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, new_mode)) {
+                        audio.play(.click_on, 0.7);
+                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.85, 0.75, 0.45 }, 4);
+                        std.debug.print("toggled daylight detector to {s}\n", .{@tagName(new_mode)});
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .cauldron) {
                     var cs_opt = cache_mod.findCauldron(&cauldrons, cauldron_count, hit_f.x, hit_f.y, hit_f.z);
                     if (cs_opt == null and cauldron_count < cauldrons.len) {

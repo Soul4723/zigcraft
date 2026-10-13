@@ -115,6 +115,7 @@ pub const ItemType = enum(u8) {
     brewing_stand = 109,
     cauldron = 110,
     water_bucket = 111,
+    daylight_detector = 112,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -187,6 +188,7 @@ pub const ItemType = enum(u8) {
             .brewing_stand => .brewing_stand,
             .cauldron => .cauldron,
             .water_bucket => .water,
+            .daylight_detector => .daylight_detector,
             else => null,
         };
     }
@@ -265,6 +267,7 @@ pub const ItemType = enum(u8) {
             .hopper => .hopper,
             .brewing_stand => .brewing_stand,
             .cauldron => .cauldron,
+            .daylight_detector, .daylight_detector_inverted => .daylight_detector,
         };
     }
 
@@ -410,6 +413,7 @@ pub const ItemType = enum(u8) {
             .brewing_stand => "Brewing Stand",
             .cauldron => "Cauldron",
             .water_bucket => "Water Bucket",
+            .daylight_detector => "Daylight Detector",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -463,6 +467,7 @@ pub const ItemType = enum(u8) {
             .brewing_stand => .{ 0.88, 0.65, 0.22, 0.95 },
             .cauldron => .{ 0.32, 0.32, 0.35, 0.95 },
             .water_bucket => .{ 0.25, 0.50, 0.90, 0.95 },
+            .daylight_detector => .{ 0.85, 0.75, 0.45, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1008,6 +1013,23 @@ pub const Inventory = struct {
         }
 
 
+
+
+        // Recipe 76: Daylight Detector: 1 Nether Quartz + 1 Glass + 1 Wood Planks -> 1 Daylight Detector
+        if (non_empty == 3) {
+            var quartz_count: u8 = 0;
+            var glass_count: u8 = 0;
+            var plank_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .nether_quartz) quartz_count += 1;
+                if (sl.item == .glass) glass_count += 1;
+                if (sl.item == .wood_planks) plank_count += 1;
+            }
+            if (quartz_count == 1 and glass_count == 1 and plank_count == 1) {
+                self.craft_output = .{ .item = .daylight_detector, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 75: Cauldron: 2..4 Iron Ingots -> 1 Cauldron
         if (non_empty >= 2 and non_empty <= 4) {
@@ -3020,4 +3042,23 @@ test "cauldron and water bucket item roundtrip, properties, and Recipe 75" {
     try std.testing.expectEqual(ItemType.water_bucket.toBlockId().?, .water);
     try std.testing.expectEqualStrings(ItemType.water_bucket.name(), "Water Bucket");
     try std.testing.expectEqual(ItemType.water_bucket.maxStackSize(), 64);
+}
+
+test "daylight detector item roundtrip, properties, and Recipe 76" {
+    var inv = Inventory.init();
+    // Recipe 76: 1 Nether Quartz + 1 Glass + 1 Wood Planks -> 1 Daylight Detector
+    inv.craft_grid[0] = .{ .item = .nether_quartz, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .wood_planks, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .daylight_detector);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.daylight_detector.toBlockId().?, .daylight_detector);
+    try std.testing.expectEqual(ItemType.fromBlockId(.daylight_detector), .daylight_detector);
+    try std.testing.expectEqual(ItemType.fromBlockId(.daylight_detector_inverted), .daylight_detector);
+    try std.testing.expectEqualStrings(ItemType.daylight_detector.name(), "Daylight Detector");
+    try std.testing.expectEqual(ItemType.daylight_detector.maxDurability(), 0);
+    try std.testing.expect(!ItemType.daylight_detector.isTool());
+    try std.testing.expectEqual(ItemType.daylight_detector.maxStackSize(), 64);
 }

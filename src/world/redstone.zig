@@ -370,3 +370,35 @@ test "isDispenserPowered adjacent detection" {
     try std.testing.expect(isDispenserPowered(mock, 10, 5, 20));
     try std.testing.expect(!isDispenserPowered(mock, 10, 5, 10));
 }
+
+pub fn daylightSignalStrength(sun_y: f32, inverted: bool) u4 {
+    if (!inverted) {
+        // Standard daylight sensor: max strength (15) at high noon (sun_y >= 0.8), 0 when sun is below horizon
+        if (sun_y <= 0.0) return 0;
+        const normalized = @min(1.0, sun_y / 0.8);
+        return @intFromFloat(@round(normalized * 15.0));
+    } else {
+        // Inverted daylight sensor: max strength (15) at dead of night (sun_y <= -0.8), 0 when sun is high
+        if (sun_y >= 0.0) return 0;
+        const normalized = @min(1.0, -sun_y / 0.8);
+        return @intFromFloat(@round(normalized * 15.0));
+    }
+}
+
+test "daylightSignalStrength day and inverted night scaling" {
+    // High noon
+    try std.testing.expectEqual(@as(u4, 15), daylightSignalStrength(0.9, false));
+    try std.testing.expectEqual(@as(u4, 0), daylightSignalStrength(0.9, true));
+
+    // Midday
+    try std.testing.expect(daylightSignalStrength(0.4, false) >= 7);
+    try std.testing.expect(daylightSignalStrength(0.4, false) <= 9);
+
+    // Sunset / twilight
+    try std.testing.expectEqual(@as(u4, 0), daylightSignalStrength(0.0, false));
+    try std.testing.expectEqual(@as(u4, 0), daylightSignalStrength(0.0, true));
+
+    // Midnight
+    try std.testing.expectEqual(@as(u4, 0), daylightSignalStrength(-0.9, false));
+    try std.testing.expectEqual(@as(u4, 15), daylightSignalStrength(-0.9, true));
+}
