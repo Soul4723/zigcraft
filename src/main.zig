@@ -293,6 +293,9 @@ pub fn main() !void {
     const FletchingTableState = struct { x: i32, y: i32, z: i32 };
     var fletching_tables: [cache_mod.fletching_table_cap]FletchingTableState = undefined;
     var fletching_table_count: usize = 0;
+    const ComposterState = struct { x: i32, y: i32, z: i32, level: u8 = 0 };
+    var composters: [cache_mod.composter_cap]ComposterState = undefined;
+    var composter_count: usize = 0;
     const DropperState = struct { x: i32, y: i32, z: i32, powered: bool = false, items: [4]inventory_mod.ItemStack = undefined, count: usize = 0 };
     var droppers: [32]DropperState = undefined;
     var dropper_count: usize = 0;
@@ -2405,6 +2408,10 @@ pub fn main() !void {
                                             fletching_tables[fletching_table_count] = .{ .x = px, .y = py, .z = pz };
                                             fletching_table_count += 1;
                                         }
+                                        if (place_type == .composter and composter_count < composters.len) {
+                                            composters[composter_count] = .{ .x = px, .y = py, .z = pz };
+                                            composter_count += 1;
+                                        }
                                         if (place_type == .spawner_cage and spawner_count < spawners.len) {
                                             spawners[spawner_count] = .{ .x = px, .y = py, .z = pz };
                                             spawner_count += 1;
@@ -3489,6 +3496,36 @@ pub fn main() !void {
                                 as_stand.feet = null;
                             }
                             audio.playAt(.click_off, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
+                        }
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .composter) {
+                    var cp_opt = cache_mod.findComposter(&composters, composter_count, hit_f.x, hit_f.y, hit_f.z);
+                    if (cp_opt == null and composter_count < composters.len) {
+                        composters[composter_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z, .level = 0 };
+                        cp_opt = composter_count;
+                        composter_count += 1;
+                    }
+
+                    if (cp_opt) |ci| {
+                        const cp = &composters[ci];
+                        const held_slot = &inventory.slots[selected_slot];
+                        if (cp.level >= 7) {
+                            // Ready for harvesting Bone Meal!
+                            cp.level = 0;
+                            _ = inventory.addItem(.bone_meal, 1);
+                            audio.playAt(.composter_fill, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 30.0);
+                            particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.90, 0.90, 0.85 }, 12);
+                            std.debug.print("harvested Bone Meal from composter at ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                        } else if (held_slot.item.isCompostable()) {
+                            // Deposit organic material to advance compost level
+                            held_slot.decrement(1);
+                            cp.level += 1;
+                            audio.playAt(.composter_fill, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 28.0);
+                            particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.45, 0.65, 0.30 }, 6);
+                            std.debug.print("added compost to composter (level={d}/7)\n", .{ cp.level });
+                        } else {
+                            audio.playAt(.composter_fill, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.6, 20.0);
                         }
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;

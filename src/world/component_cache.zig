@@ -388,3 +388,16 @@ test "findFletchingTable helper" {
     try std.testing.expectEqual(findFletchingTable(&ft, 1, 18, 22, 26), @as(?usize, 0));
     try std.testing.expectEqual(findFletchingTable(&ft, 1, 0, 0, 0), @as(?usize, null));
 }
+
+pub const composter_cap: usize = 32;
+
+pub fn findComposter(composters: anytype, n: usize, x: i32, y: i32, z: i32) ?usize {
+    return find2D(composters, n, x, y, z);
+}
+
+test "findComposter helper" {
+    const FakeComposter = struct { x: i32, y: i32, z: i32 };
+    var cp = [_]FakeComposter{.{ .x = 21, .y = 25, .z = 29 }} ** 2;
+    try std.testing.expectEqual(findComposter(&cp, 1, 21, 25, 29), @as(?usize, 0));
+    try std.testing.expectEqual(findComposter(&cp, 1, 0, 0, 0), @as(?usize, null));
+}

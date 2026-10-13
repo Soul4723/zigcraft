@@ -52,6 +52,7 @@ pub const SoundType = enum {
     smithing_strike,
     map_rustle,
     fletching_snap,
+    composter_fill,
 };
 
 pub const SAMPLE_RATE: u32 = 44100;
@@ -134,6 +135,7 @@ pub const AudioMixer = struct {
             .smithing_strike => SAMPLE_RATE / 4, // ~250ms solid heavy wooden-iron bench hammer thud & anvil clack
             .map_rustle => SAMPLE_RATE / 5, // ~200ms crisp paper parchment flutter & drafting slide
             .fletching_snap => SAMPLE_RATE / 6, // ~166ms precision arrow nock snap & wood dowel click
+            .composter_fill => SAMPLE_RATE / 5, // ~200ms leafy organic mulch deposit & crunch rustle
         };
 
         slot.?.* = .{
@@ -503,6 +505,13 @@ pub const AudioMixer = struct {
                 const v_env = (1.0 - progress * 0.2);
                 return (tone + crackle) * v_env * 0.70;
             },
+            .composter_fill => {
+                // Organic mulch compost crunch: low vegetation thump (90Hz) + fibrous foliage crackle
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const thump = @sin(t * 90.0 * 2.0 * std.math.pi) * 0.50 * @exp(-progress * 10.0);
+                const crunch = if (@sin(t * 1200.0) > 0.6) (rng.random().float(f32) * 2.0 - 1.0) * 0.55 else 0.0;
+                return (thump + crunch) * (1.0 - progress) * 0.75;
+            },
             .fletching_snap => {
                 // Precision wood nock snap: sharp transient click (1800Hz) + light arrow shaft twang (520Hz)
                 const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
@@ -592,7 +601,7 @@ test "AudioMixer play voice produces non-zero samples" {
 
 test "AudioMixer all sound types render without overflow or crash" {
     var mixer = AudioMixer.init();
-    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .mob_roar, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle, .nether_wind, .glowstone_chime, .bow_shoot, .shield_block, .crossbow_shoot, .crossbow_load, .firework_blast, .note_harp, .note_bass, .note_snare, .note_chime, .record_13, .record_cat, .anvil_clang, .grindstone_scrape, .smithing_strike, .map_rustle, .fletching_snap };
+    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .mob_roar, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle, .nether_wind, .glowstone_chime, .bow_shoot, .shield_block, .crossbow_shoot, .crossbow_load, .firework_blast, .note_harp, .note_bass, .note_snare, .note_chime, .record_13, .record_cat, .anvil_clang, .grindstone_scrape, .smithing_strike, .map_rustle, .fletching_snap, .composter_fill };
     for (sounds) |snd| {
         mixer.play(snd, 1.0);
     }
@@ -735,7 +744,7 @@ test "music disc vinyl audio synthesis voices" {
     var mixer = AudioMixer.init();
     var buf: [256]i16 = undefined;
 
-    const disc_types = [_]SoundType{ .record_13, .record_cat, .anvil_clang, .grindstone_scrape, .smithing_strike, .map_rustle, .fletching_snap };
+    const disc_types = [_]SoundType{ .record_13, .record_cat, .anvil_clang, .grindstone_scrape, .smithing_strike, .map_rustle, .fletching_snap, .composter_fill };
     for (disc_types) |dt| {
         mixer.play(dt, 0.8);
         mixer.render(&buf);

@@ -130,6 +130,8 @@ pub const ItemType = enum(u8) {
     smithing_table = 124,
     cartography_table = 125,
     fletching_table = 126,
+    composter = 127,
+    bone_meal = 128,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -213,6 +215,7 @@ pub const ItemType = enum(u8) {
             .smithing_table => .smithing_table,
             .cartography_table => .cartography_table,
             .fletching_table => .fletching_table,
+            .composter => .composter,
             else => null,
         };
     }
@@ -302,6 +305,7 @@ pub const ItemType = enum(u8) {
             .smithing_table => .smithing_table,
             .cartography_table => .cartography_table,
             .fletching_table => .fletching_table,
+            .composter => .composter,
         };
     }
 
@@ -330,6 +334,14 @@ pub const ItemType = enum(u8) {
             .shield => 336,
             .crossbow => 465,
             else => 0,
+        };
+    }
+
+
+    pub fn isCompostable(self: ItemType) bool {
+        return switch (self) {
+            .leaves, .hay_bale, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton => true,
+            else => false,
         };
     }
 
@@ -471,6 +483,8 @@ pub const ItemType = enum(u8) {
             .smithing_table => "Smithing Table",
             .cartography_table => "Cartography Table",
             .fletching_table => "Fletching Table",
+            .composter => "Composter",
+            .bone_meal => "Bone Meal",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -539,6 +553,8 @@ pub const ItemType = enum(u8) {
             .smithing_table => .{ 0.30, 0.35, 0.42, 0.95 },
             .cartography_table => .{ 0.85, 0.78, 0.58, 0.95 },
             .fletching_table => .{ 0.78, 0.68, 0.50, 0.95 },
+            .composter => .{ 0.58, 0.42, 0.28, 0.95 },
+            .bone_meal => .{ 0.92, 0.92, 0.88, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1087,6 +1103,20 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 91: Composter: 3 Wood Planks + 1 Stick -> 1 Composter
+        if (non_empty == 4) {
+            var plank_count: u8 = 0;
+            var stick_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .wood_planks) plank_count += 1;
+                if (sl.item == .stick) stick_count += 1;
+            }
+            if (plank_count == 3 and stick_count == 1) {
+                self.craft_output = .{ .item = .composter, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 90: Fletching Table: 2 Sticks (or Coal / Arrows) + 2 Wood Planks -> 1 Fletching Table
         if (non_empty == 4) {
@@ -3664,4 +3694,26 @@ test "fletching table item roundtrip, properties, and Recipe 90" {
     try std.testing.expectEqual(ItemType.fletching_table.maxDurability(), 0);
     try std.testing.expect(!ItemType.fletching_table.isTool());
     try std.testing.expectEqual(ItemType.fletching_table.maxStackSize(), 64);
+}
+
+test "composter and bone meal item roundtrip, compostable check, and Recipe 91" {
+    var inv = Inventory.init();
+    // Recipe 91: 3 Wood Planks + 1 Stick -> 1 Composter
+    inv.craft_grid[0] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .stick, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .composter);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.composter.toBlockId().?, .composter);
+    try std.testing.expectEqual(ItemType.fromBlockId(.composter), .composter);
+    try std.testing.expectEqual(ItemType.bone_meal.toBlockId(), null);
+    try std.testing.expectEqualStrings(ItemType.composter.name(), "Composter");
+    try std.testing.expectEqualStrings(ItemType.bone_meal.name(), "Bone Meal");
+    try std.testing.expect(ItemType.leaves.isCompostable());
+    try std.testing.expect(ItemType.nether_wart.isCompostable());
+    try std.testing.expect(!ItemType.stone.isCompostable());
+    try std.testing.expectEqual(ItemType.bone_meal.maxStackSize(), 64);
 }
