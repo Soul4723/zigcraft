@@ -163,3 +163,4 @@ Rough priority order. Completed milestones marked **[x]**.
 135. [x] **Warped Fungus Piglin Repulsion & Avoidance AI** — Piglins fear warped fungi within 8m or when player holds warped fungus; flee in opposite yaw direction and attacks are inhibited (#267).
 136. [x] **Shroomlight Block, Crafting & Nether Cavern Generation** — Shroomlight (block 73, item 88, emissive 1.0 glow, tile 5,3); Recipe 54 (1 Glowstone + 1 Nether Fungus -> 1 Shroomlight); procedural Nether cavern overhang and canopy cluster generation (y=7..10) (#269).
 137. [x] **Piglin Brute Bastion Guard Mob Variant** — Piglin brute (15 HP, 3.0 m/s speed, 2.5x axe damage, gold nugget drops); guards Nether bastions; immune to gold pacification and fearless against warped fungi (#271).
+138. [x] **Warped Fungus on a Stick & Pig Luring AI** — Warped fungus on a stick (item 89, 100 durability); Recipe 55 (1 Stick + 1 Warped Fungus); held item lures pigs within 10m to follow player and repels piglins (#273).
