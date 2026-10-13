@@ -296,6 +296,9 @@ pub fn main() !void {
     const ComposterState = struct { x: i32, y: i32, z: i32, level: u8 = 0 };
     var composters: [cache_mod.composter_cap]ComposterState = undefined;
     var composter_count: usize = 0;
+    const LoomState = struct { x: i32, y: i32, z: i32 };
+    var looms: [cache_mod.loom_cap]LoomState = undefined;
+    var loom_count: usize = 0;
     const DropperState = struct { x: i32, y: i32, z: i32, powered: bool = false, items: [4]inventory_mod.ItemStack = undefined, count: usize = 0 };
     var droppers: [32]DropperState = undefined;
     var dropper_count: usize = 0;
@@ -2412,6 +2415,10 @@ pub fn main() !void {
                                             composters[composter_count] = .{ .x = px, .y = py, .z = pz };
                                             composter_count += 1;
                                         }
+                                        if (place_type == .loom and loom_count < looms.len) {
+                                            looms[loom_count] = .{ .x = px, .y = py, .z = pz };
+                                            loom_count += 1;
+                                        }
                                         if (place_type == .spawner_cage and spawner_count < spawners.len) {
                                             spawners[spawner_count] = .{ .x = px, .y = py, .z = pz };
                                             spawner_count += 1;
@@ -3497,6 +3504,31 @@ pub fn main() !void {
                             }
                             audio.playAt(.click_off, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
                         }
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .loom) {
+                    var lm_opt = cache_mod.findLoom(&looms, loom_count, hit_f.x, hit_f.y, hit_f.z);
+                    if (lm_opt == null and loom_count < looms.len) {
+                        looms[loom_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z };
+                        lm_opt = loom_count;
+                        loom_count += 1;
+                    }
+
+                    const held_slot = &inventory.slots[selected_slot];
+                    if (held_slot.item == .wool) {
+                        // Textile weaving: weave raw wool into woven cloth banner crafting
+                        audio.playAt(.loom_shuttle, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 28.0);
+                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.90, 0.90, 0.90 }, 8);
+                        std.debug.print("wove textile fabric on loom at ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                    } else if (held_slot.item.isTool()) {
+                        // Honing shears / tool calibration
+                        tool_wear.uses[selected_slot] = 0;
+                        audio.playAt(.loom_shuttle, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 28.0);
+                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.70, 0.60, 0.45 }, 6);
+                    } else {
+                        // Shuttle batten click inspect
+                        audio.playAt(.loom_shuttle, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.7, 20.0);
+                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.60, 0.50, 0.35 }, 3);
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .composter) {

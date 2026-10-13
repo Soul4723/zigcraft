@@ -132,6 +132,7 @@ pub const ItemType = enum(u8) {
     fletching_table = 126,
     composter = 127,
     bone_meal = 128,
+    loom = 129,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -216,6 +217,7 @@ pub const ItemType = enum(u8) {
             .cartography_table => .cartography_table,
             .fletching_table => .fletching_table,
             .composter => .composter,
+            .loom => .loom,
             else => null,
         };
     }
@@ -306,6 +308,7 @@ pub const ItemType = enum(u8) {
             .cartography_table => .cartography_table,
             .fletching_table => .fletching_table,
             .composter => .composter,
+            .loom => .loom,
         };
     }
 
@@ -485,6 +488,7 @@ pub const ItemType = enum(u8) {
             .fletching_table => "Fletching Table",
             .composter => "Composter",
             .bone_meal => "Bone Meal",
+            .loom => "Loom",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -555,6 +559,7 @@ pub const ItemType = enum(u8) {
             .fletching_table => .{ 0.78, 0.68, 0.50, 0.95 },
             .composter => .{ 0.58, 0.42, 0.28, 0.95 },
             .bone_meal => .{ 0.92, 0.92, 0.88, 0.95 },
+            .loom => .{ 0.65, 0.52, 0.38, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1103,6 +1108,20 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 92: Loom: 2 Wool (or Vines) + 2 Wood Planks -> 1 Loom
+        if (non_empty == 4) {
+            var thread_count: u8 = 0;
+            var plank_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .wool or sl.item == .weeping_vines or sl.item == .twisting_vines) thread_count += 1;
+                if (sl.item == .wood_planks) plank_count += 1;
+            }
+            if (thread_count == 2 and plank_count == 2) {
+                self.craft_output = .{ .item = .loom, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 91: Composter: 3 Wood Planks + 1 Stick -> 1 Composter
         if (non_empty == 4) {
@@ -3716,4 +3735,29 @@ test "composter and bone meal item roundtrip, compostable check, and Recipe 91" 
     try std.testing.expect(ItemType.nether_wart.isCompostable());
     try std.testing.expect(!ItemType.stone.isCompostable());
     try std.testing.expectEqual(ItemType.bone_meal.maxStackSize(), 64);
+}
+
+test "loom item roundtrip, properties, and Recipe 92" {
+    var inv = Inventory.init();
+    // Recipe 92: 2 Wool + 2 Wood Planks -> 1 Loom
+    inv.craft_grid[0] = .{ .item = .wool, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wool, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .wood_planks, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .loom);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Also works with Weeping Vines
+    inv.craft_grid[0] = .{ .item = .weeping_vines, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .loom);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.loom.toBlockId().?, .loom);
+    try std.testing.expectEqual(ItemType.fromBlockId(.loom), .loom);
+    try std.testing.expectEqualStrings(ItemType.loom.name(), "Loom");
+    try std.testing.expectEqual(ItemType.loom.maxDurability(), 0);
+    try std.testing.expect(!ItemType.loom.isTool());
+    try std.testing.expectEqual(ItemType.loom.maxStackSize(), 64);
 }

@@ -401,3 +401,16 @@ test "findComposter helper" {
     try std.testing.expectEqual(findComposter(&cp, 1, 21, 25, 29), @as(?usize, 0));
     try std.testing.expectEqual(findComposter(&cp, 1, 0, 0, 0), @as(?usize, null));
 }
+
+pub const loom_cap: usize = 32;
+
+pub fn findLoom(looms: anytype, n: usize, x: i32, y: i32, z: i32) ?usize {
+    return find2D(looms, n, x, y, z);
+}
+
+test "findLoom helper" {
+    const FakeLoom = struct { x: i32, y: i32, z: i32 };
+    var lm = [_]FakeLoom{.{ .x = 23, .y = 27, .z = 31 }} ** 2;
+    try std.testing.expectEqual(findLoom(&lm, 1, 23, 27, 31), @as(?usize, 0));
+    try std.testing.expectEqual(findLoom(&lm, 1, 0, 0, 0), @as(?usize, null));
+}
