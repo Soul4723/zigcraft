@@ -716,7 +716,8 @@ pub const NetherGenerator = struct {
                         // Monumental Nether Fortress masonry bridge crossing open cavern:
                         // Upper safety balustrade perimeter (y = 8) uses nether brick fences
                         const is_fence = (y == 8);
-                        const b_id: @import("block.zig").BlockId = if (is_fence) .nether_brick_fence else .nether_brick;
+                        const is_chiseled = (y == 7 and (@mod(wx, 6) == 0 or @mod(wz, 6) == 0));
+                        const b_id: @import("block.zig").BlockId = if (is_fence) .nether_brick_fence else if (is_chiseled) .chiseled_nether_brick else .nether_brick;
                         chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), b_id);
                     } else if (self.isBastionRampart(wx, @intCast(y), wz)) {
                         const b_id: @import("block.zig").BlockId = if (self.isGildedBlackstone(wx, @intCast(y), wz)) .gilded_blackstone else .blackstone;
@@ -1074,4 +1075,24 @@ test "NetherGenerator procedural shroomlight cluster generation" {
         if (found) break;
     }
     try std.testing.expect(found);
+}
+
+test "NetherGenerator incorporates chiseled nether bricks in fortress walkways" {
+    const nether_gen = NetherGenerator.init(1337);
+    var chunk = Chunk.init();
+    // Chunk at cx=1, cz=1 contains cell (24, 24) which is fortress cross-junction
+    nether_gen.generateChunk(&chunk, 1, 1);
+    var found_chiseled = false;
+    var lx: usize = 0;
+    while (lx < SIZE) : (lx += 1) {
+        var lz: usize = 0;
+        while (lz < SIZE) : (lz += 1) {
+            if (chunk.getBlock(@intCast(lx), 7, @intCast(lz)) == .chiseled_nether_brick) {
+                found_chiseled = true;
+                break;
+            }
+        }
+        if (found_chiseled) break;
+    }
+    try std.testing.expect(found_chiseled);
 }
