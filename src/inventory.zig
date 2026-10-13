@@ -138,6 +138,7 @@ pub const ItemType = enum(u8) {
     stonecutter = 132,
     lantern = 133,
     soul_lantern = 134,
+    chain = 135,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -228,6 +229,7 @@ pub const ItemType = enum(u8) {
             .stonecutter => .stonecutter,
             .lantern => .lantern,
             .soul_lantern => .soul_lantern,
+            .chain => .chain,
             else => null,
         };
     }
@@ -324,6 +326,7 @@ pub const ItemType = enum(u8) {
             .stonecutter => .stonecutter,
             .lantern => .lantern,
             .soul_lantern => .soul_lantern,
+            .chain => .chain,
         };
     }
 
@@ -509,6 +512,7 @@ pub const ItemType = enum(u8) {
             .stonecutter => "Stonecutter",
             .lantern => "Lantern",
             .soul_lantern => "Soul Lantern",
+            .chain => "Chain",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -585,6 +589,7 @@ pub const ItemType = enum(u8) {
             .stonecutter => .{ 0.50, 0.50, 0.52, 0.95 },
             .lantern => .{ 0.95, 0.75, 0.35, 0.95 },
             .soul_lantern => .{ 0.35, 0.75, 0.85, 0.95 },
+            .chain => .{ 0.45, 0.45, 0.48, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1133,6 +1138,22 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 98: Chain: 1 Iron Ingot + 1..2 Iron Ore (or 1 Iron Ingot + 1 Iron/Chain link) -> 2 Chains
+        if (non_empty >= 2 and non_empty <= 3) {
+            var ingot_count: u8 = 0;
+            var ore_count: u8 = 0;
+            var other_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .iron_ingot) ingot_count += 1
+                else if (sl.item == .iron_ore) ore_count += 1
+                else if (!sl.isEmpty()) other_count += 1;
+            }
+            if (ingot_count >= 1 and ore_count >= 1 and other_count == 0) {
+                self.craft_output = .{ .item = .chain, .count = 2 };
+                return;
+            }
+        }
 
         // Recipe 97: Soul Lantern: 1 Soul Torch + 1..3 Iron Ingots (or Iron Ore) -> 1 Soul Lantern
         if (non_empty >= 2 and non_empty <= 4) {
@@ -3867,6 +3888,29 @@ test "loom item roundtrip, properties, and Recipe 92" {
     try std.testing.expectEqual(ItemType.loom.maxDurability(), 0);
     try std.testing.expect(!ItemType.loom.isTool());
     try std.testing.expectEqual(ItemType.loom.maxStackSize(), 64);
+}
+
+test "chain item roundtrip, properties, and Recipe 98" {
+    var inv = Inventory.init();
+    // Recipe 98: 1 Iron Ingot + 1 Iron Ore -> 2 Chains
+    inv.craft_grid[0] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .iron_ore, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .chain);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+
+    // Alternative: 1 Iron Ingot + 2 Iron Ore -> 2 Chains
+    inv.craft_grid[2] = .{ .item = .iron_ore, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .chain);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+
+    try std.testing.expectEqual(ItemType.chain.toBlockId().?, .chain);
+    try std.testing.expectEqual(ItemType.fromBlockId(.chain), .chain);
+    try std.testing.expectEqualStrings(ItemType.chain.name(), "Chain");
+    try std.testing.expectEqual(ItemType.chain.maxDurability(), 0);
+    try std.testing.expect(!ItemType.chain.isTool());
+    try std.testing.expectEqual(ItemType.chain.maxStackSize(), 64);
 }
 
 test "soul_lantern item roundtrip, properties, and Recipe 97" {

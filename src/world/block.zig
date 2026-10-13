@@ -107,9 +107,10 @@ pub const BlockId = enum(u8) {
     stonecutter = 96,
     lantern = 97,
     soul_lantern = 98,
+    chain = 99,
 
     pub fn is_solid(self: BlockId) bool {
-        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand and self != .lantern and self != .soul_lantern;
+        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand and self != .lantern and self != .soul_lantern and self != .chain;
     }
 
     pub fn is_campfire(self: BlockId) bool {
@@ -161,7 +162,7 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_transparent(self: BlockId) bool {
-        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .nether_brick_fence or self == .oak_fence or self == .armor_stand or self == .enchantment_table or self == .anvil or self == .grindstone or self == .composter or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block or self == .beacon or self == .weeping_vines or self == .twisting_vines or self == .crimson_fungus or self == .warped_fungus or self == .brewing_stand or self == .stonecutter or self == .lantern or self == .soul_lantern;
+        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .nether_brick_fence or self == .oak_fence or self == .armor_stand or self == .enchantment_table or self == .anvil or self == .grindstone or self == .composter or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block or self == .beacon or self == .weeping_vines or self == .twisting_vines or self == .crimson_fungus or self == .warped_fungus or self == .brewing_stand or self == .stonecutter or self == .lantern or self == .soul_lantern or self == .chain;
     }
 
     /// 0.0 = lit by sun only. 1.0 = full glow even at midnight.
@@ -332,6 +333,11 @@ pub const BlockId = enum(u8) {
                 0 => .{ .x = 0, .y = 2 }, // Wrought iron suspension loop top
                 1 => .{ .x = 0, .y = 2 }, // Wrought iron base bottom
                 else => .{ .x = 7, .y = 6 }, // Glass casing with cyan soul flame core flanks
+            },
+            .chain => switch (face_idx) {
+                0 => .{ .x = 1, .y = 2 }, // Interlocking metallic chain link end
+                1 => .{ .x = 1, .y = 2 }, // Interlocking metallic chain link end
+                else => .{ .x = 2, .y = 2 }, // Vertical iron chain link segment flanks
             },
             .loom => switch (face_idx) {
                 0 => .{ .x = 7, .y = 4 }, // Weaving warp thread array and wooden heddle harness top
@@ -527,6 +533,7 @@ pub fn hardness(block: BlockId) f32 {
         .smoker, .blast_furnace, .stonecutter => 3.5,
         .jukebox, .oak_fence => 2.0,
         .lantern, .soul_lantern => 3.5,
+        .chain => 5.0,
         .nether_wart => 0.3,
     };
 }
@@ -539,7 +546,7 @@ pub const ToolTier = enum(u8) {
 
 pub fn requiredTier(block: BlockId) ToolTier {
     return switch (block) {
-        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern => .wooden,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain => .wooden,
         else => .hand,
     };
 }
@@ -549,19 +556,19 @@ pub fn requiredTier(block: BlockId) ToolTier {
 pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
     if (held_tool_id == TOOL_NETHERITE_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern => 6.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain => 6.0,
             else => 3.0,
         };
     }
     if (held_tool_id == TOOL_IRON_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern => 4.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain => 4.0,
             else => 2.0,
         };
     }
     if (held_tool_id == TOOL_WOODEN_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern => 3.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain => 3.0,
             else => 1.5,
         };
     }
@@ -674,6 +681,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .stonecutter = .{ .name = "stonecutter", .solid = true, .transparent = true, .fluid = false },
     .lantern = .{ .name = "lantern", .solid = false, .transparent = true, .fluid = false },
     .soul_lantern = .{ .name = "soul_lantern", .solid = false, .transparent = true, .fluid = false },
+    .chain = .{ .name = "chain", .solid = false, .transparent = true, .fluid = false },
 });
 
 /// A beacon activates when the column directly above it up to world ceiling (y=15)
@@ -1112,7 +1120,7 @@ pub const FootstepType = enum {
 pub fn footstepType(block: BlockId) FootstepType {
     return switch (block) {
         .grass, .weeping_vines, .twisting_vines, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight => .grass,
-        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern => .stone,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain => .stone,
         .wood, .target_block, .daylight_detector, .daylight_detector_inverted, .note_block, .jukebox, .oak_fence, .armor_stand, .smithing_table, .cartography_table, .fletching_table, .composter, .loom => .wood,
         .dirt => .dirt,
         .sand => .sand,
@@ -1687,6 +1695,24 @@ test "loom block properties and textures" {
     try std.testing.expectEqual(@as(u32, 3), side_tex.y);
 }
 
+test "chain block properties and textures" {
+    try std.testing.expect(!BlockId.chain.is_solid());
+    try std.testing.expect(BlockId.chain.is_transparent());
+    try std.testing.expect(!BlockId.chain.is_fluid());
+    try std.testing.expectEqual(hardness(.chain), 5.0);
+    try std.testing.expectEqual(requiredTier(.chain), .wooden);
+    try std.testing.expectEqual(footstepType(.chain), .stone);
+    const top_tex = BlockId.chain.getFaceTexture(0);
+    try std.testing.expectEqual(@as(u8, 1), top_tex.x);
+    try std.testing.expectEqual(@as(u8, 2), top_tex.y);
+    const bot_tex = BlockId.chain.getFaceTexture(1);
+    try std.testing.expectEqual(@as(u8, 1), bot_tex.x);
+    try std.testing.expectEqual(@as(u8, 2), bot_tex.y);
+    const side_tex = BlockId.chain.getFaceTexture(2);
+    try std.testing.expectEqual(@as(u8, 2), side_tex.x);
+    try std.testing.expectEqual(@as(u8, 2), side_tex.y);
+}
+
 test "soul_lantern block properties, emissive, and textures" {
     try std.testing.expect(!BlockId.soul_lantern.is_solid());
     try std.testing.expect(BlockId.soul_lantern.is_transparent());
@@ -1788,7 +1814,7 @@ pub fn canSupportLantern(lookup: *const fn (x: i32, y: i32, z: i32) BlockId, x: 
     const below = lookup(x, y - 1, z);
     if (below.is_solid()) return true;
     const above = lookup(x, y + 1, z);
-    if (above.is_solid()) return true;
+    if (above.is_solid() or above == .chain) return true;
     return false;
 }
 
