@@ -258,3 +258,16 @@ test "findBrewingStand helper" {
     try std.testing.expectEqual(findBrewingStand(&bs, 1, 5, 6, 7), @as(?usize, 0));
     try std.testing.expectEqual(findBrewingStand(&bs, 1, 0, 0, 0), @as(?usize, null));
 }
+
+pub const cauldron_cap: usize = 32;
+
+pub fn findCauldron(cauldrons: anytype, n: usize, x: i32, y: i32, z: i32) ?usize {
+    return find2D(cauldrons, n, x, y, z);
+}
+
+test "findCauldron helper" {
+    const FakeCauldron = struct { x: i32, y: i32, z: i32 };
+    var cs = [_]FakeCauldron{.{ .x = 10, .y = 20, .z = 30 }} ** 2;
+    try std.testing.expectEqual(findCauldron(&cs, 1, 10, 20, 30), @as(?usize, 0));
+    try std.testing.expectEqual(findCauldron(&cs, 1, 0, 0, 0), @as(?usize, null));
+}

@@ -252,6 +252,10 @@ pub fn main() !void {
     const BrewingStandState = struct { x: i32, y: i32, z: i32, progress: f32 = 0.0, fuel: u8 = 0, wart: u8 = 0, bottles: u8 = 0, potions: u8 = 0 };
     var brewing_stands: [32]BrewingStandState = undefined;
     var brewing_stand_count: usize = 0;
+    const CauldronFluid = enum { empty, water, lava };
+    const CauldronState = struct { x: i32, y: i32, z: i32, fluid: CauldronFluid = .empty, level: u8 = 0 };
+    var cauldrons: [32]CauldronState = undefined;
+    var cauldron_count: usize = 0;
     const DropperState = struct { x: i32, y: i32, z: i32, powered: bool = false, items: [4]inventory_mod.ItemStack = undefined, count: usize = 0 };
     var droppers: [32]DropperState = undefined;
     var dropper_count: usize = 0;
@@ -2157,6 +2161,10 @@ pub fn main() !void {
                                             brewing_stands[brewing_stand_count] = .{ .x = px, .y = py, .z = pz };
                                             brewing_stand_count += 1;
                                         }
+                                        if (place_type == .cauldron and cauldron_count < cauldrons.len) {
+                                            cauldrons[cauldron_count] = .{ .x = px, .y = py, .z = pz };
+                                            cauldron_count += 1;
+                                        }
                                         if (place_type == .spawner_cage and spawner_count < spawners.len) {
                                             spawners[spawner_count] = .{ .x = px, .y = py, .z = pz };
                                             spawner_count += 1;
@@ -3141,6 +3149,63 @@ pub fn main() !void {
                                     break;
                                 }
                             }
+                        }
+                    }
+                    flint_cooldown = interact_mod.flint_feed_cooldown;
+                } else if (target == .cauldron) {
+                    var cs_opt = cache_mod.findCauldron(&cauldrons, cauldron_count, hit_f.x, hit_f.y, hit_f.z);
+                    if (cs_opt == null and cauldron_count < cauldrons.len) {
+                        cauldrons[cauldron_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z };
+                        cs_opt = cauldron_count;
+                        cauldron_count += 1;
+                    }
+
+                    if (cs_opt) |ci| {
+                        const cs = &cauldrons[ci];
+                        const held_item = inventory.slots[selected_slot].item;
+
+                        if (held_item == .water_bucket and cs.fluid != .lava) {
+                            cs.fluid = .water;
+                            cs.level = 3;
+                            inventory.slots[selected_slot].decrement(1);
+                            audio.play(.splash, 0.8);
+                            particles.spawnWaterSplash(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 8);
+                            std.debug.print("filled cauldron with water (level=3)\n", .{});
+                        } else if (held_item == .lava_bucket and cs.fluid != .water) {
+                            cs.fluid = .lava;
+                            cs.level = 3;
+                            inventory.slots[selected_slot].decrement(1);
+                            audio.play(.lava_pop, 0.85);
+                            particles.spawnFlame(hit_f.x, hit_f.y + 1, hit_f.z, 8);
+                            std.debug.print("filled cauldron with lava (level=3)\n", .{});
+                        } else if (held_item == .glass and cs.fluid == .water and cs.level > 0) {
+                            // Dip glass vial into water cauldron to scoop a water bottle
+                            cs.level -= 1;
+                            if (cs.level == 0) cs.fluid = .empty;
+                            inventory.slots[selected_slot].decrement(1);
+                            _ = inventory.addItem(.fire_resistance_potion, 1);
+                            audio.play(.splash, 0.7);
+                            particles.spawnWaterSplash(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 4);
+                            std.debug.print("scooped water flask from cauldron (remaining level={d})\n", .{cs.level});
+                        } else if (held_item == .none and cs.level > 0) {
+                            // Empty-handed ladle scoops a bucket back if full basin
+                            if (cs.level == 3 and cs.fluid == .water) {
+                                _ = inventory.addItem(.water_bucket, 1);
+                                cs.fluid = .empty;
+                                cs.level = 0;
+                                audio.play(.splash, 0.8);
+                                std.debug.print("retrieved water bucket from cauldron\n", .{});
+                            } else if (cs.level == 3 and cs.fluid == .lava) {
+                                _ = inventory.addItem(.lava_bucket, 1);
+                                cs.fluid = .empty;
+                                cs.level = 0;
+                                audio.play(.lava_pop, 0.85);
+                                std.debug.print("retrieved lava bucket from cauldron\n", .{});
+                            } else {
+                                std.debug.print("cauldron status: fluid={s}, level={d}\n", .{ @tagName(cs.fluid), cs.level });
+                            }
+                        } else {
+                            std.debug.print("cauldron status: fluid={s}, level={d}\n", .{ @tagName(cs.fluid), cs.level });
                         }
                     }
                     flint_cooldown = interact_mod.flint_feed_cooldown;

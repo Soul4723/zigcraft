@@ -113,6 +113,8 @@ pub const ItemType = enum(u8) {
     blaze_rod = 107,
     blaze_powder = 108,
     brewing_stand = 109,
+    cauldron = 110,
+    water_bucket = 111,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -183,6 +185,8 @@ pub const ItemType = enum(u8) {
             .dropper => .dropper,
             .hopper => .hopper,
             .brewing_stand => .brewing_stand,
+            .cauldron => .cauldron,
+            .water_bucket => .water,
             else => null,
         };
     }
@@ -260,6 +264,7 @@ pub const ItemType = enum(u8) {
             .dropper => .dropper,
             .hopper => .hopper,
             .brewing_stand => .brewing_stand,
+            .cauldron => .cauldron,
         };
     }
 
@@ -403,6 +408,8 @@ pub const ItemType = enum(u8) {
             .blaze_rod => "Blaze Rod",
             .blaze_powder => "Blaze Powder",
             .brewing_stand => "Brewing Stand",
+            .cauldron => "Cauldron",
+            .water_bucket => "Water Bucket",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -454,6 +461,8 @@ pub const ItemType = enum(u8) {
             .blaze_rod => .{ 1.0, 0.72, 0.15, 0.95 },
             .blaze_powder => .{ 0.95, 0.55, 0.10, 0.95 },
             .brewing_stand => .{ 0.88, 0.65, 0.22, 0.95 },
+            .cauldron => .{ 0.32, 0.32, 0.35, 0.95 },
+            .water_bucket => .{ 0.25, 0.50, 0.90, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -998,6 +1007,19 @@ pub const Inventory = struct {
             }
         }
 
+
+
+        // Recipe 75: Cauldron: 2..4 Iron Ingots -> 1 Cauldron
+        if (non_empty >= 2 and non_empty <= 4) {
+            var iron_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .iron_ingot) iron_count += 1;
+            }
+            if (iron_count == non_empty and iron_count >= 2) {
+                self.craft_output = .{ .item = .cauldron, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 74: Brewing Stand: 1 Blaze Rod + 1..3 Cobblestone -> 1 Brewing Stand
         if (non_empty >= 2 and non_empty <= 4) {
@@ -2976,4 +2998,26 @@ test "brewing stand item roundtrip, properties, and Recipe 74" {
     try std.testing.expectEqual(ItemType.brewing_stand.maxDurability(), 0);
     try std.testing.expect(!ItemType.brewing_stand.isTool());
     try std.testing.expectEqual(ItemType.brewing_stand.maxStackSize(), 64);
+}
+
+test "cauldron and water bucket item roundtrip, properties, and Recipe 75" {
+    var inv = Inventory.init();
+    // Recipe 75: 3 Iron Ingots -> 1 Cauldron
+    inv.craft_grid[0] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .iron_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .cauldron);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.cauldron.toBlockId().?, .cauldron);
+    try std.testing.expectEqual(ItemType.fromBlockId(.cauldron), .cauldron);
+    try std.testing.expectEqualStrings(ItemType.cauldron.name(), "Cauldron");
+    try std.testing.expectEqual(ItemType.cauldron.maxDurability(), 0);
+    try std.testing.expect(!ItemType.cauldron.isTool());
+    try std.testing.expectEqual(ItemType.cauldron.maxStackSize(), 64);
+
+    try std.testing.expectEqual(ItemType.water_bucket.toBlockId().?, .water);
+    try std.testing.expectEqualStrings(ItemType.water_bucket.name(), "Water Bucket");
+    try std.testing.expectEqual(ItemType.water_bucket.maxStackSize(), 64);
 }

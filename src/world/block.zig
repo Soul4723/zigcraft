@@ -87,6 +87,7 @@ pub const BlockId = enum(u8) {
     dropper = 76,
     hopper = 77,
     brewing_stand = 78,
+    cauldron = 79,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand;
@@ -277,6 +278,10 @@ pub const BlockId = enum(u8) {
             .warped_fungus => .{ .x = 7, .y = 1 }, // Azure bioluminescent spore cap
             .shroomlight => .{ .x = 5, .y = 3 }, // Luminescent organic shroomlight vesicle
             .chiseled_nether_brick => .{ .x = 5, .y = 1 }, // Chiseled nether brick skull relief medallion
+            .cauldron => switch (face_idx) {
+                0 => .{ .x = 7, .y = 3 }, // Basin rim opening / hopper aperture
+                else => .{ .x = 0, .y = 2 }, // Dark forged iron cauldron basin walls & legs
+            },
             .brewing_stand => switch (face_idx) {
                 0 => .{ .x = 5, .y = 2 }, // Golden apparatus / blaze core top
                 else => .{ .x = 1, .y = 3 }, // Cobblestone tripod base casing
@@ -390,6 +395,7 @@ pub fn hardness(block: BlockId) f32 {
         .dropper => 3.5,
         .hopper => 3.0,
         .brewing_stand => 2.0,
+        .cauldron => 2.0,
         .nether_wart => 0.3,
     };
 }
@@ -402,7 +408,7 @@ pub const ToolTier = enum(u8) {
 
 pub fn requiredTier(block: BlockId) ToolTier {
     return switch (block) {
-        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand => .wooden,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron => .wooden,
         else => .hand,
     };
 }
@@ -412,19 +418,19 @@ pub fn requiredTier(block: BlockId) ToolTier {
 pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
     if (held_tool_id == TOOL_NETHERITE_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand => 6.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron => 6.0,
             else => 3.0,
         };
     }
     if (held_tool_id == TOOL_IRON_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand => 4.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron => 4.0,
             else => 2.0,
         };
     }
     if (held_tool_id == TOOL_WOODEN_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .dispenser, .dropper, .hopper, .brewing_stand => 3.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron => 3.0,
             else => 1.5,
         };
     }
@@ -517,6 +523,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .dropper = .{ .name = "dropper", .solid = true, .transparent = false, .fluid = false },
     .hopper = .{ .name = "hopper", .solid = true, .transparent = false, .fluid = false },
     .brewing_stand = .{ .name = "brewing_stand", .solid = false, .transparent = true, .fluid = false },
+    .cauldron = .{ .name = "cauldron", .solid = true, .transparent = false, .fluid = false },
 });
 
 /// A beacon activates when the column directly above it up to world ceiling (y=15)
@@ -955,7 +962,7 @@ pub const FootstepType = enum {
 pub fn footstepType(block: BlockId) FootstepType {
     return switch (block) {
         .grass, .weeping_vines, .twisting_vines, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight => .grass,
-        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand => .stone,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron => .stone,
         .wood, .target_block => .wood,
         .dirt => .dirt,
         .sand => .sand,
@@ -1249,4 +1256,23 @@ test "brewing stand block properties and textures" {
     const side_tex = BlockId.brewing_stand.getFaceTexture(2);
     try std.testing.expectEqual(@as(u32, 1), side_tex.x);
     try std.testing.expectEqual(@as(u32, 3), side_tex.y);
+}
+
+test "cauldron block properties and textures" {
+    try std.testing.expect(BlockId.cauldron.is_solid());
+    try std.testing.expect(!BlockId.cauldron.is_transparent());
+    try std.testing.expect(!BlockId.cauldron.is_fluid());
+    try std.testing.expectEqual(hardness(.cauldron), 2.0);
+    try std.testing.expectEqual(requiredTier(.cauldron), .wooden);
+    try std.testing.expectEqual(toolMultiplier(TOOL_WOODEN_PICKAXE, .cauldron), 3.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_IRON_PICKAXE, .cauldron), 4.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_NETHERITE_PICKAXE, .cauldron), 6.0);
+    try std.testing.expectEqual(footstepType(.cauldron), .stone);
+
+    const top_tex = BlockId.cauldron.getFaceTexture(0);
+    try std.testing.expectEqual(@as(u32, 7), top_tex.x);
+    try std.testing.expectEqual(@as(u32, 3), top_tex.y);
+    const side_tex = BlockId.cauldron.getFaceTexture(2);
+    try std.testing.expectEqual(@as(u32, 0), side_tex.x);
+    try std.testing.expectEqual(@as(u32, 2), side_tex.y);
 }
