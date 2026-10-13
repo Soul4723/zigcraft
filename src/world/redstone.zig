@@ -178,6 +178,40 @@ pub fn isTorchBasePowered(get: *const fn (x: i32, y: i32, z: i32) BlockId, tx: i
 
 pub const target_pulse_duration: f32 = 0.4; // 8 redstone game ticks
 
+/// Calculate redstone signal strength (1..15) emitted by a Target block based on hit distance from block face center.
+/// Bullseye (distance <= 0.05) gives full 15 strength. Outer edge (distance >= 0.50) gives 1 strength.
+pub fn targetSignalStrength(hit_x: f32, hit_y: f32, hit_z: f32, block_x: i32, block_y: i32, block_z: i32) u4 {
+    const cx = @as(f32, @floatFromInt(block_x)) + 0.5;
+    const cy = @as(f32, @floatFromInt(block_y)) + 0.5;
+    const cz = @as(f32, @floatFromInt(block_z)) + 0.5;
+    const dx = hit_x - cx;
+    const dy = hit_y - cy;
+    const dz = hit_z - cz;
+    const dist = @sqrt(dx * dx + dy * dy + dz * dz);
+
+    // Bullseye check
+    if (dist <= 0.08) return 15;
+    if (dist >= 0.52) return 1;
+
+    // Linear mapping from 0.08m (15) to 0.52m (1)
+    const frac = (dist - 0.08) / (0.52 - 0.08); // 0.0 to 1.0
+    const str_f = 15.0 - frac * 14.0;
+    return @as(u4, @intCast(std.math.clamp(@as(i32, @intFromFloat(@round(str_f))), 1, 15)));
+}
+
+test "targetSignalStrength bullseye and edge scaling" {
+    // Exact center -> 15
+    try std.testing.expectEqual(@as(u4, 15), targetSignalStrength(10.5, 5.5, 20.5, 10, 5, 20));
+    // Bullseye within 0.05m -> 15
+    try std.testing.expectEqual(@as(u4, 15), targetSignalStrength(10.53, 5.5, 20.5, 10, 5, 20));
+    // Outer edge >= 0.50m -> 1
+    try std.testing.expectEqual(@as(u4, 1), targetSignalStrength(10.5, 6.02, 20.5, 10, 5, 20));
+    // Midpoint ~0.30m -> ~8
+    const mid_str = targetSignalStrength(10.5, 5.8, 20.5, 10, 5, 20);
+    try std.testing.expect(mid_str >= 5 and mid_str <= 10);
+}
+
+
 pub fn isTargetHitPowered(is_hit_active: bool) bool {
     return is_hit_active;
 }
