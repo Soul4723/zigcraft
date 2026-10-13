@@ -109,6 +109,7 @@ pub const ItemType = enum(u8) {
     fireworks_rocket = 103,
     dispenser = 104,
     dropper = 105,
+    hopper = 106,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -177,6 +178,7 @@ pub const ItemType = enum(u8) {
             .chiseled_nether_brick => .chiseled_nether_brick,
             .dispenser => .dispenser,
             .dropper => .dropper,
+            .hopper => .hopper,
             else => null,
         };
     }
@@ -252,6 +254,7 @@ pub const ItemType = enum(u8) {
             .chiseled_nether_brick => .chiseled_nether_brick,
             .dispenser => .dispenser,
             .dropper => .dropper,
+            .hopper => .hopper,
         };
     }
 
@@ -391,6 +394,7 @@ pub const ItemType = enum(u8) {
             .fireworks_rocket => "Fireworks Rocket",
             .dispenser => "Dispenser",
             .dropper => "Dropper",
+            .hopper => "Hopper",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -438,6 +442,7 @@ pub const ItemType = enum(u8) {
             .fireworks_rocket => .{ 0.92, 0.25, 0.30, 0.95 },
             .dispenser => .{ 0.55, 0.55, 0.58, 0.95 },
             .dropper => .{ 0.62, 0.62, 0.64, 0.95 },
+            .hopper => .{ 0.38, 0.38, 0.40, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -978,6 +983,20 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 71: Hopper: 1 Chest + 1..2 Iron Ingots -> 1 Hopper
+        if (non_empty >= 2 and non_empty <= 3) {
+            var has_chest = false;
+            var iron_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .chest) has_chest = true;
+                if (sl.item == .iron_ingot) iron_count += 1;
+            }
+            if (has_chest and iron_count >= 1 and ((if (has_chest) @as(u8, 1) else 0) + iron_count == non_empty)) {
+                self.craft_output = .{ .item = .hopper, .count = 1 };
                 return;
             }
         }
@@ -2837,4 +2856,29 @@ test "dropper item roundtrip, properties, and Recipe 70" {
     try std.testing.expectEqual(ItemType.dropper.maxDurability(), 0);
     try std.testing.expect(!ItemType.dropper.isTool());
     try std.testing.expectEqual(ItemType.dropper.maxStackSize(), 64);
+}
+
+test "hopper item roundtrip, properties, and Recipe 71" {
+    var inv = Inventory.init();
+
+    // Recipe 71: 1 Chest + 1 Iron Ingot -> 1 Hopper
+    inv.craft_grid[0] = .{ .item = .chest, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .iron_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .hopper);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 71 with 2 iron ingots
+    inv.craft_grid[2] = .{ .item = .iron_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .hopper);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Properties
+    try std.testing.expectEqual(ItemType.hopper.toBlockId().?, .hopper);
+    try std.testing.expectEqual(ItemType.fromBlockId(.hopper), .hopper);
+    try std.testing.expectEqualStrings(ItemType.hopper.name(), "Hopper");
+    try std.testing.expectEqual(ItemType.hopper.maxDurability(), 0);
+    try std.testing.expect(!ItemType.hopper.isTool());
+    try std.testing.expectEqual(ItemType.hopper.maxStackSize(), 64);
 }

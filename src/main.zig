@@ -246,6 +246,9 @@ pub fn main() !void {
     const RedTorch = cache_mod.RedTorch;
     var red_torches: [cache_mod.red_torch_cap]RedTorch = undefined;
     var red_torch_count: usize = 0;
+    const HopperState = struct { x: i32, y: i32, z: i32, cooldown: f32 = 0.0, items: [4]inventory_mod.ItemStack = undefined };
+    var hoppers: [32]HopperState = undefined;
+    var hopper_count: usize = 0;
     const DropperState = struct { x: i32, y: i32, z: i32, powered: bool = false, items: [4]inventory_mod.ItemStack = undefined, count: usize = 0 };
     var droppers: [32]DropperState = undefined;
     var dropper_count: usize = 0;
@@ -528,6 +531,106 @@ pub fn main() !void {
             }
 
     
+
+
+        // Hopper block: autonomous 4-tick (0.4s) item pipeline siphoning from above & funneling downward
+        {
+            var hpi: usize = 0;
+            while (hpi < hopper_count) {
+                const hop = &hoppers[hpi];
+                const cur_b = manager.getBlockWorld(hop.x, hop.y, hop.z);
+                if (cur_b != .hopper) {
+                    cache_mod.swapRemove(&hoppers, &hopper_count, hpi);
+                    continue;
+                }
+
+                hop.cooldown = @max(0.0, hop.cooldown - dt);
+                // Hoppers locked when receiving redstone power
+                const locked = redstone_mod.isDispenserPowered(&pickBlockWorld, hop.x, hop.y, hop.z);
+                if (!locked and hop.cooldown <= 0.0) {
+                    var did_action = false;
+
+                    // 1. Siphon item from container above (y + 1)
+                    const above_x = hop.x;
+                    const above_y = hop.y + 1;
+                    const above_z = hop.z;
+                    const above_b = manager.getBlockWorld(above_x, above_y, above_z);
+
+                    if (above_b == .chest) {
+                        for (chests[0..chest_count]) |*ch| {
+                            if (ch.x == above_x and ch.y == above_y and ch.z == above_z) {
+                                for (&ch.items) |*cs| {
+                                    if (!cs.isEmpty()) {
+                                        // Try inserting into hopper slots
+                                        for (&hop.items) |*hs| {
+                                            if (hs.item == cs.item and hs.count < 64) {
+                                                hs.count += 1;
+                                                cs.count -= 1;
+                                                if (cs.count == 0) cs.item = .none;
+                                                did_action = true;
+                                                break;
+                                            } else if (hs.isEmpty()) {
+                                                hs.* = .{ .item = cs.item, .count = 1 };
+                                                cs.count -= 1;
+                                                if (cs.count == 0) cs.item = .none;
+                                                did_action = true;
+                                                break;
+                                            }
+                                        }
+                                        if (did_action) break;
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+                    // 2. Funnel/push item to container below (y - 1)
+                    if (!did_action) {
+                        const below_x = hop.x;
+                        const below_y = hop.y - 1;
+                        const below_z = hop.z;
+                        const below_b = manager.getBlockWorld(below_x, below_y, below_z);
+
+                        if (below_b == .chest) {
+                            for (chests[0..chest_count]) |*ch| {
+                                if (ch.x == below_x and ch.y == below_y and ch.z == below_z) {
+                                    for (&hop.items) |*hs| {
+                                        if (!hs.isEmpty()) {
+                                            for (&ch.items) |*cs| {
+                                                if (cs.item == hs.item and cs.count < 64) {
+                                                    cs.count += 1;
+                                                    hs.count -= 1;
+                                                    if (hs.count == 0) hs.item = .none;
+                                                    did_action = true;
+                                                    break;
+                                                } else if (cs.isEmpty()) {
+                                                    cs.* = .{ .item = hs.item, .count = 1 };
+                                                    hs.count -= 1;
+                                                    if (hs.count == 0) hs.item = .none;
+                                                    did_action = true;
+                                                    break;
+                                                }
+                                            }
+                                            if (did_action) break;
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (did_action) {
+                        hop.cooldown = 0.4; // 8 game ticks (0.4s) standard hopper speed
+                        audio.play(.click_on, 0.4);
+                        particles.spawnBlockDebris(hop.x, hop.y, hop.z, .{ 0.4, 0.4, 0.45 }, 2);
+                        std.debug.print("hopper transferred item\n", .{});
+                    }
+                }
+                hpi += 1;
+            }
+        }
 
         // Dropper block: gentle item drop or container insertion upon redstone pulse
         {
