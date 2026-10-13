@@ -334,6 +334,7 @@ pub fn main() !void {
         const f_pz: i32 = @intFromFloat(@floor(player.pos.z));
         const floor_blk = manager.getBlockWorld(f_px, f_py, f_pz);
         player.on_soulsand = (floor_blk == .soul_sand);
+        player.has_soul_speed = inventory.hasItem(.soul_speed_boots);
 
         // Detect bubble column: water cell with soul sand (upward) or magma (downward whirlpool) underneath
         const p_col_type = hazard_mod.detectBubbleColumn(&pickBlockWorld, f_px, @intFromFloat(@floor(player.pos.y)), f_pz);

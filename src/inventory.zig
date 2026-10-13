@@ -94,6 +94,7 @@ pub const ItemType = enum(u8) {
     shroomlight = 88,
     warped_fungus_on_a_stick = 89,
     netherite_chestplate = 90,
+    soul_speed_boots = 91,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -243,6 +244,7 @@ pub const ItemType = enum(u8) {
             .netherite_sword => 400,
             .warped_fungus_on_a_stick => 100,
             .netherite_chestplate => 500,
+            .soul_speed_boots => 300,
             else => 0,
         };
     }
@@ -254,7 +256,7 @@ pub const ItemType = enum(u8) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate => 1,
+            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .soul_speed_boots => 1,
             else => 64,
         };
     }
@@ -348,6 +350,7 @@ pub const ItemType = enum(u8) {
             .shroomlight => "Shroomlight",
             .warped_fungus_on_a_stick => "Warped Fungus on a Stick",
             .netherite_chestplate => "Netherite Chestplate",
+            .soul_speed_boots => "Soul Speed Boots",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -380,6 +383,7 @@ pub const ItemType = enum(u8) {
             .shroomlight => .{ 0.98, 0.78, 0.45, 0.95 },
             .warped_fungus_on_a_stick => .{ 0.15, 0.75, 0.70, 0.95 },
             .netherite_chestplate => .{ 0.25, 0.22, 0.26, 0.95 },
+            .soul_speed_boots => .{ 0.20, 0.85, 0.90, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -890,6 +894,17 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 57: Soul Speed Boots: 1 Iron Ingot + 1 Soul Sand (or 1 Netherite Ingot + 1 Soul Sand) -> 1 Soul Speed Boots
+        if (non_empty == 2) {
+            const has_metal = (g0 == .iron_ingot or g1 == .iron_ingot or g2 == .iron_ingot or g3 == .iron_ingot or
+                               g0 == .netherite_ingot or g1 == .netherite_ingot or g2 == .netherite_ingot or g3 == .netherite_ingot);
+            const has_soul = (g0 == .soul_sand or g1 == .soul_sand or g2 == .soul_sand or g3 == .soul_sand);
+            if (has_metal and has_soul) {
+                self.craft_output = .{ .item = .soul_speed_boots, .count = 1 };
                 return;
             }
         }
@@ -2217,4 +2232,26 @@ test "netherite chestplate item properties, recipe 56, and hasItem" {
     try std.testing.expect(!inv.hasItem(.netherite_chestplate));
     inv.slots[10] = .{ .item = .netherite_chestplate, .count = 1 };
     try std.testing.expect(inv.hasItem(.netherite_chestplate));
+}
+
+test "soul speed boots item properties, durability, and Recipe 57" {
+    var inv = Inventory.init();
+
+    // Recipe 57: 1 Iron Ingot + 1 Soul Sand -> 1 Soul Speed Boots
+    inv.craft_grid[0] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .soul_sand, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .soul_speed_boots);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Also works with Netherite Ingot
+    inv.craft_grid[0] = .{ .item = .netherite_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .soul_speed_boots);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.soul_speed_boots.maxDurability(), 300);
+    try std.testing.expect(ItemType.soul_speed_boots.isTool());
+    try std.testing.expectEqual(ItemType.soul_speed_boots.maxStackSize(), 1);
+    try std.testing.expectEqualStrings(ItemType.soul_speed_boots.name(), "Soul Speed Boots");
 }
