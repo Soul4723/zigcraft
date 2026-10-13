@@ -511,6 +511,18 @@ pub const NetherGenerator = struct {
         return h == 0;
     }
 
+    /// Check if soul sand floor location (wx, wy, wz) grows an upward twisting vine stalk (y = 6..9).
+    /// Twisting vines rise vertically 1 to 4 blocks from soul sand shore floors in cyan warped patches.
+    pub fn isTwistingVine(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
+        if (wy < 6 or wy > 9) return false;
+        if (!self.isSoulSand(wx, wz)) return false;
+        // Twisting vine stalks emerge in specific soul sand shore pockets
+        const s = valueNoise2D(self.seed +% 0x9B118743, wx, wz, 0.14);
+        if (s < 0.22) return false;
+        const h: u32 = (@as(u32, @bitCast(wx *% 53 +% wz *% 79)) % 4) + 1; // 1..4 blocks high above y=5 floor
+        return wy <= 5 + @as(i32, @intCast(h));
+    }
+
     /// Check if cavern ceiling location (wx, wy, wz) grows a hanging weeping vine tendril (y = 8..12).
     /// Tendrils hang downwards 1 to 3 blocks below the cavern netherrack ceiling in crimson clusters.
     pub fn isWeepingVine(self: NetherGenerator, wx: i32, wy: i32, wz: i32) bool {
@@ -684,6 +696,10 @@ pub const NetherGenerator = struct {
                     } else {
                         // Preserve wild wart planted at y=6 by the y=5 soul sand pass
                         if (chunk.getBlock(@intCast(lx), @intCast(y), @intCast(lz)) == .nether_wart) {
+                            continue;
+                        }
+                        if (self.isTwistingVine(wx, @intCast(y), wz)) {
+                            chunk.setBlock(@intCast(lx), @intCast(y), @intCast(lz), .twisting_vines);
                             continue;
                         }
                         // Open cavern space: lava sea up to SEA_LEVEL - 1 (y <= 4)
@@ -885,6 +901,28 @@ test "NetherGenerator fortress loot chest and deterministic loot" {
     // Loot cell must not be a walkway/fence cell
     try std.testing.expect(!nether_gen.isFortress(23, 8, 24) or true);
 
+}
+
+test "NetherGenerator grows twisting vines upward from soul sand floors" {
+    const nether_gen = NetherGenerator.init(12345);
+    var found = false;
+    var x: i32 = -64;
+    while (x <= 64) : (x += 1) {
+        var z: i32 = -64;
+        while (z <= 64) : (z += 1) {
+            var y: i32 = 6;
+            while (y <= 9) : (y += 1) {
+                if (nether_gen.isTwistingVine(x, y, z)) {
+                    try std.testing.expect(nether_gen.isSoulSand(x, z));
+                    found = true;
+                    break;
+                }
+            }
+            if (found) break;
+        }
+        if (found) break;
+    }
+    try std.testing.expect(found);
 }
 
 test "NetherGenerator grows weeping vines hanging under cavern ceiling" {

@@ -86,6 +86,7 @@ pub const ItemType = enum(u8) {
     gilded_blackstone = 80,
     gold_nugget = 81,
     weeping_vines = 82,
+    twisting_vines = 83,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -145,6 +146,7 @@ pub const ItemType = enum(u8) {
             .blackstone => .blackstone,
             .gilded_blackstone => .gilded_blackstone,
             .weeping_vines => .weeping_vines,
+            .twisting_vines => .twisting_vines,
             else => null,
         };
     }
@@ -211,6 +213,7 @@ pub const ItemType = enum(u8) {
             .blackstone => .blackstone,
             .gilded_blackstone => .gilded_blackstone,
             .weeping_vines => .weeping_vines,
+            .twisting_vines => .twisting_vines,
         };
     }
 
@@ -318,6 +321,7 @@ pub const ItemType = enum(u8) {
             .gilded_blackstone => "Gilded Blackstone",
             .gold_nugget => "Gold Nugget",
             .weeping_vines => "Weeping Vines",
+            .twisting_vines => "Twisting Vines",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -342,6 +346,7 @@ pub const ItemType = enum(u8) {
             .coal => .{ 0.12, 0.12, 0.14, 0.95 },
             .iron_ore => .{ 0.72, 0.55, 0.42, 0.95 },
             .weeping_vines => .{ 0.75, 0.15, 0.22, 0.95 },
+            .twisting_vines => .{ 0.15, 0.65, 0.60, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -845,6 +850,17 @@ pub const Inventory = struct {
             const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
             if ((has_magma and (has_apple or has_glass)) or (has_wart and has_glass)) {
                 self.craft_output = .{ .item = .fire_resistance_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 49: Twisting Vines: 1 Weeping Vines + 1 Soul Sand (or Soul Torch) -> 2 Twisting Vines
+        if (non_empty == 2) {
+            const has_weep = (g0 == .weeping_vines or g1 == .weeping_vines or g2 == .weeping_vines or g3 == .weeping_vines);
+            const has_warp = (g0 == .soul_sand or g1 == .soul_sand or g2 == .soul_sand or g3 == .soul_sand or
+                              g0 == .soul_torch or g1 == .soul_torch or g2 == .soul_torch or g3 == .soul_torch);
+            if (has_weep and has_warp) {
+                self.craft_output = .{ .item = .twisting_vines, .count = 2 };
                 return;
             }
         }
@@ -1539,6 +1555,25 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         }
         return 0;
     }
+}
+
+test "twisting vines item roundtrip, drops, and crafting recipe" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .weeping_vines, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .soul_sand, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .twisting_vines);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+
+    try std.testing.expectEqual(ItemType.twisting_vines.toBlockId().?, .twisting_vines);
+    try std.testing.expectEqual(ItemType.fromBlockId(.twisting_vines), .twisting_vines);
+    try std.testing.expectEqualStrings(ItemType.twisting_vines.name(), "Twisting Vines");
+
+    var drops: [2]BlockDrop = undefined;
+    const n = getBlockDrops(.twisting_vines, &drops);
+    try std.testing.expectEqual(n, 1);
+    try std.testing.expectEqual(drops[0].item, .twisting_vines);
+    try std.testing.expectEqual(drops[0].count, 1);
 }
 
 test "weeping vines item roundtrip, drops, and crafting recipe" {

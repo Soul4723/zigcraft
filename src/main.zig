@@ -1625,6 +1625,15 @@ pub fn main() !void {
                                     particles.spawnWaterSplash(.{ player.pos.x, player.pos.y, player.pos.z }, 10);
                                     std.debug.print("boarded wooden boat\n", .{});
                                 }
+                            } else if (!hotbar_slot.isEmpty() and hotbar_slot.item == .twisting_vines) {
+                                const below_b = manager.getBlockWorld(px, py - 1, pz);
+                                if (below_b.is_solid() or below_b == .twisting_vines) {
+                                    if (try manager.editAndRemesh(px, py, pz, .twisting_vines)) {
+                                        audio.play(.place_block, 0.7);
+                                        hotbar_slot.decrement(1);
+                                        std.debug.print("planted twisting vines\n", .{});
+                                    }
+                                }
                             } else if (!hotbar_slot.isEmpty() and hotbar_slot.item == .weeping_vines) {
                                 const above_b = manager.getBlockWorld(px, py + 1, pz);
                                 if (above_b.is_solid() or above_b == .weeping_vines) {
