@@ -246,6 +246,9 @@ pub fn main() !void {
     const RedTorch = cache_mod.RedTorch;
     var red_torches: [cache_mod.red_torch_cap]RedTorch = undefined;
     var red_torch_count: usize = 0;
+    const DropperState = struct { x: i32, y: i32, z: i32, powered: bool = false, items: [4]inventory_mod.ItemStack = undefined, count: usize = 0 };
+    var droppers: [32]DropperState = undefined;
+    var dropper_count: usize = 0;
     const DispenserState = struct { x: i32, y: i32, z: i32, powered: bool = false, ammo_count: u8 = 9 };
     var dispensers: [32]DispenserState = undefined;
     var dispenser_count: usize = 0;
@@ -525,6 +528,89 @@ pub fn main() !void {
             }
 
     
+
+        // Dropper block: gentle item drop or container insertion upon redstone pulse
+        {
+            var dpi: usize = 0;
+            while (dpi < dropper_count) {
+                const drop = &droppers[dpi];
+                const cur_b = manager.getBlockWorld(drop.x, drop.y, drop.z);
+                if (cur_b != .dropper) {
+                    cache_mod.swapRemove(&droppers, &dropper_count, dpi);
+                    continue;
+                }
+
+                const powered_now = redstone_mod.isDispenserPowered(&pickBlockWorld, drop.x, drop.y, drop.z);
+                if (powered_now and !drop.powered) {
+                    drop.powered = true;
+                    // Find first non-empty item stack in dropper
+                    var found_idx: ?usize = null;
+                    for (drop.items[0..4], 0..) |sl, si| {
+                        if (sl.item != .none and sl.count > 0) {
+                            found_idx = si;
+                            break;
+                        }
+                    }
+
+                    if (found_idx) |si| {
+                        const dropped_item = drop.items[si].item;
+                        drop.items[si].count -= 1;
+                        if (drop.items[si].count == 0) drop.items[si].item = .none;
+
+                        // Target in front of dropper nozzle (north / -Z)
+                        const front_x = drop.x;
+                        const front_y = drop.y;
+                        const front_z = drop.z - 1;
+                        const front_block = manager.getBlockWorld(front_x, front_y, front_z);
+
+                        if (front_block == .chest) {
+                            // Transfer directly into chest container if one exists at (front_x, front_y, front_z)
+                            var chest_found = false;
+                            for (chests[0..chest_count]) |*ch| {
+                                if (ch.x == front_x and ch.y == front_y and ch.z == front_z) {
+                                    for (&ch.items) |*cs| {
+                                        if (cs.item == dropped_item and cs.count < 64) {
+                                            cs.count += 1;
+                                            chest_found = true;
+                                            break;
+                                        } else if (cs.isEmpty()) {
+                                            cs.* = .{ .item = dropped_item, .count = 1 };
+                                            chest_found = true;
+                                            break;
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                            audio.play(.click_on, 0.7);
+                            particles.spawnBlockDebris(front_x, front_y, front_z, .{ 0.8, 0.8, 0.8 }, 3);
+                            std.debug.print("dropper inserted {s} into chest\n", .{@tagName(dropped_item)});
+                        } else {
+                            // Gentle item drop into world: adds directly to player inventory if within pickup range
+                            const pdx = player.pos.x - (@as(f32, @floatFromInt(front_x)) + 0.5);
+                            const pdy = player.pos.y - @as(f32, @floatFromInt(front_y));
+                            const pdz = player.pos.z - (@as(f32, @floatFromInt(front_z)) + 0.5);
+                            const dist_sq = pdx * pdx + pdy * pdy + pdz * pdz;
+
+                            if (dist_sq < 16.0) {
+                                _ = inventory.addItem(dropped_item, 1);
+                                audio.play(.click_on, 0.8);
+                            } else {
+                                audio.play(.click_off, 0.6);
+                            }
+                            particles.spawnBlockDebris(front_x, front_y, front_z, .{ 0.8, 0.8, 0.8 }, 4);
+                            std.debug.print("dropper dropped {s}\n", .{@tagName(dropped_item)});
+                        }
+                    } else {
+                        audio.play(.click_off, 0.5);
+                    }
+                } else if (!powered_now and drop.powered) {
+                    drop.powered = false;
+                }
+                dpi += 1;
+            }
+        }
+
         // Dispenser block: launches projectile into world upon redstone rising edge pulse
         {
             var di: usize = 0;
