@@ -284,6 +284,9 @@ pub fn main() !void {
     const GrindstoneState = struct { x: i32, y: i32, z: i32 };
     var grindstones: [cache_mod.grindstone_cap]GrindstoneState = undefined;
     var grindstone_count: usize = 0;
+    const SmithingTableState = struct { x: i32, y: i32, z: i32 };
+    var smithing_tables: [cache_mod.smithing_table_cap]SmithingTableState = undefined;
+    var smithing_table_count: usize = 0;
     const DropperState = struct { x: i32, y: i32, z: i32, powered: bool = false, items: [4]inventory_mod.ItemStack = undefined, count: usize = 0 };
     var droppers: [32]DropperState = undefined;
     var dropper_count: usize = 0;
@@ -2384,6 +2387,10 @@ pub fn main() !void {
                                             grindstones[grindstone_count] = .{ .x = px, .y = py, .z = pz };
                                             grindstone_count += 1;
                                         }
+                                        if (place_type == .smithing_table and smithing_table_count < smithing_tables.len) {
+                                            smithing_tables[smithing_table_count] = .{ .x = px, .y = py, .z = pz };
+                                            smithing_table_count += 1;
+                                        }
                                         if (place_type == .spawner_cage and spawner_count < spawners.len) {
                                             spawners[spawner_count] = .{ .x = px, .y = py, .z = pz };
                                             spawner_count += 1;
@@ -3469,6 +3476,27 @@ pub fn main() !void {
                             }
                             audio.playAt(.click_off, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
                         }
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .smithing_table) {
+                    var st_opt = cache_mod.findSmithingTable(&smithing_tables, smithing_table_count, hit_f.x, hit_f.y, hit_f.z);
+                    if (st_opt == null and smithing_table_count < smithing_tables.len) {
+                        smithing_tables[smithing_table_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z };
+                        st_opt = smithing_table_count;
+                        smithing_table_count += 1;
+                    }
+
+                    const held_slot = &inventory.slots[selected_slot];
+                    if (held_slot.item.isTool()) {
+                        // Workstation forging: restore tool wear and reinforce
+                        tool_wear.uses[selected_slot] = 0;
+                        audio.playAt(.smithing_strike, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 32.0);
+                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.85, 0.75, 0.45 }, 8);
+                        std.debug.print("upgraded/hardened tool on smithing table: {s}\n", .{ held_slot.item.name() });
+                    } else {
+                        // Bench tap clack
+                        audio.playAt(.smithing_strike, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.6, 22.0);
+                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.55, 0.40, 0.25 }, 3);
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .grindstone) {

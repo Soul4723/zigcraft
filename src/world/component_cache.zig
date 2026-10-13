@@ -349,3 +349,16 @@ test "findGrindstone helper" {
     try std.testing.expectEqual(findGrindstone(&gs, 1, 7, 9, 11), @as(?usize, 0));
     try std.testing.expectEqual(findGrindstone(&gs, 1, 0, 0, 0), @as(?usize, null));
 }
+
+pub const smithing_table_cap: usize = 32;
+
+pub fn findSmithingTable(tables: anytype, n: usize, x: i32, y: i32, z: i32) ?usize {
+    return find2D(tables, n, x, y, z);
+}
+
+test "findSmithingTable helper" {
+    const FakeTable = struct { x: i32, y: i32, z: i32 };
+    var st = [_]FakeTable{.{ .x = 14, .y = 18, .z = 22 }} ** 2;
+    try std.testing.expectEqual(findSmithingTable(&st, 1, 14, 18, 22), @as(?usize, 0));
+    try std.testing.expectEqual(findSmithingTable(&st, 1, 0, 0, 0), @as(?usize, null));
+}

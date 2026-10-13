@@ -49,6 +49,7 @@ pub const SoundType = enum {
     record_cat,
     anvil_clang,
     grindstone_scrape,
+    smithing_strike,
 };
 
 pub const SAMPLE_RATE: u32 = 44100;
@@ -128,6 +129,7 @@ pub const AudioMixer = struct {
             .record_13, .record_cat => SAMPLE_RATE * 3, // ~3000ms vinyl record melody phrase
             .anvil_clang => SAMPLE_RATE / 3, // ~333ms resonant metallic iron anvil strike & overtone ringing
             .grindstone_scrape => SAMPLE_RATE / 4, // ~250ms abrasive stone-on-metal sharpening friction hiss & friction rumble
+            .smithing_strike => SAMPLE_RATE / 4, // ~250ms solid heavy wooden-iron bench hammer thud & anvil clack
         };
 
         slot.?.* = .{
@@ -497,6 +499,14 @@ pub const AudioMixer = struct {
                 const v_env = (1.0 - progress * 0.2);
                 return (tone + crackle) * v_env * 0.70;
             },
+            .smithing_strike => {
+                // Smithing table strike: low wood bench thud (120Hz) + sharp steel hammer clack (1200Hz)
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const wood_thud = @sin(t * 120.0 * 2.0 * std.math.pi) * 0.60 * @exp(-progress * 8.0);
+                const steel_clack = @sin(t * 1200.0 * 2.0 * std.math.pi) * 0.40 * @exp(-progress * 15.0);
+                const transient_click = if (progress < 0.05) (rng.random().float(f32) * 2.0 - 1.0) * 0.50 else 0.0;
+                return (wood_thud + steel_clack + transient_click) * (1.0 - progress) * 0.85;
+            },
             .grindstone_scrape => {
                 // Abrasive stone grinding friction: textured friction noise + dual harmonic buzz (440Hz / 660Hz)
                 const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
@@ -562,7 +572,7 @@ test "AudioMixer play voice produces non-zero samples" {
 
 test "AudioMixer all sound types render without overflow or crash" {
     var mixer = AudioMixer.init();
-    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .mob_roar, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle, .nether_wind, .glowstone_chime, .bow_shoot, .shield_block, .crossbow_shoot, .crossbow_load, .firework_blast, .note_harp, .note_bass, .note_snare, .note_chime, .record_13, .record_cat, .anvil_clang, .grindstone_scrape };
+    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .mob_roar, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle, .nether_wind, .glowstone_chime, .bow_shoot, .shield_block, .crossbow_shoot, .crossbow_load, .firework_blast, .note_harp, .note_bass, .note_snare, .note_chime, .record_13, .record_cat, .anvil_clang, .grindstone_scrape, .smithing_strike };
     for (sounds) |snd| {
         mixer.play(snd, 1.0);
     }
@@ -705,7 +715,7 @@ test "music disc vinyl audio synthesis voices" {
     var mixer = AudioMixer.init();
     var buf: [256]i16 = undefined;
 
-    const disc_types = [_]SoundType{ .record_13, .record_cat, .anvil_clang, .grindstone_scrape };
+    const disc_types = [_]SoundType{ .record_13, .record_cat, .anvil_clang, .grindstone_scrape, .smithing_strike };
     for (disc_types) |dt| {
         mixer.play(dt, 0.8);
         mixer.render(&buf);

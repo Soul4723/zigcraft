@@ -127,6 +127,7 @@ pub const ItemType = enum(u8) {
     enchantment_table = 121,
     anvil = 122,
     grindstone = 123,
+    smithing_table = 124,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -207,6 +208,7 @@ pub const ItemType = enum(u8) {
             .enchantment_table => .enchantment_table,
             .anvil => .anvil,
             .grindstone => .grindstone,
+            .smithing_table => .smithing_table,
             else => null,
         };
     }
@@ -293,6 +295,7 @@ pub const ItemType = enum(u8) {
             .enchantment_table => .enchantment_table,
             .anvil => .anvil,
             .grindstone => .grindstone,
+            .smithing_table => .smithing_table,
         };
     }
 
@@ -459,6 +462,7 @@ pub const ItemType = enum(u8) {
             .enchantment_table => "Enchantment Table",
             .anvil => "Anvil",
             .grindstone => "Grindstone",
+            .smithing_table => "Smithing Table",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -524,6 +528,7 @@ pub const ItemType = enum(u8) {
             .enchantment_table => .{ 0.60, 0.20, 0.70, 0.95 },
             .anvil => .{ 0.35, 0.35, 0.38, 0.95 },
             .grindstone => .{ 0.65, 0.60, 0.55, 0.95 },
+            .smithing_table => .{ 0.30, 0.35, 0.42, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1072,6 +1077,20 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 88: Smithing Table: 2 Iron Ingots (or Iron Ore) + 2 Wood Planks -> 1 Smithing Table
+        if (non_empty == 4) {
+            var iron_count: u8 = 0;
+            var plank_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .iron_ingot or sl.item == .iron_ore) iron_count += 1;
+                if (sl.item == .wood_planks) plank_count += 1;
+            }
+            if (iron_count == 2 and plank_count == 2) {
+                self.craft_output = .{ .item = .smithing_table, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 87: Grindstone: 1 Stone (or Cobblestone/Sandstone) + 2 Sticks + 1 Wood Planks -> 1 Grindstone
         if (non_empty == 4) {
@@ -3527,4 +3546,29 @@ test "grindstone item roundtrip, properties, and Recipe 87" {
     try std.testing.expectEqual(ItemType.grindstone.maxDurability(), 0);
     try std.testing.expect(!ItemType.grindstone.isTool());
     try std.testing.expectEqual(ItemType.grindstone.maxStackSize(), 64);
+}
+
+test "smithing table item roundtrip, properties, and Recipe 88" {
+    var inv = Inventory.init();
+    // Recipe 88: 2 Iron Ingots + 2 Wood Planks -> 1 Smithing Table
+    inv.craft_grid[0] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .wood_planks, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .smithing_table);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Also works with Iron Ore
+    inv.craft_grid[0] = .{ .item = .iron_ore, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .smithing_table);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.smithing_table.toBlockId().?, .smithing_table);
+    try std.testing.expectEqual(ItemType.fromBlockId(.smithing_table), .smithing_table);
+    try std.testing.expectEqualStrings(ItemType.smithing_table.name(), "Smithing Table");
+    try std.testing.expectEqual(ItemType.smithing_table.maxDurability(), 0);
+    try std.testing.expect(!ItemType.smithing_table.isTool());
+    try std.testing.expectEqual(ItemType.smithing_table.maxStackSize(), 64);
 }
