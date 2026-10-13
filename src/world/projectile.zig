@@ -217,3 +217,21 @@ test "firework rocket trajectory constants and velocity" {
     try std.testing.expectApproxEqAbs(vel[1], 26.5, 0.01);
     try std.testing.expectApproxEqAbs(vel[2], 0.0, 0.01);
 }
+
+pub const crossbow_rocket_speed: f32 = 38.0;
+
+pub fn crossbowRocketVelocity(dir_x: f32, dir_y: f32, dir_z: f32) [3]f32 {
+    return .{
+        dir_x * crossbow_rocket_speed,
+        dir_y * crossbow_rocket_speed + 0.4,
+        dir_z * crossbow_rocket_speed,
+    };
+}
+
+test "crossbow rocket velocity calculation" {
+    try std.testing.expectApproxEqAbs(crossbow_rocket_speed, 38.0, 0.01);
+    const vel = crossbowRocketVelocity(1.0, 0.0, 0.0);
+    try std.testing.expectApproxEqAbs(vel[0], 38.0, 0.01);
+    try std.testing.expectApproxEqAbs(vel[1], 0.4, 0.01);
+    try std.testing.expectApproxEqAbs(vel[2], 0.0, 0.01);
+}

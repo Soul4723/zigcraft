@@ -594,6 +594,13 @@ pub const Inventory = struct {
         return false;
     }
 
+    pub fn consumeCrossbowAmmo(self: *Inventory) ?ItemType {
+        if (self.consumeItem(.fireworks_rocket)) return .fireworks_rocket;
+        if (self.consumeItem(.spectral_arrow)) return .spectral_arrow;
+        if (self.consumeItem(.arrow)) return .arrow;
+        return null;
+    }
+
     pub fn consumeArrow(self: *Inventory) ?ItemType {
         if (self.consumeItem(.spectral_arrow)) return .spectral_arrow;
         if (self.consumeItem(.arrow)) return .arrow;
@@ -2721,4 +2728,22 @@ test "fireworks_rocket item properties and Recipe 68" {
     try std.testing.expectEqual(ItemType.fireworks_rocket.maxStackSize(), 64);
     try std.testing.expectEqualStrings(ItemType.fireworks_rocket.name(), "Fireworks Rocket");
     try std.testing.expect(ItemType.fireworks_rocket.toBlockId() == null);
+}
+
+test "consumeCrossbowAmmo priority: rocket > spectral > arrow" {
+    var inv = Inventory.init();
+    try std.testing.expect(inv.consumeCrossbowAmmo() == null);
+
+    inv.slots[0] = .{ .item = .arrow, .count = 2 };
+    inv.slots[1] = .{ .item = .spectral_arrow, .count = 1 };
+    inv.slots[2] = .{ .item = .fireworks_rocket, .count = 1 };
+
+    // 1st consumed: fireworks_rocket
+    try std.testing.expectEqual(inv.consumeCrossbowAmmo(), .fireworks_rocket);
+    // 2nd consumed: spectral_arrow
+    try std.testing.expectEqual(inv.consumeCrossbowAmmo(), .spectral_arrow);
+    // 3rd consumed: arrow
+    try std.testing.expectEqual(inv.consumeCrossbowAmmo(), .arrow);
+    try std.testing.expectEqual(inv.consumeCrossbowAmmo(), .arrow);
+    try std.testing.expect(inv.consumeCrossbowAmmo() == null);
 }

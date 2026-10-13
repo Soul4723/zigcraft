@@ -2418,19 +2418,37 @@ pub fn main() !void {
                 if (right and !right_down) {
                     if (thrown_count < thrown.len) {
                         const dir_cb = cam.front();
-                        const vel_cb = proj_mod.crossbowInitialVelocity(dir_cb.x, dir_cb.y, dir_cb.z);
-                        const k: ThrownKind = if (crossbow_loaded_kind == .spectral_arrow) .spectral_arrow else .arrow;
+                        const is_rocket = (crossbow_loaded_kind == .fireworks_rocket);
+                        const vel_cb = if (is_rocket)
+                            proj_mod.crossbowRocketVelocity(dir_cb.x, dir_cb.y, dir_cb.z)
+                        else
+                            proj_mod.crossbowInitialVelocity(dir_cb.x, dir_cb.y, dir_cb.z);
+                        const k: ThrownKind = if (is_rocket)
+                            .firework_rocket
+                        else if (crossbow_loaded_kind == .spectral_arrow)
+                            .spectral_arrow
+                        else
+                            .arrow;
+                        const dmg: u8 = if (is_rocket) proj_mod.firework_explosion_damage else proj_mod.crossbow_arrow_damage;
+                        const life_cb: f32 = if (is_rocket) proj_mod.firework_rocket_life else proj_mod.throw_life;
+
                         thrown[thrown_count] = .{
                             .pos = cam.position,
                             .vel = math.Vec3.init(vel_cb[0], vel_cb[1], vel_cb[2]),
-                            .life = proj_mod.throw_life,
+                            .life = life_cb,
                             .kind = k,
-                            .damage = proj_mod.crossbow_arrow_damage,
+                            .damage = dmg,
                         };
                         thrown_count += 1;
                         audio.play(.crossbow_shoot, 0.95);
-                        particles.spawnBurnSparks(.{ cam.position.x + dir_cb.x * 0.9, cam.position.y + dir_cb.y * 0.9, cam.position.z + dir_cb.z * 0.9 }, 8);
-                        std.debug.print("crossbow bolt fired (dmg={d}, speed={d:.1})\n", .{ proj_mod.crossbow_arrow_damage, proj_mod.crossbow_arrow_speed });
+                        if (is_rocket) {
+                            audio.play(.burn_sizzle, 0.9);
+                            particles.spawnBurnSparks(.{ cam.position.x + dir_cb.x * 0.8, cam.position.y + dir_cb.y * 0.8, cam.position.z + dir_cb.z * 0.8 }, 12);
+                            std.debug.print("crossbow firework rocket launched (speed={d:.1})\n", .{proj_mod.crossbow_rocket_speed});
+                        } else {
+                            particles.spawnBurnSparks(.{ cam.position.x + dir_cb.x * 0.9, cam.position.y + dir_cb.y * 0.9, cam.position.z + dir_cb.z * 0.9 }, 8);
+                            std.debug.print("crossbow bolt fired (dmg={d}, speed={d:.1})\n", .{ proj_mod.crossbow_arrow_damage, proj_mod.crossbow_arrow_speed });
+                        }
 
                         if (tool_wear.use(selected_slot, inventory_mod.ItemType.crossbow.maxDurability())) {
                             inventory.slots[selected_slot].clear();
@@ -2451,7 +2469,7 @@ pub fn main() !void {
                         audio.play(.crossbow_load, 0.7);
                     }
                     if (crossbow_charge >= 1.0) {
-                        if (inventory.consumeArrow()) |arrow_kind| {
+                        if (inventory.consumeCrossbowAmmo()) |arrow_kind| {
                             crossbow_loaded = true;
                             crossbow_loaded_kind = arrow_kind;
                             crossbow_charge = 0.0;
