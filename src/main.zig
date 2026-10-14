@@ -407,6 +407,8 @@ pub fn main() !void {
         const f_pz: i32 = @intFromFloat(@floor(player.pos.z));
         const floor_blk = manager.getBlockWorld(f_px, f_py, f_pz);
         player.on_soulsand = (floor_blk == .soul_sand);
+        const body_blk = manager.getBlockWorld(f_px, @intFromFloat(@floor(player.pos.y + 0.5)), f_pz);
+        player.in_cobweb = (floor_blk == .cobweb or body_blk == .cobweb);
         player.has_soul_speed = inventory.hasItem(.soul_speed_boots);
 
         // Detect bubble column: water cell with soul sand (upward) or magma (downward whirlpool) underneath

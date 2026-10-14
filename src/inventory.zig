@@ -142,6 +142,7 @@ pub const ItemType = enum(u8) {
     iron_bars = 136,
     tripwire_hook = 137,
     string = 138,
+    cobweb = 139,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -235,6 +236,7 @@ pub const ItemType = enum(u8) {
             .chain => .chain,
             .iron_bars => .iron_bars,
             .tripwire_hook => .tripwire_hook_off,
+            .cobweb => .cobweb,
             else => null,
         };
     }
@@ -334,6 +336,7 @@ pub const ItemType = enum(u8) {
             .chain => .chain,
             .iron_bars => .iron_bars,
             .tripwire_hook_off, .tripwire_hook_on => .tripwire_hook,
+            .cobweb => .cobweb,
         };
     }
 
@@ -523,6 +526,7 @@ pub const ItemType = enum(u8) {
             .iron_bars => "Iron Bars",
             .tripwire_hook => "Tripwire Hook",
             .string => "String",
+            .cobweb => "Cobweb",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -603,6 +607,7 @@ pub const ItemType = enum(u8) {
             .iron_bars => .{ 0.70, 0.70, 0.72, 0.95 },
             .tripwire_hook => .{ 0.65, 0.50, 0.30, 0.95 },
             .string => .{ 0.90, 0.90, 0.92, 0.95 },
+            .cobweb => .{ 0.85, 0.85, 0.88, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1151,6 +1156,18 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 102: Cobweb: 4 Strings -> 1 Cobweb
+        if (non_empty == 4) {
+            var string_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .string) string_count += 1;
+            }
+            if (string_count == 4) {
+                self.craft_output = .{ .item = .cobweb, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 101: String: 1 Wool (or 1 Weeping Vines or 1 Twisting Vines) -> 4 Strings
         if (non_empty == 1) {
@@ -2569,6 +2586,9 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
     } else if (block == .nether_wart) {
         out[0] = .{ .item = .nether_wart, .count = 2 };
         return 1;
+    } else if (block == .cobweb) {
+        out[0] = .{ .item = .string, .count = 1 };
+        return 1;
     } else {
         const item = ItemType.fromBlockId(block);
         if (item != .none) {
@@ -3945,6 +3965,31 @@ test "loom item roundtrip, properties, and Recipe 92" {
     try std.testing.expectEqual(ItemType.loom.maxDurability(), 0);
     try std.testing.expect(!ItemType.loom.isTool());
     try std.testing.expectEqual(ItemType.loom.maxStackSize(), 64);
+}
+
+test "cobweb item roundtrip, drops, and Recipe 102" {
+    var inv = Inventory.init();
+    // Recipe 102: 4 Strings -> 1 Cobweb
+    inv.craft_grid[0] = .{ .item = .string, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .string, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .string, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .string, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .cobweb);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.cobweb.toBlockId().?, .cobweb);
+    try std.testing.expectEqual(ItemType.fromBlockId(.cobweb), .cobweb);
+    try std.testing.expectEqualStrings(ItemType.cobweb.name(), "Cobweb");
+    try std.testing.expectEqual(ItemType.cobweb.maxDurability(), 0);
+    try std.testing.expect(!ItemType.cobweb.isTool());
+    try std.testing.expectEqual(ItemType.cobweb.maxStackSize(), 64);
+
+    var drops: [4]BlockDrop = undefined;
+    const n = getBlockDrops(.cobweb, &drops);
+    try std.testing.expectEqual(n, 1);
+    try std.testing.expectEqual(drops[0].item, .string);
+    try std.testing.expectEqual(drops[0].count, 1);
 }
 
 test "string item roundtrip, properties, and Recipe 101" {

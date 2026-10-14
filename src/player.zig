@@ -18,6 +18,7 @@ pub const Player = struct {
     water_entry_speed: f32,
     oxygen: f32,
     on_soulsand: bool = false,
+    in_cobweb: bool = false,
     has_soul_speed: bool = false,
     in_bubble_column: bool = false,
     in_whirlpool: bool = false,
@@ -145,6 +146,7 @@ pub const Player = struct {
         pub const boat_horizontal_speed_scale: f32 = 2.2;
     pub const water_horizontal_speed_scale: f32 = 0.65;
     pub const soulsand_horizontal_speed_scale: f32 = 0.40; // Soul sand slow drag
+    pub const cobweb_horizontal_speed_scale: f32 = 0.15; // Cobweb heavy drag
     pub const soulsand_speed_boost_scale: f32 = 1.40; // Soul speed boots acceleration
     pub const bubble_column_lift_speed: f32 = 6.5; // Upward bubble elevator surge
     pub const whirlpool_pull_speed: f32 = -7.0; // Downward magma whirlpool pull
@@ -173,6 +175,8 @@ pub const Player = struct {
             boat_horizontal_speed_scale
         else if (self.in_water)
             water_horizontal_speed_scale
+        else if (self.in_cobweb)
+            cobweb_horizontal_speed_scale
         else if (self.on_soulsand and self.has_soul_speed)
             soulsand_speed_boost_scale
         else if (self.on_soulsand)
@@ -773,4 +777,15 @@ test "player soul speed boots acceleration on soul sand" {
 
     // Boosted movement: 1.0 * soulsand_speed_boost_scale (1.40)
     try std.testing.expectApproxEqAbs(@as(f32, 0.5 + 1.0 * Player.soulsand_speed_boost_scale), p.pos.x, 0.001);
+}
+
+test "cobweb entity movement retardation drag" {
+    var p = Player.init(0.5, 2.0, 0.5);
+    p.on_ground = true;
+    p.in_cobweb = true;
+    const Mock = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return false; }
+    };
+    p.tickPhysics(Mock.solid, null, null, 1.0, 0.0, false, 0.05);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.5 + 1.0 * Player.cobweb_horizontal_speed_scale), p.pos.x, 0.001);
 }
