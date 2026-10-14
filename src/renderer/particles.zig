@@ -637,6 +637,37 @@ pub const ParticleSystem = struct {
         }
     }
 
+    /// Spawn gentle radiant white crystalline sparkle particles ascending from an end rod
+    pub fn spawnEndRodSparks(self: *ParticleSystem, bx: i32, by: i32, bz: i32, count: usize) void {
+        var i: usize = 0;
+        var seed: u32 = @as(u32, @bitCast(bx *% 89 +% by *% 31 +% bz *% 43)) +% @as(u32, @intCast(self.count));
+        while (i < count and self.count < MAX_PARTICLES) : (i += 1) {
+            seed = seed *% 1103515245 +% 12345;
+            const rx = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0 - 0.5;
+            const rz = @as(f32, @floatFromInt((seed >> 8) % 100)) / 100.0 - 0.5;
+            const px = @as(f32, @floatFromInt(bx)) + 0.5 + rx * 0.25;
+            const py = @as(f32, @floatFromInt(by)) + 0.5;
+            const pz = @as(f32, @floatFromInt(bz)) + 0.5 + rz * 0.25;
+
+            // Pure radiant white core with faint lavender tint
+            const col = [3]f32{ 0.94, 0.94, 1.0 };
+
+            self.particles[self.count] = .{
+                .x = px,
+                .y = py,
+                .z = pz,
+                .vx = rx * 0.15,
+                .vy = 0.45 + (rx * 0.1),
+                .vz = rz * 0.15,
+                .life = 0.8,
+                .max_life = 0.8,
+                .color = col,
+                .size = 0.04,
+            };
+            self.count += 1;
+        }
+    }
+
     /// Spawn vibrant radial multicolored firework burst particles
     pub fn spawnFireworkBurst(self: *ParticleSystem, pos: [3]f32, count: usize) void {
         var i: usize = 0;
@@ -1130,6 +1161,22 @@ test "spawnLodestoneAttunement creates cyan magnetic sparks with inward swirl" {
         try std.testing.expect(p.color[2] > 0.90);
         try std.testing.expect(p.max_life >= 0.6);
     }
+}
+
+test "spawnEndRodSparks creates ascending white sparkle particles" {
+    var ps = ParticleSystem{
+        .particles = undefined,
+        .count = 0,
+        .vao = 0,
+        .vbo = 0,
+        .program = 0,
+    };
+    ps.spawnEndRodSparks(5, 4, 5, 4);
+    try std.testing.expectEqual(@as(usize, 4), ps.count);
+    try std.testing.expect(ps.particles[0].vy > 0.3);
+    try std.testing.expect(ps.particles[0].y >= 4.5);
+    try std.testing.expect(ps.particles[0].color[0] >= 0.9);
+    try std.testing.expect(ps.particles[0].color[2] >= 0.95);
 }
 
 test "spawnFireworkBurst creates radial multicolored spark sphere" {

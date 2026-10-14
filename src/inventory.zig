@@ -156,6 +156,9 @@ pub const ItemType = enum(u8) {
     end_portal_frame = 150,
     end_crystal = 151,
     dragon_egg = 152,
+    purpur_block = 153,
+    purpur_pillar = 154,
+    end_rod = 155,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -254,6 +257,9 @@ pub const ItemType = enum(u8) {
             .end_portal_frame => .end_portal_frame,
             .end_crystal => .end_crystal,
             .dragon_egg => .dragon_egg,
+            .purpur_block => .purpur_block,
+            .purpur_pillar => .purpur_pillar,
+            .end_rod => .end_rod,
             else => null,
         };
     }
@@ -359,6 +365,9 @@ pub const ItemType = enum(u8) {
             .end_portal => .none,
             .end_crystal => .end_crystal,
             .dragon_egg => .dragon_egg,
+            .purpur_block => .purpur_block,
+            .purpur_pillar => .purpur_pillar,
+            .end_rod => .end_rod,
         };
     }
 
@@ -562,6 +571,9 @@ pub const ItemType = enum(u8) {
             .end_portal_frame => "End Portal Frame",
             .end_crystal => "End Crystal",
             .dragon_egg => "Dragon Egg",
+            .purpur_block => "Purpur Block",
+            .purpur_pillar => "Purpur Pillar",
+            .end_rod => "End Rod",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -656,6 +668,9 @@ pub const ItemType = enum(u8) {
             .end_portal_frame => .{ 0.18, 0.42, 0.35, 0.95 },
             .end_crystal => .{ 0.85, 0.30, 0.90, 0.95 },
             .dragon_egg => .{ 0.22, 0.10, 0.28, 0.98 },
+            .purpur_block => .{ 0.68, 0.44, 0.68, 0.95 },
+            .purpur_pillar => .{ 0.72, 0.48, 0.72, 0.95 },
+            .end_rod => .{ 0.95, 0.95, 0.98, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1204,6 +1219,41 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 112: Purpur Block: 4 End Stone -> 4 Purpur Blocks
+        if (non_empty == 4) {
+            var es_cnt: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .end_stone) es_cnt += 1;
+            }
+            if (es_cnt == 4) {
+                self.craft_output = .{ .item = .purpur_block, .count = 4 };
+                return;
+            }
+        }
+
+        // Recipe 113: Purpur Pillar: 2 Purpur Blocks -> 2 Purpur Pillars
+        if (non_empty == 2) {
+            const has_two_pb = ((g0 == .purpur_block and g2 == .purpur_block) or
+                (g1 == .purpur_block and g3 == .purpur_block) or
+                (g0 == .purpur_block and g1 == .purpur_block) or
+                (g2 == .purpur_block and g3 == .purpur_block));
+            if (has_two_pb) {
+                self.craft_output = .{ .item = .purpur_pillar, .count = 2 };
+                return;
+            }
+        }
+
+        // Recipe 114: End Rod: 1 Blaze Rod + 1 Ender Pearl/Eye of Ender -> 4 End Rods
+        if (non_empty == 2) {
+            const has_rod = (g0 == .blaze_rod or g1 == .blaze_rod or g2 == .blaze_rod or g3 == .blaze_rod);
+            const has_pearl = (g0 == .ender_pearl or g1 == .ender_pearl or g2 == .ender_pearl or g3 == .ender_pearl or
+                g0 == .eye_of_ender or g1 == .eye_of_ender or g2 == .eye_of_ender or g3 == .eye_of_ender);
+            if (has_rod and has_pearl) {
+                self.craft_output = .{ .item = .end_rod, .count = 4 };
+                return;
+            }
+        }
 
         // Recipe 111: End Crystal: 2 Glass + 1 Eye of Ender + 1 Blaze Powder/Nether Star/Ghast Tear -> 1 End Crystal
         if (non_empty == 4) {
@@ -4595,4 +4645,57 @@ test "dragon egg item roundtrip, drops, and properties" {
     try std.testing.expectEqual(@as(usize, 1), n);
     try std.testing.expectEqual(drops_buf[0].item, .dragon_egg);
     try std.testing.expectEqual(drops_buf[0].count, 1);
+}
+
+test "purpur and end rod item roundtrip, drops, and recipes 112-114" {
+    var inv = Inventory.init();
+
+    // Recipe 112: 4 End Stone -> 4 Purpur Blocks
+    inv.craft_grid[0] = .{ .item = .end_stone, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .end_stone, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .end_stone, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .end_stone, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .purpur_block);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    // Recipe 113: 2 Purpur Blocks -> 2 Purpur Pillars
+    inv.craft_grid[1] = .{ .item = .none, .count = 0 };
+    inv.craft_grid[3] = .{ .item = .none, .count = 0 };
+    inv.craft_grid[0] = .{ .item = .purpur_block, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .purpur_block, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .purpur_pillar);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+
+    // Recipe 114: 1 Blaze Rod + 1 Ender Pearl -> 4 End Rods
+    inv.craft_grid[0] = .{ .item = .blaze_rod, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .ender_pearl, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .end_rod);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    // Roundtrips & names
+    try std.testing.expectEqual(ItemType.fromBlockId(.purpur_block), .purpur_block);
+    try std.testing.expectEqual(ItemType.purpur_block.toBlockId().?, .purpur_block);
+    try std.testing.expectEqualStrings(ItemType.purpur_block.name(), "Purpur Block");
+
+    try std.testing.expectEqual(ItemType.fromBlockId(.purpur_pillar), .purpur_pillar);
+    try std.testing.expectEqual(ItemType.purpur_pillar.toBlockId().?, .purpur_pillar);
+    try std.testing.expectEqualStrings(ItemType.purpur_pillar.name(), "Purpur Pillar");
+
+    try std.testing.expectEqual(ItemType.fromBlockId(.end_rod), .end_rod);
+    try std.testing.expectEqual(ItemType.end_rod.toBlockId().?, .end_rod);
+    try std.testing.expectEqualStrings(ItemType.end_rod.name(), "End Rod");
+
+    // Drops
+    var drops: [2]BlockDrop = undefined;
+    try std.testing.expectEqual(@as(usize, 1), getBlockDrops(.purpur_block, &drops));
+    try std.testing.expectEqual(drops[0].item, .purpur_block);
+
+    try std.testing.expectEqual(@as(usize, 1), getBlockDrops(.purpur_pillar, &drops));
+    try std.testing.expectEqual(drops[0].item, .purpur_pillar);
+
+    try std.testing.expectEqual(@as(usize, 1), getBlockDrops(.end_rod, &drops));
+    try std.testing.expectEqual(drops[0].item, .end_rod);
 }

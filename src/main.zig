@@ -207,6 +207,9 @@ pub fn main() !void {
     const Campfire = struct { x: i32, y: i32, z: i32, is_soul: bool };
     var campfires: [32]Campfire = undefined;
     var campfire_count: usize = 0;
+    const EndRod = struct { x: i32, y: i32, z: i32 };
+    var end_rods: [32]EndRod = undefined;
+    var end_rod_count: usize = 0;
     const AnchorState = struct { x: i32, y: i32, z: i32, charges: u8 };
     var anchors: [16]AnchorState = undefined;
     var anchor_count: usize = 0;
@@ -2600,7 +2603,7 @@ pub fn main() !void {
                                 std.debug.print("fire charge lit TNT fuse\n", .{});
                             } else if (!hotbar_slot.isEmpty()) {
                                 if (hotbar_slot.item.toBlockId()) |place_type| {
-                                    if ((place_type == .lantern or place_type == .soul_lantern) and !block_mod.canSupportLantern(&pickBlockWorld, px, py, pz)) {
+                                    if (((place_type == .lantern or place_type == .soul_lantern) and !block_mod.canSupportLantern(&pickBlockWorld, px, py, pz)) or (place_type == .end_rod and !block_mod.canSupportEndRod(&pickBlockWorld, px, py, pz))) {
                                         // Lantern requires solid floor or ceiling support
                                     } else {
                                         const is_furnace_place = place_type == .furnace;
@@ -2706,6 +2709,10 @@ pub fn main() !void {
                                         if (place_type.is_campfire() and campfire_count < campfires.len) {
                                             campfires[campfire_count] = .{ .x = px, .y = py, .z = pz, .is_soul = (place_type == .soul_campfire) };
                                             campfire_count += 1;
+                                        }
+                                        if (place_type == .end_rod and end_rod_count < end_rods.len) {
+                                            end_rods[end_rod_count] = .{ .x = px, .y = py, .z = pz };
+                                            end_rod_count += 1;
                                         }
                                         // Wither summon: completed skull-T consumes the pattern
                                         // and raises an empowered wither champion (30 HP).
@@ -3058,6 +3065,23 @@ pub fn main() !void {
                     particles.spawnCampfireSmoke(cf.x, cf.y, cf.z, cf.is_soul, is_signal, 1);
                 }
                 cfi += 1;
+            }
+            // End rod radiant white light sparkle emission
+            var eri: usize = 0;
+            while (eri < end_rod_count) {
+                const er = &end_rods[eri];
+                const cur_eb = manager.getBlockWorld(er.x, er.y, er.z);
+                if (cur_eb != .end_rod) {
+                    end_rods[eri] = end_rods[end_rod_count - 1];
+                    end_rod_count -= 1;
+                    continue;
+                }
+                const edx = @as(f32, @floatFromInt(er.x)) + 0.5 - player.pos.x;
+                const edz = @as(f32, @floatFromInt(er.z)) + 0.5 - player.pos.z;
+                if (edx * edx + edz * edz <= 32.0 * 32.0) {
+                    particles.spawnEndRodSparks(er.x, er.y, er.z, 1);
+                }
+                eri += 1;
             }
         }
 
