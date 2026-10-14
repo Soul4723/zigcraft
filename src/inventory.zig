@@ -152,6 +152,8 @@ pub const ItemType = enum(u8) {
     gunpowder = 146,
     ender_pearl = 147,
     eye_of_ender = 148,
+    end_stone = 149,
+    end_portal_frame = 150,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -246,6 +248,8 @@ pub const ItemType = enum(u8) {
             .iron_bars => .iron_bars,
             .tripwire_hook => .tripwire_hook_off,
             .cobweb => .cobweb,
+            .end_stone => .end_stone,
+            .end_portal_frame => .end_portal_frame,
             else => null,
         };
     }
@@ -346,6 +350,8 @@ pub const ItemType = enum(u8) {
             .iron_bars => .iron_bars,
             .tripwire_hook_off, .tripwire_hook_on => .tripwire_hook,
             .cobweb => .cobweb,
+            .end_stone => .end_stone,
+            .end_portal_frame, .end_portal_frame_filled => .end_portal_frame,
         };
     }
 
@@ -545,6 +551,8 @@ pub const ItemType = enum(u8) {
             .gunpowder => "Gunpowder",
             .ender_pearl => "Ender Pearl",
             .eye_of_ender => "Eye of Ender",
+            .end_stone => "End Stone",
+            .end_portal_frame => "End Portal Frame",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -635,6 +643,8 @@ pub const ItemType = enum(u8) {
             .gunpowder => .{ 0.38, 0.40, 0.42, 0.95 },
             .ender_pearl => .{ 0.12, 0.45, 0.42, 0.95 },
             .eye_of_ender => .{ 0.18, 0.65, 0.48, 0.95 },
+            .end_stone => .{ 0.92, 0.90, 0.65, 0.95 },
+            .end_portal_frame => .{ 0.18, 0.42, 0.35, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1183,6 +1193,30 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 109: End Stone: 1 Cobblestone + 1 Sandstone -> 2 End Stone
+        if (non_empty == 2) {
+            const has_cobb = (g0 == .cobblestone or g1 == .cobblestone or g2 == .cobblestone or g3 == .cobblestone);
+            const has_sandstone = (g0 == .sandstone or g1 == .sandstone or g2 == .sandstone or g3 == .sandstone);
+            if (has_cobb and has_sandstone) {
+                self.craft_output = .{ .item = .end_stone, .count = 2 };
+                return;
+            }
+        }
+
+        // Recipe 110: End Portal Frame: 3 End Stone + 1 Ender Pearl/Eye of Ender -> 1 End Portal Frame
+        if (non_empty == 4) {
+            var es_cnt: usize = 0;
+            var relic_cnt: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .end_stone) es_cnt += 1;
+                if (sl.item == .ender_pearl or sl.item == .eye_of_ender) relic_cnt += 1;
+            }
+            if (es_cnt == 3 and relic_cnt == 1) {
+                self.craft_output = .{ .item = .end_portal_frame, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 108: Eye of Ender: 1 Ender Pearl + 1 Blaze Powder -> 1 Eye of Ender
         if (non_empty == 2) {
@@ -4478,4 +4512,32 @@ test "eye of ender item properties, Recipe 108 crafting, and shatter probability
         if (dropsEyeShatter(i)) shatters += 1;
     }
     try std.testing.expectEqual(@as(usize, 20), shatters);
+}
+
+test "end stone and end portal frame item roundtrip, properties, and Recipes 109 and 110" {
+    try std.testing.expectEqual(ItemType.fromBlockId(.end_stone), .end_stone);
+    try std.testing.expectEqual(ItemType.fromBlockId(.end_portal_frame), .end_portal_frame);
+    try std.testing.expectEqual(ItemType.fromBlockId(.end_portal_frame_filled), .end_portal_frame);
+    try std.testing.expectEqual(ItemType.end_stone.toBlockId(), .end_stone);
+    try std.testing.expectEqual(ItemType.end_portal_frame.toBlockId(), .end_portal_frame);
+    try std.testing.expectEqualStrings(ItemType.end_stone.name(), "End Stone");
+    try std.testing.expectEqualStrings(ItemType.end_portal_frame.name(), "End Portal Frame");
+
+    var inv = Inventory.init();
+    // Recipe 109: 1 Cobblestone + 1 Sandstone -> 2 End Stone
+    inv.craft_grid[0] = .{ .item = .cobblestone, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .sandstone, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .end_stone);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+
+    // Recipe 110: 3 End Stone + 1 Ender Pearl -> 1 End Portal Frame
+    inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .end_stone, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .end_stone, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .end_stone, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .ender_pearl, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .end_portal_frame);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
 }

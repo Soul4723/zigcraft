@@ -2296,6 +2296,18 @@ pub fn main() !void {
                                 std.debug.print("destroyed {s} ({d},{d},{d})\n", .{ @tagName(broken_block), hit.x, hit.y, hit.z });
                             }
                         }
+                    } else if (inventory.slots[selected_slot].item == .eye_of_ender and manager.getBlockWorld(hit.x, hit.y, hit.z) == .end_portal_frame) {
+                        if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .end_portal_frame_filled)) {
+                            inventory.slots[selected_slot].decrement(1);
+                            audio.play(.glowstone_chime, 0.95);
+                            audio.play(.click_on, 0.8);
+                            const fx: f32 = @as(f32, @floatFromInt(hit.x)) + 0.5;
+                            const fy: f32 = @as(f32, @floatFromInt(hit.y)) + 0.8;
+                            const fz: f32 = @as(f32, @floatFromInt(hit.z)) + 0.5;
+                            particles.spawnPortalParticles(.{ fx, fy, fz }, 16);
+                            particles.spawnGlowstoneShimmer(.{ fx, fy, fz }, 8);
+                            std.debug.print("eye of ender inserted into portal frame at ({d},{d},{d})\n", .{ hit.x, hit.y, hit.z });
+                        }
                     } else if (inventory.slots[selected_slot].item != .bow and inventory.slots[selected_slot].item != .crossbow and !is_blocking) {
                         const px = hit.x + hit.nx;
                         const py = hit.y + hit.ny;
