@@ -198,6 +198,7 @@ pub const ItemType = enum(u8) {
     cooked_salmon = 192,
     pufferfish = 193,
     tropical_fish = 194,
+    nautilus_shell = 195,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -686,6 +687,7 @@ pub const ItemType = enum(u8) {
             .cooked_salmon => "Cooked Salmon",
             .pufferfish => "Pufferfish",
             .tropical_fish => "Tropical Fish",
+            .nautilus_shell => "Nautilus Shell",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -822,6 +824,7 @@ pub const ItemType = enum(u8) {
             .cooked_salmon => .{ 0.90, 0.55, 0.45, 0.95 },
             .pufferfish => .{ 0.88, 0.78, 0.25, 0.95 },
             .tropical_fish => .{ 0.95, 0.50, 0.15, 0.95 },
+            .nautilus_shell => .{ 0.88, 0.82, 0.72, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1469,7 +1472,7 @@ pub const Inventory = struct {
             var shell_catalyst: usize = 0;
             for (self.craft_grid) |sl| {
                 if (sl.item == .heart_of_the_sea) heart_cnt += 1;
-                if (sl.item == .prismarine_shard or sl.item == .prismarine_crystals or sl.item == .scute or sl.item == .trident) shell_catalyst += 1;
+                if (sl.item == .nautilus_shell or sl.item == .prismarine_shard or sl.item == .prismarine_crystals or sl.item == .scute or sl.item == .trident) shell_catalyst += 1;
             }
             if (heart_cnt == 1 and shell_catalyst == 1) {
                 self.craft_output = .{ .item = .conduit, .count = 1 };
@@ -3238,6 +3241,12 @@ pub fn dropsSpiderEye(wx: i32, wy: i32, wz: i32) bool {
 pub fn dropsSkeletonArrow(wx: i32, wy: i32, wz: i32) bool {
     // 50% deterministic chance for skeleton archers to drop reserve arrows
     const h: u32 = @as(u32, @bitCast(wx *% 19 +% wy *% 37 +% wz *% 5)) % 2;
+    return h == 0;
+}
+
+pub fn dropsDrownedNautilus(wx: i32, wy: i32, wz: i32) bool {
+    // 1-in-4 deterministic chance for drowned mob to drop a Nautilus Shell
+    const h: u32 = @as(u32, @bitCast(wx *% 43 +% wy *% 29 +% wz *% 53)) % 4;
     return h == 0;
 }
 
@@ -5624,4 +5633,31 @@ test "marine fish species items, properties, and Recipe 138 pufferfish brewing" 
     try std.testing.expect(ItemType.cooked_salmon.toBlockId() == null);
     try std.testing.expect(ItemType.pufferfish.toBlockId() == null);
     try std.testing.expect(ItemType.tropical_fish.toBlockId() == null);
+}
+
+test "nautilus shell item properties, Recipe 134 conduit synergy, and drowned drops" {
+    var inv = Inventory.init();
+
+    // Recipe 134: 1 Heart of the Sea + 1 Nautilus Shell -> 1 Conduit
+    inv.craft_grid[0] = .{ .item = .heart_of_the_sea, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .nautilus_shell, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .conduit);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expect(!ItemType.nautilus_shell.isTool());
+    try std.testing.expect(!ItemType.nautilus_shell.isCompostable());
+    try std.testing.expectEqual(ItemType.nautilus_shell.maxStackSize(), 64);
+    try std.testing.expectEqualStrings(ItemType.nautilus_shell.name(), "Nautilus Shell");
+    try std.testing.expect(ItemType.nautilus_shell.toBlockId() == null);
+
+    // Verify drowned nautilus shell drops deterministically
+    var nautilus_count: usize = 0;
+    var x: i32 = 0;
+    while (x < 40) : (x += 1) {
+        if (dropsDrownedNautilus(x, 4, 10)) nautilus_count += 1;
+    }
+    try std.testing.expect(nautilus_count >= 5);
 }

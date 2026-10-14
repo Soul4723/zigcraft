@@ -2510,9 +2510,14 @@ pub fn main() !void {
                         } else if (hit_mob.mob_type == .zombie and inventory_mod.dropsZombieIron(px, py, pz)) {
                             _ = inventory.addItem(.iron_ingot, 1);
                             std.debug.print("zombie dropped rare iron ingot\n", .{});
-                        } else if (hit_mob.mob_type == .drowned and inventory_mod.dropsDrownedTrident(px, py, pz)) {
-                            _ = inventory.addItem(.trident, 1);
-                            std.debug.print("drowned dropped rare trident!\n", .{});
+                        } else if (hit_mob.mob_type == .drowned) {
+                            if (inventory_mod.dropsDrownedTrident(px, py, pz)) {
+                                _ = inventory.addItem(.trident, 1);
+                                std.debug.print("drowned dropped rare trident!\n", .{});
+                            } else if (inventory_mod.dropsDrownedNautilus(px, py, pz)) {
+                                _ = inventory.addItem(.nautilus_shell, 1);
+                                std.debug.print("drowned dropped nautilus shell!\n", .{});
+                            }
                         }
                         if (hit_mob.mob_type == .ender_dragon) {
                             // Ender Dragon Defeat: celestial victory explosion and return portal fountain
@@ -3728,9 +3733,14 @@ pub fn main() !void {
                                     } else if (m.mob_type == .zombie and inventory_mod.dropsZombieIron(mbx, mby, mbz)) {
                                         _ = inventory.addItem(.iron_ingot, 1);
                                         std.debug.print("zombie dropped rare iron ingot\n", .{});
-                                    } else if (m.mob_type == .drowned and inventory_mod.dropsDrownedTrident(mbx, mby, mbz)) {
-                                        _ = inventory.addItem(.trident, 1);
-                                        std.debug.print("drowned dropped rare trident!\n", .{});
+                                    } else if (m.mob_type == .drowned) {
+                                        if (inventory_mod.dropsDrownedTrident(mbx, mby, mbz)) {
+                                            _ = inventory.addItem(.trident, 1);
+                                            std.debug.print("drowned dropped rare trident!\n", .{});
+                                        } else if (inventory_mod.dropsDrownedNautilus(mbx, mby, mbz)) {
+                                            _ = inventory.addItem(.nautilus_shell, 1);
+                                            std.debug.print("drowned dropped nautilus shell!\n", .{});
+                                        }
                                     }
                                     if (m.mob_type == .sheep) _ = inventory.addItem(.wool, 1);
                                     _ = mp;
@@ -5215,17 +5225,19 @@ pub fn main() !void {
                     audio.play(.splash, 0.85);
                     particles.spawnWaterSplash(.{ player.pos.x + cast_dir.x * 2.0, player.pos.y, player.pos.z + cast_dir.z * 2.0 }, 10);
                     particles.spawnBubble(.{ player.pos.x + cast_dir.x * 2.0, player.pos.y + 0.3, player.pos.z + cast_dir.z * 2.0 }, 6);
-                    // Deterministic fish catch loot table:
-                    // 55% Raw Cod, 25% Raw Salmon, 12% Tropical Fish, 8% Pufferfish
+                    // Deterministic fishing catch loot table:
+                    // 50% Raw Cod, 25% Raw Salmon, 11% Tropical Fish, 8% Pufferfish, 6% Nautilus Shell (rare treasure)
                     const fish_roll: u32 = @as(u32, @bitCast(@as(i32, @intFromFloat(player.pos.x * 43.0 + player.pos.z * 67.0 + current_time * 19.0)))) % 100;
-                    const caught_fish: inventory_mod.ItemType = if (fish_roll < 55)
+                    const caught_fish: inventory_mod.ItemType = if (fish_roll < 50)
                         .raw_cod
-                    else if (fish_roll < 80)
+                    else if (fish_roll < 75)
                         .raw_salmon
-                    else if (fish_roll < 92)
+                    else if (fish_roll < 86)
                         .tropical_fish
+                    else if (fish_roll < 94)
+                        .pufferfish
                     else
-                        .pufferfish;
+                        .nautilus_shell;
 
                     _ = inventory.addItem(caught_fish, 1);
                     if (tool_wear.use(selected_slot, inventory_mod.ItemType.fishing_rod.maxDurability())) {
