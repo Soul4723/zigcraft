@@ -158,6 +158,8 @@ pub const BlockId = enum(u8) {
     tripwire = 147,
     gold_ore = 148,
     gold_block = 149,
+    diamond_ore = 150,
+    diamond_block = 151,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .wooden_trapdoor_open and self != .iron_trapdoor_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .end_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand and self != .lantern and self != .soul_lantern and self != .chain and self != .iron_bars and self != .tripwire_hook_off and self != .tripwire_hook_on and self != .cobweb and self != .end_crystal and self != .end_rod and self != .chorus_plant and self != .chorus_flower and self != .dragon_head and self != .end_gateway and self != .conduit and self != .kelp and self != .sea_pickle and self != .rail and self != .powered_rail and self != .detector_rail and self != .activator_rail and self != .redstone_comparator_off and self != .redstone_comparator_on and self != .tripwire;
@@ -498,6 +500,8 @@ pub const BlockId = enum(u8) {
                 3 => .{ .x = 7, .y = 6 }, // Observer back output redstone contact (lit red pulse)
                 else => .{ .x = 4, .y = 7 }, // Cobblestone casing
             },
+            .diamond_ore => .{ .x = 4, .y = 2 }, // Stone matrix with radiant cyan-blue diamond crystals
+            .diamond_block => .{ .x = 5, .y = 7 }, // Polished crystalline cyan diamond gemstone block
             .gold_ore => .{ .x = 3, .y = 2 }, // Stone matrix with rich golden ore nuggets
             .gold_block => .{ .x = 4, .y = 7 }, // Polished gilded auric gold ingot block
             .redstone_block => .{ .x = 3, .y = 7 }, // Radiant crystalline ruby-red block
@@ -695,6 +699,8 @@ pub fn hardness(block: BlockId) f32 {
         .stone => 2.5,
         .coal_ore => 3.0,
         .iron_ore => 3.5,
+        .diamond_block => 5.0,
+        .diamond_ore => 3.0,
         .gold_ore, .gold_block => 3.0,
         .redstone_ore, .lit_redstone_ore => 3.0,
         .iron_door_closed, .iron_door_open, .iron_trapdoor_closed, .iron_trapdoor_open => 3.0,
@@ -775,7 +781,7 @@ pub const ToolTier = enum(u8) {
 
 pub fn requiredTier(block: BlockId) ToolTier {
     return switch (block) {
-        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block => .wooden,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block => .wooden,
         else => .hand,
     };
 }
@@ -785,19 +791,19 @@ pub fn requiredTier(block: BlockId) ToolTier {
 pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
     if (held_tool_id == TOOL_NETHERITE_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block => 6.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block => 6.0,
             else => 3.0,
         };
     }
     if (held_tool_id == TOOL_IRON_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block => 4.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block => 4.0,
             else => 2.0,
         };
     }
     if (held_tool_id == TOOL_WOODEN_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block => 3.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block => 3.0,
             else => 1.5,
         };
     }
@@ -950,6 +956,8 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .wooden_trapdoor_open = .{ .name = "wooden_trapdoor_open", .solid = false, .transparent = true, .fluid = false },
     .iron_trapdoor_closed = .{ .name = "iron_trapdoor_closed", .solid = true, .transparent = true, .fluid = false },
     .iron_trapdoor_open = .{ .name = "iron_trapdoor_open", .solid = false, .transparent = true, .fluid = false },
+    .diamond_ore = .{ .name = "diamond_ore", .solid = true, .transparent = false, .fluid = false },
+    .diamond_block = .{ .name = "diamond_block", .solid = true, .transparent = false, .fluid = false },
     .gold_ore = .{ .name = "gold_ore", .solid = true, .transparent = false, .fluid = false },
     .gold_block = .{ .name = "gold_block", .solid = true, .transparent = false, .fluid = false },
     .redstone_block = .{ .name = "redstone_block", .solid = true, .transparent = false, .fluid = false },
@@ -1401,7 +1409,7 @@ pub fn footstepType(block: BlockId) FootstepType {
         .grass, .weeping_vines, .twisting_vines, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight => .grass,
         .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .end_stone, .end_portal_frame, .end_portal_frame_filled, .dragon_egg, .dragon_head, .end_gateway, .purpur_block, .purpur_pillar, .shulker_box, .prismarine, .prismarine_bricks, .dark_prismarine, .sea_lantern, .conduit => .stone,
         .sponge, .wet_sponge, .slime_block => .grass,
-        .piston, .sticky_piston, .piston_head, .observer_off, .observer_on, .iron_trapdoor_closed, .iron_trapdoor_open, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block => .stone,
+        .piston, .sticky_piston, .piston_head, .observer_off, .observer_on, .iron_trapdoor_closed, .iron_trapdoor_open, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block => .stone,
         .kelp, .dried_kelp_block, .sea_pickle => .grass,
         .rail, .powered_rail, .detector_rail, .activator_rail, .redstone_comparator_off, .redstone_comparator_on => .stone,
         .end_rod, .chorus_plant, .chorus_flower => .wood,
@@ -2644,6 +2652,27 @@ test "redstone ore and lit redstone ore properties, textures, emissive, and hard
     const lit_tex = BlockId.lit_redstone_ore.getFaceTexture(0);
     try std.testing.expectEqual(lit_tex.x, 2);
     try std.testing.expectEqual(lit_tex.y, 7);
+}
+
+test "diamond ore and diamond block properties, textures, and hardness" {
+    try std.testing.expect(BlockId.diamond_ore.is_solid());
+    try std.testing.expect(BlockId.diamond_block.is_solid());
+    try std.testing.expect(!BlockId.diamond_ore.is_transparent());
+    try std.testing.expect(!BlockId.diamond_block.is_transparent());
+    try std.testing.expect(!BlockId.diamond_ore.isFlammable());
+    try std.testing.expect(!BlockId.diamond_block.isFlammable());
+    try std.testing.expectEqual(hardness(.diamond_ore), 3.0);
+    try std.testing.expectEqual(hardness(.diamond_block), 5.0);
+    try std.testing.expectEqual(requiredTier(.diamond_ore), .wooden);
+    try std.testing.expectEqual(requiredTier(.diamond_block), .wooden);
+    try std.testing.expectEqual(footstepType(.diamond_ore), .stone);
+    try std.testing.expectEqual(footstepType(.diamond_block), .stone);
+    const ore_tex = BlockId.diamond_ore.getFaceTexture(0);
+    try std.testing.expectEqual(ore_tex.x, 4);
+    try std.testing.expectEqual(ore_tex.y, 2);
+    const block_tex = BlockId.diamond_block.getFaceTexture(0);
+    try std.testing.expectEqual(block_tex.x, 5);
+    try std.testing.expectEqual(block_tex.y, 7);
 }
 
 test "gold ore and gold block properties, textures, and hardness" {

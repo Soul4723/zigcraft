@@ -220,6 +220,9 @@ pub const ItemType = enum(u8) {
     redstone_ore = 214,
     gold_ore = 215,
     gold_block = 216,
+    diamond = 217,
+    diamond_ore = 218,
+    diamond_block = 219,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -352,6 +355,8 @@ pub const ItemType = enum(u8) {
             .redstone_ore => .redstone_ore,
             .gold_ore => .gold_ore,
             .gold_block => .gold_block,
+            .diamond_ore => .diamond_ore,
+            .diamond_block => .diamond_block,
             else => null,
         };
     }
@@ -491,6 +496,8 @@ pub const ItemType = enum(u8) {
             .redstone_ore, .lit_redstone_ore => .redstone_ore,
             .gold_ore => .gold_ore,
             .gold_block => .gold_block,
+            .diamond_ore => .diamond_ore,
+            .diamond_block => .diamond_block,
             .piston_head => .piston,
         };
     }
@@ -763,6 +770,9 @@ pub const ItemType = enum(u8) {
             .redstone_ore => "Redstone Ore",
             .gold_ore => "Gold Ore",
             .gold_block => "Block of Gold",
+            .diamond => "Diamond",
+            .diamond_ore => "Diamond Ore",
+            .diamond_block => "Block of Diamond",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -921,6 +931,9 @@ pub const ItemType = enum(u8) {
             .redstone_ore => .{ 0.65, 0.25, 0.25, 0.95 },
             .gold_ore => .{ 0.75, 0.70, 0.35, 0.95 },
             .gold_block => .{ 0.95, 0.85, 0.20, 0.95 },
+            .diamond => .{ 0.35, 0.85, 0.95, 0.95 },
+            .diamond_ore => .{ 0.45, 0.70, 0.80, 0.95 },
+            .diamond_block => .{ 0.40, 0.90, 0.95, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1753,6 +1766,28 @@ pub const Inventory = struct {
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
                 return;
+            }
+        }
+
+        // Recipe 160: Block of Diamond: 4 Diamonds (2x2 filled) -> 1 Block of Diamond
+        if (non_empty == 4) {
+            var dia_c: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .diamond) dia_c += 1;
+            }
+            if (dia_c == 4) {
+                self.craft_output = .{ .item = .diamond_block, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 161: Diamond Unpacking: 1 Block of Diamond -> 4 Diamonds
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| {
+                if (sl.item == .diamond_block and sl.count >= 1) {
+                    self.craft_output = .{ .item = .diamond, .count = 4 };
+                    return;
+                }
             }
         }
 
@@ -3682,6 +3717,9 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         out[0] = .{ .item = .blackstone, .count = 1 };
         out[1] = .{ .item = .gold_nugget, .count = 2 };
         return 2;
+    } else if (block == .diamond_ore) {
+        out[0] = .{ .item = .diamond, .count = 1 };
+        return 1;
     } else if (block == .gold_ore) {
         out[0] = .{ .item = .gold_nugget, .count = 2 };
         return 1;
@@ -6277,6 +6315,51 @@ test "redstone ore item and drops" {
     try std.testing.expectEqual(ItemType.fromBlockId(.redstone_ore), .redstone_ore);
     try std.testing.expectEqual(ItemType.fromBlockId(.lit_redstone_ore), .redstone_ore);
     try std.testing.expectEqualStrings(ItemType.redstone_ore.name(), "Redstone Ore");
+}
+
+test "diamond, diamond ore, and diamond block items, drops, and recipes 160 and 161" {
+    var inv = Inventory.init();
+
+    // Recipe 160: 4 Diamonds -> 1 Diamond Block
+    inv.craft_grid[0] = .{ .item = .diamond, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .diamond, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .diamond, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .diamond, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .diamond_block);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 161: 1 Diamond Block -> 4 Diamonds
+    inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .diamond_block, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .diamond);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    // Drops: diamond_ore -> 1 diamond
+    var drops: [2]BlockDrop = undefined;
+    const n = getBlockDrops(.diamond_ore, &drops);
+    try std.testing.expectEqual(n, 1);
+    try std.testing.expectEqual(drops[0].item, .diamond);
+    try std.testing.expectEqual(drops[0].count, 1);
+
+    const n_db = getBlockDrops(.diamond_block, &drops);
+    try std.testing.expectEqual(n_db, 1);
+    try std.testing.expectEqual(drops[0].item, .diamond_block);
+    try std.testing.expectEqual(drops[0].count, 1);
+
+    // Item roundtrips and properties
+    try std.testing.expectEqual(ItemType.diamond.maxStackSize(), 64);
+    try std.testing.expectEqual(ItemType.diamond_ore.maxStackSize(), 64);
+    try std.testing.expectEqual(ItemType.diamond_block.maxStackSize(), 64);
+    try std.testing.expectEqual(ItemType.diamond.toBlockId(), null);
+    try std.testing.expectEqual(ItemType.diamond_ore.toBlockId().?, .diamond_ore);
+    try std.testing.expectEqual(ItemType.diamond_block.toBlockId().?, .diamond_block);
+    try std.testing.expectEqual(ItemType.fromBlockId(.diamond_ore), .diamond_ore);
+    try std.testing.expectEqual(ItemType.fromBlockId(.diamond_block), .diamond_block);
+    try std.testing.expectEqualStrings(ItemType.diamond.name(), "Diamond");
+    try std.testing.expectEqualStrings(ItemType.diamond_ore.name(), "Diamond Ore");
+    try std.testing.expectEqualStrings(ItemType.diamond_block.name(), "Block of Diamond");
 }
 
 test "gold ore and gold block items, drops, and recipes 158 and 159" {
