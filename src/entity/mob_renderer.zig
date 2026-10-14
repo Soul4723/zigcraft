@@ -811,6 +811,24 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
             // 6. Tail Segment 2 (tip): 0.3 x 0.3 x 0.7 at (0, 0.50, -1.6)
             try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.50, -1.6), math.Vec3.init(0.3, 0.3, 0.7), mob.yaw, mob.pos, uv_scales, uv_scales);
         },
+        .slime => {
+            // Slime: 4 boxes: Outer translucent cube, inner core cube, and 2 eyes
+            const uv_slime_outer = texture.getTileUV(2, 7);
+            const uv_slime_inner = texture.getTileUV(2, 7);
+            const uv_eye = texture.getTileUV(1, 2);
+
+            // 1. Outer gelatinous body: 0.8 x 0.8 x 0.8 at (0, 0.4, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.4, 0), math.Vec3.init(0.8, 0.8, 0.8), mob.yaw, mob.pos, uv_slime_outer, uv_slime_outer);
+
+            // 2. Inner dense nucleus core: 0.45 x 0.45 x 0.45 at (0, 0.35, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.35, 0), math.Vec3.init(0.45, 0.45, 0.45), mob.yaw, mob.pos, uv_slime_inner, uv_slime_inner);
+
+            // 3. Left Eye: 0.12 x 0.12 x 0.05 at (-0.2, 0.52, 0.41)
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.2, 0.52, 0.41), math.Vec3.init(0.12, 0.12, 0.05), mob.yaw, mob.pos, uv_eye, uv_eye);
+
+            // 4. Right Eye: 0.12 x 0.12 x 0.05 at (0.2, 0.52, 0.41)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.2, 0.52, 0.41), math.Vec3.init(0.12, 0.12, 0.05), mob.yaw, mob.pos, uv_eye, uv_eye);
+        },
     }
 
     if (mob.isGlowing()) {
@@ -1025,4 +1043,17 @@ test "cave spider mob mesh generation" {
     // 10 boxes * 24 = 240 verts, * 36 = 360 indices
     try std.testing.expectEqual(@as(usize, 240), verts.items.len);
     try std.testing.expectEqual(@as(usize, 360), inds.items.len);
+}
+
+test "slime mob mesh generation" {
+    var verts = std.ArrayList(MobVertex).empty;
+    defer verts.deinit(std.testing.allocator);
+    var inds = std.ArrayList(u32).empty;
+    defer inds.deinit(std.testing.allocator);
+
+    const slm = mob_mod.Mob.init(.slime, 0, 0, 0);
+    try appendMobMesh(std.testing.allocator, &verts, &inds, slm);
+    // 4 boxes * 24 = 96 verts, * 36 = 144 indices
+    try std.testing.expectEqual(@as(usize, 96), verts.items.len);
+    try std.testing.expectEqual(@as(usize, 144), inds.items.len);
 }

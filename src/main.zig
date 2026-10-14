@@ -77,6 +77,11 @@ fn pickHay(x: i32, y: i32, z: i32) bool {
     return mgr.getBlockWorld(x, y, z).is_hay_bale();
 }
 
+fn pickSlime(x: i32, y: i32, z: i32) bool {
+    const mgr = pick_manager orelse return false;
+    return mgr.getBlockWorld(x, y, z).is_slime_block();
+}
+
 
 
 fn getFootstepSound(block: block_mod.BlockId) audio_mod.synth.SoundType {
@@ -464,7 +469,7 @@ pub fn main() !void {
             particles.spawnBubble(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 4);
         }
 
-        player.tickPhysicsFull(&pickSolid, &pickLadder, &pickFluid, &pickHay, norm_wish.x * walk_speed * dt, norm_wish.z * walk_speed * dt, jump, dt);
+        player.tickPhysicsCustom(&pickSolid, &pickLadder, &pickFluid, &pickHay, &pickSlime, norm_wish.x * walk_speed * dt, norm_wish.z * walk_speed * dt, jump, dt);
         player.tickVitals(dt);
         if (player.pos.y < -30.0) {
             // Fell out of world: damage through vitals path
@@ -1992,7 +1997,7 @@ pub fn main() !void {
         if (wolf_bite_cooldown <= 0.0) {
             const held_gold = (inventory.slots[selected_slot].item == .gold_nugget or inventory.slots[selected_slot].item == .golden_apple);
             for (mob_manager.mobs.items) |*m| {
-                if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider and m.mob_type != .cave_spider and m.mob_type != .endermite and m.mob_type != .drowned and m.mob_type != .phantom and m.mob_type != .guardian and m.mob_type != .elder_guardian) continue;
+                if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider and m.mob_type != .cave_spider and m.mob_type != .endermite and m.mob_type != .drowned and m.mob_type != .phantom and m.mob_type != .guardian and m.mob_type != .elder_guardian and m.mob_type != .slime) continue;
                 if (m.mob_type == .piglin and (held_gold or m.barter_timer > 0.0 or entity_mod.mob_manager.MobManager.isPiglinRepelled(m.pos, player.pos, held_warped_fungus, &pickBlockWorld) != null)) continue;
                 const bdx = m.pos.x - player.pos.x;
                 const bdz = m.pos.z - player.pos.z;

@@ -332,6 +332,10 @@ pub const Player = struct {
 
     /// Advance physics by dt. Optional `ladder` detects climbing; `fluid` detects water buoyancy/swimming.
     pub fn tickPhysicsFull(self: *Player, solid: *const fn (x: i32, y: i32, z: i32) bool, ladder: ?*const fn (x: i32, y: i32, z: i32) bool, fluid: ?*const fn (x: i32, y: i32, z: i32) bool, hay: ?*const fn (x: i32, y: i32, z: i32) bool, move_x: f32, move_z: f32, jump: bool, dt: f32) void {
+        self.tickPhysicsCustom(solid, ladder, fluid, hay, null, move_x, move_z, jump, dt);
+    }
+
+    pub fn tickPhysicsCustom(self: *Player, solid: *const fn (x: i32, y: i32, z: i32) bool, ladder: ?*const fn (x: i32, y: i32, z: i32) bool, fluid: ?*const fn (x: i32, y: i32, z: i32) bool, hay: ?*const fn (x: i32, y: i32, z: i32) bool, slime: ?*const fn (x: i32, y: i32, z: i32) bool, move_x: f32, move_z: f32, jump: bool, dt: f32) void {
         const clamped_dt = @min(dt, 0.05);
         const on_ladder = if (ladder) |l| isInsideLadder(self.pos, self.radius, self.height, l) else false;
         const now_in_water = if (fluid) |f| isInsideWater(self.pos, self.radius, self.height, f) else false;
@@ -462,8 +466,16 @@ pub const Player = struct {
             const floor_x = @as(i32, @intFromFloat(@floor(self.pos.x)));
             const floor_z = @as(i32, @intFromFloat(@floor(self.pos.z)));
             const is_hay = if (hay) |h| h(floor_x, floor_y, floor_z) else false;
-            const dmg = fallDamageOnSurface(fall_speed, is_hay);
-            if (dmg > 0.0) self.health = @max(0.0, self.health - dmg);
+            const is_slime = if (slime) |s| s(floor_x, floor_y, floor_z) else false;
+            // Slime block bounce: cancel fall damage and rebound upward proportional to impact speed (80% rebound)
+            if (solid(floor_x, floor_y, floor_z) and is_slime and -fall_speed > 3.0) {
+                self.vel_y = @min(20.0, -fall_speed * 0.80);
+                
+                self.on_ground = false;
+            } else {
+                const dmg = fallDamageOnSurface(fall_speed, is_hay);
+                if (dmg > 0.0) self.health = @max(0.0, self.health - dmg);
+            }
         }
     }
 
@@ -1262,4 +1274,27 @@ test "player detector rail and activator rail physics and flags" {
     // Detector rail movement
     p.tickPhysics(Mock.solid, null, null, 1.0, 0.0, false, 0.05);
     try std.testing.expect(p.pos.x > 0.5 + 1.0 * Player.minecart_rail_speed_scale * 0.9);
+}
+
+test "slime block cancels fall damage and bounces upward" {
+    const SlimeWorld = struct {
+        fn solid(x: i32, y: i32, z: i32) bool {
+            _ = x; _ = z;
+            return y <= 0;
+        }
+        fn slime(x: i32, y: i32, z: i32) bool {
+            _ = x; _ = z;
+            return y <= 0;
+        }
+    };
+
+    var player = Player.init(0.0, 1.0, 0.0);
+    player.vel_y = -15.0; // falling fast (would take heavy fall damage on normal stone)
+    player.health = 20.0;
+    player.tickPhysicsCustom(SlimeWorld.solid, null, null, null, SlimeWorld.slime, 0.0, 0.0, false, 0.05);
+
+    // Fall damage nullified by slime
+    try std.testing.expectEqual(@as(f32, 20.0), player.health);
+    // Bounced upward: ~15.0 * 0.80 = ~12.0 rebound velocity
+    try std.testing.expect(player.vel_y > 5.0);
 }
