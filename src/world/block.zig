@@ -660,6 +660,10 @@ pub const TOOL_WOODEN_PICKAXE: u8 = 9;
 pub const TOOL_IRON_PICKAXE: u8 = 27;
 pub const TOOL_NETHERITE_PICKAXE: u8 = 73;
 pub const TOOL_DIAMOND_PICKAXE: u8 = 221;
+pub const TOOL_WOODEN_AXE: u8 = 228;
+pub const TOOL_IRON_AXE: u8 = 229;
+pub const TOOL_DIAMOND_AXE: u8 = 230;
+pub const TOOL_NETHERITE_AXE: u8 = 231;
 
 pub fn hardness(block: BlockId) f32 {
     return switch (block) {
@@ -789,7 +793,33 @@ pub fn requiredTier(block: BlockId) ToolTier {
 
 /// Mining speed multiplier for held item vs target block.
 /// Wooden pickaxe is 3x on stone-class blocks, 1.5x elsewhere.
+pub fn isWoodClass(block: BlockId) bool {
+    return switch (block) {
+        .wood, .wood_planks, .crafting_table, .chest, .wooden_door_closed, .wooden_door_open,
+        .wooden_trapdoor_closed, .wooden_trapdoor_open, .oak_fence, .note_block, .jukebox,
+        .smithing_table, .cartography_table, .fletching_table, .loom, .composter, .daylight_detector,
+        .daylight_detector_inverted => true,
+        else => false,
+    };
+}
+
 pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
+    if (held_tool_id == TOOL_NETHERITE_AXE) {
+        if (isWoodClass(block)) return 6.0;
+        return 2.0;
+    }
+    if (held_tool_id == TOOL_DIAMOND_AXE) {
+        if (isWoodClass(block)) return 5.0;
+        return 1.8;
+    }
+    if (held_tool_id == TOOL_IRON_AXE) {
+        if (isWoodClass(block)) return 4.0;
+        return 1.5;
+    }
+    if (held_tool_id == TOOL_WOODEN_AXE) {
+        if (isWoodClass(block)) return 3.0;
+        return 1.2;
+    }
     if (held_tool_id == TOOL_NETHERITE_PICKAXE) {
         return switch (block) {
             .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .obsidian, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block => 6.0,
@@ -2748,4 +2778,21 @@ test "diamond pickaxe tool multiplier speed and tool id" {
     try std.testing.expect(toolMultiplier(TOOL_DIAMOND_PICKAXE, .stone) > toolMultiplier(TOOL_IRON_PICKAXE, .stone));
     try std.testing.expect(mineTime(.stone, TOOL_DIAMOND_PICKAXE) < mineTime(.stone, TOOL_IRON_PICKAXE));
     try std.testing.expect(mineTime(.stone, TOOL_NETHERITE_PICKAXE) < mineTime(.stone, TOOL_DIAMOND_PICKAXE));
+}
+
+test "axe tool multiplier speed and wood cutting efficiency" {
+    try std.testing.expectEqual(toolMultiplier(TOOL_WOODEN_AXE, .wood), 3.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_IRON_AXE, .wood), 4.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_DIAMOND_AXE, .wood), 5.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_NETHERITE_AXE, .wood), 6.0);
+
+    try std.testing.expectEqual(toolMultiplier(TOOL_DIAMOND_AXE, .wood_planks), 5.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_DIAMOND_AXE, .crafting_table), 5.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_DIAMOND_AXE, .chest), 5.0);
+
+    // Axe cuts wood faster than bare hand or pickaxe
+    try std.testing.expect(mineTime(.wood, TOOL_DIAMOND_AXE) < mineTime(.wood, 0));
+    try std.testing.expect(mineTime(.wood, TOOL_NETHERITE_AXE) < mineTime(.wood, TOOL_DIAMOND_AXE));
+    try std.testing.expect(mineTime(.wood, TOOL_DIAMOND_AXE) < mineTime(.wood, TOOL_IRON_AXE));
+    try std.testing.expect(mineTime(.wood, TOOL_IRON_AXE) < mineTime(.wood, TOOL_WOODEN_AXE));
 }

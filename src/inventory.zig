@@ -231,6 +231,10 @@ pub const ItemType = enum(u8) {
     diamond_boots = 225,
     flint = 226,
     flint_and_steel = 227,
+    wooden_axe = 228,
+    iron_axe = 229,
+    diamond_axe = 230,
+    netherite_axe = 231,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -530,6 +534,10 @@ pub const ItemType = enum(u8) {
             .diamond_leggings => 390,
             .diamond_boots => 340,
             .flint_and_steel => 64,
+            .wooden_axe => 25,
+            .iron_axe => 120,
+            .diamond_axe => 250,
+            .netherite_axe => 350,
             .netherite_pickaxe => 350,
             .netherite_sword => 400,
             .warped_fungus_on_a_stick => 100,
@@ -565,7 +573,7 @@ pub const ItemType = enum(u8) {
         return switch (self) {
             .none => 0,
             .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea => 16,
-            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart => 1,
+            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart => 1,
             else => 64,
         };
     }
@@ -796,6 +804,10 @@ pub const ItemType = enum(u8) {
             .diamond_boots => "Diamond Boots",
             .flint => "Flint",
             .flint_and_steel => "Flint and Steel",
+            .wooden_axe => "Wooden Axe",
+            .iron_axe => "Iron Axe",
+            .diamond_axe => "Diamond Axe",
+            .netherite_axe => "Netherite Axe",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -965,6 +977,10 @@ pub const ItemType = enum(u8) {
             .diamond_boots => .{ 0.30, 0.82, 0.92, 0.95 },
             .flint => .{ 0.28, 0.26, 0.30, 0.95 },
             .flint_and_steel => .{ 0.82, 0.78, 0.72, 0.95 },
+            .wooden_axe => .{ 0.82, 0.68, 0.38, 0.95 },
+            .iron_axe => .{ 0.88, 0.85, 0.82, 0.95 },
+            .diamond_axe => .{ 0.35, 0.88, 0.95, 0.95 },
+            .netherite_axe => .{ 0.30, 0.26, 0.32, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1803,6 +1819,50 @@ pub const Inventory = struct {
             }
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 170: Wooden Axe: 1 Wood Log + 1 Stick -> 1 Wooden Axe
+        if (non_empty == 2) {
+            const has_log = (g0 == .wood or g1 == .wood or g2 == .wood or g3 == .wood);
+            const has_stk = (g0 == .stick or g1 == .stick or g2 == .stick or g3 == .stick);
+            if (has_log and has_stk) {
+                self.craft_output = .{ .item = .wooden_axe, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 171: Iron Axe: 1 Iron Ingot + 1 Wood Log/Plank -> 1 Iron Axe
+        if (non_empty == 2) {
+            const has_iron = (g0 == .iron_ingot or g1 == .iron_ingot or g2 == .iron_ingot or g3 == .iron_ingot);
+            const has_wood_mat = (g0 == .wood or g1 == .wood or g2 == .wood or g3 == .wood or
+                                  g0 == .wood_planks or g1 == .wood_planks or g2 == .wood_planks or g3 == .wood_planks);
+            if (has_iron and has_wood_mat) {
+                self.craft_output = .{ .item = .iron_axe, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 172: Diamond Axe: 1 Diamond + 1 Wood Log/Plank (or 1 Iron Axe + 1 Diamond) -> 1 Diamond Axe
+        if (non_empty == 2) {
+            const has_dia = (g0 == .diamond or g1 == .diamond or g2 == .diamond or g3 == .diamond);
+            const has_wood_mat = (g0 == .wood or g1 == .wood or g2 == .wood or g3 == .wood or
+                                  g0 == .wood_planks or g1 == .wood_planks or g2 == .wood_planks or g3 == .wood_planks);
+            const has_iron_axe = (g0 == .iron_axe or g1 == .iron_axe or g2 == .iron_axe or g3 == .iron_axe);
+            if (has_dia and (has_wood_mat or has_iron_axe)) {
+                self.craft_output = .{ .item = .diamond_axe, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 173: Netherite Axe: 1 Netherite Ingot + 1 Diamond Axe / Iron Axe -> 1 Netherite Axe
+        if (non_empty == 2) {
+            const has_ni = (g0 == .netherite_ingot or g1 == .netherite_ingot or g2 == .netherite_ingot or g3 == .netherite_ingot);
+            const has_base_axe = (g0 == .diamond_axe or g1 == .diamond_axe or g2 == .diamond_axe or g3 == .diamond_axe or
+                                  g0 == .iron_axe or g1 == .iron_axe or g2 == .iron_axe or g3 == .iron_axe);
+            if (has_ni and has_base_axe) {
+                self.craft_output = .{ .item = .netherite_axe, .count = 1 };
                 return;
             }
         }
@@ -3714,7 +3774,8 @@ test "cactus item mapping and conversion" {
 pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
     const need = block_mod.requiredTier(block);
     if (need == .hand) return true;
-    return held == .wooden_pickaxe or held == .iron_pickaxe or held == .diamond_pickaxe or held == .netherite_pickaxe;
+    return held == .wooden_pickaxe or held == .iron_pickaxe or held == .diamond_pickaxe or held == .netherite_pickaxe or
+           held == .wooden_axe or held == .iron_axe or held == .diamond_axe or held == .netherite_axe;
 }
 
 pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, cave_spider, skeleton, zombie, creeper, enderman, ender_dragon, shulker, endermite, turtle, drowned, phantom, guardian, elder_guardian, dolphin, slime };
@@ -6773,4 +6834,58 @@ test "flint and flint and steel items, recipes 168-169, durability and stack" {
     try std.testing.expectEqual(ItemType.flint_and_steel.maxDurability(), 64);
     try std.testing.expectEqualStrings(ItemType.flint.name(), "Flint");
     try std.testing.expectEqualStrings(ItemType.flint_and_steel.name(), "Flint and Steel");
+}
+
+test "axe items, durability, harvesting, and recipes 170-173" {
+    var inv = Inventory.init();
+
+    // Recipe 170: 1 Wood + 1 Stick -> 1 Wooden Axe
+    inv.craft_grid[0] = .{ .item = .wood, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .stick, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .wooden_axe);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 171: 1 Iron Ingot + 1 Wood Planks -> 1 Iron Axe
+    inv.craft_grid[0] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wood_planks, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .iron_axe);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 172: 1 Diamond + 1 Wood -> 1 Diamond Axe
+    inv.craft_grid[0] = .{ .item = .diamond, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wood, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .diamond_axe);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 173: 1 Netherite Ingot + 1 Diamond Axe -> 1 Netherite Axe
+    inv.craft_grid[0] = .{ .item = .netherite_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .diamond_axe, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .netherite_axe);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Durabilities & tools
+    try std.testing.expect(ItemType.wooden_axe.isTool());
+    try std.testing.expect(ItemType.iron_axe.isTool());
+    try std.testing.expect(ItemType.diamond_axe.isTool());
+    try std.testing.expect(ItemType.netherite_axe.isTool());
+
+    try std.testing.expectEqual(ItemType.wooden_axe.maxDurability(), 25);
+    try std.testing.expectEqual(ItemType.iron_axe.maxDurability(), 120);
+    try std.testing.expectEqual(ItemType.diamond_axe.maxDurability(), 250);
+    try std.testing.expectEqual(ItemType.netherite_axe.maxDurability(), 350);
+
+    try std.testing.expectEqual(ItemType.wooden_axe.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.iron_axe.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.diamond_axe.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.netherite_axe.maxStackSize(), 1);
+
+    // Harvesting permissions
+    try std.testing.expect(canHarvestBlock(.wooden_axe, .wood));
+    try std.testing.expect(canHarvestBlock(.iron_axe, .wood_planks));
+    try std.testing.expect(canHarvestBlock(.diamond_axe, .chest));
+    try std.testing.expect(canHarvestBlock(.netherite_axe, .crafting_table));
 }
