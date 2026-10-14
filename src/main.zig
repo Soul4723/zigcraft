@@ -179,6 +179,7 @@ pub fn main() !void {
     var hud_time: f32 = 0;
     var left_down = false;
     var right_down = false;
+    var space_down = false;
     var mob_hit_cooldown: f32 = 0.0;
     var bed_cooldown: f32 = 0.0;
     var flint_cooldown: f32 = 0.0;
@@ -405,7 +406,16 @@ pub fn main() !void {
             audio.play(.click_off, 0.6);
             std.debug.print("dismounted boat\n", .{});
         }
-        const jump = !inventory_open and (c.glfwGetKey(window, c.GLFW_KEY_SPACE) == c.GLFW_PRESS);
+        const space_pressed = !inventory_open and (c.glfwGetKey(window, c.GLFW_KEY_SPACE) == c.GLFW_PRESS);
+        const jump = space_pressed;
+        if (space_pressed and !space_down and !player.on_ground and !player.in_water and inventory.hasItem(.elytra)) {
+            if (!player.is_gliding) {
+                player.startGliding();
+                audio.play(.nether_wind, 0.9);
+                std.debug.print("elytra glide deployed\n", .{});
+            }
+        }
+        space_down = space_pressed;
 
         // Detect soul sand floor contact for movement deceleration drag
         const f_px: i32 = @intFromFloat(@floor(player.pos.x));
@@ -4868,7 +4878,13 @@ pub fn main() !void {
                 .raw_pork, .raw_mutton => false,
                 else => null,
             };
-            if (held_eat.item == .weakness_potion) {
+            if (player.is_gliding and held_eat.item == .fireworks_rocket) {
+                player.boostWithRocket();
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.burn_sizzle, 0.9);
+                particles.spawnBurnSparks(.{ player.pos.x, player.pos.y, player.pos.z }, 12);
+                std.debug.print("elytra rocket boost ignited!\n", .{});
+            } else if (held_eat.item == .weakness_potion) {
                 player.applyWeakness();
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.8);

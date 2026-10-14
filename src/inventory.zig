@@ -165,6 +165,7 @@ pub const ItemType = enum(u8) {
     chorus_plant = 159,
     shulker_shell = 160,
     shulker_box = 161,
+    elytra = 162,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -386,7 +387,7 @@ pub const ItemType = enum(u8) {
 
     pub fn isArmor(self: ItemType) bool {
         return switch (self) {
-            .netherite_helmet, .netherite_chestplate, .netherite_leggings, .netherite_boots, .soul_speed_boots => true,
+            .netherite_helmet, .netherite_chestplate, .elytra, .netherite_leggings, .netherite_boots, .soul_speed_boots => true,
             else => false,
         };
     }
@@ -404,6 +405,7 @@ pub const ItemType = enum(u8) {
             .netherite_helmet => 450,
             .netherite_leggings => 475,
             .netherite_boots => 425,
+            .elytra => 432,
             .bow => 384,
             .shield => 336,
             .crossbow => 465,
@@ -427,7 +429,7 @@ pub const ItemType = enum(u8) {
         return switch (self) {
             .none => 0,
             .armor_stand, .target_dummy, .ender_pearl => 16,
-            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .soul_speed_boots, .netherite_helmet, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat => 1,
+            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat => 1,
             else => 64,
         };
     }
@@ -592,6 +594,7 @@ pub const ItemType = enum(u8) {
             .chorus_plant => "Chorus Plant",
             .shulker_shell => "Shulker Shell",
             .shulker_box => "Shulker Box",
+            .elytra => "Elytra",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -695,6 +698,7 @@ pub const ItemType = enum(u8) {
             .chorus_plant => .{ 0.60, 0.38, 0.60, 0.95 },
             .shulker_shell => .{ 0.68, 0.44, 0.68, 0.95 },
             .shulker_box => .{ 0.72, 0.48, 0.72, 0.98 },
+            .elytra => .{ 0.42, 0.46, 0.54, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1243,6 +1247,20 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 119: Elytra: 2 Shulker Shells + 2 Purpur Blocks -> 1 Elytra
+        if (non_empty == 4) {
+            var shell_cnt: usize = 0;
+            var purp_cnt: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .shulker_shell) shell_cnt += 1;
+                if (sl.item == .purpur_block) purp_cnt += 1;
+            }
+            if (shell_cnt == 2 and purp_cnt == 2) {
+                self.craft_output = .{ .item = .elytra, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 118: Shulker Box: 1 Chest + 2 Shulker Shells -> 1 Shulker Box
         if (non_empty == 3) {
@@ -4849,4 +4867,24 @@ test "shulker shell and shulker box item roundtrip, mob drop, and Recipe 118" {
     var drops: [2]BlockDrop = undefined;
     try std.testing.expectEqual(@as(usize, 1), getBlockDrops(.shulker_box, &drops));
     try std.testing.expectEqual(drops[0].item, .shulker_box);
+}
+
+test "elytra item properties, wearable armor check, and Recipe 119" {
+    var inv = Inventory.init();
+
+    // Recipe 119: 2 Shulker Shells + 2 Purpur Blocks -> 1 Elytra
+    inv.craft_grid[0] = .{ .item = .shulker_shell, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .purpur_block, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .purpur_block, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .shulker_shell, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .elytra);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expect(ItemType.elytra.isArmor());
+    try std.testing.expect(ItemType.elytra.isTool());
+    try std.testing.expectEqual(ItemType.elytra.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.elytra.maxDurability(), 432);
+    try std.testing.expectEqualStrings(ItemType.elytra.name(), "Elytra");
+    try std.testing.expect(ItemType.elytra.toBlockId() == null);
 }

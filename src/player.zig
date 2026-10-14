@@ -28,6 +28,8 @@ pub const Player = struct {
     weakness_timer: f32 = 0.0,
     hunger_debuff_timer: f32 = 0.0,
     levitation_timer: f32 = 0.0,
+    is_gliding: bool = false,
+    rocket_boost_timer: f32 = 0.0,
     lodestone_target: ?math.Vec3 = null,
 
     pub fn init(x: f32, y: f32, z: f32) Player {
@@ -157,6 +159,29 @@ pub const Player = struct {
         return self.levitation_timer > 0.0;
     }
 
+
+    pub const glide_fall_speed: f32 = -1.2;
+    pub const glide_horizontal_scale: f32 = 2.4;
+    pub const rocket_boost_duration: f32 = 1.5;
+    pub const rocket_boost_speed: f32 = 14.0;
+
+    pub fn startGliding(self: *Player) void {
+        if (!self.on_ground and !self.in_water) {
+            self.is_gliding = true;
+        }
+    }
+
+    pub fn stopGliding(self: *Player) void {
+        self.is_gliding = false;
+        self.rocket_boost_timer = 0.0;
+    }
+
+    pub fn boostWithRocket(self: *Player) void {
+        if (self.is_gliding) {
+            self.rocket_boost_timer = rocket_boost_duration;
+        }
+    }
+
     pub fn hasHungerDebuff(self: Player) bool {
         return self.hunger_debuff_timer > 0.0;
     }
@@ -177,6 +202,7 @@ pub const Player = struct {
         self.weakness_timer = @max(0.0, self.weakness_timer - dt);
         self.hunger_debuff_timer = @max(0.0, self.hunger_debuff_timer - dt);
         self.levitation_timer = @max(0.0, self.levitation_timer - dt);
+        self.rocket_boost_timer = @max(0.0, self.rocket_boost_timer - dt);
         if (self.wither_timer > 0.0 and self.health > 0.0) {
             self.health = @max(0.0, self.health - dt * wither_rate);
         }
@@ -230,7 +256,11 @@ pub const Player = struct {
 
         // Check floor block under player for soul sand drag
 
-        const speed_scale = if (self.in_boat and self.in_water)
+        const speed_scale = if (self.is_gliding and self.rocket_boost_timer > 0.0)
+            rocket_boost_speed / 4.3
+        else if (self.is_gliding)
+            glide_horizontal_scale
+        else if (self.in_boat and self.in_water)
             boat_horizontal_speed_scale
         else if (self.in_water)
             water_horizontal_speed_scale
@@ -290,6 +320,15 @@ pub const Player = struct {
                 self.vel_y -= 6.0 * clamped_dt;
                 if (self.vel_y < water_sink_speed) self.vel_y = water_sink_speed;
             }
+        } else if (self.is_gliding) {
+            if (self.rocket_boost_timer > 0.0) {
+                // Rocket propulsion lifts upward while boosting
+                self.vel_y = @min(6.0, self.vel_y + 16.0 * clamped_dt);
+            } else {
+                // Aerodynamic gliding sink rate
+                self.vel_y = @max(glide_fall_speed, self.vel_y - 6.0 * clamped_dt);
+            }
+            self.on_ground = false;
         } else if (self.isLevitating()) {
             // Shulker levitation effect: upward gentle anti-gravity lift
             self.vel_y = levitation_lift_speed;
@@ -305,6 +344,10 @@ pub const Player = struct {
         const was_airborne = !self.on_ground;
         const fall_speed = if (self.in_water) 0.0 else self.vel_y;
         self.pos.y = collideAxis(self.pos, self.radius, self.height, solid, self.vel_y * clamped_dt, Axis.y, &self.vel_y, &self.on_ground);
+        if (self.on_ground or self.in_water) {
+            self.is_gliding = false;
+            self.rocket_boost_timer = 0.0;
+        }
         if (was_airborne and self.on_ground) {
             const floor_y = @as(i32, @intFromFloat(@floor(self.pos.y - 0.1)));
             const floor_x = @as(i32, @intFromFloat(@floor(self.pos.x)));
@@ -918,4 +961,38 @@ test "player levitation status and upward vertical physics" {
 
     p.tickVitals(11.0);
     try std.testing.expect(!p.isLevitating());
+}
+
+test "player elytra gliding kinematics and rocket boost" {
+    var p = Player.init(0.5, 20.0, 0.5);
+    p.on_ground = false;
+    p.startGliding();
+    try std.testing.expect(p.is_gliding);
+
+    const Mock = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return false; }
+    };
+
+    // Gliding aerodynamic fall rate is gentle
+    p.tickPhysics(Mock.solid, null, null, 1.0, 0.0, false, 0.05);
+    try std.testing.expect(p.vel_y >= Player.glide_fall_speed - 0.5);
+    try std.testing.expect(p.is_gliding);
+
+    // Firework rocket boost accelerates upward and forwards
+    p.boostWithRocket();
+    try std.testing.expect(p.rocket_boost_timer > 0.0);
+    p.tickPhysics(Mock.solid, null, null, 1.0, 0.0, false, 0.05);
+    try std.testing.expect(p.vel_y > 0.0);
+
+    // Landing on ground terminates glide
+    const FloorMock = struct {
+        fn solid(_: i32, y: i32, _: i32) bool { return y <= 0; }
+    };
+    p.rocket_boost_timer = 0.0;
+    p.vel_y = -5.0;
+    p.pos.y = 1.0;
+    p.tickPhysics(FloorMock.solid, null, null, 0.0, 0.0, false, 0.05);
+    try std.testing.expect(p.on_ground);
+    try std.testing.expect(!p.is_gliding);
+    try std.testing.expectEqual(@as(f32, 0.0), p.rocket_boost_timer);
 }
