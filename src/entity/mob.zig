@@ -67,6 +67,7 @@ pub const Mob = struct {
             .skeleton, .zombie, .creeper, .enderman => 0.6,
             .ender_dragon => 2.4,
             .shulker => 0.8,
+            .endermite => 0.4,
         };
         const h: f32 = switch (mob_type) {
             .sheep => 0.9,
@@ -83,6 +84,7 @@ pub const Mob = struct {
             .enderman => 2.9,
             .ender_dragon => 1.8,
             .shulker => 0.8,
+            .endermite => 0.3,
         };
         const spd: f32 = switch (mob_type) {
             .sheep => 1.4,
@@ -101,6 +103,7 @@ pub const Mob = struct {
             .enderman => 3.2,
             .ender_dragon => 4.5,
             .shulker => 0.0,
+            .endermite => 2.8,
         };
         return .{
             .mob_type = mob_type,
@@ -116,7 +119,7 @@ pub const Mob = struct {
             .anim_time = 0.0,
             .change_dir_timer = 2.0,
             .wants_sound = false,
-            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze or mob_type == .enderman) 20 else if (mob_type == .piglin_brute) 15 else if (mob_type == .ender_dragon) 200 else if (mob_type == .target_dummy) 50 else if (mob_type == .shulker) 30 else if (mob_type == .spider) 8 else if (mob_type == .skeleton or mob_type == .zombie or mob_type == .creeper) 10 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
+            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze or mob_type == .enderman) 20 else if (mob_type == .piglin_brute) 15 else if (mob_type == .ender_dragon) 200 else if (mob_type == .target_dummy) 50 else if (mob_type == .shulker) 30 else if (mob_type == .spider or mob_type == .endermite) 8 else if (mob_type == .skeleton or mob_type == .zombie or mob_type == .creeper) 10 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
             .in_water = false,
             .in_bubble_column = false,
             .in_whirlpool = false,
@@ -567,6 +570,7 @@ pub fn getSound(mob_type: MobType) ?@import("../audio/synth.zig").SoundType {
         .enderman => .mob_teleport,
         .ender_dragon => .dragon_roar,
         .shulker => .mob_roar,
+        .endermite => .mob_hiss,
     };
 }
 
@@ -888,4 +892,15 @@ test "shulker mob properties and stationary behavior" {
     sh.tick(Mock.solid, Mock.fluid, 0.05, &rng);
     try std.testing.expectEqual(sh.vel.x, 0.0);
     try std.testing.expectEqual(sh.vel.z, 0.0);
+}
+
+test "endermite mob stats, dimensions, and pearl drop" {
+    const em = Mob.init(.endermite, 10.0, 5.0, 10.0);
+    try std.testing.expectEqual(em.mob_type, .endermite);
+    try std.testing.expectEqual(em.health, 8);
+    try std.testing.expectEqual(em.width, 0.4);
+    try std.testing.expectEqual(em.height, 0.3);
+    try std.testing.expectEqual(em.walk_speed, 2.8);
+    try std.testing.expectEqual(getSound(.endermite), .mob_hiss);
+    try std.testing.expectEqual(inventory_mod.getMobMeatDrop(.endermite), .ender_pearl);
 }

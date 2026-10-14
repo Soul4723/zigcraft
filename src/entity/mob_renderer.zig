@@ -522,7 +522,7 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
             try appendBox(allocator, verts, inds, math.Vec3.init(-0.12, 0.28, 0 + leg_swing), math.Vec3.init(0.13, 0.56, 0.13), mob.yaw, mob.pos, uv_skin, uv_skin);
             try appendBox(allocator, verts, inds, math.Vec3.init(0.12, 0.28, 0 - leg_swing), math.Vec3.init(0.13, 0.56, 0.13), mob.yaw, mob.pos, uv_skin, uv_skin);
         },
-        .shulker => {
+                .shulker => {
             const uv_shell = texture.getTileUV(6, 5); // Purpur shell
             const uv_eye = texture.getTileUV(7, 6);   // Glowing yellow-white shulker eyes / inner head
 
@@ -538,7 +538,24 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
             // 3. Upper shell lid: 0.72 x 0.36 x 0.72 at (0, 0.54 + peek_h, 0)
             try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.54 + peek_h, 0), math.Vec3.init(0.72, 0.36, 0.72), mob.yaw, mob.pos, uv_shell, uv_shell);
         },
-        .target_dummy => {
+        .endermite => {
+            // Endermite: tiny undulating 4-segment crawling arthropod body (0.4m length, 0.28m width, 0.22m height)
+            const uv_body = texture.getTileUV(5, 2); // Dark obsidian scales
+            const uv_eyes = texture.getTileUV(7, 6); // Glowing radiant purple eye specks
+
+            const crawl_wobble = @sin(mob.anim_time * 12.0) * 0.04;
+            // 1. Head segment (front): 0.24 x 0.20 x 0.18 at (0, 0.10, 0.15)
+            try appendBox(allocator, verts, inds, math.Vec3.init(crawl_wobble, 0.10, 0.15), math.Vec3.init(0.24, 0.20, 0.18), mob.yaw, mob.pos, uv_eyes, uv_body);
+
+            // 2. Thorax segment (middle front): 0.28 x 0.22 x 0.16 at (0, 0.11, 0.02)
+            try appendBox(allocator, verts, inds, math.Vec3.init(-crawl_wobble * 0.6, 0.11, 0.02), math.Vec3.init(0.28, 0.22, 0.16), mob.yaw, mob.pos, uv_body, uv_body);
+
+            // 3. Abdomen segment (middle rear): 0.26 x 0.20 x 0.16 at (0, 0.10, -0.11)
+            try appendBox(allocator, verts, inds, math.Vec3.init(crawl_wobble * 0.8, 0.10, -0.11), math.Vec3.init(0.26, 0.20, 0.16), mob.yaw, mob.pos, uv_body, uv_body);
+
+            // 4. Posterior tail segment (rear): 0.18 x 0.16 x 0.14 at (0, 0.08, -0.22)
+            try appendBox(allocator, verts, inds, math.Vec3.init(-crawl_wobble, 0.08, -0.22), math.Vec3.init(0.18, 0.16, 0.14), mob.yaw, mob.pos, uv_body, uv_body);
+        }, .target_dummy => {
             const uv_hay = texture.getTileUV(1, 4); // Hay bale textured body
             const uv_post = texture.getTileUV(2, 2); // Wood post & crossbar
             const uv_head = texture.getTileUV(3, 3); // Medallion practice face

@@ -1929,7 +1929,7 @@ pub fn main() !void {
         if (wolf_bite_cooldown <= 0.0) {
             const held_gold = (inventory.slots[selected_slot].item == .gold_nugget or inventory.slots[selected_slot].item == .golden_apple);
             for (mob_manager.mobs.items) |*m| {
-                if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider) continue;
+                if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider and m.mob_type != .endermite) continue;
                 if (m.mob_type == .piglin and (held_gold or m.barter_timer > 0.0 or entity_mod.mob_manager.MobManager.isPiglinRepelled(m.pos, player.pos, held_warped_fungus, &pickBlockWorld) != null)) continue;
                 const bdx = m.pos.x - player.pos.x;
                 const bdz = m.pos.z - player.pos.z;
@@ -3452,6 +3452,14 @@ pub fn main() !void {
                             audio.play(.mob_teleport, 1.0);
                             audio.play(.hurt, 0.8);
                             std.debug.print("ender pearl teleported player to ({d:.1},{d:.1},{d:.1}) (dmg={d:.1}, hp={d:.1})\n", .{ player.pos.x, player.pos.y, player.pos.z, pearl_dmg, player.health });
+
+                            // 15% probability: pearl teleportation infests landing with an Endermite
+                            const seed_m: u32 = @as(u32, @bitCast(@as(i32, @intFromFloat(t.pos.x * 37.0)))) ^ @as(u32, @bitCast(@as(i32, @intFromFloat(t.pos.z * 53.0))));
+                            if ((seed_m % 20) <= 2) {
+                                try mob_manager.spawnMob(.endermite, t.pos.x, t.pos.y + 0.1, t.pos.z);
+                                audio.play(.mob_hiss, 0.9);
+                                std.debug.print("Endermite spawned from ender pearl teleportation infestation!\n", .{});
+                            }
                         } else {
                             particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.93, 0.95, 1.0 }, 6);
                             if (struck == .target_block) {
