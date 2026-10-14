@@ -64,7 +64,7 @@ pub const Mob = struct {
             .blaze => 0.6,
             .target_dummy => 0.6,
             .spider => 0.8,
-            .skeleton, .zombie, .creeper => 0.6,
+            .skeleton, .zombie, .creeper, .enderman => 0.6,
         };
         const h: f32 = switch (mob_type) {
             .sheep => 0.9,
@@ -78,6 +78,7 @@ pub const Mob = struct {
             .spider => 0.5,
             .skeleton, .zombie => 1.8,
             .creeper => 1.7,
+            .enderman => 2.9,
         };
         const spd: f32 = switch (mob_type) {
             .sheep => 1.4,
@@ -93,6 +94,7 @@ pub const Mob = struct {
             .skeleton => 2.4,
             .zombie => 2.2,
             .creeper => 2.5,
+            .enderman => 3.2,
         };
         return .{
             .mob_type = mob_type,
@@ -108,7 +110,7 @@ pub const Mob = struct {
             .anim_time = 0.0,
             .change_dir_timer = 2.0,
             .wants_sound = false,
-            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze) 20 else if (mob_type == .piglin_brute) 15 else if (mob_type == .target_dummy) 50 else if (mob_type == .spider) 8 else if (mob_type == .skeleton or mob_type == .zombie or mob_type == .creeper) 10 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
+            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze or mob_type == .enderman) 20 else if (mob_type == .piglin_brute) 15 else if (mob_type == .target_dummy) 50 else if (mob_type == .spider) 8 else if (mob_type == .skeleton or mob_type == .zombie or mob_type == .creeper) 10 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
             .in_water = false,
             .in_bubble_column = false,
             .in_whirlpool = false,
@@ -541,6 +543,7 @@ pub fn getSound(mob_type: MobType) ?@import("../audio/synth.zig").SoundType {
         .spider => .mob_growl,
         .skeleton, .zombie => .mob_growl,
         .creeper => .mob_hiss,
+        .enderman => .mob_teleport,
     };
 }
 
@@ -817,4 +820,15 @@ test "creeper mob stats, dimensions, and gunpowder drop" {
     try std.testing.expectEqual(cr.walk_speed, 2.5);
     try std.testing.expectEqual(getSound(.creeper), .mob_hiss);
     try std.testing.expectEqual(inventory_mod.getMobMeatDrop(.creeper), .gunpowder);
+}
+
+test "enderman mob stats, dimensions, and ender pearl drop" {
+    const em = Mob.init(.enderman, 1.0, 2.0, 3.0);
+    try std.testing.expectEqual(em.mob_type, .enderman);
+    try std.testing.expectEqual(em.health, 20);
+    try std.testing.expectEqual(em.width, 0.6);
+    try std.testing.expectEqual(em.height, 2.9);
+    try std.testing.expectEqual(em.walk_speed, 3.2);
+    try std.testing.expectEqual(getSound(.enderman), .mob_teleport);
+    try std.testing.expectEqual(inventory_mod.getMobMeatDrop(.enderman), .ender_pearl);
 }

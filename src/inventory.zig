@@ -150,6 +150,7 @@ pub const ItemType = enum(u8) {
     bone = 144,
     rotten_flesh = 145,
     gunpowder = 146,
+    ender_pearl = 147,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -390,7 +391,7 @@ pub const ItemType = enum(u8) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .armor_stand, .target_dummy => 16,
+            .armor_stand, .target_dummy, .ender_pearl => 16,
             .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .soul_speed_boots, .netherite_helmet, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat => 1,
             else => 64,
         };
@@ -541,6 +542,7 @@ pub const ItemType = enum(u8) {
             .bone => "Bone",
             .rotten_flesh => "Rotten Flesh",
             .gunpowder => "Gunpowder",
+            .ender_pearl => "Ender Pearl",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -629,6 +631,7 @@ pub const ItemType = enum(u8) {
             .bone => .{ 0.88, 0.86, 0.80, 0.95 },
             .rotten_flesh => .{ 0.60, 0.38, 0.22, 0.95 },
             .gunpowder => .{ 0.38, 0.40, 0.42, 0.95 },
+            .ender_pearl => .{ 0.12, 0.45, 0.42, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -2568,7 +2571,7 @@ pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
     return held == .wooden_pickaxe or held == .iron_pickaxe or held == .netherite_pickaxe;
 }
 
-pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, skeleton, zombie, creeper };
+pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, skeleton, zombie, creeper, enderman };
 
 pub fn getMobMeatDrop(mob_type: MobType) ItemType {
     return switch (mob_type) {
@@ -2584,6 +2587,7 @@ pub fn getMobMeatDrop(mob_type: MobType) ItemType {
         .skeleton => .bone,
         .zombie => .rotten_flesh,
         .creeper => .gunpowder,
+        .enderman => .ender_pearl,
     };
 }
 
@@ -4427,4 +4431,12 @@ test "creeper mob drop, gunpowder item, and Recipe 107 TNT crafting" {
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .tnt);
     try std.testing.expectEqual(inv.craft_output.count, 1);
+}
+
+test "enderman mob drop, ender pearl item properties, and stack cap" {
+    try std.testing.expectEqual(getMobMeatDrop(.enderman), .ender_pearl);
+    try std.testing.expectEqualStrings(ItemType.ender_pearl.name(), "Ender Pearl");
+    try std.testing.expect(!ItemType.ender_pearl.isTool());
+    try std.testing.expect(ItemType.ender_pearl.toBlockId() == null);
+    try std.testing.expectEqual(ItemType.ender_pearl.maxStackSize(), 16);
 }

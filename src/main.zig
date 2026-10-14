@@ -213,7 +213,7 @@ pub fn main() !void {
     const PortalTarget = portal_mod.PortalTarget;
     var portal_targets: [32]PortalTarget = undefined;
     var portal_target_count: usize = 0;
-    const ThrownKind = enum { snowball, hostile_fireball, hostile_arrow, player_fire_charge, spectral_arrow, arrow, firework_rocket };
+    const ThrownKind = enum { snowball, hostile_fireball, hostile_arrow, player_fire_charge, spectral_arrow, arrow, firework_rocket, ender_pearl };
     const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball, damage: u8 = 1, pierce: u8 = 0, last_hit_mob: ?usize = null };
     var thrown: [proj_mod.thrown_cap]Thrown = undefined;
     var thrown_count: usize = 0;
@@ -1768,6 +1768,12 @@ pub fn main() !void {
                         } else if (m.mob_type == .spider) {
                             player.applyPoison();
                             std.debug.print("poisoned by spider venom", .{});
+                                                } else if (m.mob_type == .enderman) {
+                            // Enderman melee strike on player deals 4 damage
+                            const em_dmg = combat_mod.applyArmorReductionFullSet(4.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet());
+                            player.health = @max(0.0, player.health - em_dmg);
+                            audio.play(.hurt, 0.9);
+                            std.debug.print("enderman struck player (dmg={d:.1}, hp={d:.1})\n", .{ em_dmg, player.health });
                         } else if (m.mob_type == .zombie) {
                             player.applyHungerDebuff();
                             std.debug.print("infected with hunger by zombie bite", .{});
@@ -2908,6 +2914,8 @@ pub fn main() !void {
                         }
                     } else if (t.kind == .hostile_arrow) {
                         particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.85, 0.85, 0.85 }, 1);
+                    } else if (t.kind == .ender_pearl) {
+                        particles.spawnPortalParticles(.{ t.pos.x, t.pos.y, t.pos.z }, 2);
                     } else if (t.kind == .hostile_fireball) {
                         // Fireball vs player: 3 dmg on close pass, flame burst on block
                         const pdx = player.pos.x - t.pos.x;
@@ -3042,6 +3050,17 @@ pub fn main() !void {
                                 particles.spawnBurnSparks(.{ @as(f32, @floatFromInt(mbx)) + 0.5, @as(f32, @floatFromInt(mby)) + 0.5, @as(f32, @floatFromInt(mbz)) + 0.5 }, 12);
                                 std.debug.print("target block struck (strength={d}/15): emitting redstone signal\n", .{sig_str});
                             }
+                        } else if (t.kind == .ender_pearl) {
+                            // Ender Pearl impact: teleports player to (t.pos.x, t.pos.y + 0.1, t.pos.z), deals 5 damage, spawns portal particles
+                            particles.spawnPortalParticles(.{ t.pos.x, t.pos.y, t.pos.z }, 24);
+                            player.pos = math.Vec3.init(t.pos.x, t.pos.y + 0.1, t.pos.z);
+                            player.vel_y = 0.0;
+                            const has_boots = inventory.hasItem(.netherite_boots);
+                            const pearl_dmg = combat_mod.applyArmorReduction(5.0, has_boots);
+                            player.health = @max(0.0, player.health - pearl_dmg);
+                            audio.play(.mob_teleport, 1.0);
+                            audio.play(.hurt, 0.8);
+                            std.debug.print("ender pearl teleported player to ({d:.1},{d:.1},{d:.1}) (dmg={d:.1}, hp={d:.1})\n", .{ player.pos.x, player.pos.y, player.pos.z, pearl_dmg, player.health });
                         } else {
                             particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.93, 0.95, 1.0 }, 6);
                             if (struck == .target_block) {
@@ -3137,6 +3156,8 @@ pub fn main() !void {
                     // trail puff
                     if (t.kind == .hostile_arrow) {
                         particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.85, 0.85, 0.85 }, 1);
+                    } else if (t.kind == .ender_pearl) {
+                        particles.spawnPortalParticles(.{ t.pos.x, t.pos.y, t.pos.z }, 2);
                     } else if (t.kind == .hostile_fireball) {
                         particles.spawnFlame(mbx, mby, mbz, 1);
                     } else if (t.kind == .spectral_arrow) {
@@ -3284,7 +3305,7 @@ pub fn main() !void {
         throw_cooldown = @max(0.0, throw_cooldown - dt);
         if (!inventory_open and throw_cooldown <= 0.0 and c.glfwGetKey(window, c.GLFW_KEY_G) == c.GLFW_PRESS) {
             const held_throw = inventory.slots[selected_slot].item;
-            if ((held_throw == .snowball or held_throw == .fire_charge or held_throw == .spectral_arrow or held_throw == .arrow or held_throw == .fireworks_rocket) and thrown_count < thrown.len) {
+            if ((held_throw == .snowball or held_throw == .fire_charge or held_throw == .spectral_arrow or held_throw == .arrow or held_throw == .fireworks_rocket or held_throw == .ender_pearl) and thrown_count < thrown.len) {
                 const dir_g = cam.front();
                 const vel_g = proj_mod.initialVelocity(dir_g.x, dir_g.y, dir_g.z);
                 const k: ThrownKind = if (held_throw == .fire_charge)
@@ -3295,6 +3316,8 @@ pub fn main() !void {
                     .arrow
                 else if (held_throw == .fireworks_rocket)
                     .firework_rocket
+                else if (held_throw == .ender_pearl)
+                    .ender_pearl
                 else
                     .snowball;
                 const dmg: u8 = if (held_throw == .spectral_arrow)

@@ -56,6 +56,7 @@ pub const SoundType = enum {
     loom_shuttle,
     stonecutter_saw,
     mob_hiss,
+    mob_teleport,
 };
 
 pub const SAMPLE_RATE: u32 = 44100;
@@ -142,6 +143,7 @@ pub const AudioMixer = struct {
             .loom_shuttle => SAMPLE_RATE / 4, // ~250ms rhythmic wooden loom shuttle slide & batten beat clack
             .stonecutter_saw => SAMPLE_RATE / 4, // ~250ms high-speed circular diamond saw whir (880Hz) & stone grit buzz
             .mob_hiss => SAMPLE_RATE * 3 / 2, // ~1500ms fuse hiss
+            .mob_teleport => SAMPLE_RATE / 3, // ~330ms pitch-bent otherworldly whoosh pop
         };
 
         slot.?.* = .{
@@ -511,6 +513,14 @@ pub const AudioMixer = struct {
                 const v_env = (1.0 - progress * 0.2);
                 return (tone + crackle) * v_env * 0.70;
             },
+            .mob_teleport => {
+                // Otherworldly pitch-sweep pop: starts high (880Hz) sweeps down to (220Hz) with shimmer noise
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const freq = 880.0 * (1.0 - progress * 0.75);
+                const tone = @sin(t * freq * 2.0 * std.math.pi);
+                const noise = (rng.random().float(f32) * 2.0 - 1.0) * 0.35;
+                return (tone * 0.65 + noise) * envelope * 0.8;
+            },
             .mob_hiss => {
                 // Rising filtered white noise hiss with subtle frequency modulation
                 const white = (rng.random().float(f32) * 2.0 - 1.0);
@@ -792,6 +802,21 @@ test "creeper mob_hiss audio synthesis" {
     var mixer = AudioMixer.init();
     var buf: [256]i16 = undefined;
     mixer.play(.mob_hiss, 0.8);
+    mixer.render(&buf);
+    var non_zero = false;
+    for (buf) |sample| {
+        if (sample != 0) {
+            non_zero = true;
+            break;
+        }
+    }
+    try std.testing.expect(non_zero);
+}
+
+test "enderman mob_teleport audio synthesis" {
+    var mixer = AudioMixer.init();
+    var buf: [256]i16 = undefined;
+    mixer.play(.mob_teleport, 0.8);
     mixer.render(&buf);
     var non_zero = false;
     for (buf) |sample| {

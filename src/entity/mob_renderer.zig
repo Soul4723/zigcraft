@@ -482,6 +482,22 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
             // 6. Back-right leg: 0.14 x 0.50 x 0.14 at (0.14, 0.25, -0.14 + leg_swing)
             try appendBox(allocator, verts, inds, math.Vec3.init(0.14, 0.25, -0.14 + leg_swing), math.Vec3.init(0.14, 0.50, 0.14), mob.yaw, mob.pos, uv_green, uv_green);
         },
+        .enderman => {
+            const uv_obsidian = texture.getTileUV(5, 2); // obsidian jet black body
+            const uv_eyes = texture.getTileUV(7, 6); // glowing purple/magenta ender eyes face
+
+            // 1. Torso: 0.36 x 0.72 x 0.20 at (0, 1.80, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 1.80, 0), math.Vec3.init(0.36, 0.72, 0.20), mob.yaw, mob.pos, uv_obsidian, uv_obsidian);
+            // 2. Head: 0.32 cube at (0, 2.32 + head_bob_y, 0.04)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 2.32 + head_bob_y, 0.04), math.Vec3.init(0.32, 0.32, 0.32), mob.yaw, mob.pos, uv_eyes, uv_obsidian);
+            // 3. Left arm: thin slender 0.08 x 1.40 x 0.08 at (-0.22, 1.46, 0 + leg_swing)
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.22, 1.46, 0 + leg_swing), math.Vec3.init(0.08, 1.40, 0.08), mob.yaw, mob.pos, uv_obsidian, uv_obsidian);
+            // 4. Right arm: thin slender 0.08 x 1.40 x 0.08 at (0.22, 1.46, 0 - leg_swing)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.22, 1.46, 0 - leg_swing), math.Vec3.init(0.08, 1.40, 0.08), mob.yaw, mob.pos, uv_obsidian, uv_obsidian);
+            // 5-6. Long slender legs: 0.09 x 1.44 x 0.09
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.10, 0.72, 0 + leg_swing), math.Vec3.init(0.09, 1.44, 0.09), mob.yaw, mob.pos, uv_obsidian, uv_obsidian);
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.10, 0.72, 0 - leg_swing), math.Vec3.init(0.09, 1.44, 0.09), mob.yaw, mob.pos, uv_obsidian, uv_obsidian);
+        },
         .piglin, .piglin_brute => {
             const uv_skin = if (mob.mob_type == .piglin_brute) texture.getTileUV(2, 5) else texture.getTileUV(5, 4); // Brute dark charcoal armor
             const uv_face = texture.getTileUV(6, 4);
@@ -754,6 +770,19 @@ test "creeper mob mesh generation" {
     const creeper = mob_mod.Mob.init(.creeper, 0, 0, 0);
     try appendMobMesh(std.testing.allocator, &verts, &inds, creeper);
     // 6 boxes (torso, head, 4 quadruped legs) = 144 verts, 216 indices
+    try std.testing.expectEqual(@as(usize, 144), verts.items.len);
+    try std.testing.expectEqual(@as(usize, 216), inds.items.len);
+}
+
+test "enderman mob mesh generation" {
+    var verts = std.ArrayList(MobVertex).empty;
+    defer verts.deinit(std.testing.allocator);
+    var inds = std.ArrayList(u32).empty;
+    defer inds.deinit(std.testing.allocator);
+
+    const enderman = mob_mod.Mob.init(.enderman, 0, 0, 0);
+    try appendMobMesh(std.testing.allocator, &verts, &inds, enderman);
+    // 6 boxes (torso, head, 2 long arms, 2 long legs) = 144 verts, 216 indices
     try std.testing.expectEqual(@as(usize, 144), verts.items.len);
     try std.testing.expectEqual(@as(usize, 216), inds.items.len);
 }
