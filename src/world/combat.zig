@@ -11,6 +11,8 @@ pub const diamond_sword_damage: u8 = 3;
 pub const netherite_sword_damage: u8 = 4;
 pub const hand_damage: u8 = 1;
 
+pub const diamond_armor_absorption: f32 = 0.40; // 40% diamond chestplate reduction
+pub const diamond_full_set_absorption: f32 = 0.65; // 65% diamond 4-piece set reduction
 pub const netherite_armor_absorption: f32 = 0.50; // 50% chestplate reduction
 pub const netherite_full_set_absorption: f32 = 0.75; // 75% complete 4-piece set reduction
 
@@ -19,10 +21,18 @@ pub fn applyArmorReduction(raw_damage: f32, has_netherite_armor: bool) f32 {
 }
 
 pub fn applyArmorReductionFullSet(raw_damage: f32, has_netherite_armor: bool, has_full_set: bool) f32 {
-    if (has_full_set) {
+    return applyArmorReductionTier(raw_damage, has_netherite_armor, has_full_set, false, false);
+}
+
+pub fn applyArmorReductionTier(raw_damage: f32, has_netherite_armor: bool, has_full_netherite: bool, has_diamond_armor: bool, has_full_diamond: bool) f32 {
+    if (has_full_netherite) {
         return raw_damage * (1.0 - netherite_full_set_absorption);
     } else if (has_netherite_armor) {
         return raw_damage * (1.0 - netherite_armor_absorption);
+    } else if (has_full_diamond) {
+        return raw_damage * (1.0 - diamond_full_set_absorption);
+    } else if (has_diamond_armor) {
+        return raw_damage * (1.0 - diamond_armor_absorption);
     }
     return raw_damage;
 }
@@ -210,4 +220,21 @@ test "diamond sword attack damage tier and weakness interaction" {
     try std.testing.expectEqual(calculatePlayerAttackDamageTier(false, true, false, true), 1);
     // Netherite (4 - 2 = 2)
     try std.testing.expectEqual(calculatePlayerAttackDamageTier(true, false, false, true), 2);
+}
+
+test "applyArmorReductionTier absorbs diamond tier 40% and full set 65%" {
+    // Bare damage: 10.0
+    try std.testing.expectApproxEqAbs(applyArmorReductionTier(10.0, false, false, false, false), 10.0, 0.01);
+
+    // Diamond chestplate only: 40% reduction -> 6.0
+    try std.testing.expectApproxEqAbs(applyArmorReductionTier(10.0, false, false, true, false), 6.0, 0.01);
+
+    // Full diamond set: 65% reduction -> 3.5
+    try std.testing.expectApproxEqAbs(applyArmorReductionTier(10.0, false, false, true, true), 3.5, 0.01);
+
+    // Netherite chestplate takes priority over diamond: 50% reduction -> 5.0
+    try std.testing.expectApproxEqAbs(applyArmorReductionTier(10.0, true, false, true, true), 5.0, 0.01);
+
+    // Full netherite set takes top priority: 75% reduction -> 2.5
+    try std.testing.expectApproxEqAbs(applyArmorReductionTier(10.0, true, true, true, true), 2.5, 0.01);
 }

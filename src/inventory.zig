@@ -225,6 +225,10 @@ pub const ItemType = enum(u8) {
     diamond_block = 219,
     diamond_sword = 220,
     diamond_pickaxe = 221,
+    diamond_helmet = 222,
+    diamond_chestplate = 223,
+    diamond_leggings = 224,
+    diamond_boots = 225,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -507,7 +511,7 @@ pub const ItemType = enum(u8) {
 
     pub fn isArmor(self: ItemType) bool {
         return switch (self) {
-            .netherite_helmet, .turtle_helmet, .netherite_chestplate, .elytra, .netherite_leggings, .netherite_boots, .soul_speed_boots, .dragon_head => true,
+            .netherite_helmet, .turtle_helmet, .netherite_chestplate, .elytra, .netherite_leggings, .netherite_boots, .soul_speed_boots, .dragon_head, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots => true,
             else => false,
         };
     }
@@ -519,6 +523,10 @@ pub const ItemType = enum(u8) {
             .iron_sword => 100,
             .diamond_pickaxe => 250,
             .diamond_sword => 250,
+            .diamond_helmet => 360,
+            .diamond_chestplate => 420,
+            .diamond_leggings => 390,
+            .diamond_boots => 340,
             .netherite_pickaxe => 350,
             .netherite_sword => 400,
             .warped_fungus_on_a_stick => 100,
@@ -554,7 +562,7 @@ pub const ItemType = enum(u8) {
         return switch (self) {
             .none => 0,
             .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea => 16,
-            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart => 1,
+            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart => 1,
             else => 64,
         };
     }
@@ -779,6 +787,10 @@ pub const ItemType = enum(u8) {
             .diamond_block => "Block of Diamond",
             .diamond_sword => "Diamond Sword",
             .diamond_pickaxe => "Diamond Pickaxe",
+            .diamond_helmet => "Diamond Helmet",
+            .diamond_chestplate => "Diamond Chestplate",
+            .diamond_leggings => "Diamond Leggings",
+            .diamond_boots => "Diamond Boots",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -942,6 +954,10 @@ pub const ItemType = enum(u8) {
             .diamond_block => .{ 0.40, 0.90, 0.95, 0.95 },
             .diamond_sword => .{ 0.35, 0.88, 0.95, 0.95 },
             .diamond_pickaxe => .{ 0.35, 0.88, 0.95, 0.95 },
+            .diamond_helmet => .{ 0.38, 0.86, 0.96, 0.95 },
+            .diamond_chestplate => .{ 0.35, 0.88, 0.98, 0.95 },
+            .diamond_leggings => .{ 0.32, 0.84, 0.94, 0.95 },
+            .diamond_boots => .{ 0.30, 0.82, 0.92, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1082,6 +1098,13 @@ pub const Inventory = struct {
     pub fn getHotbar(self: *Inventory, index: usize) ?*ItemStack {
         if (index >= HOTBAR_SIZE) return null;
         return &self.slots[index];
+    }
+
+    pub fn hasFullDiamondSet(self: *const Inventory) bool {
+        return self.hasItem(.diamond_helmet) and
+               self.hasItem(.diamond_chestplate) and
+               self.hasItem(.diamond_leggings) and
+               self.hasItem(.diamond_boots);
     }
 
     pub fn hasFullNetheriteSet(self: *const Inventory) bool {
@@ -1773,6 +1796,49 @@ pub const Inventory = struct {
             }
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 164: Diamond Helmet: 1 Diamond + 1 Glass (or 1 Diamond + 1 Coal) -> 1 Diamond Helmet
+        if (non_empty == 2) {
+            const has_dia = (g0 == .diamond or g1 == .diamond or g2 == .diamond or g3 == .diamond);
+            const has_gem = (g0 == .glass or g1 == .glass or g2 == .glass or g3 == .glass or
+                             g0 == .coal or g1 == .coal or g2 == .coal or g3 == .coal);
+            if (has_dia and has_gem) {
+                self.craft_output = .{ .item = .diamond_helmet, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 165: Diamond Chestplate: 1 Diamond Block + 1 Diamond (or 1 Diamond Block + 1 Iron Ingot) -> 1 Diamond Chestplate
+        if (non_empty == 2) {
+            const has_db = (g0 == .diamond_block or g1 == .diamond_block or g2 == .diamond_block or g3 == .diamond_block);
+            const has_mat = (g0 == .diamond or g1 == .diamond or g2 == .diamond or g3 == .diamond or
+                             g0 == .iron_ingot or g1 == .iron_ingot or g2 == .iron_ingot or g3 == .iron_ingot);
+            if (has_db and has_mat) {
+                self.craft_output = .{ .item = .diamond_chestplate, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 166: Diamond Leggings: 1 Diamond + 1 Obsidian (or 1 Diamond + 1 Chain) -> 1 Diamond Leggings
+        if (non_empty == 2) {
+            const has_dia = (g0 == .diamond or g1 == .diamond or g2 == .diamond or g3 == .diamond);
+            const has_tough = (g0 == .obsidian or g1 == .obsidian or g2 == .obsidian or g3 == .obsidian or
+                               g0 == .chain or g1 == .chain or g2 == .chain or g3 == .chain);
+            if (has_dia and has_tough) {
+                self.craft_output = .{ .item = .diamond_leggings, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 167: Diamond Boots: 2 Diamonds horizontally -> 1 Diamond Boots
+        if (non_empty == 2) {
+            if ((g0 == .diamond and g1 == .diamond and g2 == .none and g3 == .none) or
+                (g2 == .diamond and g3 == .diamond and g0 == .none and g1 == .none))
+            {
+                self.craft_output = .{ .item = .diamond_boots, .count = 1 };
                 return;
             }
         }
@@ -2883,11 +2949,12 @@ pub const Inventory = struct {
             }
         }
 
-        // Recipe 61: Netherite Boots: 1 Netherite Ingot + 1 Gold Nugget (or 1 Netherite Scrap + 1 Gold Nugget) -> 1 Netherite Boots
+        // Recipe 61: Netherite Boots: 1 Netherite Ingot + 1 Gold Nugget / Diamond Boots -> 1 Netherite Boots
         if (non_empty == 2) {
             const has_ni = (g0 == .netherite_ingot or g1 == .netherite_ingot or g2 == .netherite_ingot or g3 == .netherite_ingot or
                             g0 == .netherite_scrap or g1 == .netherite_scrap or g2 == .netherite_scrap or g3 == .netherite_scrap);
-            const has_gold = (g0 == .gold_nugget or g1 == .gold_nugget or g2 == .gold_nugget or g3 == .gold_nugget);
+            const has_gold = (g0 == .gold_nugget or g1 == .gold_nugget or g2 == .gold_nugget or g3 == .gold_nugget or
+                              g0 == .diamond_boots or g1 == .diamond_boots or g2 == .diamond_boots or g3 == .diamond_boots);
             if (has_ni and has_gold) {
                 self.craft_output = .{ .item = .netherite_boots, .count = 1 };
                 return;
@@ -2906,10 +2973,11 @@ pub const Inventory = struct {
             }
         }
 
-        // Recipe 59: Netherite Leggings: 1 Netherite Ingot + 1 Obsidian (or 2 Netherite Scrap) -> 1 Netherite Leggings
+        // Recipe 59: Netherite Leggings: 1 Netherite Ingot + 1 Obsidian / Diamond Leggings (or 2 Netherite Scrap) -> 1 Netherite Leggings
         if (non_empty == 2) {
             const has_ni = (g0 == .netherite_ingot or g1 == .netherite_ingot or g2 == .netherite_ingot or g3 == .netherite_ingot);
-            const has_obs = (g0 == .obsidian or g1 == .obsidian or g2 == .obsidian or g3 == .obsidian);
+            const has_obs = (g0 == .obsidian or g1 == .obsidian or g2 == .obsidian or g3 == .obsidian or
+                             g0 == .diamond_leggings or g1 == .diamond_leggings or g2 == .diamond_leggings or g3 == .diamond_leggings);
             var scraps: u8 = 0;
             for (self.craft_grid) |sl| {
                 if (sl.item == .netherite_scrap) scraps += 1;
@@ -2920,10 +2988,11 @@ pub const Inventory = struct {
             }
         }
 
-        // Recipe 58: Netherite Helmet: 1 Netherite Ingot + 1 Coal (or 1 Iron Ingot + 1 Netherite Scrap) -> 1 Netherite Helmet
+        // Recipe 58: Netherite Helmet: 1 Netherite Ingot + 1 Coal / Diamond Helmet (or 1 Iron Ingot + 1 Netherite Scrap) -> 1 Netherite Helmet
         if (non_empty == 2) {
             const has_ni = (g0 == .netherite_ingot or g1 == .netherite_ingot or g2 == .netherite_ingot or g3 == .netherite_ingot);
-            const has_coal = (g0 == .coal or g1 == .coal or g2 == .coal or g3 == .coal);
+            const has_coal = (g0 == .coal or g1 == .coal or g2 == .coal or g3 == .coal or
+                              g0 == .diamond_helmet or g1 == .diamond_helmet or g2 == .diamond_helmet or g3 == .diamond_helmet);
             const has_iron = (g0 == .iron_ingot or g1 == .iron_ingot or g2 == .iron_ingot or g3 == .iron_ingot);
             const has_scrap = (g0 == .netherite_scrap or g1 == .netherite_scrap or g2 == .netherite_scrap or g3 == .netherite_scrap);
             if ((has_ni and has_coal) or (has_iron and has_scrap)) {
@@ -2943,11 +3012,12 @@ pub const Inventory = struct {
             }
         }
 
-        // Recipe 56: Netherite Chestplate: 1 Netherite Ingot + 1 Iron Ingot (or 3 Netherite Ingot) -> 1 Netherite Chestplate
+        // Recipe 56: Netherite Chestplate: 1 Netherite Ingot + 1 Iron Ingot / Diamond Chestplate -> 1 Netherite Chestplate
         if (non_empty == 2) {
             const has_ni = (g0 == .netherite_ingot or g1 == .netherite_ingot or g2 == .netherite_ingot or g3 == .netherite_ingot);
-            const has_iron = (g0 == .iron_ingot or g1 == .iron_ingot or g2 == .iron_ingot or g3 == .iron_ingot);
-            if (has_ni and has_iron) {
+            const has_base = (g0 == .iron_ingot or g1 == .iron_ingot or g2 == .iron_ingot or g3 == .iron_ingot or
+                              g0 == .diamond_chestplate or g1 == .diamond_chestplate or g2 == .diamond_chestplate or g3 == .diamond_chestplate);
+            if (has_ni and has_base) {
                 self.craft_output = .{ .item = .netherite_chestplate, .count = 1 };
                 return;
             }
@@ -6563,4 +6633,87 @@ test "diamond sword and diamond pickaxe items, durability, harvest tier, and rec
     try std.testing.expect(canHarvestBlock(.diamond_pickaxe, .diamond_ore));
     try std.testing.expect(canHarvestBlock(.diamond_pickaxe, .obsidian));
     try std.testing.expect(canHarvestBlock(.diamond_pickaxe, .ancient_debris));
+}
+
+test "diamond armor items, durability, set checks, and recipes 164-167" {
+    var inv = Inventory.init();
+
+    // Recipe 164: 1 Diamond + 1 Glass -> 1 Diamond Helmet
+    inv.craft_grid[0] = .{ .item = .diamond, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .diamond_helmet);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 165: 1 Diamond Block + 1 Diamond -> 1 Diamond Chestplate
+    inv.craft_grid[0] = .{ .item = .diamond_block, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .diamond, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .diamond_chestplate);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 166: 1 Diamond + 1 Obsidian -> 1 Diamond Leggings
+    inv.craft_grid[0] = .{ .item = .diamond, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .obsidian, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .diamond_leggings);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 167: 2 Diamonds horizontally -> 1 Diamond Boots
+    inv.craft_grid[0] = .{ .item = .diamond, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .diamond, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .diamond_boots);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Netherite armor upgrade recipes with diamond tier
+    // Recipe 56: Diamond Chestplate + Netherite Ingot -> Netherite Chestplate
+    inv.craft_grid[0] = .{ .item = .diamond_chestplate, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .netherite_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .netherite_chestplate);
+
+    // Recipe 58: Diamond Helmet + Netherite Ingot -> Netherite Helmet
+    inv.craft_grid[0] = .{ .item = .diamond_helmet, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .netherite_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .netherite_helmet);
+
+    // Recipe 59: Diamond Leggings + Netherite Ingot -> Netherite Leggings
+    inv.craft_grid[0] = .{ .item = .diamond_leggings, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .netherite_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .netherite_leggings);
+
+    // Recipe 61: Diamond Boots + Netherite Ingot -> Netherite Boots
+    inv.craft_grid[0] = .{ .item = .diamond_boots, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .netherite_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .netherite_boots);
+
+    // Durabilities & tools
+    try std.testing.expect(ItemType.diamond_helmet.isArmor());
+    try std.testing.expect(ItemType.diamond_chestplate.isArmor());
+    try std.testing.expect(ItemType.diamond_leggings.isArmor());
+    try std.testing.expect(ItemType.diamond_boots.isArmor());
+
+    try std.testing.expectEqual(ItemType.diamond_helmet.maxDurability(), 360);
+    try std.testing.expectEqual(ItemType.diamond_chestplate.maxDurability(), 420);
+    try std.testing.expectEqual(ItemType.diamond_leggings.maxDurability(), 390);
+    try std.testing.expectEqual(ItemType.diamond_boots.maxDurability(), 340);
+
+    try std.testing.expectEqual(ItemType.diamond_helmet.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.diamond_chestplate.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.diamond_leggings.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.diamond_boots.maxStackSize(), 1);
+
+    // Set check
+    var player_inv = Inventory.init();
+    try std.testing.expect(!player_inv.hasFullDiamondSet());
+    player_inv.slots[0] = .{ .item = .diamond_helmet, .count = 1 };
+    player_inv.slots[1] = .{ .item = .diamond_chestplate, .count = 1 };
+    player_inv.slots[2] = .{ .item = .diamond_leggings, .count = 1 };
+    try std.testing.expect(!player_inv.hasFullDiamondSet());
+    player_inv.slots[3] = .{ .item = .diamond_boots, .count = 1 };
+    try std.testing.expect(player_inv.hasFullDiamondSet());
 }
