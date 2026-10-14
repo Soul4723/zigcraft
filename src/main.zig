@@ -213,7 +213,7 @@ pub fn main() !void {
     const PortalTarget = portal_mod.PortalTarget;
     var portal_targets: [32]PortalTarget = undefined;
     var portal_target_count: usize = 0;
-    const ThrownKind = enum { snowball, hostile_fireball, hostile_arrow, player_fire_charge, spectral_arrow, arrow, firework_rocket, ender_pearl };
+    const ThrownKind = enum { snowball, hostile_fireball, hostile_arrow, player_fire_charge, spectral_arrow, arrow, firework_rocket, ender_pearl, eye_of_ender };
     const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball, damage: u8 = 1, pierce: u8 = 0, last_hit_mob: ?usize = null };
     var thrown: [proj_mod.thrown_cap]Thrown = undefined;
     var thrown_count: usize = 0;
@@ -2865,6 +2865,19 @@ pub fn main() !void {
                 const mby = mbc[1];
                 const mbz = mbc[2];
                 var dead = proj_mod.isExpired(t.life);
+                if (dead and t.kind == .eye_of_ender) {
+                    const seed_roll: u32 = @as(u32, @bitCast(@as(i32, @intFromFloat(t.pos.x * 13.0 + t.pos.z * 29.0))));
+                    if (inventory_mod.dropsEyeShatter(seed_roll)) {
+                        particles.spawnPortalParticles(.{ t.pos.x, t.pos.y, t.pos.z }, 20);
+                        audio.playAt(.break_block, .{ t.pos.x, t.pos.y, t.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
+                        std.debug.print("eye of ender shattered into mystic dust\n", .{});
+                    } else {
+                        particles.spawnPortalParticles(.{ t.pos.x, t.pos.y, t.pos.z }, 8);
+                        audio.playAt(.glowstone_chime, .{ t.pos.x, t.pos.y, t.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.6, 25.0);
+                        _ = inventory.addItem(.eye_of_ender, 1);
+                        std.debug.print("eye of ender completed trajectory and recovered\n", .{});
+                    }
+                }
                 if (dead and t.kind == .firework_rocket) {
                     // Firework fuse expired in flight -> blast!
                     particles.spawnFireworkBurst(.{ t.pos.x, t.pos.y, t.pos.z }, 32);
@@ -2914,6 +2927,9 @@ pub fn main() !void {
                         }
                     } else if (t.kind == .hostile_arrow) {
                         particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.85, 0.85, 0.85 }, 1);
+                    } else if (t.kind == .eye_of_ender) {
+                        particles.spawnPortalParticles(.{ t.pos.x, t.pos.y, t.pos.z }, 2);
+                        particles.spawnGlowstoneShimmer(.{ t.pos.x, t.pos.y, t.pos.z }, 1);
                     } else if (t.kind == .ender_pearl) {
                         particles.spawnPortalParticles(.{ t.pos.x, t.pos.y, t.pos.z }, 2);
                     } else if (t.kind == .hostile_fireball) {
@@ -3050,6 +3066,12 @@ pub fn main() !void {
                                 particles.spawnBurnSparks(.{ @as(f32, @floatFromInt(mbx)) + 0.5, @as(f32, @floatFromInt(mby)) + 0.5, @as(f32, @floatFromInt(mbz)) + 0.5 }, 12);
                                 std.debug.print("target block struck (strength={d}/15): emitting redstone signal\n", .{sig_str});
                             }
+                        } else if (t.kind == .eye_of_ender) {
+                            particles.spawnPortalParticles(.{ t.pos.x, t.pos.y, t.pos.z }, 12);
+                            audio.playAt(.glowstone_chime, .{ t.pos.x, t.pos.y, t.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.7, 25.0);
+                            _ = inventory.addItem(.eye_of_ender, 1);
+                            std.debug.print("eye of ender struck block and recovered\n", .{});
+                            dead = true;
                         } else if (t.kind == .ender_pearl) {
                             // Ender Pearl impact: teleports player to (t.pos.x, t.pos.y + 0.1, t.pos.z), deals 5 damage, spawns portal particles
                             particles.spawnPortalParticles(.{ t.pos.x, t.pos.y, t.pos.z }, 24);
@@ -3156,6 +3178,9 @@ pub fn main() !void {
                     // trail puff
                     if (t.kind == .hostile_arrow) {
                         particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.85, 0.85, 0.85 }, 1);
+                    } else if (t.kind == .eye_of_ender) {
+                        particles.spawnPortalParticles(.{ t.pos.x, t.pos.y, t.pos.z }, 2);
+                        particles.spawnGlowstoneShimmer(.{ t.pos.x, t.pos.y, t.pos.z }, 1);
                     } else if (t.kind == .ender_pearl) {
                         particles.spawnPortalParticles(.{ t.pos.x, t.pos.y, t.pos.z }, 2);
                     } else if (t.kind == .hostile_fireball) {
@@ -3305,7 +3330,7 @@ pub fn main() !void {
         throw_cooldown = @max(0.0, throw_cooldown - dt);
         if (!inventory_open and throw_cooldown <= 0.0 and c.glfwGetKey(window, c.GLFW_KEY_G) == c.GLFW_PRESS) {
             const held_throw = inventory.slots[selected_slot].item;
-            if ((held_throw == .snowball or held_throw == .fire_charge or held_throw == .spectral_arrow or held_throw == .arrow or held_throw == .fireworks_rocket or held_throw == .ender_pearl) and thrown_count < thrown.len) {
+            if ((held_throw == .snowball or held_throw == .fire_charge or held_throw == .spectral_arrow or held_throw == .arrow or held_throw == .fireworks_rocket or held_throw == .ender_pearl or held_throw == .eye_of_ender) and thrown_count < thrown.len) {
                 const dir_g = cam.front();
                 const vel_g = proj_mod.initialVelocity(dir_g.x, dir_g.y, dir_g.z);
                 const k: ThrownKind = if (held_throw == .fire_charge)
@@ -3318,6 +3343,8 @@ pub fn main() !void {
                     .firework_rocket
                 else if (held_throw == .ender_pearl)
                     .ender_pearl
+                else if (held_throw == .eye_of_ender)
+                    .eye_of_ender
                 else
                     .snowball;
                 const dmg: u8 = if (held_throw == .spectral_arrow)
@@ -3330,8 +3357,24 @@ pub fn main() !void {
                     proj_mod.firework_explosion_damage
                 else
                     1;
-                const life_g: f32 = if (held_throw == .fireworks_rocket) proj_mod.firework_rocket_life else proj_mod.throw_life;
-                const vel_final = if (held_throw == .fireworks_rocket) proj_mod.fireworkInitialVelocity(dir_g.x, dir_g.y, dir_g.z) else vel_g;
+                const life_g: f32 = if (held_throw == .fireworks_rocket) proj_mod.firework_rocket_life else if (held_throw == .eye_of_ender) 2.5 else proj_mod.throw_life;
+                var vel_final = if (held_throw == .fireworks_rocket) proj_mod.fireworkInitialVelocity(dir_g.x, dir_g.y, dir_g.z) else vel_g;
+                if (held_throw == .eye_of_ender) {
+                    // Navigate towards Stronghold origin (0, 0)
+                    const sdx = 0.0 - cam.position.x;
+                    const sdz = 0.0 - cam.position.z;
+                    const sdist = @sqrt(sdx * sdx + sdz * sdz);
+                    const speed: f32 = 12.0;
+                    if (sdist > 1.0) {
+                        vel_final[0] = (sdx / sdist) * speed;
+                        vel_final[1] = 4.0; // gentle ascension
+                        vel_final[2] = (sdz / sdist) * speed;
+                    } else {
+                        vel_final[0] = 0.0;
+                        vel_final[1] = 5.0;
+                        vel_final[2] = 0.0;
+                    }
+                }
                 thrown[thrown_count] = .{ .pos = cam.position, .vel = math.Vec3.init(vel_final[0], vel_final[1], vel_final[2]), .life = life_g, .kind = k, .damage = dmg };
                 thrown_count += 1;
                 inventory.slots[selected_slot].decrement(1);

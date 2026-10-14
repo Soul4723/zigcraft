@@ -151,6 +151,7 @@ pub const ItemType = enum(u8) {
     rotten_flesh = 145,
     gunpowder = 146,
     ender_pearl = 147,
+    eye_of_ender = 148,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -543,6 +544,7 @@ pub const ItemType = enum(u8) {
             .rotten_flesh => "Rotten Flesh",
             .gunpowder => "Gunpowder",
             .ender_pearl => "Ender Pearl",
+            .eye_of_ender => "Eye of Ender",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -632,6 +634,7 @@ pub const ItemType = enum(u8) {
             .rotten_flesh => .{ 0.60, 0.38, 0.22, 0.95 },
             .gunpowder => .{ 0.38, 0.40, 0.42, 0.95 },
             .ender_pearl => .{ 0.12, 0.45, 0.42, 0.95 },
+            .eye_of_ender => .{ 0.18, 0.65, 0.48, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1180,6 +1183,16 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 108: Eye of Ender: 1 Ender Pearl + 1 Blaze Powder -> 1 Eye of Ender
+        if (non_empty == 2) {
+            const has_pearl = (g0 == .ender_pearl or g1 == .ender_pearl or g2 == .ender_pearl or g3 == .ender_pearl);
+            const has_powder = (g0 == .blaze_powder or g1 == .blaze_powder or g2 == .blaze_powder or g3 == .blaze_powder);
+            if (has_pearl and has_powder) {
+                self.craft_output = .{ .item = .eye_of_ender, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 107: TNT: 2 Sand + 2 Gunpowder (checkerboard) or 1 Sand + 1 Gunpowder -> 1 TNT
         if (non_empty == 4) {
@@ -2634,6 +2647,11 @@ pub fn dropsSkeletonArrow(wx: i32, wy: i32, wz: i32) bool {
     // 50% deterministic chance for skeleton archers to drop reserve arrows
     const h: u32 = @as(u32, @bitCast(wx *% 19 +% wy *% 37 +% wz *% 5)) % 2;
     return h == 0;
+}
+
+pub fn dropsEyeShatter(seed: u32) bool {
+    // 20% deterministic chance for Eye of Ender to shatter upon flight completion
+    return (seed % 5) == 0;
 }
 
 pub fn dropsZombieIron(wx: i32, wy: i32, wz: i32) bool {
@@ -4439,4 +4457,25 @@ test "enderman mob drop, ender pearl item properties, and stack cap" {
     try std.testing.expect(!ItemType.ender_pearl.isTool());
     try std.testing.expect(ItemType.ender_pearl.toBlockId() == null);
     try std.testing.expectEqual(ItemType.ender_pearl.maxStackSize(), 16);
+}
+
+test "eye of ender item properties, Recipe 108 crafting, and shatter probability" {
+    try std.testing.expectEqualStrings(ItemType.eye_of_ender.name(), "Eye of Ender");
+    try std.testing.expect(!ItemType.eye_of_ender.isTool());
+    try std.testing.expect(ItemType.eye_of_ender.toBlockId() == null);
+    try std.testing.expectEqual(ItemType.eye_of_ender.maxStackSize(), 64);
+
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .ender_pearl, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .blaze_powder, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .eye_of_ender);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    var shatters: usize = 0;
+    var i: u32 = 0;
+    while (i < 100) : (i += 1) {
+        if (dropsEyeShatter(i)) shatters += 1;
+    }
+    try std.testing.expectEqual(@as(usize, 20), shatters);
 }
