@@ -664,6 +664,10 @@ pub const TOOL_WOODEN_AXE: u8 = 228;
 pub const TOOL_IRON_AXE: u8 = 229;
 pub const TOOL_DIAMOND_AXE: u8 = 230;
 pub const TOOL_NETHERITE_AXE: u8 = 231;
+pub const TOOL_WOODEN_SHOVEL: u8 = 232;
+pub const TOOL_IRON_SHOVEL: u8 = 233;
+pub const TOOL_DIAMOND_SHOVEL: u8 = 234;
+pub const TOOL_NETHERITE_SHOVEL: u8 = 235;
 
 pub fn hardness(block: BlockId) f32 {
     return switch (block) {
@@ -803,7 +807,30 @@ pub fn isWoodClass(block: BlockId) bool {
     };
 }
 
+pub fn isSoilClass(block: BlockId) bool {
+    return switch (block) {
+        .dirt, .grass, .sand, .snow, .soul_sand => true,
+        else => false,
+    };
+}
+
 pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
+    if (held_tool_id == TOOL_NETHERITE_SHOVEL) {
+        if (isSoilClass(block)) return 6.0;
+        return 1.5;
+    }
+    if (held_tool_id == TOOL_DIAMOND_SHOVEL) {
+        if (isSoilClass(block)) return 5.0;
+        return 1.4;
+    }
+    if (held_tool_id == TOOL_IRON_SHOVEL) {
+        if (isSoilClass(block)) return 4.0;
+        return 1.2;
+    }
+    if (held_tool_id == TOOL_WOODEN_SHOVEL) {
+        if (isSoilClass(block)) return 3.0;
+        return 1.0;
+    }
     if (held_tool_id == TOOL_NETHERITE_AXE) {
         if (isWoodClass(block)) return 6.0;
         return 2.0;
@@ -2795,4 +2822,22 @@ test "axe tool multiplier speed and wood cutting efficiency" {
     try std.testing.expect(mineTime(.wood, TOOL_NETHERITE_AXE) < mineTime(.wood, TOOL_DIAMOND_AXE));
     try std.testing.expect(mineTime(.wood, TOOL_DIAMOND_AXE) < mineTime(.wood, TOOL_IRON_AXE));
     try std.testing.expect(mineTime(.wood, TOOL_IRON_AXE) < mineTime(.wood, TOOL_WOODEN_AXE));
+}
+
+test "shovel tool multiplier speed and excavation efficiency" {
+    try std.testing.expectEqual(toolMultiplier(TOOL_WOODEN_SHOVEL, .dirt), 3.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_IRON_SHOVEL, .dirt), 4.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_DIAMOND_SHOVEL, .dirt), 5.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_NETHERITE_SHOVEL, .dirt), 6.0);
+
+    try std.testing.expectEqual(toolMultiplier(TOOL_DIAMOND_SHOVEL, .grass), 5.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_DIAMOND_SHOVEL, .sand), 5.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_DIAMOND_SHOVEL, .soul_sand), 5.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_DIAMOND_SHOVEL, .snow), 5.0);
+
+    // Shovel digs soil faster than bare hand or pickaxe
+    try std.testing.expect(mineTime(.dirt, TOOL_DIAMOND_SHOVEL) < mineTime(.dirt, 0));
+    try std.testing.expect(mineTime(.dirt, TOOL_NETHERITE_SHOVEL) < mineTime(.dirt, TOOL_DIAMOND_SHOVEL));
+    try std.testing.expect(mineTime(.dirt, TOOL_DIAMOND_SHOVEL) < mineTime(.dirt, TOOL_IRON_SHOVEL));
+    try std.testing.expect(mineTime(.dirt, TOOL_IRON_SHOVEL) < mineTime(.dirt, TOOL_WOODEN_SHOVEL));
 }
