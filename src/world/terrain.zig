@@ -231,6 +231,17 @@ pub const TerrainGenerator = struct {
                     }
                 }
 
+                // Submerged Sea Pickle colonies: bioluminescent clusters on ocean seafloor
+                if (h < SEA_LEVEL and h >= 1) {
+                    const sp_hash: u32 = @as(u32, @bitCast(wx *% 127 +% wz *% 67));
+                    if ((sp_hash % 100) < 14) {
+                        const spy = h + 1;
+                        if (spy <= SEA_LEVEL and chunk.getBlock(@intCast(lx), @intCast(spy), @intCast(lz)) == .water) {
+                            chunk.setBlock(@intCast(lx), @intCast(spy), @intCast(lz), .sea_pickle);
+                        }
+                    }
+                }
+
                 // Submerged Ocean Monument structure override
                 var my: i32 = 1;
                 while (my <= 7) : (my += 1) {
@@ -1640,4 +1651,28 @@ test "procedural kelp forest stalks generate in deep ocean water" {
     }
     // Verify kelp blocks exist in procedural world
     try std.testing.expect(found_kelp);
+}
+
+test "procedural sea pickle colonies generate on seafloor in ocean water" {
+    const tg = TerrainGenerator.init(42);
+    var chunk = Chunk.init();
+    tg.generateChunk(&chunk, -10, -10);
+
+    var found_sp = false;
+    var lz: usize = 0;
+    while (lz < 16) : (lz += 1) {
+        var lx: usize = 0;
+        while (lx < 16) : (lx += 1) {
+            var ly: usize = 1;
+            while (ly < 16) : (ly += 1) {
+                if (chunk.getBlock(@intCast(lx), @intCast(ly), @intCast(lz)) == .sea_pickle) {
+                    found_sp = true;
+                    break;
+                }
+            }
+            if (found_sp) break;
+        }
+        if (found_sp) break;
+    }
+    try std.testing.expect(found_sp);
 }

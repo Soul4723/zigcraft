@@ -193,6 +193,7 @@ pub const ItemType = enum(u8) {
     kelp = 187,
     dried_kelp = 188,
     dried_kelp_block = 189,
+    sea_pickle = 190,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -308,6 +309,7 @@ pub const ItemType = enum(u8) {
             .wet_sponge => .wet_sponge,
             .kelp => .kelp,
             .dried_kelp_block => .dried_kelp_block,
+            .sea_pickle => .sea_pickle,
             else => null,
         };
     }
@@ -430,6 +432,7 @@ pub const ItemType = enum(u8) {
             .wet_sponge => .wet_sponge,
             .kelp => .kelp,
             .dried_kelp_block => .dried_kelp_block,
+            .sea_pickle => .sea_pickle,
         };
     }
 
@@ -468,7 +471,7 @@ pub const ItemType = enum(u8) {
 
     pub fn isCompostable(self: ItemType) bool {
         return switch (self) {
-            .leaves, .hay_bale, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp => true,
+            .leaves, .hay_bale, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp, .sea_pickle => true,
             else => false,
         };
     }
@@ -674,6 +677,7 @@ pub const ItemType = enum(u8) {
             .kelp => "Kelp",
             .dried_kelp => "Dried Kelp",
             .dried_kelp_block => "Dried Kelp Block",
+            .sea_pickle => "Sea Pickle",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -805,6 +809,7 @@ pub const ItemType = enum(u8) {
             .kelp => .{ 0.22, 0.55, 0.20, 0.95 },
             .dried_kelp => .{ 0.18, 0.35, 0.16, 0.95 },
             .dried_kelp_block => .{ 0.15, 0.32, 0.14, 0.98 },
+            .sea_pickle => .{ 0.40, 0.65, 0.25, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -5552,4 +5557,12 @@ test "kelp, dried kelp, dried kelp block items and recipes 136-137" {
     try std.testing.expect(ItemType.kelp.isCompostable());
     try std.testing.expect(ItemType.dried_kelp.isCompostable());
     try std.testing.expect(!ItemType.dried_kelp_block.isCompostable());
+}
+
+test "sea pickle item roundtrip, compostable check, and properties" {
+    try std.testing.expectEqual(ItemType.sea_pickle.toBlockId().?, .sea_pickle);
+    try std.testing.expectEqual(ItemType.fromBlockId(.sea_pickle), .sea_pickle);
+    try std.testing.expect(ItemType.sea_pickle.isCompostable());
+    try std.testing.expectEqual(ItemType.sea_pickle.maxStackSize(), 64);
+    try std.testing.expectEqualStrings(ItemType.sea_pickle.name(), "Sea Pickle");
 }

@@ -2738,6 +2738,18 @@ pub fn main() !void {
                                     particles.spawnWaterSplash(.{ player.pos.x, player.pos.y, player.pos.z }, 10);
                                     std.debug.print("boarded wooden boat\n", .{});
                                 }
+                            } else if (!hotbar_slot.isEmpty() and hotbar_slot.item == .sea_pickle) {
+                                // Plant Sea Pickle underwater on solid seafloor: emits luminous green light underwater
+                                const below_b = manager.getBlockWorld(px, py - 1, pz);
+                                const cur_b = manager.getBlockWorld(px, py, pz);
+                                if (below_b.is_solid() and (cur_b == .water or pickFluid(px, py, pz) or cur_b == .air)) {
+                                    if (try manager.editAndRemesh(px, py, pz, .sea_pickle)) {
+                                        audio.play(.splash, 0.7);
+                                        hotbar_slot.decrement(1);
+                                        particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(px)) + 0.5, @as(f32, @floatFromInt(py)) + 0.5, @as(f32, @floatFromInt(pz)) + 0.5 }, 6);
+                                        std.debug.print("planted bioluminescent sea pickle underwater\n", .{});
+                                    }
+                                }
                             } else if (!hotbar_slot.isEmpty() and hotbar_slot.item == .kelp) {
                                 // Plant Kelp underwater on solid floor (sand, dirt, gravel, stone) or on existing kelp
                                 const below_b = manager.getBlockWorld(px, py - 1, pz);
