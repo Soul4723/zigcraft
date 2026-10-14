@@ -167,6 +167,7 @@ pub const ItemType = enum(u8) {
     shulker_box = 161,
     elytra = 162,
     dragon_head = 163,
+    end_gateway = 164,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -272,6 +273,7 @@ pub const ItemType = enum(u8) {
             .chorus_flower => .chorus_flower,
             .shulker_box => .shulker_box,
             .dragon_head => .dragon_head,
+            .end_gateway => .end_gateway,
             else => null,
         };
     }
@@ -384,6 +386,7 @@ pub const ItemType = enum(u8) {
             .chorus_flower => .chorus_flower,
             .shulker_box => .shulker_box,
             .dragon_head => .dragon_head,
+            .end_gateway => .end_gateway,
         };
     }
 
@@ -599,6 +602,7 @@ pub const ItemType = enum(u8) {
             .shulker_box => "Shulker Box",
             .elytra => "Elytra",
             .dragon_head => "Dragon Head",
+            .end_gateway => "End Gateway",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -704,6 +708,7 @@ pub const ItemType = enum(u8) {
             .shulker_box => .{ 0.72, 0.48, 0.72, 0.98 },
             .elytra => .{ 0.42, 0.46, 0.54, 0.95 },
             .dragon_head => .{ 0.18, 0.16, 0.20, 0.98 },
+            .end_gateway => .{ 0.65, 0.20, 0.95, 0.98 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1252,6 +1257,20 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 121: End Gateway: 1 Dragon Head + 1 End Crystal -> 1 End Gateway
+        if (non_empty == 2) {
+            var head_cnt: usize = 0;
+            var crys_cnt: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .dragon_head) head_cnt += 1;
+                if (sl.item == .end_crystal) crys_cnt += 1;
+            }
+            if (head_cnt == 1 and crys_cnt == 1) {
+                self.craft_output = .{ .item = .end_gateway, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 120: Dragon Head: 1 Dragon Egg + 1 Wither Skull -> 1 Dragon Head
         if (non_empty == 2) {
@@ -4924,4 +4943,19 @@ test "dragon head item roundtrip, properties, wearable armor check, and Recipe 1
     try std.testing.expectEqualStrings(ItemType.dragon_head.name(), "Dragon Head");
     try std.testing.expectEqual(ItemType.dragon_head.toBlockId().?, .dragon_head);
     try std.testing.expectEqual(ItemType.fromBlockId(.dragon_head), .dragon_head);
+}
+
+test "end gateway item roundtrip, properties, and Recipe 121" {
+    var inv = Inventory.init();
+
+    // Recipe 121: 1 Dragon Head + 1 End Crystal -> 1 End Gateway
+    inv.craft_grid[0] = .{ .item = .dragon_head, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .end_crystal, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .end_gateway);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqualStrings(ItemType.end_gateway.name(), "End Gateway");
+    try std.testing.expectEqual(ItemType.end_gateway.toBlockId().?, .end_gateway);
+    try std.testing.expectEqual(ItemType.fromBlockId(.end_gateway), .end_gateway);
 }

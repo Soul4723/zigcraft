@@ -552,6 +552,27 @@ pub fn main() !void {
                 }
             }
 
+            // Check if player enters an End Gateway block (instantaneous regional gateway warp)
+            const in_end_gateway = (feet_b == .end_gateway or head_b == .end_gateway);
+            if (in_end_gateway) {
+                if (player.pos.x < 50.0) {
+                    // Warp from central island to outer island gateway landing near End City
+                    player.pos = math.Vec3.init(72.5, 10.0, 11.5);
+                    player.vel_y = 0.0;
+                } else {
+                    // Warp from outer island back to central island gateway landing
+                    player.pos = math.Vec3.init(32.5, 10.0, -2.5);
+                    player.vel_y = 0.0;
+                }
+                audio.play(.portal_warp, 1.0);
+                audio.play(.mob_teleport, 1.0);
+                particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 32);
+                particles.spawnPortalVortex(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 1.5, 24, 0.0);
+                toast.timer = 2.5;
+                toast.color = .{ 0.82, 0.20, 0.96 };
+                std.debug.print("traversed End Gateway: warped to ({d:.1}, {d:.1}, {d:.1})\n", .{ player.pos.x, player.pos.y, player.pos.z });
+            }
+
             // Check if player is standing inside an End Portal block (instantaneous dimension jump)
             const in_end_portal = (feet_b == .end_portal or head_b == .end_portal);
             if (in_end_portal) {
@@ -1772,6 +1793,16 @@ pub fn main() !void {
         try mob_manager.ensureSpawnPopulation(&manager, player.pos.x, player.pos.z, is_night_spawn);
         const held_warped_fungus = (inventory.slots[selected_slot].item == .warped_fungus or inventory.slots[selected_slot].item == .warped_fungus_on_a_stick);
         mob_manager.tick(&pickSolid, &pickFluid, &pickBlockWorld, player.pos, player.radius, held_warped_fungus, &audio, dt);
+        // In The End: emit soaring celestial violet gateway sky-beams from nearby End Gateways
+        if (manager.is_end) {
+            if (@abs(player.pos.x - 32.0) <= 64.0 and @abs(player.pos.z - 0.0) <= 64.0) {
+                particles.spawnGatewayBeam(32, 11, 0, 3);
+            }
+            if (@abs(player.pos.x - 72.0) <= 64.0 and @abs(player.pos.z - 14.0) <= 64.0) {
+                particles.spawnGatewayBeam(72, 11, 14, 3);
+            }
+        }
+
         // In The End: Ender Dragon links to intact End Crystals for radiant health regeneration
         if (manager.is_end) {
             const crystal_coords = [_][3]i32{

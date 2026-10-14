@@ -125,9 +125,10 @@ pub const BlockId = enum(u8) {
     chorus_flower = 114,
     shulker_box = 115,
     dragon_head = 116,
+    end_gateway = 117,
 
     pub fn is_solid(self: BlockId) bool {
-        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .end_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand and self != .lantern and self != .soul_lantern and self != .chain and self != .iron_bars and self != .tripwire_hook_off and self != .tripwire_hook_on and self != .cobweb and self != .end_crystal and self != .end_rod and self != .chorus_plant and self != .chorus_flower and self != .dragon_head;
+        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .end_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand and self != .lantern and self != .soul_lantern and self != .chain and self != .iron_bars and self != .tripwire_hook_off and self != .tripwire_hook_on and self != .cobweb and self != .end_crystal and self != .end_rod and self != .chorus_plant and self != .chorus_flower and self != .dragon_head and self != .end_gateway;
     }
 
     pub fn is_campfire(self: BlockId) bool {
@@ -179,7 +180,7 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_transparent(self: BlockId) bool {
-        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .end_portal or self == .nether_brick_fence or self == .oak_fence or self == .armor_stand or self == .enchantment_table or self == .anvil or self == .grindstone or self == .composter or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block or self == .beacon or self == .weeping_vines or self == .twisting_vines or self == .crimson_fungus or self == .warped_fungus or self == .brewing_stand or self == .stonecutter or self == .lantern or self == .soul_lantern or self == .chain or self == .iron_bars or self == .tripwire_hook_off or self == .tripwire_hook_on or self == .cobweb or self == .end_portal_frame or self == .end_portal_frame_filled or self == .end_crystal or self == .dragon_egg or self == .end_rod or self == .chorus_plant or self == .chorus_flower or self == .shulker_box or self == .dragon_head;
+        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .end_portal or self == .nether_brick_fence or self == .oak_fence or self == .armor_stand or self == .enchantment_table or self == .anvil or self == .grindstone or self == .composter or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block or self == .beacon or self == .weeping_vines or self == .twisting_vines or self == .crimson_fungus or self == .warped_fungus or self == .brewing_stand or self == .stonecutter or self == .lantern or self == .soul_lantern or self == .chain or self == .iron_bars or self == .tripwire_hook_off or self == .tripwire_hook_on or self == .cobweb or self == .end_portal_frame or self == .end_portal_frame_filled or self == .end_crystal or self == .dragon_egg or self == .end_rod or self == .chorus_plant or self == .chorus_flower or self == .shulker_box or self == .dragon_head or self == .end_gateway;
     }
 
     /// 0.0 = lit by sun only. 1.0 = full glow even at midnight.
@@ -211,6 +212,7 @@ pub const BlockId = enum(u8) {
             .end_crystal => 0.85,
             .dragon_egg => 0.35,
             .dragon_head => 0.25,
+            .end_gateway => 1.0,
             .end_rod => 0.95,
             .chorus_flower => 0.4,
             .weeping_vines => 0.35,
@@ -378,7 +380,7 @@ pub const BlockId = enum(u8) {
                 1 => .{ .x = 1, .y = 4 }, // End stone base
                 else => .{ .x = 6, .y = 0 }, // Green runic gilded masonry flank
             },
-            .end_portal => .{ .x = 7, .y = 6 }, // Obsidian celestial void starfield vortex
+            .end_portal, .end_gateway => .{ .x = 7, .y = 6 }, // Obsidian celestial void starfield vortex
             .dragon_egg => .{ .x = 5, .y = 2 }, // Deep obsidian crystalline egg shell with purple specks
             .dragon_head => switch (face_idx) {
                 2 => .{ .x = 7, .y = 3 }, // Draconic horned snout with glowing purple eye
@@ -614,6 +616,7 @@ pub fn hardness(block: BlockId) f32 {
         .end_stone => 3.0,
         .dragon_egg => 3.0,
         .dragon_head => 1.5,
+        .end_gateway => 50.0,
         .purpur_block, .purpur_pillar => 1.5,
         .shulker_box => 2.0,
         .end_rod => 0.0,
@@ -778,6 +781,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .end_crystal = .{ .name = "end_crystal", .solid = false, .transparent = true, .fluid = false },
     .dragon_egg = .{ .name = "dragon_egg", .solid = true, .transparent = true, .fluid = false },
     .dragon_head = .{ .name = "dragon_head", .solid = false, .transparent = true, .fluid = false },
+    .end_gateway = .{ .name = "end_gateway", .solid = false, .transparent = true, .fluid = false },
     .shulker_box = .{ .name = "shulker_box", .solid = true, .transparent = true, .fluid = false },
     .purpur_block = .{ .name = "purpur_block", .solid = true, .transparent = false, .fluid = false },
     .purpur_pillar = .{ .name = "purpur_pillar", .solid = true, .transparent = false, .fluid = false },
@@ -1222,7 +1226,7 @@ pub const FootstepType = enum {
 pub fn footstepType(block: BlockId) FootstepType {
     return switch (block) {
         .grass, .weeping_vines, .twisting_vines, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight => .grass,
-        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .end_stone, .end_portal_frame, .end_portal_frame_filled, .dragon_egg, .dragon_head, .purpur_block, .purpur_pillar, .shulker_box => .stone,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .end_stone, .end_portal_frame, .end_portal_frame_filled, .dragon_egg, .dragon_head, .end_gateway, .purpur_block, .purpur_pillar, .shulker_box => .stone,
         .end_rod, .chorus_plant, .chorus_flower => .wood,
         .wood, .target_block, .daylight_detector, .daylight_detector_inverted, .note_block, .jukebox, .oak_fence, .armor_stand, .smithing_table, .cartography_table, .fletching_table, .composter, .loom, .tripwire_hook_off, .tripwire_hook_on => .wood,
         .dirt => .dirt,
@@ -2228,4 +2232,16 @@ test "dragon head block properties, transparency, emissive, and textures" {
     const f_top = BlockId.dragon_head.getFaceTexture(0);
     try std.testing.expectEqual(@as(u32, 5), f_top.x);
     try std.testing.expectEqual(@as(u32, 2), f_top.y);
+}
+
+test "end gateway block properties, transparency, emissive, and textures" {
+    try std.testing.expect(!BlockId.end_gateway.is_solid());
+    try std.testing.expect(BlockId.end_gateway.is_transparent());
+    try std.testing.expectEqual(hardness(.end_gateway), 50.0);
+    try std.testing.expectApproxEqAbs(@as(f32, 1.0), BlockId.end_gateway.emissive(), 0.001);
+    try std.testing.expectEqual(footstepType(.end_gateway), .stone);
+
+    const f = BlockId.end_gateway.getFaceTexture(0);
+    try std.testing.expectEqual(@as(u32, 7), f.x);
+    try std.testing.expectEqual(@as(u32, 6), f.y);
 }

@@ -317,7 +317,40 @@ pub const ParticleSystem = struct {
     }
 
     /// Spawn ascending luminous sky-beam particles from an active beacon block
-    pub fn spawnBeaconBeam(self: *ParticleSystem, bx: i32, by: i32, bz: i32, count: usize) void {
+        /// Spawn soaring celestial violet / magenta End Gateway sky-beam particles
+    pub fn spawnGatewayBeam(self: *ParticleSystem, bx: i32, by: i32, bz: i32, count: usize) void {
+        var i: usize = 0;
+        var seed: u32 = @as(u32, @bitCast(bx *% 89 +% by *% 31 +% bz *% 53)) +% @as(u32, @intCast(self.count));
+        while (i < count and self.count < MAX_PARTICLES) : (i += 1) {
+            seed = seed *% 1103515245 +% 12345;
+            const angle = @as(f32, @floatFromInt((seed >> 16) % 360)) * (std.math.pi / 180.0);
+            const radius = 0.05 + @as(f32, @floatFromInt((seed >> 8) % 25)) / 100.0;
+            const px = @as(f32, @floatFromInt(bx)) + 0.5 + @cos(angle) * radius;
+            const pz = @as(f32, @floatFromInt(bz)) + 0.5 + @sin(angle) * radius;
+            const py = @as(f32, @floatFromInt(by)) + 0.5;
+
+            // Cosmic violet core to radiant magenta aura
+            const is_core = ((seed >> 4) % 3) == 0;
+            const col: [3]f32 = if (is_core) .{ 0.85, 0.40, 1.0 } else .{ 0.60, 0.15, 0.95 };
+            const vy = 14.0 + @as(f32, @floatFromInt((seed >> 12) % 40)) / 10.0;
+
+            self.particles[self.count] = .{
+                .x = px,
+                .y = py,
+                .z = pz,
+                .vx = @cos(angle) * 0.08,
+                .vy = vy,
+                .vz = @sin(angle) * 0.08,
+                .life = 0.9,
+                .max_life = 0.9,
+                .color = col,
+                .size = 0.08,
+            };
+            self.count += 1;
+        }
+    }
+
+pub fn spawnBeaconBeam(self: *ParticleSystem, bx: i32, by: i32, bz: i32, count: usize) void {
         var i: usize = 0;
         var seed: u32 = @as(u32, @bitCast(bx *% 83 +% by *% 29 +% bz *% 47)) +% @as(u32, @intCast(self.count));
         while (i < count and self.count < MAX_PARTICLES) : (i += 1) {
@@ -1197,4 +1230,25 @@ test "spawnFireworkBurst creates radial multicolored spark sphere" {
         try std.testing.expect(p.max_life >= 0.75);
     }
     try std.testing.expect(has_positive_vx and has_negative_vx);
+}
+
+test "spawnGatewayBeam creates ascending celestial violet beam particles" {
+    var ps = ParticleSystem{
+        .particles = undefined,
+        .count = 0,
+        .vao = 0,
+        .vbo = 0,
+        .program = 0,
+    };
+    try std.testing.expectEqual(@as(usize, 0), ps.count);
+
+    ps.spawnGatewayBeam(32, 10, 0, 6);
+    try std.testing.expectEqual(@as(usize, 6), ps.count);
+
+    // Verify upward soaring velocity and violet/magenta color bounds
+    for (ps.particles[0..6]) |p| {
+        try std.testing.expect(p.vy >= 14.0);
+        try std.testing.expect(p.color[0] >= 0.5); // red/magenta
+        try std.testing.expect(p.color[2] >= 0.9); // violet blue channel
+    }
 }

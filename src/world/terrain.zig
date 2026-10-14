@@ -1188,6 +1188,29 @@ pub const EndGenerator = struct {
     }
 
 
+
+    /// Check if (wx, wy, wz) intersects an End Gateway teleportation portal fixture.
+    /// Central gateway at (32, y, 0), return outer gateway at (72, y, 14).
+    pub fn getEndGatewayBlock(self: EndGenerator, wx: i32, wy: i32, wz: i32) ?BlockId {
+        _ = self;
+        // Central island gateway at (32, 11, 0)
+        if (wx >= 31 and wx <= 33 and wz >= -1 and wz <= 1 and wy >= 10 and wy <= 12) {
+            if (wx == 32 and wz == 0 and wy == 11) return .end_gateway;
+            // Obsidian protective framing
+            if (wy == 10 or wy == 12 or wx == 31 or wx == 33 or wz == -1 or wz == 1) return .obsidian;
+            return .air;
+        }
+
+        // Outer island return gateway at (72, 11, 14)
+        if (wx >= 71 and wx <= 73 and wz >= 13 and wz <= 15 and wy >= 10 and wy <= 12) {
+            if (wx == 72 and wz == 14 and wy == 11) return .end_gateway;
+            if (wy == 10 or wy == 12 or wx == 71 or wx == 73 or wz == 13 or wz == 15) return .obsidian;
+            return .air;
+        }
+
+        return null;
+    }
+
     /// Check if (wx, wy, wz) intersects the airborne End Ship vessel floating beside the End City.
     /// Hull at wx in 80..88, wz in -2..2, elevation wy in 12..15.
     /// Prow tip mounts the Dragon Head trophy block (wx = 88, wy = 13, wz = 0).
@@ -1341,7 +1364,10 @@ pub const EndGenerator = struct {
                 while (ly < 16) : (ly += 1) {
                     const wy = ly;
 
-                    if (self.getEndShipBlock(wx, wy, wz)) |sb| {
+                    if (self.getEndGatewayBlock(wx, wy, wz)) |gb| {
+                        // End Gateway fixture takes precedence
+                        chunk.setBlock(@intCast(lx), @intCast(ly), @intCast(lz), gb);
+                    } else if (self.getEndShipBlock(wx, wy, wz)) |sb| {
                         // End Ship vessel block takes precedence
                         chunk.setBlock(@intCast(lx), @intCast(ly), @intCast(lz), sb);
                     } else if (self.getEndCityBlock(wx, wy, wz)) |b| {
@@ -1486,4 +1512,24 @@ test "EndGenerator end ship structure generation, purpur hull, mast, and dragon 
     end_gen.generateChunk(&chunk, 5, 0);
     // wx = 88 (lx = 8), wz = 0 (lz = 0), wy = 13 (ly = 13) has dragon_head
     try std.testing.expectEqual(BlockId.dragon_head, chunk.getBlock(8, 13, 0));
+}
+
+test "EndGenerator end gateway portal structure generation, obsidian frame, and gateway core" {
+    const end_gen = EndGenerator.init(12345);
+
+    // Central island gateway at (32, 11, 0)
+    try std.testing.expectEqual(BlockId.end_gateway, end_gen.getEndGatewayBlock(32, 11, 0).?);
+    try std.testing.expectEqual(BlockId.obsidian, end_gen.getEndGatewayBlock(32, 10, 0).?);
+    try std.testing.expectEqual(BlockId.obsidian, end_gen.getEndGatewayBlock(32, 12, 0).?);
+    try std.testing.expectEqual(BlockId.obsidian, end_gen.getEndGatewayBlock(31, 11, 0).?);
+
+    // Outer island return gateway at (72, 11, 14)
+    try std.testing.expectEqual(BlockId.end_gateway, end_gen.getEndGatewayBlock(72, 11, 14).?);
+    try std.testing.expectEqual(BlockId.obsidian, end_gen.getEndGatewayBlock(72, 10, 14).?);
+
+    // Chunk generation: chunk (2, 0) covering wx 32..47, wz 0..15 contains central gateway
+    var chunk = Chunk.init();
+    end_gen.generateChunk(&chunk, 2, 0);
+    // wx = 32 (lx = 0), wz = 0 (lz = 0), wy = 11 (ly = 11) is end_gateway
+    try std.testing.expectEqual(BlockId.end_gateway, chunk.getBlock(0, 11, 0));
 }
