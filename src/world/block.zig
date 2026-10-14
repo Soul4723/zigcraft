@@ -668,6 +668,10 @@ pub const TOOL_WOODEN_SHOVEL: u8 = 232;
 pub const TOOL_IRON_SHOVEL: u8 = 233;
 pub const TOOL_DIAMOND_SHOVEL: u8 = 234;
 pub const TOOL_NETHERITE_SHOVEL: u8 = 235;
+pub const TOOL_WOODEN_HOE: u8 = 236;
+pub const TOOL_IRON_HOE: u8 = 237;
+pub const TOOL_DIAMOND_HOE: u8 = 238;
+pub const TOOL_NETHERITE_HOE: u8 = 239;
 
 pub fn hardness(block: BlockId) f32 {
     return switch (block) {
@@ -814,7 +818,30 @@ pub fn isSoilClass(block: BlockId) bool {
     };
 }
 
+pub fn isFoliageClass(block: BlockId) bool {
+    return switch (block) {
+        .leaves, .hay_bale, .nether_wart, .chorus_plant, .chorus_flower, .shroomlight, .sponge, .wet_sponge => true,
+        else => false,
+    };
+}
+
 pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
+    if (held_tool_id == TOOL_NETHERITE_HOE) {
+        if (isFoliageClass(block)) return 6.0;
+        return 1.5;
+    }
+    if (held_tool_id == TOOL_DIAMOND_HOE) {
+        if (isFoliageClass(block)) return 5.0;
+        return 1.4;
+    }
+    if (held_tool_id == TOOL_IRON_HOE) {
+        if (isFoliageClass(block)) return 4.0;
+        return 1.2;
+    }
+    if (held_tool_id == TOOL_WOODEN_HOE) {
+        if (isFoliageClass(block)) return 3.0;
+        return 1.0;
+    }
     if (held_tool_id == TOOL_NETHERITE_SHOVEL) {
         if (isSoilClass(block)) return 6.0;
         return 1.5;
@@ -2840,4 +2867,24 @@ test "shovel tool multiplier speed and excavation efficiency" {
     try std.testing.expect(mineTime(.dirt, TOOL_NETHERITE_SHOVEL) < mineTime(.dirt, TOOL_DIAMOND_SHOVEL));
     try std.testing.expect(mineTime(.dirt, TOOL_DIAMOND_SHOVEL) < mineTime(.dirt, TOOL_IRON_SHOVEL));
     try std.testing.expect(mineTime(.dirt, TOOL_IRON_SHOVEL) < mineTime(.dirt, TOOL_WOODEN_SHOVEL));
+}
+
+test "hoe tool multiplier speed and foliage efficiency" {
+    try std.testing.expectEqual(toolMultiplier(TOOL_WOODEN_HOE, .leaves), 3.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_IRON_HOE, .leaves), 4.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_DIAMOND_HOE, .leaves), 5.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_NETHERITE_HOE, .leaves), 6.0);
+
+    try std.testing.expectEqual(toolMultiplier(TOOL_DIAMOND_HOE, .hay_bale), 5.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_DIAMOND_HOE, .nether_wart), 5.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_DIAMOND_HOE, .chorus_plant), 5.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_DIAMOND_HOE, .shroomlight), 5.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_DIAMOND_HOE, .sponge), 5.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_DIAMOND_HOE, .wet_sponge), 5.0);
+
+    // Hoe harvests foliage faster than bare hand
+    try std.testing.expect(mineTime(.leaves, TOOL_DIAMOND_HOE) < mineTime(.leaves, 0));
+    try std.testing.expect(mineTime(.leaves, TOOL_NETHERITE_HOE) < mineTime(.leaves, TOOL_DIAMOND_HOE));
+    try std.testing.expect(mineTime(.leaves, TOOL_DIAMOND_HOE) < mineTime(.leaves, TOOL_IRON_HOE));
+    try std.testing.expect(mineTime(.leaves, TOOL_IRON_HOE) < mineTime(.leaves, TOOL_WOODEN_HOE));
 }
