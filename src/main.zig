@@ -5007,7 +5007,7 @@ pub fn main() !void {
                     // feed held item as input or fuel
                     const held_f = inventory.slots[selected_slot];
                     const smeltable = switch (held_f.item) {
-                        .raw_pork, .raw_mutton, .raw_cod, .kelp, .sand, .iron_ore, .ancient_debris => true,
+                        .raw_pork, .raw_mutton, .raw_cod, .raw_salmon, .kelp, .sand, .iron_ore, .ancient_debris => true,
                         else => false,
                     };
                     var fed = false;
@@ -5194,8 +5194,8 @@ pub fn main() !void {
         if (right and !right_down and !inventory_open) {
             const held_eat = inventory.slots[selected_slot];
             const cooked = switch (held_eat.item) {
-                .cooked_pork, .cooked_mutton, .cooked_cod => true,
-                .raw_pork, .raw_mutton, .raw_cod => false,
+                .cooked_pork, .cooked_mutton, .cooked_cod, .cooked_salmon => true,
+                .raw_pork, .raw_mutton, .raw_cod, .raw_salmon => false,
                 else => null,
             };
             if (held_eat.item == .fishing_rod) {
@@ -5215,7 +5215,19 @@ pub fn main() !void {
                     audio.play(.splash, 0.85);
                     particles.spawnWaterSplash(.{ player.pos.x + cast_dir.x * 2.0, player.pos.y, player.pos.z + cast_dir.z * 2.0 }, 10);
                     particles.spawnBubble(.{ player.pos.x + cast_dir.x * 2.0, player.pos.y + 0.3, player.pos.z + cast_dir.z * 2.0 }, 6);
-                    _ = inventory.addItem(.raw_cod, 1);
+                    // Deterministic fish catch loot table:
+                    // 55% Raw Cod, 25% Raw Salmon, 12% Tropical Fish, 8% Pufferfish
+                    const fish_roll: u32 = @as(u32, @bitCast(@as(i32, @intFromFloat(player.pos.x * 43.0 + player.pos.z * 67.0 + current_time * 19.0)))) % 100;
+                    const caught_fish: inventory_mod.ItemType = if (fish_roll < 55)
+                        .raw_cod
+                    else if (fish_roll < 80)
+                        .raw_salmon
+                    else if (fish_roll < 92)
+                        .tropical_fish
+                    else
+                        .pufferfish;
+
+                    _ = inventory.addItem(caught_fish, 1);
                     if (tool_wear.use(selected_slot, inventory_mod.ItemType.fishing_rod.maxDurability())) {
                         inventory.slots[selected_slot].clear();
                         audio.play(.break_block, 0.8);
@@ -5223,7 +5235,7 @@ pub fn main() !void {
                     }
                     toast.timer = 2.0;
                     toast.color = .{ 0.40, 0.75, 0.90 };
-                    std.debug.print("caught Raw Cod via fishing rod!\n", .{});
+                    std.debug.print("caught {s} via fishing rod!\n", .{caught_fish.name()});
                 } else {
                     audio.play(.bow_shoot, 0.6);
                     std.debug.print("cast fishing rod (no water caught)\n", .{});
@@ -5278,6 +5290,20 @@ pub fn main() !void {
                 audio.play(.eat, 0.8);
                 particles.spawnBlockDebris(@intFromFloat(@floor(player.pos.x)), @intFromFloat(@floor(player.pos.y + 1)), @intFromFloat(@floor(player.pos.z)), .{ 0.35, 0.75, 0.25 }, 8);
                 std.debug.print("drank potion of poison (timer={d:.1}s)\n", .{player.poison_timer});
+            } else if (held_eat.item == .pufferfish) {
+                // Eating Pufferfish inflicts 10s Poison + 15s Hunger debuff, restores 1 hunger
+                player.applyPoison();
+                player.applyHungerDebuff();
+                player.hunger = @min(20.0, player.hunger + 1.0);
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.8);
+                particles.spawnBlockDebris(@intFromFloat(@floor(player.pos.x)), @intFromFloat(@floor(player.pos.y + 1)), @intFromFloat(@floor(player.pos.z)), .{ 0.80, 0.75, 0.20 }, 8);
+                std.debug.print("ate pufferfish: severe toxic poisoning & hunger debuff!\n", .{});
+            } else if (held_eat.item == .tropical_fish and player.hunger < 20.0) {
+                player.hunger = @min(20.0, player.hunger + 1.0);
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.6);
+                std.debug.print("ate tropical fish (hunger={d:.1})\n", .{player.hunger});
             } else if (held_eat.item == .spider_eye) {
                 player.applyPoison();
                 player.hunger = @min(20.0, player.hunger + 2.0);

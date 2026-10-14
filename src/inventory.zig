@@ -194,6 +194,10 @@ pub const ItemType = enum(u8) {
     dried_kelp = 188,
     dried_kelp_block = 189,
     sea_pickle = 190,
+    raw_salmon = 191,
+    cooked_salmon = 192,
+    pufferfish = 193,
+    tropical_fish = 194,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -471,7 +475,7 @@ pub const ItemType = enum(u8) {
 
     pub fn isCompostable(self: ItemType) bool {
         return switch (self) {
-            .leaves, .hay_bale, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp, .sea_pickle => true,
+            .leaves, .hay_bale, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp, .sea_pickle, .raw_salmon, .cooked_salmon, .pufferfish, .tropical_fish => true,
             else => false,
         };
     }
@@ -678,6 +682,10 @@ pub const ItemType = enum(u8) {
             .dried_kelp => "Dried Kelp",
             .dried_kelp_block => "Dried Kelp Block",
             .sea_pickle => "Sea Pickle",
+            .raw_salmon => "Raw Salmon",
+            .cooked_salmon => "Cooked Salmon",
+            .pufferfish => "Pufferfish",
+            .tropical_fish => "Tropical Fish",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -810,6 +818,10 @@ pub const ItemType = enum(u8) {
             .dried_kelp => .{ 0.18, 0.35, 0.16, 0.95 },
             .dried_kelp_block => .{ 0.15, 0.32, 0.14, 0.98 },
             .sea_pickle => .{ 0.40, 0.65, 0.25, 0.95 },
+            .raw_salmon => .{ 0.85, 0.42, 0.38, 0.95 },
+            .cooked_salmon => .{ 0.90, 0.55, 0.45, 0.95 },
+            .pufferfish => .{ 0.88, 0.78, 0.25, 0.95 },
+            .tropical_fish => .{ 0.95, 0.50, 0.15, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1517,6 +1529,20 @@ pub const Inventory = struct {
             }
             if (scute_cnt == 4) {
                 self.craft_output = .{ .item = .turtle_helmet, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 138: Water Breathing Potion (Pufferfish Brewing): 1 Pufferfish + 1 Glass vial (or nether wart / water) -> 1 Water Breathing Potion
+        if (non_empty == 2) {
+            var puff_c: usize = 0;
+            var liquid_c: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .pufferfish) puff_c += 1;
+                if (sl.item == .glass or sl.item == .water or sl.item == .nether_wart) liquid_c += 1;
+            }
+            if (puff_c == 1 and liquid_c == 1) {
+                self.craft_output = .{ .item = .water_breathing_potion, .count = 1 };
                 return;
             }
         }
@@ -5565,4 +5591,37 @@ test "sea pickle item roundtrip, compostable check, and properties" {
     try std.testing.expect(ItemType.sea_pickle.isCompostable());
     try std.testing.expectEqual(ItemType.sea_pickle.maxStackSize(), 64);
     try std.testing.expectEqualStrings(ItemType.sea_pickle.name(), "Sea Pickle");
+}
+
+test "marine fish species items, properties, and Recipe 138 pufferfish brewing" {
+    var inv = Inventory.init();
+
+    // Recipe 138: 1 Pufferfish + 1 Glass -> 1 Water Breathing Potion
+    inv.craft_grid[0] = .{ .item = .pufferfish, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .water_breathing_potion);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expect(ItemType.raw_salmon.isCompostable());
+    try std.testing.expect(ItemType.cooked_salmon.isCompostable());
+    try std.testing.expect(ItemType.pufferfish.isCompostable());
+    try std.testing.expect(ItemType.tropical_fish.isCompostable());
+
+    try std.testing.expectEqual(ItemType.raw_salmon.maxStackSize(), 64);
+    try std.testing.expectEqual(ItemType.cooked_salmon.maxStackSize(), 64);
+    try std.testing.expectEqual(ItemType.pufferfish.maxStackSize(), 64);
+    try std.testing.expectEqual(ItemType.tropical_fish.maxStackSize(), 64);
+
+    try std.testing.expect(!ItemType.raw_salmon.isTool());
+    try std.testing.expect(!ItemType.cooked_salmon.isTool());
+    try std.testing.expect(!ItemType.pufferfish.isTool());
+    try std.testing.expect(!ItemType.tropical_fish.isTool());
+
+    try std.testing.expect(ItemType.raw_salmon.toBlockId() == null);
+    try std.testing.expect(ItemType.cooked_salmon.toBlockId() == null);
+    try std.testing.expect(ItemType.pufferfish.toBlockId() == null);
+    try std.testing.expect(ItemType.tropical_fish.toBlockId() == null);
 }
