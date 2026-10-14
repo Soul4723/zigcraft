@@ -5257,6 +5257,9 @@ pub fn main() !void {
                 } else
                 if (target.isFlammable()) {
                     particles.spawnFlame(hit_f.x, hit_f.y, hit_f.z, 14);
+                    if (inventory.slots[selected_slot].item == .flint_and_steel) {
+                        _ = tool_wear.use(selected_slot, inventory.slots[selected_slot].item.maxDurability());
+                    }
                     if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, .air)) {
                         audio.play(.break_block, 0.6);
                         const drop_item = inventory_mod.ItemType.fromBlockId(target);

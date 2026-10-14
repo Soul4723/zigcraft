@@ -229,6 +229,8 @@ pub const ItemType = enum(u8) {
     diamond_chestplate = 223,
     diamond_leggings = 224,
     diamond_boots = 225,
+    flint = 226,
+    flint_and_steel = 227,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -527,6 +529,7 @@ pub const ItemType = enum(u8) {
             .diamond_chestplate => 420,
             .diamond_leggings => 390,
             .diamond_boots => 340,
+            .flint_and_steel => 64,
             .netherite_pickaxe => 350,
             .netherite_sword => 400,
             .warped_fungus_on_a_stick => 100,
@@ -562,7 +565,7 @@ pub const ItemType = enum(u8) {
         return switch (self) {
             .none => 0,
             .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea => 16,
-            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart => 1,
+            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart => 1,
             else => 64,
         };
     }
@@ -791,6 +794,8 @@ pub const ItemType = enum(u8) {
             .diamond_chestplate => "Diamond Chestplate",
             .diamond_leggings => "Diamond Leggings",
             .diamond_boots => "Diamond Boots",
+            .flint => "Flint",
+            .flint_and_steel => "Flint and Steel",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -958,6 +963,8 @@ pub const ItemType = enum(u8) {
             .diamond_chestplate => .{ 0.35, 0.88, 0.98, 0.95 },
             .diamond_leggings => .{ 0.32, 0.84, 0.94, 0.95 },
             .diamond_boots => .{ 0.30, 0.82, 0.92, 0.95 },
+            .flint => .{ 0.28, 0.26, 0.30, 0.95 },
+            .flint_and_steel => .{ 0.82, 0.78, 0.72, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1796,6 +1803,29 @@ pub const Inventory = struct {
             }
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 168: Flint: 2 Gravel/Sand -> 1 Flint
+        if (non_empty == 2) {
+            
+            var sand_c: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .sand) sand_c += 1;
+            }
+            if (sand_c == 2) {
+                self.craft_output = .{ .item = .flint, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 169: Flint and Steel: 1 Iron Ingot + 1 Flint (non_empty == 2) -> 1 Flint and Steel
+        if (non_empty == 2) {
+            const has_iron = (g0 == .iron_ingot or g1 == .iron_ingot or g2 == .iron_ingot or g3 == .iron_ingot);
+            const has_flint = (g0 == .flint or g1 == .flint or g2 == .flint or g3 == .flint);
+            if (has_iron and has_flint) {
+                self.craft_output = .{ .item = .flint_and_steel, .count = 1 };
                 return;
             }
         }
@@ -6716,4 +6746,31 @@ test "diamond armor items, durability, set checks, and recipes 164-167" {
     try std.testing.expect(!player_inv.hasFullDiamondSet());
     player_inv.slots[3] = .{ .item = .diamond_boots, .count = 1 };
     try std.testing.expect(player_inv.hasFullDiamondSet());
+}
+
+test "flint and flint and steel items, recipes 168-169, durability and stack" {
+    var inv = Inventory.init();
+
+    // Recipe 168: 2 Sand -> 1 Flint
+    inv.craft_grid[0] = .{ .item = .sand, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .sand, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .flint);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 169: 1 Iron Ingot + 1 Flint -> 1 Flint and Steel
+    inv.craft_grid[0] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .flint, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .flint_and_steel);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Item properties
+    try std.testing.expect(!ItemType.flint.isTool());
+    try std.testing.expect(ItemType.flint_and_steel.isTool());
+    try std.testing.expectEqual(ItemType.flint.maxStackSize(), 64);
+    try std.testing.expectEqual(ItemType.flint_and_steel.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.flint_and_steel.maxDurability(), 64);
+    try std.testing.expectEqualStrings(ItemType.flint.name(), "Flint");
+    try std.testing.expectEqualStrings(ItemType.flint_and_steel.name(), "Flint and Steel");
 }
