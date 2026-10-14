@@ -2759,15 +2759,24 @@ pub fn main() !void {
                                         }
                                     }
                                 }
-                            } else if (!hotbar_slot.isEmpty() and hotbar_slot.item == .minecart) {
-                                // Deploy minecart on rails or board directly
+                            } else if (!hotbar_slot.isEmpty() and (hotbar_slot.item == .minecart or hotbar_slot.item == .tnt_minecart or hotbar_slot.item == .chest_minecart or hotbar_slot.item == .furnace_minecart or hotbar_slot.item == .hopper_minecart)) {
                                 const target_block = manager.getBlockWorld(hit.x, hit.y, hit.z);
                                 if (target_block.is_rail() or manager.getBlockWorld(px, py, pz).is_rail()) {
+                                    const placed_cart = hotbar_slot.item;
                                     hotbar_slot.decrement(1);
-                                    player.in_minecart = true;
-                                    audio.play(.click_on, 0.8);
-                                    particles.spawnBlockDebris(hit.x, hit.y, hit.z, .{ 0.85, 0.85, 0.85 }, 8);
-                                    std.debug.print("boarded minecart on rail\n", .{});
+                                    if (placed_cart == .tnt_minecart and fuse_count < fuses.len) {
+                                        // TNT Minecart arms instant concussive kinetic fuse on track
+                                        fuses[fuse_count] = .{ .x = hit.x, .y = hit.y, .z = hit.z, .t = 1.2 };
+                                        fuse_count += 1;
+                                        audio.play(.place_block, 0.9);
+                                        particles.spawnFlame(hit.x, hit.y, hit.z, 8);
+                                        std.debug.print("deployed TNT minecart: fuse armed!\n", .{});
+                                    } else {
+                                        player.in_minecart = true;
+                                        audio.play(.click_on, 0.8);
+                                        particles.spawnBlockDebris(hit.x, hit.y, hit.z, .{ 0.85, 0.85, 0.85 }, 8);
+                                        std.debug.print("deployed and boarded {s} on rail\n", .{@tagName(placed_cart)});
+                                    }
                                 }
                             } else if (!hotbar_slot.isEmpty() and hotbar_slot.item == .boat) {
                                 // Deploy boat into water or board boat

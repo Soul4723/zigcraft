@@ -204,6 +204,10 @@ pub const ItemType = enum(u8) {
     minecart = 198,
     detector_rail = 199,
     activator_rail = 200,
+    chest_minecart = 201,
+    furnace_minecart = 202,
+    tnt_minecart = 203,
+    hopper_minecart = 204,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -502,7 +506,7 @@ pub const ItemType = enum(u8) {
         return switch (self) {
             .none => 0,
             .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea => 16,
-            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart => 1,
+            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart => 1,
             else => 64,
         };
     }
@@ -706,6 +710,10 @@ pub const ItemType = enum(u8) {
             .minecart => "Minecart",
             .detector_rail => "Detector Rail",
             .activator_rail => "Activator Rail",
+            .chest_minecart => "Minecart with Chest",
+            .furnace_minecart => "Minecart with Furnace",
+            .tnt_minecart => "Minecart with TNT",
+            .hopper_minecart => "Minecart with Hopper",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -848,6 +856,10 @@ pub const ItemType = enum(u8) {
             .minecart => .{ 0.60, 0.60, 0.65, 0.95 },
             .detector_rail => .{ 0.85, 0.35, 0.30, 0.95 },
             .activator_rail => .{ 0.70, 0.55, 0.35, 0.95 },
+            .chest_minecart => .{ 0.65, 0.55, 0.35, 0.95 },
+            .furnace_minecart => .{ 0.45, 0.45, 0.48, 0.95 },
+            .tnt_minecart => .{ 0.85, 0.25, 0.20, 0.95 },
+            .hopper_minecart => .{ 0.40, 0.40, 0.45, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1623,6 +1635,62 @@ pub const Inventory = struct {
             }
             if (iron_c >= 2 and torch_c >= 1 and stick_c >= 1) {
                 self.craft_output = .{ .item = .activator_rail, .count = 6 };
+                return;
+            }
+        }
+
+        // Recipe 144: Minecart with Chest: 1 Minecart + 1 Chest -> 1 Minecart with Chest
+        if (non_empty == 2) {
+            var cart_c: usize = 0;
+            var chest_c: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .minecart) cart_c += 1;
+                if (sl.item == .chest) chest_c += 1;
+            }
+            if (cart_c == 1 and chest_c == 1) {
+                self.craft_output = .{ .item = .chest_minecart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 145: Minecart with Furnace: 1 Minecart + 1 Furnace -> 1 Minecart with Furnace
+        if (non_empty == 2) {
+            var cart_c: usize = 0;
+            var furn_c: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .minecart) cart_c += 1;
+                if (sl.item == .furnace or sl.item == .blast_furnace or sl.item == .smoker) furn_c += 1;
+            }
+            if (cart_c == 1 and furn_c == 1) {
+                self.craft_output = .{ .item = .furnace_minecart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 146: Minecart with TNT: 1 Minecart + 1 TNT -> 1 Minecart with TNT
+        if (non_empty == 2) {
+            var cart_c: usize = 0;
+            var tnt_c: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .minecart) cart_c += 1;
+                if (sl.item == .tnt) tnt_c += 1;
+            }
+            if (cart_c == 1 and tnt_c == 1) {
+                self.craft_output = .{ .item = .tnt_minecart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 147: Minecart with Hopper: 1 Minecart + 1 Hopper -> 1 Minecart with Hopper
+        if (non_empty == 2) {
+            var cart_c: usize = 0;
+            var hop_c: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .minecart) cart_c += 1;
+                if (sl.item == .hopper) hop_c += 1;
+            }
+            if (cart_c == 1 and hop_c == 1) {
+                self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
                 return;
             }
         }
@@ -5829,4 +5897,44 @@ test "detector rail and activator rail crafting recipes and properties" {
     try std.testing.expectEqual(ItemType.activator_rail.toBlockId().?, .activator_rail);
     try std.testing.expectEqual(ItemType.fromBlockId(.detector_rail), .detector_rail);
     try std.testing.expectEqual(ItemType.fromBlockId(.activator_rail), .activator_rail);
+}
+
+test "minecart functional variants recipes 144-147 and properties" {
+    var inv = Inventory.init();
+
+    // Recipe 144: Minecart + Chest -> Chest Minecart
+    inv.craft_grid[0] = .{ .item = .minecart, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .chest, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .chest_minecart);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 145: Minecart + Furnace -> Furnace Minecart
+    inv.craft_grid[1] = .{ .item = .furnace, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .furnace_minecart);
+
+    // Recipe 146: Minecart + TNT -> TNT Minecart
+    inv.craft_grid[1] = .{ .item = .tnt, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .tnt_minecart);
+
+    // Recipe 147: Minecart + Hopper -> Hopper Minecart
+    inv.craft_grid[1] = .{ .item = .hopper, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .hopper_minecart);
+
+    // Stack sizes (all vehicles stack 1)
+    try std.testing.expectEqual(ItemType.chest_minecart.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.furnace_minecart.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.tnt_minecart.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.hopper_minecart.maxStackSize(), 1);
+
+    // Names
+    try std.testing.expectEqualStrings(ItemType.chest_minecart.name(), "Minecart with Chest");
+    try std.testing.expectEqualStrings(ItemType.furnace_minecart.name(), "Minecart with Furnace");
+    try std.testing.expectEqualStrings(ItemType.tnt_minecart.name(), "Minecart with TNT");
+    try std.testing.expectEqualStrings(ItemType.hopper_minecart.name(), "Minecart with Hopper");
 }
