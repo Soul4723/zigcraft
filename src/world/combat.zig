@@ -7,6 +7,7 @@ pub const wolf_bite_height: f32 = 2.0;
 pub const melee_cooldown: f32 = 0.35;
 pub const melee_range: f32 = 4.0;
 pub const sword_damage: u8 = 2;
+pub const stone_sword_damage: u8 = 2;
 pub const diamond_sword_damage: u8 = 3;
 pub const netherite_sword_damage: u8 = 4;
 pub const hand_damage: u8 = 1;
@@ -79,9 +80,14 @@ pub fn weaponDamage(is_netherite: bool, is_iron: bool) u8 {
 }
 
 pub fn weaponDamageTier(is_netherite: bool, is_diamond: bool, is_iron: bool) u8 {
+    return weaponDamageAllTiers(is_netherite, is_diamond, is_iron, false);
+}
+
+pub fn weaponDamageAllTiers(is_netherite: bool, is_diamond: bool, is_iron: bool, is_stone: bool) u8 {
     if (is_netherite) return netherite_sword_damage;
     if (is_diamond) return diamond_sword_damage;
     if (is_iron) return sword_damage;
+    if (is_stone) return stone_sword_damage;
     return hand_damage;
 }
 
@@ -90,7 +96,11 @@ pub fn calculatePlayerAttackDamage(is_netherite: bool, is_iron: bool, is_weakene
 }
 
 pub fn calculatePlayerAttackDamageTier(is_netherite: bool, is_diamond: bool, is_iron: bool, is_weakened: bool) u8 {
-    const raw = weaponDamageTier(is_netherite, is_diamond, is_iron);
+    return calculatePlayerAttackDamageAllTiers(is_netherite, is_diamond, is_iron, false, is_weakened);
+}
+
+pub fn calculatePlayerAttackDamageAllTiers(is_netherite: bool, is_diamond: bool, is_iron: bool, is_stone: bool, is_weakened: bool) u8 {
+    const raw = weaponDamageAllTiers(is_netherite, is_diamond, is_iron, is_stone);
     if (is_weakened) {
         // Weakness reduces attack potency by 2 damage, floor of 1
         return if (raw > 2) raw - 2 else 1;
@@ -282,4 +292,11 @@ test "applyArmorReductionAllTiers absorbs golden tier 15% and full set 35%" {
     // Iron overrides golden
     try std.testing.expectApproxEqAbs(applyArmorReductionAllTiers(10.0, false, false, false, false, true, false, true, true), 7.5, 0.01);
     try std.testing.expectApproxEqAbs(applyArmorReductionAllTiers(10.0, false, false, false, false, true, true, true, true), 5.0, 0.01);
+}
+
+test "calculatePlayerAttackDamageAllTiers stone sword damage check" {
+    // Stone sword deals 2 damage (same tier as iron sword, more than bare hand)
+    try std.testing.expectEqual(calculatePlayerAttackDamageAllTiers(false, false, false, true, false), 2);
+    // Stone sword with weakness deals floor 1 damage
+    try std.testing.expectEqual(calculatePlayerAttackDamageAllTiers(false, false, false, true, true), 1);
 }

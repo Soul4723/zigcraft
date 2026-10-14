@@ -2458,7 +2458,7 @@ pub fn main() !void {
                 const dir = cam.front();
                 mob_hit_cooldown = combat_mod.tickCooldown(mob_hit_cooldown, dt);
                 const held_weapon = inventory.slots[selected_slot].item;
-                const hit_dmg: u8 = combat_mod.calculatePlayerAttackDamageTier(held_weapon == .netherite_sword, held_weapon == .diamond_sword, held_weapon == .iron_sword, player.isWeakened());
+                const hit_dmg: u8 = combat_mod.calculatePlayerAttackDamageAllTiers(held_weapon == .netherite_sword, held_weapon == .diamond_sword, held_weapon == .iron_sword, held_weapon == .stone_sword, player.isWeakened());
 
                 var bartered = false;
                 if (right and !right_down and inventory.slots[selected_slot].item == .gold_nugget) {

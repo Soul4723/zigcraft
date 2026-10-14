@@ -252,6 +252,11 @@ pub const ItemType = enum(u8) {
     golden_chestplate = 246,
     golden_leggings = 247,
     golden_boots = 248,
+    stone_sword = 249,
+    stone_pickaxe = 250,
+    stone_axe = 251,
+    stone_shovel = 252,
+    stone_hoe = 253,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -558,6 +563,11 @@ pub const ItemType = enum(u8) {
             .golden_chestplate => 112,
             .golden_leggings => 105,
             .golden_boots => 91,
+            .stone_sword => 131,
+            .stone_pickaxe => 131,
+            .stone_axe => 131,
+            .stone_shovel => 131,
+            .stone_hoe => 131,
             .flint_and_steel => 64,
             .wooden_axe => 25,
             .iron_axe => 120,
@@ -601,7 +611,7 @@ pub const ItemType = enum(u8) {
 
     
     pub fn isHoe(self: ItemType) bool {
-        return self == .wooden_hoe or self == .iron_hoe or self == .diamond_hoe or self == .netherite_hoe;
+        return self == .wooden_hoe or self == .stone_hoe or self == .iron_hoe or self == .diamond_hoe or self == .netherite_hoe;
     }
 
     pub fn isShears(self: ItemType) bool {
@@ -616,7 +626,7 @@ pub const ItemType = enum(u8) {
         return switch (self) {
             .none => 0,
             .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea => 16,
-            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart => 1,
+            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .stone_sword, .stone_pickaxe, .stone_axe, .stone_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart => 1,
             else => 64,
         };
     }
@@ -868,6 +878,11 @@ pub const ItemType = enum(u8) {
             .golden_chestplate => "Golden Chestplate",
             .golden_leggings => "Golden Leggings",
             .golden_boots => "Golden Boots",
+            .stone_sword => "Stone Sword",
+            .stone_pickaxe => "Stone Pickaxe",
+            .stone_axe => "Stone Axe",
+            .stone_shovel => "Stone Shovel",
+            .stone_hoe => "Stone Hoe",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1058,6 +1073,11 @@ pub const ItemType = enum(u8) {
             .golden_chestplate => .{ 0.98, 0.85, 0.22, 0.95 },
             .golden_leggings => .{ 0.92, 0.80, 0.15, 0.95 },
             .golden_boots => .{ 0.90, 0.78, 0.12, 0.95 },
+            .stone_sword => .{ 0.65, 0.65, 0.65, 0.95 },
+            .stone_pickaxe => .{ 0.62, 0.62, 0.64, 0.95 },
+            .stone_axe => .{ 0.60, 0.60, 0.62, 0.95 },
+            .stone_shovel => .{ 0.63, 0.63, 0.65, 0.95 },
+            .stone_hoe => .{ 0.58, 0.58, 0.60, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1917,6 +1937,58 @@ pub const Inventory = struct {
             }
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 191: Stone Sword: 1 Cobblestone + 1 Stick (vertical) or 2 Cobblestone -> 1 Stone Sword
+        if (non_empty == 2) {
+            if ((g0 == .cobblestone and g2 == .stick and g1 == .none and g3 == .none) or
+                (g1 == .cobblestone and g3 == .stick and g0 == .none and g2 == .none) or
+                (g0 == .cobblestone and g2 == .cobblestone and g1 == .none and g3 == .none) or
+                (g1 == .cobblestone and g3 == .cobblestone and g0 == .none and g2 == .none))
+            {
+                self.craft_output = .{ .item = .stone_sword, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 192: Stone Pickaxe: top row 2 Cobblestone + stick below -> 1 Stone Pickaxe
+        if (non_empty == 3) {
+            if (g0 == .cobblestone and g1 == .cobblestone and (g2 == .stick or g3 == .stick)) {
+                self.craft_output = .{ .item = .stone_pickaxe, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 193: Stone Axe: 1 Cobblestone + 1 Stick horizontally or 1 Cobblestone + 1 Wood Log -> 1 Stone Axe
+        if (non_empty == 2) {
+            if ((g0 == .cobblestone and g1 == .wood and g2 == .none and g3 == .none) or
+                (g2 == .cobblestone and g3 == .wood and g0 == .none and g1 == .none) or
+                (g0 == .wood and g1 == .cobblestone and g2 == .none and g3 == .none) or
+                (g2 == .wood and g3 == .cobblestone and g0 == .none and g1 == .none))
+            {
+                self.craft_output = .{ .item = .stone_axe, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 194: Stone Shovel: 1 Cobblestone + 1 Stick vertically -> 1 Stone Shovel
+        if (non_empty == 2) {
+            if ((g0 == .cobblestone and g2 == .wood_planks and g1 == .none and g3 == .none) or
+                (g1 == .cobblestone and g3 == .wood_planks and g0 == .none and g2 == .none))
+            {
+                self.craft_output = .{ .item = .stone_shovel, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 195: Stone Hoe: 1 Cobblestone + 1 Stick horizontally -> 1 Stone Hoe
+        if (non_empty == 2) {
+            if ((g0 == .cobblestone and g1 == .stick and g2 == .none and g3 == .none) or
+                (g2 == .cobblestone and g3 == .stick and g0 == .none and g1 == .none))
+            {
+                self.craft_output = .{ .item = .stone_hoe, .count = 1 };
                 return;
             }
         }
@@ -4080,10 +4152,10 @@ test "cactus item mapping and conversion" {
 pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
     const need = block_mod.requiredTier(block);
     if (need == .hand) return true;
-    return held == .wooden_pickaxe or held == .iron_pickaxe or held == .diamond_pickaxe or held == .netherite_pickaxe or
-           held == .wooden_axe or held == .iron_axe or held == .diamond_axe or held == .netherite_axe or
-           held == .wooden_shovel or held == .iron_shovel or held == .diamond_shovel or held == .netherite_shovel or
-           held == .wooden_hoe or held == .iron_hoe or held == .diamond_hoe or held == .netherite_hoe or held == .shears;
+    return held == .wooden_pickaxe or held == .stone_pickaxe or held == .iron_pickaxe or held == .diamond_pickaxe or held == .netherite_pickaxe or
+           held == .wooden_axe or held == .stone_axe or held == .iron_axe or held == .diamond_axe or held == .netherite_axe or
+           held == .wooden_shovel or held == .stone_shovel or held == .iron_shovel or held == .diamond_shovel or held == .netherite_shovel or
+           held == .wooden_hoe or held == .stone_hoe or held == .iron_hoe or held == .diamond_hoe or held == .netherite_hoe or held == .shears;
 }
 
 pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, cave_spider, skeleton, zombie, creeper, enderman, ender_dragon, shulker, endermite, turtle, drowned, phantom, guardian, elder_guardian, dolphin, slime };
@@ -7489,4 +7561,74 @@ test "golden armor suit item properties, recipes 187-190, full set and any piece
     try std.testing.expect(!player_inv.hasFullGoldenSet());
     player_inv.slots[3] = .{ .item = .golden_boots, .count = 1 };
     try std.testing.expect(player_inv.hasFullGoldenSet());
+}
+
+test "stone tool items, durabilities, tool classification, and recipes 191-195" {
+    var inv = Inventory.init();
+
+    // Recipe 191: 1 Cobblestone + 1 Stick (vertical) -> 1 Stone Sword
+    inv.craft_grid[0] = .{ .item = .cobblestone, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .stick, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .stone_sword);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 192: 2 Cobblestone + 1 Stick -> 1 Stone Pickaxe
+    inv.craft_grid[0] = .{ .item = .cobblestone, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .cobblestone, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .stick, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .stone_pickaxe);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 193: 1 Cobblestone + 1 Wood Log -> 1 Stone Axe
+    inv.craft_grid[0] = .{ .item = .cobblestone, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wood, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .stone_axe);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 194: 1 Cobblestone + 1 Wood Planks -> 1 Stone Shovel
+    inv.craft_grid[0] = .{ .item = .cobblestone, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{ .item = .wood_planks, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .stone_shovel);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 195: 1 Cobblestone + 1 Stick (horizontal) -> 1 Stone Hoe
+    inv.craft_grid[0] = .{ .item = .cobblestone, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .stick, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .stone_hoe);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Tool classification and durabilities
+    try std.testing.expect(ItemType.stone_sword.isTool());
+    try std.testing.expect(ItemType.stone_pickaxe.isTool());
+    try std.testing.expect(ItemType.stone_axe.isTool());
+    try std.testing.expect(ItemType.stone_shovel.isTool());
+    try std.testing.expect(ItemType.stone_hoe.isTool());
+    try std.testing.expect(ItemType.stone_hoe.isHoe());
+
+    try std.testing.expectEqual(ItemType.stone_sword.maxDurability(), 131);
+    try std.testing.expectEqual(ItemType.stone_pickaxe.maxDurability(), 131);
+    try std.testing.expectEqual(ItemType.stone_axe.maxDurability(), 131);
+    try std.testing.expectEqual(ItemType.stone_shovel.maxDurability(), 131);
+    try std.testing.expectEqual(ItemType.stone_hoe.maxDurability(), 131);
+
+    try std.testing.expectEqual(ItemType.stone_sword.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.stone_pickaxe.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.stone_axe.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.stone_shovel.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.stone_hoe.maxStackSize(), 1);
+
+    // Harvesting permissions
+    try std.testing.expect(canHarvestBlock(.stone_pickaxe, .stone));
+    try std.testing.expect(canHarvestBlock(.stone_pickaxe, .iron_ore));
+    try std.testing.expect(canHarvestBlock(.stone_axe, .wood));
+    try std.testing.expect(canHarvestBlock(.stone_shovel, .dirt));
+    try std.testing.expect(canHarvestBlock(.stone_hoe, .leaves));
 }
