@@ -1746,6 +1746,39 @@ pub fn main() !void {
         try mob_manager.ensureSpawnPopulation(&manager, player.pos.x, player.pos.z, is_night_spawn);
         const held_warped_fungus = (inventory.slots[selected_slot].item == .warped_fungus or inventory.slots[selected_slot].item == .warped_fungus_on_a_stick);
         mob_manager.tick(&pickSolid, &pickFluid, &pickBlockWorld, player.pos, player.radius, held_warped_fungus, &audio, dt);
+        // In The End: Ender Dragon links to intact End Crystals for radiant health regeneration
+        if (manager.is_end) {
+            const crystal_coords = [_][3]i32{
+                .{ 16, 15, 16 },
+                .{ -16, 15, 16 },
+                .{ 16, 15, -16 },
+                .{ -16, 15, -16 },
+            };
+            for (mob_manager.mobs.items) |*m| {
+                if (m.mob_type == .ender_dragon and m.health > 0) {
+                    for (crystal_coords) |c_pos| {
+                        if (manager.getBlockWorld(c_pos[0], c_pos[1], c_pos[2]) == .end_crystal) {
+                            const cx = @as(f32, @floatFromInt(c_pos[0])) + 0.5;
+                            const cy = @as(f32, @floatFromInt(c_pos[1])) + 0.5;
+                            const cz = @as(f32, @floatFromInt(c_pos[2])) + 0.5;
+                            // Emit beam tether particles between crystal and dragon
+                            const t_frac = 0.5 + 0.5 * @sin(@as(f32, @floatCast(current_time)) * 6.0);
+                            const bx = cx + (m.pos.x - cx) * t_frac;
+                            const by = cy + (m.pos.y - cy) * t_frac;
+                            const bz = cz + (m.pos.z - cz) * t_frac;
+                            particles.spawnPortalVortex(.{ bx, by, bz }, 0.4, 2, 0.0);
+                            particles.spawnGlowstoneShimmer(.{ bx, by, bz }, 1);
+
+                            // Healing pulse (restores health capped at 200)
+                            if (m.health < 200 and @sin(@as(f32, @floatCast(current_time)) * 4.0) > 0.95) {
+                                m.health = @min(200, m.health + 1);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         for (mob_manager.mobs.items) |*m| {
             if (m.isGlowing()) {
                 particles.spawnGlowstoneShimmer(.{ m.pos.x, m.pos.y + 0.4, m.pos.z }, 1);
@@ -2028,8 +2061,19 @@ pub fn main() !void {
                 break :blk compass_mod.calculateNeedleAngle(0.0, 0.0, player.pos.x, player.pos.z, cam.yaw);
             } else compass_mod.compass_hidden;
 
+            // Query if Ender Dragon boss is present in current dimension for boss health bar
+            var boss_health_frac: f32 = -1.0;
+            if (manager.is_end) {
+                for (mob_manager.mobs.items) |m| {
+                    if (m.mob_type == .ender_dragon and m.health > 0) {
+                        boss_health_frac = @as(f32, @floatFromInt(m.health)) / 200.0;
+                        break;
+                    }
+                }
+            }
+
             const hud_progress = if (bow_charge > 0.0) bow_charge else if (crossbow_charge > 0.0) crossbow_charge else if (crossbow_loaded and inventory.slots[selected_slot].item == .crossbow) 1.0 else mine_frac;
-            ui.drawHUDWithCompass(aspect, selected_slot, &hotbar_colors, &hotbar_counts, hud_progress, player.health, player.hunger, player.regen_timer > 0.0, player.oxygen, player.fire_resistance_timer, player.wither_timer, compass_rel, is_lodestone);
+            ui.drawHUDWithCompass(aspect, selected_slot, &hotbar_colors, &hotbar_counts, hud_progress, player.health, player.hunger, player.regen_timer > 0.0, player.oxygen, player.fire_resistance_timer, player.wither_timer, compass_rel, is_lodestone, boss_health_frac);
             if (portal_transit.inside_timer > 0.0) {
                 const vignette_intensity = portal_transit.inside_timer / portal_mod.PORTAL_TRIGGER_TIME;
                 ui.drawPortalVignette(aspect, vignette_intensity);
@@ -2285,6 +2329,16 @@ pub fn main() !void {
                         } else if (hit_mob.mob_type == .zombie and inventory_mod.dropsZombieIron(px, py, pz)) {
                             _ = inventory.addItem(.iron_ingot, 1);
                             std.debug.print("zombie dropped rare iron ingot\n", .{});
+                        }
+                        if (hit_mob.mob_type == .ender_dragon) {
+                            // Ender Dragon Defeat: celestial victory explosion and return portal fountain
+                            audio.play(.dragon_roar, 1.0);
+                            audio.play(.end_portal_open, 1.0);
+                            particles.spawnFireworkBurst(.{ hit_mob.pos.x, hit_mob.pos.y, hit_mob.pos.z }, 64);
+                            particles.spawnPortalVortex(.{ hit_mob.pos.x, hit_mob.pos.y, hit_mob.pos.z }, 3.5, 48, 0.0);
+                            toast.timer = 5.0;
+                            toast.color = .{ 1.0, 0.85, 0.20 };
+                            std.debug.print("Ender Dragon Defeated! Victory achieved!\n", .{});
                         }
                         if (hit_mob.wool) _ = inventory.addItem(.wool, 1);
                         std.debug.print("killed {s}, dropped {s}\n", .{ @tagName(hit_mob.mob_type), drop.name() });

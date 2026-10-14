@@ -227,10 +227,10 @@ pub const UIRenderer = struct {
     }
 
     pub fn drawHUDWithProgressVitals(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool, oxygen: f32, fire_res_timer: f32, wither_timer: f32) void {
-        self.drawHUDWithCompass(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, health, hunger, regen, oxygen, fire_res_timer, wither_timer, -999.0, false);
+        self.drawHUDWithCompass(aspect, selected_slot, hotbar_items, hotbar_counts, mine_frac, health, hunger, regen, oxygen, fire_res_timer, wither_timer, -999.0, false, -1.0);
     }
 
-    pub fn drawHUDWithCompass(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool, oxygen: f32, fire_res_timer: f32, wither_timer: f32, compass_rel: f32, is_lodestone: bool) void {
+    pub fn drawHUDWithCompass(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool, oxygen: f32, fire_res_timer: f32, wither_timer: f32, compass_rel: f32, is_lodestone: bool, boss_health_frac: f32) void {
         var verts: [1024]UIVertex = undefined;
         var count: usize = 0;
 
@@ -355,6 +355,28 @@ pub const UIRenderer = struct {
             // Center brass pin
             const pin_col = [4]f32{ 0.85, 0.80, 0.60, 1.0 };
             addQuad(&verts, &count, ncx - 0.003 / aspect, ncy - 0.003, ncx + 0.003 / aspect, ncy + 0.003, pin_col);
+        }
+
+        // Boss Health Bar (top of HUD): rendered when boss_health_frac >= 0.0
+        if (boss_health_frac >= 0.0) {
+            const bb_w: f32 = 0.50;
+            const bb_h: f32 = 0.018;
+            const bbx0: f32 = -bb_w / 2.0;
+            const bby0: f32 = 0.88;
+
+            // Outer dark stone border
+            addBorderedRect(&verts, &count, bbx0, bby0, bbx0 + bb_w, bby0 + bb_h, 0.003, .{ 0.12, 0.05, 0.16, 0.95 }, .{ 0.18, 0.10, 0.22, 0.90 });
+
+            // Glowing magenta boss health fill
+            const fill_w = (bb_w - 0.006) * @min(1.0, @max(0.0, boss_health_frac));
+            if (fill_w > 0.0) {
+                addQuad(&verts, &count, bbx0 + 0.003, bby0 + 0.003, bbx0 + 0.003 + fill_w, bby0 + bb_h - 0.003, .{ 0.85, 0.20, 0.90, 0.95 });
+            }
+
+            // Dragon head jewel crest at center top of bar
+            const j_w = 0.016 / aspect;
+            const j_h = 0.016;
+            addQuad(&verts, &count, -j_w / 2.0, bby0 + bb_h + 0.004, j_w / 2.0, bby0 + bb_h + 0.004 + j_h, .{ 0.95, 0.85, 0.20, 1.0 });
         }
 
         // Mining progress bar above crosshair
