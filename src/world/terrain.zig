@@ -1152,6 +1152,15 @@ pub const EndGenerator = struct {
         return false;
     }
 
+    /// Check if (wx, wz) is the central pinnacle apex of an obsidian pillar (center cell of 3x3).
+    pub fn isPillarApex(self: EndGenerator, wx: i32, wz: i32) bool {
+        _ = self;
+        return (wx == 16 and wz == 16) or
+            (wx == -16 and wz == 16) or
+            (wx == 16 and wz == -16) or
+            (wx == -16 and wz == -16);
+    }
+
     pub fn generateChunk(self: EndGenerator, chunk: *Chunk, cx: i32, cz: i32) void {
         const ox = cx * 16;
         const oz = cz * 16;
@@ -1170,9 +1179,16 @@ pub const EndGenerator = struct {
                 while (ly < 16) : (ly += 1) {
                     const wy = ly;
 
-                    if (is_pillar and wy >= 4 and wy <= 15) {
-                        // Obsidian monolith rising up to world ceiling
+                    if (is_pillar and wy >= 4 and wy <= 14) {
+                        // Obsidian monolith pillar shaft
                         chunk.setBlock(@intCast(lx), @intCast(ly), @intCast(lz), .obsidian);
+                    } else if (wy == 15 and is_pillar) {
+                        if (self.isPillarApex(wx, wz)) {
+                            // Perched End Crystal at pillar apex
+                            chunk.setBlock(@intCast(lx), @intCast(ly), @intCast(lz), .end_crystal);
+                        } else {
+                            chunk.setBlock(@intCast(lx), @intCast(ly), @intCast(lz), .obsidian);
+                        }
                     } else if (island) |isl| {
                         if (wy >= isl.min_y and wy <= isl.max_y) {
                             chunk.setBlock(@intCast(lx), @intCast(ly), @intCast(lz), .end_stone);

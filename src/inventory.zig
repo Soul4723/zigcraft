@@ -154,6 +154,7 @@ pub const ItemType = enum(u8) {
     eye_of_ender = 148,
     end_stone = 149,
     end_portal_frame = 150,
+    end_crystal = 151,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -250,6 +251,7 @@ pub const ItemType = enum(u8) {
             .cobweb => .cobweb,
             .end_stone => .end_stone,
             .end_portal_frame => .end_portal_frame,
+            .end_crystal => .end_crystal,
             else => null,
         };
     }
@@ -353,6 +355,7 @@ pub const ItemType = enum(u8) {
             .end_stone => .end_stone,
             .end_portal_frame, .end_portal_frame_filled => .end_portal_frame,
             .end_portal => .none,
+            .end_crystal => .end_crystal,
         };
     }
 
@@ -554,6 +557,7 @@ pub const ItemType = enum(u8) {
             .eye_of_ender => "Eye of Ender",
             .end_stone => "End Stone",
             .end_portal_frame => "End Portal Frame",
+            .end_crystal => "End Crystal",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -646,6 +650,7 @@ pub const ItemType = enum(u8) {
             .eye_of_ender => .{ 0.18, 0.65, 0.48, 0.95 },
             .end_stone => .{ 0.92, 0.90, 0.65, 0.95 },
             .end_portal_frame => .{ 0.18, 0.42, 0.35, 0.95 },
+            .end_crystal => .{ 0.85, 0.30, 0.90, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1194,6 +1199,22 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 111: End Crystal: 2 Glass + 1 Eye of Ender + 1 Blaze Powder/Nether Star/Ghast Tear -> 1 End Crystal
+        if (non_empty == 4) {
+            var glass_cnt: usize = 0;
+            var eye_cnt: usize = 0;
+            var catalyst_cnt: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .glass) glass_cnt += 1;
+                if (sl.item == .eye_of_ender) eye_cnt += 1;
+                if (sl.item == .blaze_powder or sl.item == .nether_star or sl.item == .magma_cream) catalyst_cnt += 1;
+            }
+            if (glass_cnt == 2 and eye_cnt == 1 and catalyst_cnt == 1) {
+                self.craft_output = .{ .item = .end_crystal, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 109: End Stone: 1 Cobblestone + 1 Sandstone -> 2 End Stone
         if (non_empty == 2) {
@@ -4540,5 +4561,20 @@ test "end stone and end portal frame item roundtrip, properties, and Recipes 109
     inv.craft_grid[3] = .{ .item = .ender_pearl, .count = 1 };
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .end_portal_frame);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+}
+
+test "end crystal item roundtrip and Recipe 111" {
+    try std.testing.expectEqual(ItemType.fromBlockId(.end_crystal), .end_crystal);
+    try std.testing.expectEqual(ItemType.end_crystal.toBlockId(), .end_crystal);
+    try std.testing.expectEqualStrings(ItemType.end_crystal.name(), "End Crystal");
+
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .glass, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .eye_of_ender, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .blaze_powder, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .end_crystal);
     try std.testing.expectEqual(inv.craft_output.count, 1);
 }

@@ -2295,6 +2295,40 @@ pub fn main() !void {
                                 particles.spawnBlockDebris(hit.x, hit.y, hit.z, .{ drop_col[0], drop_col[1], drop_col[2] }, 16);
                                 const held = inventory.slots[selected_slot].item;
                                 const tier_ok = inventory_mod.canHarvestBlock(held, broken_block);
+                                // End Crystal destruction: violent concussive detonation and crater carving
+                                if (broken_block == .end_crystal) {
+                                    audio.play(.firework_blast, 1.0);
+                                    particles.spawnFireworkBurst(.{ @as(f32, @floatFromInt(hit.x)) + 0.5, @as(f32, @floatFromInt(hit.y)) + 0.5, @as(f32, @floatFromInt(hit.z)) + 0.5 }, 36);
+                                    particles.spawnPortalVortex(.{ @as(f32, @floatFromInt(hit.x)) + 0.5, @as(f32, @floatFromInt(hit.y)) + 0.5, @as(f32, @floatFromInt(hit.z)) + 0.5 }, 2.0, 24, 0.0);
+                                    // Carve explosive blast crater in adjacent blocks
+                                    var cr_x: i32 = -boom_mod.creeper_blast_radius;
+                                    while (cr_x <= boom_mod.creeper_blast_radius) : (cr_x += 1) {
+                                        var cr_y: i32 = -boom_mod.creeper_blast_radius;
+                                        while (cr_y <= boom_mod.creeper_blast_radius) : (cr_y += 1) {
+                                            var cr_z: i32 = -boom_mod.creeper_blast_radius;
+                                            while (cr_z <= boom_mod.creeper_blast_radius) : (cr_z += 1) {
+                                                if (boom_mod.inBlast(cr_x, cr_y, cr_z)) {
+                                                    const bx = hit.x + cr_x;
+                                                    const by = hit.y + cr_y;
+                                                    const bz = hit.z + cr_z;
+                                                    const b_to_break = manager.getBlockWorld(bx, by, bz);
+                                                    if (b_to_break != .obsidian and b_to_break != .air) {
+                                                        _ = try manager.editAndRemesh(bx, by, bz, .air);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if (boom_mod.calculatePlayerBlastImpulse(player.pos.x, player.pos.y, player.pos.z, hit.x, hit.y, hit.z)) |imp| {
+                                        player.health = @max(0.0, player.health - imp.damage * 1.5);
+                                        player.vel_y = imp.vel_y * 1.2;
+                                        player.pos.x += imp.push_x * 1.2;
+                                        player.pos.z += imp.push_z * 1.2;
+                                        audio.play(.hurt, 1.0);
+                                    }
+                                    std.debug.print("End Crystal detonated at ({d},{d},{d})!\n", .{ hit.x, hit.y, hit.z });
+                                }
+
                                 // If obsidian is broken, extinguish adjacent portal cells whose frame is no longer intact
                                 if (broken_block == .obsidian) {
                                     var ext_cells: [6][3]i32 = undefined;
