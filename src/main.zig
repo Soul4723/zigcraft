@@ -190,6 +190,7 @@ pub fn main() !void {
     var wolf_bite_cooldown: f32 = 0.0;
     var fireball_cooldown: f32 = 0.0;
     var skeleton_shot_cooldown: f32 = 0.0;
+    var shulker_shot_cooldown: f32 = 0.0;
     var compass_cooldown: f32 = 0.0;
     const Fuse = boom_mod.Fuse;
     var fuses: [boom_mod.fuse_cap]Fuse = undefined;
@@ -216,7 +217,7 @@ pub fn main() !void {
     const PortalTarget = portal_mod.PortalTarget;
     var portal_targets: [32]PortalTarget = undefined;
     var portal_target_count: usize = 0;
-    const ThrownKind = enum { snowball, hostile_fireball, hostile_arrow, player_fire_charge, spectral_arrow, arrow, firework_rocket, ender_pearl, eye_of_ender };
+    const ThrownKind = enum { snowball, hostile_fireball, hostile_arrow, player_fire_charge, spectral_arrow, arrow, firework_rocket, ender_pearl, eye_of_ender, shulker_bullet };
     const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball, damage: u8 = 1, pierce: u8 = 0, last_hit_mob: ?usize = null };
     var thrown: [proj_mod.thrown_cap]Thrown = undefined;
     var thrown_count: usize = 0;
@@ -833,7 +834,7 @@ pub fn main() !void {
                     const above_z = hop.z;
                     const above_b = manager.getBlockWorld(above_x, above_y, above_z);
 
-                    if (above_b == .chest) {
+                    if (above_b == .chest or above_b == .shulker_box) {
                         for (chests[0..chest_count]) |*ch| {
                             if (ch.x == above_x and ch.y == above_y and ch.z == above_z) {
                                 for (&ch.items) |*cs| {
@@ -869,7 +870,7 @@ pub fn main() !void {
                         const below_z = hop.z;
                         const below_b = manager.getBlockWorld(below_x, below_y, below_z);
 
-                        if (below_b == .chest) {
+                        if (below_b == .chest or below_b == .shulker_box) {
                             for (chests[0..chest_count]) |*ch| {
                                 if (ch.x == below_x and ch.y == below_y and ch.z == below_z) {
                                     for (&hop.items) |*hs| {
@@ -2439,7 +2440,7 @@ pub fn main() !void {
                                 }
 
                                 if (tier_ok) {
-                                    if (broken_block == .chest) {
+                                    if (broken_block == .chest or broken_block == .shulker_box) {
                                         if (cache_mod.findChest(&chests, chest_count, hit.x, hit.y, hit.z)) |ci| {
                                             for (chests[ci].items) |citem| {
                                                 if (!citem.isEmpty()) _ = inventory.addItem(citem.item, citem.count);
@@ -3129,7 +3130,33 @@ pub fn main() !void {
                     std.debug.print("firework rocket airburst exploded\n", .{});
                 }
                 if (!dead) {
-                    if (t.kind == .hostile_arrow) {
+                    if (t.kind == .shulker_bullet) {
+                        // Shulker bullet strikes player: 4 damage, inflicts levitation debuff, creates white spark burst
+                        const pdx = player.pos.x - t.pos.x;
+                        const pdy = (player.pos.y + 1.0) - t.pos.y;
+                        const pdz = player.pos.z - t.pos.z;
+                        if (pdx * pdx + pdy * pdy + pdz * pdz < 1.2) {
+                            const cf = cam.front();
+                            const blocked = is_blocking and combat_mod.canBlockAttack(cf.x, cf.z, -pdx, -pdz);
+                            if (blocked) {
+                                audio.play(.shield_block, 0.9);
+                                particles.spawnBlockDebris(@intFromFloat(@floor(player.pos.x + cf.x * 0.6)), @intFromFloat(@floor(player.pos.y + 0.8)), @intFromFloat(@floor(player.pos.z + cf.z * 0.6)), .{ 0.85, 0.85, 0.85 }, 8);
+                            } else {
+                                const has_chestplate = inventory.hasItem(.netherite_chestplate);
+                                const has_full = inventory.hasFullNetheriteSet();
+                                const bullet_dmg = combat_mod.applyArmorReductionFullSet(4.0, has_chestplate, has_full);
+                                player.health = @max(0.0, player.health - bullet_dmg);
+                                player.applyLevitation();
+                                audio.play(.hurt, 0.8);
+                                particles.spawnPortalParticles(.{ t.pos.x, t.pos.y, t.pos.z }, 16);
+                                std.debug.print("shulker bullet hit player: 4 dmg + levitation! (hp={d:.1})\n", .{player.health});
+                            }
+                            dead = true;
+                        } else if (pickSolid(mbx, mby, mbz)) {
+                            particles.spawnPortalParticles(.{ t.pos.x, t.pos.y, t.pos.z }, 12);
+                            dead = true;
+                        }
+                    } else if (t.kind == .hostile_arrow) {
                         // Skeleton hostile arrow vs player: deals 2 damage on impact, blocked by shield
                         const pdx = player.pos.x - t.pos.x;
                         const pdy = (player.pos.y + 1.0) - t.pos.y;
@@ -3159,6 +3186,8 @@ pub fn main() !void {
                             audio.playAt(.step_wood, .{ t.pos.x, t.pos.y, t.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.6, 20.0);
                             dead = true;
                         }
+                    } else if (t.kind == .shulker_bullet) {
+                        particles.spawnPortalParticles(.{ t.pos.x, t.pos.y, t.pos.z }, 1);
                     } else if (t.kind == .hostile_arrow) {
                         particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.85, 0.85, 0.85 }, 1);
                     } else if (t.kind == .eye_of_ender) {
@@ -3410,7 +3439,9 @@ pub fn main() !void {
                     cache_mod.swapRemove(&thrown, &thrown_count, ti);
                 } else {
                     // trail puff
-                    if (t.kind == .hostile_arrow) {
+                    if (t.kind == .shulker_bullet) {
+                        particles.spawnPortalParticles(.{ t.pos.x, t.pos.y, t.pos.z }, 1);
+                    } else if (t.kind == .hostile_arrow) {
                         particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.85, 0.85, 0.85 }, 1);
                     } else if (t.kind == .eye_of_ender) {
                         particles.spawnPortalParticles(.{ t.pos.x, t.pos.y, t.pos.z }, 2);
@@ -3758,6 +3789,41 @@ pub fn main() !void {
             }
         }
 
+
+        // Shulker bullet fire: homing levitation missile cadence every 3.0s when player is within 20m
+        shulker_shot_cooldown = combat_mod.tickCooldown(shulker_shot_cooldown, dt);
+        if (shulker_shot_cooldown <= 0.0) {
+            for (mob_manager.mobs.items) |m| {
+                if (m.mob_type != .shulker) continue;
+                const sdx = player.pos.x - m.pos.x;
+                const sdz = player.pos.z - m.pos.z;
+                const sdy = (player.pos.y + 0.8) - (m.pos.y + 0.5);
+                const sdist_sq = sdx * sdx + sdz * sdz;
+                if (sdist_sq <= 20.0 * 20.0 and sdist_sq > 1.0) {
+                    if (thrown_count < thrown.len) {
+                        const dist = @sqrt(sdist_sq + sdy * sdy);
+                        const b_speed: f32 = 8.0;
+                        const vx = (sdx / dist) * b_speed;
+                        const vy = (sdy / dist) * b_speed;
+                        const vz = (sdz / dist) * b_speed;
+                        thrown[thrown_count] = .{
+                            .pos = math.Vec3.init(m.pos.x, m.pos.y + 0.6, m.pos.z),
+                            .vel = math.Vec3.init(vx, vy, vz),
+                            .life = 6.0,
+                            .kind = .shulker_bullet,
+                            .damage = 4,
+                        };
+                        thrown_count += 1;
+                        audio.playAt(.mob_roar, .{ m.pos.x, m.pos.y, m.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.7, 25.0);
+                        particles.spawnPortalParticles(.{ m.pos.x, m.pos.y + 0.6, m.pos.z }, 10);
+                        std.debug.print("shulker fired levitation bullet\n", .{});
+                    }
+                    shulker_shot_cooldown = 3.0;
+                    break;
+                }
+            }
+        }
+
         // Skeleton archery: ranged arrow barrage with 1.8s cadence when player is within 16m
         skeleton_shot_cooldown = combat_mod.tickCooldown(skeleton_shot_cooldown, dt);
         if (skeleton_shot_cooldown <= 0.0) {
@@ -3986,7 +4052,7 @@ pub fn main() !void {
                     audio.play(.place_block, 0.8);
                     std.debug.print("lit TNT fuse\n", .{});
                     flint_cooldown = interact_mod.flint_edge_cooldown;
-                } else if (target == .chest) {
+                } else if (target == .chest or target == .shulker_box) {
                     var k_opt = cache_mod.findChest(&chests, chest_count, hit_f.x, hit_f.y, hit_f.z);
                     if (k_opt == null and cache_mod.canCreateChest(chest_count, chests.len)) {
                         chests[chest_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z, .items = [_]inventory_mod.ItemStack{.{}} ** 4 };

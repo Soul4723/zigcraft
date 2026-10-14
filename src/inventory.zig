@@ -163,6 +163,8 @@ pub const ItemType = enum(u8) {
     popped_chorus_fruit = 157,
     chorus_flower = 158,
     chorus_plant = 159,
+    shulker_shell = 160,
+    shulker_box = 161,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -266,6 +268,7 @@ pub const ItemType = enum(u8) {
             .end_rod => .end_rod,
             .chorus_plant => .chorus_plant,
             .chorus_flower => .chorus_flower,
+            .shulker_box => .shulker_box,
             else => null,
         };
     }
@@ -376,6 +379,7 @@ pub const ItemType = enum(u8) {
             .end_rod => .end_rod,
             .chorus_plant => .chorus_plant,
             .chorus_flower => .chorus_flower,
+            .shulker_box => .shulker_box,
         };
     }
 
@@ -586,6 +590,8 @@ pub const ItemType = enum(u8) {
             .popped_chorus_fruit => "Popped Chorus Fruit",
             .chorus_flower => "Chorus Flower",
             .chorus_plant => "Chorus Plant",
+            .shulker_shell => "Shulker Shell",
+            .shulker_box => "Shulker Box",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -687,6 +693,8 @@ pub const ItemType = enum(u8) {
             .popped_chorus_fruit => .{ 0.85, 0.60, 0.70, 0.95 },
             .chorus_flower => .{ 0.90, 0.80, 0.92, 0.95 },
             .chorus_plant => .{ 0.60, 0.38, 0.60, 0.95 },
+            .shulker_shell => .{ 0.68, 0.44, 0.68, 0.95 },
+            .shulker_box => .{ 0.72, 0.48, 0.72, 0.98 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1235,6 +1243,20 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 118: Shulker Box: 1 Chest + 2 Shulker Shells -> 1 Shulker Box
+        if (non_empty == 3) {
+            var chest_cnt: usize = 0;
+            var shell_cnt: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .chest) chest_cnt += 1;
+                if (sl.item == .shulker_shell) shell_cnt += 1;
+            }
+            if (chest_cnt == 1 and shell_cnt == 2) {
+                self.craft_output = .{ .item = .shulker_box, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 115: Purpur Block from Popped Chorus Fruit: 4 Popped Chorus Fruit -> 4 Purpur Blocks
         if (non_empty == 4) {
@@ -2744,10 +2766,11 @@ pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
     return held == .wooden_pickaxe or held == .iron_pickaxe or held == .netherite_pickaxe;
 }
 
-pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, skeleton, zombie, creeper, enderman, ender_dragon };
+pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, skeleton, zombie, creeper, enderman, ender_dragon, shulker };
 
 pub fn getMobMeatDrop(mob_type: MobType) ItemType {
     return switch (mob_type) {
+        .shulker => .shulker_shell,
         .pig => .raw_pork,
         .sheep => .raw_mutton,
         .wolf => .none,
@@ -4800,4 +4823,30 @@ test "chorus fruit item roundtrip, drops, and recipes 115-117" {
 
     try std.testing.expectEqual(@as(usize, 1), getBlockDrops(.chorus_flower, &drops));
     try std.testing.expectEqual(drops[0].item, .chorus_flower);
+}
+
+test "shulker shell and shulker box item roundtrip, mob drop, and Recipe 118" {
+    var inv = Inventory.init();
+
+    // Recipe 118: 1 Chest + 2 Shulker Shells -> 1 Shulker Box
+    inv.craft_grid[0] = .{ .item = .shulker_shell, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .chest, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .shulker_shell, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .shulker_box);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Roundtrip and names
+    try std.testing.expectEqual(ItemType.fromBlockId(.shulker_box), .shulker_box);
+    try std.testing.expectEqual(ItemType.shulker_box.toBlockId().?, .shulker_box);
+    try std.testing.expectEqualStrings(ItemType.shulker_box.name(), "Shulker Box");
+    try std.testing.expectEqualStrings(ItemType.shulker_shell.name(), "Shulker Shell");
+
+    // Mob drop
+    try std.testing.expectEqual(getMobMeatDrop(.shulker), .shulker_shell);
+
+    // Block drops
+    var drops: [2]BlockDrop = undefined;
+    try std.testing.expectEqual(@as(usize, 1), getBlockDrops(.shulker_box, &drops));
+    try std.testing.expectEqual(drops[0].item, .shulker_box);
 }

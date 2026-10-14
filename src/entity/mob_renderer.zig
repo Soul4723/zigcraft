@@ -522,6 +522,22 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
             try appendBox(allocator, verts, inds, math.Vec3.init(-0.12, 0.28, 0 + leg_swing), math.Vec3.init(0.13, 0.56, 0.13), mob.yaw, mob.pos, uv_skin, uv_skin);
             try appendBox(allocator, verts, inds, math.Vec3.init(0.12, 0.28, 0 - leg_swing), math.Vec3.init(0.13, 0.56, 0.13), mob.yaw, mob.pos, uv_skin, uv_skin);
         },
+        .shulker => {
+            const uv_shell = texture.getTileUV(6, 5); // Purpur shell
+            const uv_eye = texture.getTileUV(7, 6);   // Glowing yellow-white shulker eyes / inner head
+
+            // Peeking shell animation: shell opens upwards by peek_h (up to 0.28m)
+            const peek_h = @sin(mob.anim_time * 2.5) * 0.14 + 0.14;
+
+            // 1. Lower shell base: 0.72 x 0.36 x 0.72 at (0, 0.18, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.18, 0), math.Vec3.init(0.72, 0.36, 0.72), mob.yaw, mob.pos, uv_shell, uv_shell);
+
+            // 2. Inner peeking head: 0.38 x 0.38 x 0.38 at (0, 0.30 + peek_h * 0.5, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.30 + peek_h * 0.5, 0), math.Vec3.init(0.38, 0.38, 0.38), mob.yaw, mob.pos, uv_eye, uv_shell);
+
+            // 3. Upper shell lid: 0.72 x 0.36 x 0.72 at (0, 0.54 + peek_h, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.54 + peek_h, 0), math.Vec3.init(0.72, 0.36, 0.72), mob.yaw, mob.pos, uv_shell, uv_shell);
+        },
         .target_dummy => {
             const uv_hay = texture.getTileUV(1, 4); // Hay bale textured body
             const uv_post = texture.getTileUV(2, 2); // Wood post & crossbar

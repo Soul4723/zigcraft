@@ -27,6 +27,7 @@ pub const Player = struct {
     poison_timer: f32 = 0.0,
     weakness_timer: f32 = 0.0,
     hunger_debuff_timer: f32 = 0.0,
+    levitation_timer: f32 = 0.0,
     lodestone_target: ?math.Vec3 = null,
 
     pub fn init(x: f32, y: f32, z: f32) Player {
@@ -144,6 +145,18 @@ pub const Player = struct {
         self.hunger_debuff_timer = hunger_debuff_duration;
     }
 
+
+    pub const levitation_duration: f32 = 10.0;
+    pub const levitation_lift_speed: f32 = 2.5;
+
+    pub fn applyLevitation(self: *Player) void {
+        self.levitation_timer = levitation_duration;
+    }
+
+    pub fn isLevitating(self: Player) bool {
+        return self.levitation_timer > 0.0;
+    }
+
     pub fn hasHungerDebuff(self: Player) bool {
         return self.hunger_debuff_timer > 0.0;
     }
@@ -163,6 +176,7 @@ pub const Player = struct {
         self.poison_timer = @max(0.0, self.poison_timer - dt);
         self.weakness_timer = @max(0.0, self.weakness_timer - dt);
         self.hunger_debuff_timer = @max(0.0, self.hunger_debuff_timer - dt);
+        self.levitation_timer = @max(0.0, self.levitation_timer - dt);
         if (self.wither_timer > 0.0 and self.health > 0.0) {
             self.health = @max(0.0, self.health - dt * wither_rate);
         }
@@ -276,6 +290,10 @@ pub const Player = struct {
                 self.vel_y -= 6.0 * clamped_dt;
                 if (self.vel_y < water_sink_speed) self.vel_y = water_sink_speed;
             }
+        } else if (self.isLevitating()) {
+            // Shulker levitation effect: upward gentle anti-gravity lift
+            self.vel_y = levitation_lift_speed;
+            self.on_ground = false;
         } else {
             if (jump and self.on_ground) {
                 self.vel_y = 8.0;
@@ -881,4 +899,23 @@ test "player hunger debuff effect from rotten flesh accelerates hunger depletion
     p.tickVitals(11.0);
     try std.testing.expectEqual(@as(f32, 0.0), p.hunger_debuff_timer);
     try std.testing.expect(!p.hasHungerDebuff());
+}
+
+test "player levitation status and upward vertical physics" {
+    var p = Player.init(0.5, 2.0, 0.5);
+    try std.testing.expect(!p.isLevitating());
+    p.applyLevitation();
+    try std.testing.expect(p.isLevitating());
+    try std.testing.expectEqual(@as(f32, 10.0), p.levitation_timer);
+
+    const Mock = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return false; }
+    };
+    p.tickPhysics(Mock.solid, null, null, 0.0, 0.0, false, 0.05);
+    // Upward velocity matches levitation speed
+    try std.testing.expectEqual(p.vel_y, Player.levitation_lift_speed);
+    try std.testing.expect(p.pos.y > 2.0);
+
+    p.tickVitals(11.0);
+    try std.testing.expect(!p.isLevitating());
 }
