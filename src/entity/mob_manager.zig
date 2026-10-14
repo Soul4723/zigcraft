@@ -124,9 +124,11 @@ pub const MobManager = struct {
             while (iy >= 1) : (iy -= 1) {
                 if (!spawn_rules.isWaterSpawn(chunk_manager, ix, iy, iz)) continue;
                 const roll_w = self.rng.random().float(f32);
-                // If near ocean monument (-8..8, -24..-8), spawn Guardian marine sentinels
+                // If near ocean monument (-8..8, -24..-8), spawn Elder Guardian boss or Guardian sentinels
                 const near_monument = (ix >= -12 and ix <= 12 and iz >= -28 and iz <= -4);
-                const water_mtype: mob_mod.MobType = if (near_monument or roll_w < 0.25)
+                const water_mtype: mob_mod.MobType = if (near_monument)
+                    (if (roll_w < 0.20) .elder_guardian else .guardian)
+                else if (roll_w < 0.25)
                     .guardian
                 else if (is_night and roll_w < 0.70)
                     .drowned

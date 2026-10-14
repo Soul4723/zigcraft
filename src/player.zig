@@ -33,6 +33,7 @@ pub const Player = struct {
     rocket_boost_timer: f32 = 0.0,
     insomnia_timer: f32 = 0.0,
     slow_falling_timer: f32 = 0.0,
+    mining_fatigue_timer: f32 = 0.0,
     lodestone_target: ?math.Vec3 = null,
 
     pub fn resetInsomnia(self: *Player) void {
@@ -179,6 +180,16 @@ pub const Player = struct {
     }
 
 
+    pub const mining_fatigue_duration: f32 = 60.0;
+
+    pub fn applyMiningFatigue(self: *Player) void {
+        self.mining_fatigue_timer = mining_fatigue_duration;
+    }
+
+    pub fn hasMiningFatigue(self: Player) bool {
+        return self.mining_fatigue_timer > 0.0;
+    }
+
     pub const levitation_duration: f32 = 10.0;
     pub const levitation_lift_speed: f32 = 2.5;
 
@@ -229,6 +240,7 @@ pub const Player = struct {
         self.fire_resistance_timer = @max(0.0, self.fire_resistance_timer - dt);
         self.water_breathing_timer = @max(0.0, self.water_breathing_timer - dt);
         self.slow_falling_timer = @max(0.0, self.slow_falling_timer - dt);
+        self.mining_fatigue_timer = @max(0.0, self.mining_fatigue_timer - dt);
         self.regen_timer = @max(0.0, self.regen_timer - dt);
         self.wither_timer = @max(0.0, self.wither_timer - dt);
         self.poison_timer = @max(0.0, self.poison_timer - dt);
@@ -1078,4 +1090,22 @@ test "player slow falling potion duration, status, and decay" {
     p.tickVitals(10.0);
     try std.testing.expectEqual(@as(f32, 80.0), p.slow_falling_timer);
     try std.testing.expect(p.hasSlowFalling());
+}
+
+test "mining fatigue timer, application, and vitals decay" {
+    var p = Player.init(0.0, 5.0, 0.0);
+    try std.testing.expect(!p.hasMiningFatigue());
+    try std.testing.expectEqual(p.mining_fatigue_timer, 0.0);
+
+    p.applyMiningFatigue();
+    try std.testing.expect(p.hasMiningFatigue());
+    try std.testing.expectEqual(p.mining_fatigue_timer, 60.0);
+
+    p.tickVitals(10.0);
+    try std.testing.expect(p.hasMiningFatigue());
+    try std.testing.expectEqual(p.mining_fatigue_timer, 50.0);
+
+    p.tickVitals(55.0);
+    try std.testing.expect(!p.hasMiningFatigue());
+    try std.testing.expectEqual(p.mining_fatigue_timer, 0.0);
 }

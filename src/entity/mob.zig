@@ -72,6 +72,7 @@ pub const Mob = struct {
             .drowned => 0.6,
             .phantom => 0.9,
             .guardian => 0.8,
+            .elder_guardian => 1.4,
         };
         const h: f32 = switch (mob_type) {
             .sheep => 0.9,
@@ -93,6 +94,7 @@ pub const Mob = struct {
             .drowned => 1.8,
             .phantom => 0.5,
             .guardian => 0.8,
+            .elder_guardian => 1.4,
         };
         const spd: f32 = switch (mob_type) {
             .sheep => 1.4,
@@ -116,6 +118,7 @@ pub const Mob = struct {
             .drowned => 1.8,
             .phantom => 4.2,
             .guardian => 0.5,
+            .elder_guardian => 0.3,
         };
         return .{
             .mob_type = mob_type,
@@ -131,7 +134,7 @@ pub const Mob = struct {
             .anim_time = 0.0,
             .change_dir_timer = 2.0,
             .wants_sound = false,
-            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze or mob_type == .enderman or mob_type == .phantom) 20 else if (mob_type == .piglin_brute or mob_type == .drowned) 15 else if (mob_type == .ender_dragon) 200 else if (mob_type == .target_dummy) 50 else if (mob_type == .shulker or mob_type == .turtle or mob_type == .guardian) 30 else if (mob_type == .spider or mob_type == .endermite) 8 else if (mob_type == .skeleton or mob_type == .zombie or mob_type == .creeper) 10 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
+            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze or mob_type == .enderman or mob_type == .phantom) 20 else if (mob_type == .piglin_brute or mob_type == .drowned) 15 else if (mob_type == .ender_dragon) 200 else if (mob_type == .elder_guardian) 80 else if (mob_type == .target_dummy) 50 else if (mob_type == .shulker or mob_type == .turtle or mob_type == .guardian) 30 else if (mob_type == .spider or mob_type == .endermite) 8 else if (mob_type == .skeleton or mob_type == .zombie or mob_type == .creeper) 10 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
             .in_water = false,
             .in_bubble_column = false,
             .in_whirlpool = false,
@@ -230,6 +233,8 @@ pub const Mob = struct {
             self.walk_speed = if (self.in_water) 2.4 else 1.8;
         } else if (self.mob_type == .guardian) {
             self.walk_speed = if (self.in_water) 3.2 else 0.5;
+        } else if (self.mob_type == .elder_guardian) {
+            self.walk_speed = if (self.in_water) 1.8 else 0.3;
         }
         if (self.in_water) {
             const dirs = [_][2]i32{ .{ 1, 0 }, .{ -1, 0 }, .{ 0, 1 }, .{ 0, -1 } };
@@ -608,7 +613,7 @@ pub fn getSound(mob_type: MobType) ?@import("../audio/synth.zig").SoundType {
         .turtle => .mob_growl,
         .drowned => .mob_growl,
         .phantom => .mob_roar,
-        .guardian => .mob_roar,
+        .guardian, .elder_guardian => .mob_roar,
     };
 }
 
@@ -984,4 +989,14 @@ test "guardian mob stats, dimensions, swimming speed, and prismarine shard drop"
     try std.testing.expectEqual(g.height, 0.8);
     try std.testing.expectEqual(getSound(.guardian), .mob_roar);
     try std.testing.expectEqual(inventory_mod.getMobMeatDrop(.guardian), .prismarine_shard);
+}
+
+test "elder guardian boss stats, dimensions, drops, and sound" {
+    const eg = Mob.init(.elder_guardian, 0.0, 5.0, -16.0);
+    try std.testing.expectEqual(eg.mob_type, .elder_guardian);
+    try std.testing.expectEqual(eg.health, 80);
+    try std.testing.expectEqual(eg.width, 1.4);
+    try std.testing.expectEqual(eg.height, 1.4);
+    try std.testing.expectEqual(getSound(.elder_guardian), .mob_roar);
+    try std.testing.expectEqual(inventory_mod.getMobMeatDrop(.elder_guardian), .sponge);
 }

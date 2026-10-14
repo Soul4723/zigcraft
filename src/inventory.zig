@@ -185,6 +185,8 @@ pub const ItemType = enum(u8) {
     dark_prismarine = 179,
     sea_lantern = 180,
     conduit = 181,
+    sponge = 182,
+    wet_sponge = 183,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -296,6 +298,8 @@ pub const ItemType = enum(u8) {
             .dark_prismarine => .dark_prismarine,
             .sea_lantern => .sea_lantern,
             .conduit => .conduit,
+            .sponge => .sponge,
+            .wet_sponge => .wet_sponge,
             else => null,
         };
     }
@@ -414,6 +418,8 @@ pub const ItemType = enum(u8) {
             .dark_prismarine => .dark_prismarine,
             .sea_lantern => .sea_lantern,
             .conduit => .conduit,
+            .sponge => .sponge,
+            .wet_sponge => .wet_sponge,
         };
     }
 
@@ -649,6 +655,8 @@ pub const ItemType = enum(u8) {
             .dark_prismarine => "Dark Prismarine",
             .sea_lantern => "Sea Lantern",
             .conduit => "Conduit",
+            .sponge => "Sponge",
+            .wet_sponge => "Wet Sponge",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -772,6 +780,8 @@ pub const ItemType = enum(u8) {
             .dark_prismarine => .{ 0.20, 0.38, 0.36, 0.98 },
             .sea_lantern => .{ 0.82, 0.95, 0.92, 0.98 },
             .conduit => .{ 0.90, 0.60, 0.45, 0.98 },
+            .sponge => .{ 0.85, 0.80, 0.30, 0.98 },
+            .wet_sponge => .{ 0.65, 0.68, 0.28, 0.98 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -3065,11 +3075,12 @@ pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
     return held == .wooden_pickaxe or held == .iron_pickaxe or held == .netherite_pickaxe;
 }
 
-pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, skeleton, zombie, creeper, enderman, ender_dragon, shulker, endermite, turtle, drowned, phantom, guardian };
+pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, skeleton, zombie, creeper, enderman, ender_dragon, shulker, endermite, turtle, drowned, phantom, guardian, elder_guardian };
 
 pub fn getMobMeatDrop(mob_type: MobType) ItemType {
     return switch (mob_type) {
         .guardian => .prismarine_shard,
+        .elder_guardian => .sponge,
         .phantom => .phantom_membrane,
         .drowned => .rotten_flesh,
         .turtle => .scute,
@@ -5402,4 +5413,22 @@ test "ocean monument prismarine, sea lantern, and conduit recipes 130-134 and ro
 
 test "guardian mob drop" {
     try std.testing.expectEqual(getMobMeatDrop(.guardian), .prismarine_shard);
+}
+
+test "sponge and wet sponge item roundtrip, properties, and elder guardian drops" {
+    try std.testing.expectEqual(ItemType.sponge.toBlockId().?, .sponge);
+    try std.testing.expectEqual(ItemType.wet_sponge.toBlockId().?, .wet_sponge);
+    try std.testing.expectEqual(ItemType.fromBlockId(.sponge), .sponge);
+    try std.testing.expectEqual(ItemType.fromBlockId(.wet_sponge), .wet_sponge);
+
+    try std.testing.expectEqualStrings(ItemType.sponge.name(), "Sponge");
+    try std.testing.expectEqualStrings(ItemType.wet_sponge.name(), "Wet Sponge");
+
+    try std.testing.expectEqual(ItemType.sponge.maxStackSize(), 64);
+    try std.testing.expectEqual(ItemType.wet_sponge.maxStackSize(), 64);
+
+    try std.testing.expect(!ItemType.sponge.isTool());
+    try std.testing.expect(!ItemType.wet_sponge.isTool());
+
+    try std.testing.expectEqual(getMobMeatDrop(.elder_guardian), .sponge);
 }

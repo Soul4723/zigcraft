@@ -1944,7 +1944,7 @@ pub fn main() !void {
         if (wolf_bite_cooldown <= 0.0) {
             const held_gold = (inventory.slots[selected_slot].item == .gold_nugget or inventory.slots[selected_slot].item == .golden_apple);
             for (mob_manager.mobs.items) |*m| {
-                if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider and m.mob_type != .endermite and m.mob_type != .drowned and m.mob_type != .phantom and m.mob_type != .guardian) continue;
+                if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider and m.mob_type != .endermite and m.mob_type != .drowned and m.mob_type != .phantom and m.mob_type != .guardian and m.mob_type != .elder_guardian) continue;
                 if (m.mob_type == .piglin and (held_gold or m.barter_timer > 0.0 or entity_mod.mob_manager.MobManager.isPiglinRepelled(m.pos, player.pos, held_warped_fungus, &pickBlockWorld) != null)) continue;
                 const bdx = m.pos.x - player.pos.x;
                 const bdz = m.pos.z - player.pos.z;
@@ -2009,6 +2009,14 @@ pub fn main() !void {
                             audio.play(.mob_roar, 0.9);
                             audio.play(.splash, 0.8);
                             std.debug.print("guardian laser beam struck player (dmg={d:.1}, hp={d:.1})\n", .{ g_dmg, player.health });
+                        } else if (m.mob_type == .elder_guardian) {
+                            // Elder Guardian boss laser beam: 6 damage + splash & heavy roar + Mining Fatigue affliction
+                            const eg_dmg = combat_mod.applyArmorReductionFullSet(6.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet());
+                            player.health = @max(0.0, player.health - eg_dmg);
+                            player.applyMiningFatigue();
+                            audio.play(.mob_roar, 1.0);
+                            audio.play(.splash, 0.9);
+                            std.debug.print("elder guardian laser beam struck player (dmg={d:.1}, hp={d:.1}, fatigue=60s)\n", .{ eg_dmg, player.health });
                         }
                         audio.play(.hurt, 0.8);
                         const has_leggings = inventory.hasItem(.netherite_leggings);
@@ -2205,12 +2213,19 @@ pub fn main() !void {
                 break :blk compass_mod.calculateNeedleAngle(0.0, 0.0, player.pos.x, player.pos.z, cam.yaw);
             } else compass_mod.compass_hidden;
 
-            // Query if Ender Dragon boss is present in current dimension for boss health bar
+            // Query if Ender Dragon or Elder Guardian boss is present for boss health bar
             var boss_health_frac: f32 = -1.0;
             if (manager.is_end) {
                 for (mob_manager.mobs.items) |m| {
                     if (m.mob_type == .ender_dragon and m.health > 0) {
                         boss_health_frac = @as(f32, @floatFromInt(m.health)) / 200.0;
+                        break;
+                    }
+                }
+            } else {
+                for (mob_manager.mobs.items) |m| {
+                    if (m.mob_type == .elder_guardian and m.health > 0) {
+                        boss_health_frac = @as(f32, @floatFromInt(m.health)) / 80.0;
                         break;
                     }
                 }
@@ -2506,7 +2521,8 @@ pub fn main() !void {
                     if (left) {
                         const broken_block = manager.getBlockWorld(hit.x, hit.y, hit.z);
                         const held_item_now = inventory.slots[selected_slot].item;
-                        const need = block_mod.mineTime(broken_block, @intFromEnum(held_item_now));
+                        var need = block_mod.mineTime(broken_block, @intFromEnum(held_item_now));
+                        if (player.hasMiningFatigue()) need /= 0.3;
                         const key: i64 = mining_mod.targetKey(hit.x, hit.y, hit.z);
                         if (!mine.valid or mine.key != key) {
                             mine.retarget(key, need);
@@ -2861,6 +2877,34 @@ pub fn main() !void {
                                         if (place_type == .conduit and conduit_count < conduits.len) {
                                             conduits[conduit_count] = .{ .x = px, .y = py, .z = pz };
                                             conduit_count += 1;
+                                        }
+                                        if (place_type == .sponge) {
+                                            var absorbed: usize = 0;
+                                            var sx: i32 = -3;
+                                            while (sx <= 3) : (sx += 1) {
+                                                var sy: i32 = -3;
+                                                while (sy <= 3) : (sy += 1) {
+                                                    var sz: i32 = -3;
+                                                    while (sz <= 3) : (sz += 1) {
+                                                        if (sx == 0 and sy == 0 and sz == 0) continue;
+                                                        if (sx * sx + sy * sy + sz * sz <= 9) {
+                                                            const wx = px + sx;
+                                                            const wy = py + sy;
+                                                            const wz = pz + sz;
+                                                            if (manager.getBlockWorld(wx, wy, wz) == .water) {
+                                                                _ = try manager.editAndRemesh(wx, wy, wz, .air);
+                                                                absorbed += 1;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            if (absorbed > 0) {
+                                                _ = try manager.editAndRemesh(px, py, pz, .wet_sponge);
+                                                audio.play(.splash, 0.85);
+                                                particles.spawnWaterSplash(.{ @as(f32, @floatFromInt(px)) + 0.5, @as(f32, @floatFromInt(py)) + 0.5, @as(f32, @floatFromInt(pz)) + 0.5 }, 24);
+                                                std.debug.print("sponge absorbed {d} water blocks into wet sponge!\n", .{absorbed});
+                                            }
                                         }
                                         // Wither summon: completed skull-T consumes the pattern
                                         // and raises an empowered wither champion (30 HP).
@@ -3257,6 +3301,32 @@ pub fn main() !void {
             }
         }
 
+                    // Elder Guardian Mining Fatigue curse & monument aura within 24m
+            const monument_dist_x = player.pos.x - 0.0;
+            const monument_dist_z = player.pos.z - (-16.0);
+            const monument_dist_sq = monument_dist_x * monument_dist_x + monument_dist_z * monument_dist_z;
+            if (monument_dist_sq <= 24.0 * 24.0 and !manager.is_nether and !manager.is_end) {
+                var eg_found = false;
+                for (mob_manager.mobs.items) |m| {
+                    if (m.mob_type == .elder_guardian and m.health > 0) {
+                        eg_found = true;
+                        break;
+                    }
+                }
+                // If player enters monument sanctuary and no Elder Guardian exists, spawn one in the apex vault
+                if (!eg_found and mob_manager.mobs.items.len < 8) {
+                    mob_manager.spawnMob(.elder_guardian, 0.5, 6.0, -15.5) catch {};
+                    audio.play(.mob_roar, 1.0);
+                    std.debug.print("Elder Guardian boss awakened at Ocean Monument apex!\n", .{});
+                }
+                if (!player.hasMiningFatigue()) {
+                    player.applyMiningFatigue();
+                    audio.play(.mob_roar, 0.9);
+                    toast.timer = 3.0;
+                    toast.color = .{ 0.85, 0.70, 0.20 };
+                    std.debug.print("Elder Guardian afflicted player with Mining Fatigue!\n", .{});
+                }
+            }
         // Thrown snowball physics: gravity arc, mob hit = 1 dmg + knockback, block hit = puff
         {
             var ti: usize = 0;

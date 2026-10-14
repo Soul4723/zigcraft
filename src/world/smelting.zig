@@ -16,6 +16,8 @@ pub const AncientDebris: u8 = 70;
 pub const NetheriteScrap: u8 = 71;
 pub const ChorusFruit: u8 = 156;
 pub const PoppedChorusFruit: u8 = 157;
+pub const Sponge: u8 = 182;
+pub const WetSponge: u8 = 183;
 pub const None: u8 = 0;
 
 pub fn smeltResult(input: u8) u8 {
@@ -26,6 +28,7 @@ pub fn smeltResult(input: u8) u8 {
         IronOre => IronIngot,
         AncientDebris => NetheriteScrap,
         ChorusFruit => PoppedChorusFruit,
+        WetSponge => Sponge,
         else => None,
     };
 }
@@ -41,6 +44,7 @@ test "smelting recipes" {
     try std.testing.expectEqual(smeltResult(IronOre), IronIngot);
     try std.testing.expectEqual(smeltResult(AncientDebris), NetheriteScrap);
     try std.testing.expectEqual(smeltResult(ChorusFruit), PoppedChorusFruit);
+    try std.testing.expectEqual(smeltResult(WetSponge), Sponge);
     try std.testing.expectEqual(smeltResult(None), None);
     try std.testing.expectEqual(smeltResult(99), None);
 }
@@ -49,6 +53,7 @@ test "smeltable check" {
     try std.testing.expect(isSmeltable(RawPork));
     try std.testing.expect(isSmeltable(AncientDebris));
     try std.testing.expect(isSmeltable(ChorusFruit));
+    try std.testing.expect(isSmeltable(WetSponge));
     try std.testing.expect(!isSmeltable(None));
 }
 

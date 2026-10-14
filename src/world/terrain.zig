@@ -142,11 +142,12 @@ pub const TerrainGenerator = struct {
         if (wx < -8 or wx > 8 or wz < -24 or wz > -8) return null;
         if (wy < 1 or wy > 7) return null;
 
-        // Central altar chamber with Conduit at (0, 3, -16)
+        // Central altar chamber with Conduit at (0, 3, -16) and apex Elder Guardian boss room vault
         if (wx == 0 and wz == -16) {
             if (wy == 2) return .dark_prismarine;
             if (wy == 3) return .conduit;
             if (wy == 4) return .sea_lantern;
+            if (wy == 5 or wy == 6) return .wet_sponge;
         }
 
         // 4 corner Sea Lantern beacon pillars at (+-6, wy, -22 / -10)
@@ -1598,5 +1599,7 @@ test "Ocean Monument generation: submerged pyramid, sea lanterns, and conduit al
     try std.testing.expectEqual(BlockId.sea_lantern, tg.getOceanMonumentBlock(6, 5, -22).?);
     try std.testing.expectEqual(BlockId.dark_prismarine, tg.getOceanMonumentBlock(0, 1, -16).?);
     try std.testing.expectEqual(BlockId.prismarine_bricks, tg.getOceanMonumentBlock(2, 6, -16).?);
+    try std.testing.expectEqual(BlockId.wet_sponge, tg.getOceanMonumentBlock(0, 5, -16).?);
+    try std.testing.expectEqual(BlockId.wet_sponge, tg.getOceanMonumentBlock(0, 6, -16).?);
     try std.testing.expect(tg.getOceanMonumentBlock(10, 3, -16) == null);
 }

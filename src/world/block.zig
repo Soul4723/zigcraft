@@ -131,9 +131,15 @@ pub const BlockId = enum(u8) {
     dark_prismarine = 120,
     sea_lantern = 121,
     conduit = 122,
+    sponge = 123,
+    wet_sponge = 124,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .end_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand and self != .lantern and self != .soul_lantern and self != .chain and self != .iron_bars and self != .tripwire_hook_off and self != .tripwire_hook_on and self != .cobweb and self != .end_crystal and self != .end_rod and self != .chorus_plant and self != .chorus_flower and self != .dragon_head and self != .end_gateway and self != .conduit;
+    }
+
+    pub fn is_sponge(self: BlockId) bool {
+        return self == .sponge or self == .wet_sponge;
     }
 
     pub fn is_campfire(self: BlockId) bool {
@@ -393,6 +399,8 @@ pub const BlockId = enum(u8) {
             .dark_prismarine => .{ .x = 5, .y = 4 }, // Dark slate-teal carved prismarine
             .sea_lantern => .{ .x = 7, .y = 6 }, // Radiant pearl-white / cyan luminescent sea lantern
             .conduit => .{ .x = 7, .y = 6 }, // Mystic oceanic heart of the sea conduit sphere
+            .sponge => .{ .x = 0, .y = 3 }, // Porous golden-yellow cellular sponge
+            .wet_sponge => .{ .x = 7, .y = 1 }, // Dark saturated waterlogged sponge
             .dragon_egg => .{ .x = 5, .y = 2 }, // Deep obsidian crystalline egg shell with purple specks
             .dragon_head => switch (face_idx) {
                 2 => .{ .x = 7, .y = 3 }, // Draconic horned snout with glowing purple eye
@@ -632,6 +640,7 @@ pub fn hardness(block: BlockId) f32 {
         .prismarine, .prismarine_bricks, .dark_prismarine => 1.5,
         .sea_lantern => 0.3,
         .conduit => 3.0,
+        .sponge, .wet_sponge => 0.6,
         .purpur_block, .purpur_pillar => 1.5,
         .shulker_box => 2.0,
         .end_rod => 0.0,
@@ -802,6 +811,8 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .dark_prismarine = .{ .name = "dark_prismarine", .solid = true, .transparent = false, .fluid = false },
     .sea_lantern = .{ .name = "sea_lantern", .solid = true, .transparent = false, .fluid = false },
     .conduit = .{ .name = "conduit", .solid = false, .transparent = true, .fluid = false },
+    .sponge = .{ .name = "sponge", .solid = true, .transparent = false, .fluid = false },
+    .wet_sponge = .{ .name = "wet_sponge", .solid = true, .transparent = false, .fluid = false },
     .shulker_box = .{ .name = "shulker_box", .solid = true, .transparent = true, .fluid = false },
     .purpur_block = .{ .name = "purpur_block", .solid = true, .transparent = false, .fluid = false },
     .purpur_pillar = .{ .name = "purpur_pillar", .solid = true, .transparent = false, .fluid = false },
@@ -1247,6 +1258,7 @@ pub fn footstepType(block: BlockId) FootstepType {
     return switch (block) {
         .grass, .weeping_vines, .twisting_vines, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight => .grass,
         .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .end_stone, .end_portal_frame, .end_portal_frame_filled, .dragon_egg, .dragon_head, .end_gateway, .purpur_block, .purpur_pillar, .shulker_box, .prismarine, .prismarine_bricks, .dark_prismarine, .sea_lantern, .conduit => .stone,
+        .sponge, .wet_sponge => .grass,
         .end_rod, .chorus_plant, .chorus_flower => .wood,
         .wood, .target_block, .daylight_detector, .daylight_detector_inverted, .note_block, .jukebox, .oak_fence, .armor_stand, .smithing_table, .cartography_table, .fletching_table, .composter, .loom, .tripwire_hook_off, .tripwire_hook_on => .wood,
         .dirt => .dirt,
@@ -2278,4 +2290,26 @@ test "prismarine, sea lantern, and conduit block properties and textures" {
     try std.testing.expect(!BlockId.conduit.is_solid());
     try std.testing.expect(BlockId.conduit.is_transparent());
     try std.testing.expectApproxEqAbs(@as(f32, 1.0), BlockId.conduit.emissive(), 0.001);
+}
+
+test "sponge and wet sponge block properties, textures, and absorption checks" {
+    try std.testing.expect(BlockId.sponge.is_solid());
+    try std.testing.expect(!BlockId.sponge.is_transparent());
+    try std.testing.expect(BlockId.sponge.is_sponge());
+    try std.testing.expectEqual(hardness(.sponge), 0.6);
+    try std.testing.expectEqual(footstepType(.sponge), .grass);
+
+    try std.testing.expect(BlockId.wet_sponge.is_solid());
+    try std.testing.expect(!BlockId.wet_sponge.is_transparent());
+    try std.testing.expect(BlockId.wet_sponge.is_sponge());
+    try std.testing.expectEqual(hardness(.wet_sponge), 0.6);
+    try std.testing.expectEqual(footstepType(.wet_sponge), .grass);
+
+    const s_tex = BlockId.sponge.getFaceTexture(0);
+    try std.testing.expectEqual(@as(u32, 0), s_tex.x);
+    try std.testing.expectEqual(@as(u32, 3), s_tex.y);
+
+    const ws_tex = BlockId.wet_sponge.getFaceTexture(0);
+    try std.testing.expectEqual(@as(u32, 7), ws_tex.x);
+    try std.testing.expectEqual(@as(u32, 1), ws_tex.y);
 }
