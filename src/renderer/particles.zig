@@ -670,6 +670,42 @@ pub fn spawnBeaconBeam(self: *ParticleSystem, bx: i32, by: i32, bz: i32, count: 
         }
     }
 
+    /// Spawn swirling spiraling aquatic riptide vortex particles around player during trident launch
+    pub fn spawnRiptideSpiral(self: *ParticleSystem, pos: [3]f32, count: usize) void {
+        var i: usize = 0;
+        var seed: u32 = @as(u32, @bitCast(@as(i32, @intFromFloat(pos[0] * 32.0)))) *% 37 +%
+            @as(u32, @bitCast(@as(i32, @intFromFloat(pos[1] * 32.0)))) *% 29 +%
+            @as(u32, @bitCast(@as(i32, @intFromFloat(pos[2] * 32.0)))) *% 19 +%
+            @as(u32, @intCast(self.count));
+        while (i < count and self.count < MAX_PARTICLES) : (i += 1) {
+            seed = seed *% 1103515245 +% 12345;
+            const frac = @as(f32, @floatFromInt(i)) / @as(f32, @floatFromInt(count));
+            const angle = frac * std.math.pi * 4.0;
+            const r = 0.6 + 0.3 * frac;
+            const px = pos[0] + @cos(angle) * r;
+            const pz = pos[2] + @sin(angle) * r;
+            const py = pos[1] + frac * 1.5;
+
+            // Spiraling tangential vortex velocity
+            const tang_x = -@sin(angle) * 3.0;
+            const tang_z = @cos(angle) * 3.0;
+
+            self.particles[self.count] = .{
+                .x = px,
+                .y = py,
+                .z = pz,
+                .vx = tang_x,
+                .vy = 2.0 + 1.5 * frac,
+                .vz = tang_z,
+                .life = 0.45,
+                .max_life = 0.45,
+                .color = .{ 0.25, 0.80, 0.95 }, // Cyan-aquamarine oceanic foam
+                .size = 0.08,
+            };
+            self.count += 1;
+        }
+    }
+
     /// Spawn gentle radiant white crystalline sparkle particles ascending from an end rod
     pub fn spawnEndRodSparks(self: *ParticleSystem, bx: i32, by: i32, bz: i32, count: usize) void {
         var i: usize = 0;
@@ -1250,5 +1286,23 @@ test "spawnGatewayBeam creates ascending celestial violet beam particles" {
         try std.testing.expect(p.vy >= 14.0);
         try std.testing.expect(p.color[0] >= 0.5); // red/magenta
         try std.testing.expect(p.color[2] >= 0.9); // violet blue channel
+    }
+}
+
+test "spawnRiptideSpiral creates cyan aquatic vortex particles" {
+    var ps = ParticleSystem{
+        .particles = undefined,
+        .count = 0,
+        .vao = 0,
+        .vbo = 0,
+        .program = 0,
+    };
+    ps.spawnRiptideSpiral(.{ 0.0, 5.0, 0.0 }, 12);
+    try std.testing.expectEqual(@as(usize, 12), ps.count);
+    for (ps.particles[0..12]) |p| {
+        try std.testing.expect(p.color[0] <= 0.3);
+        try std.testing.expect(p.color[1] >= 0.7);
+        try std.testing.expect(p.color[2] >= 0.9);
+        try std.testing.expect(p.vy >= 2.0);
     }
 }

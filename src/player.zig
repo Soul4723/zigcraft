@@ -35,6 +35,7 @@ pub const Player = struct {
     slow_falling_timer: f32 = 0.0,
     mining_fatigue_timer: f32 = 0.0,
     dolphins_grace_timer: f32 = 0.0,
+    riptide_timer: f32 = 0.0,
     lodestone_target: ?math.Vec3 = null,
 
     pub fn resetInsomnia(self: *Player) void {
@@ -235,6 +236,19 @@ pub const Player = struct {
         }
     }
 
+    pub const riptide_duration: f32 = 0.6;
+    pub const riptide_speed_scale: f32 = 5.5;
+
+    pub fn launchRiptide(self: *Player) void {
+        self.riptide_timer = riptide_duration;
+        self.vel_y = 10.0;
+        self.on_ground = false;
+    }
+
+    pub fn isRiptiding(self: Player) bool {
+        return self.riptide_timer > 0.0;
+    }
+
     pub fn hasHungerDebuff(self: Player) bool {
         return self.hunger_debuff_timer > 0.0;
     }
@@ -253,6 +267,7 @@ pub const Player = struct {
         self.slow_falling_timer = @max(0.0, self.slow_falling_timer - dt);
         self.mining_fatigue_timer = @max(0.0, self.mining_fatigue_timer - dt);
         self.dolphins_grace_timer = @max(0.0, self.dolphins_grace_timer - dt);
+        self.riptide_timer = @max(0.0, self.riptide_timer - dt);
         self.regen_timer = @max(0.0, self.regen_timer - dt);
         self.wither_timer = @max(0.0, self.wither_timer - dt);
         self.poison_timer = @max(0.0, self.poison_timer - dt);
@@ -314,7 +329,9 @@ pub const Player = struct {
 
         // Check floor block under player for soul sand drag
 
-        const speed_scale = if (self.is_gliding and self.rocket_boost_timer > 0.0)
+        const speed_scale = if (self.isRiptiding())
+            riptide_speed_scale
+        else if (self.is_gliding and self.rocket_boost_timer > 0.0)
             rocket_boost_speed / 4.3
         else if (self.is_gliding)
             glide_horizontal_scale
@@ -1153,4 +1170,24 @@ test "dolphins grace timer, application, vitals decay, and swim speed scale" {
     try std.testing.expect(p_normal.in_water);
     try std.testing.expect(p_boosted.in_water);
     try std.testing.expect(p_boosted.pos.x > p_normal.pos.x);
+}
+
+test "trident riptide launch timer, vitals decay, and propulsion boost" {
+    var p = Player.init(0.5, 2.0, 0.5);
+    try std.testing.expect(!p.isRiptiding());
+    try std.testing.expectEqual(p.riptide_timer, 0.0);
+
+    p.launchRiptide();
+    try std.testing.expect(p.isRiptiding());
+    try std.testing.expectEqual(p.riptide_timer, 0.6);
+    try std.testing.expectEqual(p.vel_y, 10.0);
+    try std.testing.expect(!p.on_ground);
+
+    p.tickVitals(0.3);
+    try std.testing.expect(p.isRiptiding());
+    try std.testing.expectApproxEqAbs(@as(f32, 0.3), p.riptide_timer, 0.001);
+
+    p.tickVitals(0.4);
+    try std.testing.expect(!p.isRiptiding());
+    try std.testing.expectEqual(p.riptide_timer, 0.0);
 }

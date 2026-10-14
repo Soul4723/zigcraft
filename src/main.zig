@@ -5204,6 +5204,31 @@ pub fn main() !void {
                     audio.play(.bow_shoot, 0.6);
                     std.debug.print("cast fishing rod (no water caught)\n", .{});
                 }
+            } else if (held_eat.item == .trident) {
+                // Right click with Trident:
+                // If player is in water or eye underwater, activate Riptide surge!
+                // Propels player swiftly in look direction with spiraling aquatic vortex.
+                if (player.in_water or was_eye_underwater) {
+                    player.launchRiptide();
+                    const cf = cam.front();
+                    player.vel_y = @max(player.vel_y, cf.y * 14.0 + 4.0);
+                    // Riptide wears trident durability
+                    if (tool_wear.use(selected_slot, inventory_mod.ItemType.trident.maxDurability())) {
+                        inventory.slots[selected_slot].clear();
+                        audio.play(.break_block, 0.8);
+                        std.debug.print("trident broke during riptide surge\n", .{});
+                    }
+                    audio.play(.splash, 1.0);
+                    audio.play(.mob_teleport, 0.7);
+                    particles.spawnRiptideSpiral(.{ player.pos.x, player.pos.y, player.pos.z }, 16);
+                    particles.spawnWaterSplash(.{ player.pos.x, player.pos.y, player.pos.z }, 12);
+                    toast.timer = 2.0;
+                    toast.color = .{ 0.25, 0.85, 0.95 };
+                    std.debug.print("Trident Riptide surge launched!\n", .{});
+                } else {
+                    audio.play(.bow_shoot, 0.5);
+                    std.debug.print("trident riptide requires water\n", .{});
+                }
             } else if (player.is_gliding and held_eat.item == .fireworks_rocket) {
                 player.boostWithRocket();
                 inventory.slots[selected_slot].decrement(1);
