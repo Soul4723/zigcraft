@@ -253,7 +253,7 @@ pub fn main() !void {
     const HopperState = struct { x: i32, y: i32, z: i32, cooldown: f32 = 0.0, items: [4]inventory_mod.ItemStack = undefined };
     var hoppers: [32]HopperState = undefined;
     var hopper_count: usize = 0;
-    const BrewingStandState = struct { x: i32, y: i32, z: i32, progress: f32 = 0.0, fuel: u8 = 0, wart: u8 = 0, spider_eyes: u8 = 0, bottles: u8 = 0, potions: u8 = 0, poison_potions: u8 = 0 };
+    const BrewingStandState = struct { x: i32, y: i32, z: i32, progress: f32 = 0.0, fuel: u8 = 0, wart: u8 = 0, spider_eyes: u8 = 0, fermented_eyes: u8 = 0, bottles: u8 = 0, potions: u8 = 0, poison_potions: u8 = 0, weakness_potions: u8 = 0 };
     var brewing_stands: [32]BrewingStandState = undefined;
     var brewing_stand_count: usize = 0;
     const CauldronFluid = enum { empty, water, lava };
@@ -703,9 +703,23 @@ pub fn main() !void {
                 }
 
                 // If active brew conditions are met (has fuel, bottle, and ingredient)
-                const can_brew_poison = bs.fuel > 0 and bs.spider_eyes > 0 and bs.bottles > 0 and (bs.potions + bs.poison_potions) < 3;
-                const can_brew_fire = bs.fuel > 0 and bs.wart > 0 and bs.bottles > 0 and (bs.potions + bs.poison_potions) < 3;
-                if (can_brew_poison) {
+                const total_potions = bs.potions + bs.poison_potions + bs.weakness_potions;
+                const can_brew_weakness = bs.fuel > 0 and bs.fermented_eyes > 0 and bs.bottles > 0 and total_potions < 3;
+                const can_brew_poison = bs.fuel > 0 and bs.spider_eyes > 0 and bs.bottles > 0 and total_potions < 3;
+                const can_brew_fire = bs.fuel > 0 and bs.wart > 0 and bs.bottles > 0 and total_potions < 3;
+                if (can_brew_weakness) {
+                    bs.progress += dt;
+                    if (bs.progress >= 2.5) {
+                        bs.progress = 0.0;
+                        bs.fuel -= 1;
+                        bs.fermented_eyes -= 1;
+                        bs.bottles -= 1;
+                        bs.weakness_potions += 1;
+                        audio.playAt(.lava_pop, .{ @as(f32, @floatFromInt(bs.x)) + 0.5, @as(f32, @floatFromInt(bs.y)) + 0.5, @as(f32, @floatFromInt(bs.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
+                        particles.spawnBlockDebris(bs.x, bs.y, bs.z, .{ 0.45, 0.40, 0.50 }, 12);
+                        std.debug.print("brewed potion of weakness at ({d},{d},{d}) (weakness potions={d})\n", .{ bs.x, bs.y, bs.z, bs.weakness_potions });
+                    }
+                } else if (can_brew_poison) {
                     bs.progress += dt;
                     if (bs.progress >= 2.5) {
                         bs.progress = 0.0;
@@ -2117,7 +2131,7 @@ pub fn main() !void {
                 const dir = cam.front();
                 mob_hit_cooldown = combat_mod.tickCooldown(mob_hit_cooldown, dt);
                 const held_weapon = inventory.slots[selected_slot].item;
-                const hit_dmg: u8 = combat_mod.weaponDamage(held_weapon == .netherite_sword, held_weapon == .iron_sword);
+                const hit_dmg: u8 = combat_mod.calculatePlayerAttackDamage(held_weapon == .netherite_sword, held_weapon == .iron_sword, player.isWeakened());
 
                 var bartered = false;
                 if (right and !right_down and inventory.slots[selected_slot].item == .gold_nugget) {
@@ -3999,6 +4013,11 @@ pub fn main() !void {
                             audio.play(.place_block, 0.7);
                             particles.spawnFlame(hit_f.x, hit_f.y + 1, hit_f.z, 4);
                             std.debug.print("loaded blaze powder fuel (fuel={d})\n", .{bs.fuel});
+                        } else if (held_item == .fermented_spider_eye and bs.fermented_eyes < 16) {
+                            bs.fermented_eyes += 1;
+                            inventory.slots[selected_slot].decrement(1);
+                            audio.play(.place_block, 0.7);
+                            std.debug.print("loaded fermented spider eye reagent (eyes={d})\n", .{bs.fermented_eyes});
                         } else if (held_item == .spider_eye and bs.spider_eyes < 16) {
                             bs.spider_eyes += 1;
                             inventory.slots[selected_slot].decrement(1);
@@ -4014,6 +4033,12 @@ pub fn main() !void {
                             inventory.slots[selected_slot].decrement(1);
                             audio.play(.place_block, 0.7);
                             std.debug.print("loaded glass vial flask (bottles={d})\n", .{bs.bottles});
+                        } else if (held_item == .none and bs.weakness_potions > 0) {
+                            _ = inventory.addItem(.weakness_potion, 1);
+                            bs.weakness_potions -= 1;
+                            audio.play(.break_block, 0.7);
+                            particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.45, 0.40, 0.50 }, 6);
+                            std.debug.print("retrieved potion of weakness (remaining={d})\n", .{bs.weakness_potions});
                         } else if (held_item == .none and bs.poison_potions > 0) {
                             _ = inventory.addItem(.poison_potion, 1);
                             bs.poison_potions -= 1;
@@ -4027,7 +4052,7 @@ pub fn main() !void {
                             particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 6);
                             std.debug.print("retrieved fire resistance potion (remaining={d})\n", .{bs.potions});
                         } else {
-                            std.debug.print("brewing stand status: fuel={d}, eyes={d}, wart={d}, bottles={d}, potions={d}, poison={d}\n", .{ bs.fuel, bs.spider_eyes, bs.wart, bs.bottles, bs.potions, bs.poison_potions });
+                            std.debug.print("brewing stand status: fuel={d}, ferm={d}, eyes={d}, wart={d}, bottles={d}, fire={d}, poison={d}, weak={d}\n", .{ bs.fuel, bs.fermented_eyes, bs.spider_eyes, bs.wart, bs.bottles, bs.potions, bs.poison_potions, bs.weakness_potions });
                         }
                     }
                     flint_cooldown = interact_mod.flint_feed_cooldown;
@@ -4285,7 +4310,20 @@ pub fn main() !void {
                 .raw_pork, .raw_mutton => false,
                 else => null,
             };
-            if (held_eat.item == .poison_potion) {
+            if (held_eat.item == .weakness_potion) {
+                player.applyWeakness();
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.8);
+                particles.spawnBlockDebris(@intFromFloat(@floor(player.pos.x)), @intFromFloat(@floor(player.pos.y + 1)), @intFromFloat(@floor(player.pos.z)), .{ 0.45, 0.40, 0.50 }, 8);
+                std.debug.print("drank potion of weakness (timer={d:.1}s)\n", .{player.weakness_timer});
+            } else if (held_eat.item == .fermented_spider_eye) {
+                player.applyWeakness();
+                player.hunger = @min(20.0, player.hunger + 1.0);
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.8);
+                particles.spawnBlockDebris(@intFromFloat(@floor(player.pos.x)), @intFromFloat(@floor(player.pos.y + 1)), @intFromFloat(@floor(player.pos.z)), .{ 0.45, 0.12, 0.22 }, 6);
+                std.debug.print("ate fermented spider eye (weakened, timer={d:.1}s)\n", .{player.weakness_timer});
+            } else if (held_eat.item == .poison_potion) {
                 player.applyPoison();
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.8);

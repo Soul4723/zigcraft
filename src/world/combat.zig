@@ -49,6 +49,15 @@ pub fn weaponDamage(is_netherite: bool, is_iron: bool) u8 {
     return hand_damage;
 }
 
+pub fn calculatePlayerAttackDamage(is_netherite: bool, is_iron: bool, is_weakened: bool) u8 {
+    const raw = weaponDamage(is_netherite, is_iron);
+    if (is_weakened) {
+        // Weakness reduces attack potency by 2 damage, floor of 1
+        return if (raw > 2) raw - 2 else 1;
+    }
+    return raw;
+}
+
 pub fn meleeDamage(is_sword: bool) u8 {
     return weaponDamage(false, is_sword);
 }
@@ -160,4 +169,18 @@ test "shield blocking speed multiplier and durability constants" {
     try std.testing.expectEqual(@as(u16, 336), shield_durability);
     try std.testing.expectApproxEqAbs(@as(f32, 0.58), shield_blocking_speed_mult, 0.01);
     try std.testing.expectApproxEqAbs(@as(f32, 0.80), shield_knockback_absorption, 0.01);
+}
+
+test "weakness reduces player attack damage to floor 1" {
+    // Netherite sword: 4 -> 2 under weakness
+    try std.testing.expectEqual(calculatePlayerAttackDamage(true, false, false), 4);
+    try std.testing.expectEqual(calculatePlayerAttackDamage(true, false, true), 2);
+
+    // Iron sword: 2 -> 1 under weakness
+    try std.testing.expectEqual(calculatePlayerAttackDamage(false, true, false), 2);
+    try std.testing.expectEqual(calculatePlayerAttackDamage(false, true, true), 1);
+
+    // Hand: 1 -> 1 under weakness
+    try std.testing.expectEqual(calculatePlayerAttackDamage(false, false, false), 1);
+    try std.testing.expectEqual(calculatePlayerAttackDamage(false, false, true), 1);
 }

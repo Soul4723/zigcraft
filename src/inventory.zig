@@ -145,6 +145,8 @@ pub const ItemType = enum(u8) {
     cobweb = 139,
     spider_eye = 140,
     poison_potion = 141,
+    fermented_spider_eye = 142,
+    weakness_potion = 143,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -531,6 +533,8 @@ pub const ItemType = enum(u8) {
             .cobweb => "Cobweb",
             .spider_eye => "Spider Eye",
             .poison_potion => "Potion of Poison",
+            .fermented_spider_eye => "Fermented Spider Eye",
+            .weakness_potion => "Potion of Weakness",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -614,6 +618,8 @@ pub const ItemType = enum(u8) {
             .cobweb => .{ 0.85, 0.85, 0.88, 0.95 },
             .spider_eye => .{ 0.65, 0.12, 0.18, 0.95 },
             .poison_potion => .{ 0.35, 0.68, 0.22, 0.90 },
+            .fermented_spider_eye => .{ 0.45, 0.12, 0.22, 0.95 },
+            .weakness_potion => .{ 0.42, 0.40, 0.48, 0.90 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1162,6 +1168,29 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 104: Fermented Spider Eye: 1 Spider Eye + 1 Fungus (Crimson/Warped/Nether Wart/Apple) -> 1 Fermented Spider Eye
+        if (non_empty == 2) {
+            const has_eye = (g0 == .spider_eye or g1 == .spider_eye or g2 == .spider_eye or g3 == .spider_eye);
+            const has_sugar_catalyst = (g0 == .crimson_fungus or g1 == .crimson_fungus or g2 == .crimson_fungus or g3 == .crimson_fungus or
+                g0 == .warped_fungus or g1 == .warped_fungus or g2 == .warped_fungus or g3 == .warped_fungus or
+                g0 == .apple or g1 == .apple or g2 == .apple or g3 == .apple);
+            if (has_eye and has_sugar_catalyst) {
+                self.craft_output = .{ .item = .fermented_spider_eye, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 105: Potion of Weakness: 1 Fermented Spider Eye + 1 Glass vial (or 1 Fermented Spider Eye + 1 Nether Wart) -> 1 Weakness Potion
+        if (non_empty == 2) {
+            const has_ferm = (g0 == .fermented_spider_eye or g1 == .fermented_spider_eye or g2 == .fermented_spider_eye or g3 == .fermented_spider_eye);
+            const has_glass = (g0 == .glass or g1 == .glass or g2 == .glass or g3 == .glass);
+            const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
+            if (has_ferm and (has_glass or has_wart)) {
+                self.craft_output = .{ .item = .weakness_potion, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 103: Potion of Poison: 1 Spider Eye + 1 Glass vial (or 1 Spider Eye + 1 Nether Wart) -> 1 Poison Potion
         if (non_empty == 2) {
@@ -4250,4 +4279,34 @@ test "poison potion recipe and item properties" {
     try std.testing.expectEqualStrings(ItemType.poison_potion.name(), "Potion of Poison");
     try std.testing.expect(!ItemType.poison_potion.isTool());
     try std.testing.expect(ItemType.poison_potion.toBlockId() == null);
+}
+
+test "fermented spider eye and weakness potion recipes and properties" {
+    var inv = Inventory.init();
+    // Recipe 104: Spider eye + crimson fungus -> fermented spider eye
+    inv.craft_grid[0] = .{ .item = .spider_eye, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .crimson_fungus, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .fermented_spider_eye);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Also works with apple
+    inv.craft_grid[1] = .{ .item = .apple, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .fermented_spider_eye);
+
+    // Recipe 105: Fermented spider eye + glass vial -> weakness potion
+    inv.craft_grid[0] = .{ .item = .fermented_spider_eye, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .weakness_potion);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqualStrings(ItemType.fermented_spider_eye.name(), "Fermented Spider Eye");
+    try std.testing.expect(!ItemType.fermented_spider_eye.isTool());
+    try std.testing.expect(ItemType.fermented_spider_eye.toBlockId() == null);
+
+    try std.testing.expectEqualStrings(ItemType.weakness_potion.name(), "Potion of Weakness");
+    try std.testing.expect(!ItemType.weakness_potion.isTool());
+    try std.testing.expect(ItemType.weakness_potion.toBlockId() == null);
 }

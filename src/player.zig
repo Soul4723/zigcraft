@@ -25,6 +25,7 @@ pub const Player = struct {
     fire_resistance_timer: f32 = 0.0,
     wither_timer: f32 = 0.0,
     poison_timer: f32 = 0.0,
+    weakness_timer: f32 = 0.0,
     lodestone_target: ?math.Vec3 = null,
 
     pub fn init(x: f32, y: f32, z: f32) Player {
@@ -123,6 +124,16 @@ pub const Player = struct {
         return self.poison_timer > 0.0;
     }
 
+    pub const weakness_duration: f32 = 15.0;
+
+    pub fn applyWeakness(self: *Player) void {
+        self.weakness_timer = weakness_duration;
+    }
+
+    pub fn isWeakened(self: Player) bool {
+        return self.weakness_timer > 0.0;
+    }
+
     pub fn applyWither(self: *Player) void {
         self.wither_timer = wither_duration;
     }
@@ -136,6 +147,7 @@ pub const Player = struct {
         self.regen_timer = @max(0.0, self.regen_timer - dt);
         self.wither_timer = @max(0.0, self.wither_timer - dt);
         self.poison_timer = @max(0.0, self.poison_timer - dt);
+        self.weakness_timer = @max(0.0, self.weakness_timer - dt);
         if (self.wither_timer > 0.0 and self.health > 0.0) {
             self.health = @max(0.0, self.health - dt * wither_rate);
         }
@@ -820,4 +832,20 @@ test "player poison effect drains health down to 1 HP floor" {
     p.tickVitals(5.0);
     // Should clamp at 1.0 HP floor
     try std.testing.expectEqual(@as(f32, 1.0), p.health);
+}
+
+test "player weakness effect timer decay and status" {
+    var p = Player.init(0, 0, 0);
+    try std.testing.expect(!p.isWeakened());
+    p.applyWeakness();
+    try std.testing.expect(p.isWeakened());
+    try std.testing.expectEqual(@as(f32, 15.0), p.weakness_timer);
+
+    p.tickVitals(5.0);
+    try std.testing.expectEqual(@as(f32, 10.0), p.weakness_timer);
+    try std.testing.expect(p.isWeakened());
+
+    p.tickVitals(11.0);
+    try std.testing.expectEqual(@as(f32, 0.0), p.weakness_timer);
+    try std.testing.expect(!p.isWeakened());
 }
