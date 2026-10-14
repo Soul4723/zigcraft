@@ -203,6 +203,9 @@ pub fn main() !void {
     const Spawner = struct { x: i32, y: i32, z: i32 };
     var spawners: [16]Spawner = undefined;
     var spawner_count: usize = 0;
+    const VaporCloud = hazard_mod.VaporCloud;
+    var vapor_clouds: [16]VaporCloud = undefined;
+    var vapor_cloud_count: usize = 0;
     const Beacon = struct { x: i32, y: i32, z: i32 };
     var beacons: [16]Beacon = undefined;
     var beacon_count: usize = 0;
@@ -1832,7 +1835,57 @@ pub fn main() !void {
                             }
                         }
                     }
+                    // Periodic dragon breath strafe attack: drops a harmful AoE dragon breath cloud onto island
+                    if (@as(u32, @intFromFloat(current_time * 10.0)) % 180 == 0 and vapor_cloud_count < vapor_clouds.len) {
+                        vapor_clouds[vapor_cloud_count] = .{
+                            .pos = .{ m.pos.x, 8.5, m.pos.z },
+                            .radius = 4.0,
+                            .life = 12.0,
+                            .max_life = 12.0,
+                            .effect = .dragons_breath,
+                        };
+                        vapor_cloud_count += 1;
+                        audio.playAt(.dragon_roar, .{ m.pos.x, 8.5, m.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 30.0);
+                        std.debug.print("Ender Dragon spewed Dragon's Breath hazard cloud!\n", .{});
+                    }
                 }
+            }
+        }
+
+        // Vapor clouds tick: decay lifetime, emit colored swirling particles, and apply AoE hazards
+        {
+            var vci: usize = 0;
+            while (vci < vapor_cloud_count) {
+                var vc = &vapor_clouds[vci];
+                vc.life -= dt;
+                if (vc.life <= 0.0) {
+                    cache_mod.swapRemove(&vapor_clouds, &vapor_cloud_count, vci);
+                    continue;
+                }
+                // Emit radial swirling mist particles
+                const mist_col: [3]f32 = switch (vc.effect) {
+                    .dragons_breath => .{ 0.85, 0.25, 0.90 },
+                    .lingering_poison => .{ 0.35, 0.85, 0.20 },
+                    .lingering_weakness => .{ 0.45, 0.40, 0.55 },
+                };
+                particles.spawnPortalParticles(vc.pos, 2);
+                particles.spawnBlockDebris(@intFromFloat(vc.pos[0]), @intFromFloat(vc.pos[1]), @intFromFloat(vc.pos[2]), mist_col, 2);
+
+                // Player hazard check
+                if (vc.isInside(player.pos.x, player.pos.y, player.pos.z)) {
+                    switch (vc.effect) {
+                        .dragons_breath => {
+                            player.health = @max(0.0, player.health - 2.0 * dt);
+                        },
+                        .lingering_poison => {
+                            player.applyPoison();
+                        },
+                        .lingering_weakness => {
+                            player.applyWeakness();
+                        },
+                    }
+                }
+                vci += 1;
             }
         }
 
@@ -4987,6 +5040,53 @@ pub fn main() !void {
                 player.vel_y = 0.0;
                 particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 24);
                 std.debug.print("ate chorus fruit; teleported to ({d:.1}, {d:.1}, {d:.1})\n", .{ player.pos.x, player.pos.y, player.pos.z });
+            } else if (held_eat.item == .glass) {
+                // If standing inside or near a dragon breath cloud, bottle Dragon's Breath!
+                var bottled = false;
+                for (vapor_clouds[0..vapor_cloud_count]) |vc| {
+                    if (vc.effect == .dragons_breath and vc.isInside(player.pos.x, player.pos.y, player.pos.z)) {
+                        inventory.slots[selected_slot].decrement(1);
+                        _ = inventory.addItem(.dragons_breath, 1);
+                        audio.play(.splash, 0.8);
+                        particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 0.5, player.pos.z }, 8);
+                        std.debug.print("bottled Dragon's Breath!\n", .{});
+                        bottled = true;
+                        break;
+                    }
+                }
+                if (!bottled and player.hunger < 20.0) {
+                    // Normal idle
+                }
+            } else if (held_eat.item == .lingering_poison_potion and vapor_cloud_count < vapor_clouds.len) {
+                const target_pos = [3]f32{ player.pos.x + cam.front().x * 3.0, player.pos.y, player.pos.z + cam.front().z * 3.0 };
+                vapor_clouds[vapor_cloud_count] = .{
+                    .pos = target_pos,
+                    .radius = 3.5,
+                    .life = 10.0,
+                    .max_life = 10.0,
+                    .effect = .lingering_poison,
+                };
+                vapor_cloud_count += 1;
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.splash, 0.8);
+                audio.play(.burn_sizzle, 0.7);
+                particles.spawnPortalVortex(target_pos, 2.0, 16, 0.0);
+                std.debug.print("deployed Lingering Poison Potion cloud!\n", .{});
+            } else if (held_eat.item == .lingering_weakness_potion and vapor_cloud_count < vapor_clouds.len) {
+                const target_pos = [3]f32{ player.pos.x + cam.front().x * 3.0, player.pos.y, player.pos.z + cam.front().z * 3.0 };
+                vapor_clouds[vapor_cloud_count] = .{
+                    .pos = target_pos,
+                    .radius = 3.5,
+                    .life = 10.0,
+                    .max_life = 10.0,
+                    .effect = .lingering_weakness,
+                };
+                vapor_cloud_count += 1;
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.splash, 0.8);
+                audio.play(.burn_sizzle, 0.7);
+                particles.spawnPortalVortex(target_pos, 2.0, 16, 0.0);
+                std.debug.print("deployed Lingering Weakness Potion cloud!\n", .{});
             } else if (held_eat.item == .golden_apple) {
                 player.eatGolden();
                 inventory.slots[selected_slot].decrement(1);

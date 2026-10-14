@@ -168,6 +168,9 @@ pub const ItemType = enum(u8) {
     elytra = 162,
     dragon_head = 163,
     end_gateway = 164,
+    dragons_breath = 165,
+    lingering_poison_potion = 166,
+    lingering_weakness_potion = 167,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -434,7 +437,7 @@ pub const ItemType = enum(u8) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .armor_stand, .target_dummy, .ender_pearl, .dragon_head => 16,
+            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion => 16,
             .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat => 1,
             else => 64,
         };
@@ -603,6 +606,9 @@ pub const ItemType = enum(u8) {
             .elytra => "Elytra",
             .dragon_head => "Dragon Head",
             .end_gateway => "End Gateway",
+            .dragons_breath => "Dragon's Breath",
+            .lingering_poison_potion => "Lingering Potion of Poison",
+            .lingering_weakness_potion => "Lingering Potion of Weakness",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -709,6 +715,9 @@ pub const ItemType = enum(u8) {
             .elytra => .{ 0.42, 0.46, 0.54, 0.95 },
             .dragon_head => .{ 0.18, 0.16, 0.20, 0.98 },
             .end_gateway => .{ 0.65, 0.20, 0.95, 0.98 },
+            .dragons_breath => .{ 0.85, 0.35, 0.88, 0.95 },
+            .lingering_poison_potion => .{ 0.40, 0.85, 0.25, 0.92 },
+            .lingering_weakness_potion => .{ 0.50, 0.45, 0.60, 0.92 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1257,6 +1266,48 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 122: Dragon's Breath Alchemy: 1 Glass (vial) + 1 Dragon Head / Chorus Fruit -> 1 Dragon's Breath
+        if (non_empty == 2) {
+            var glass_cnt: usize = 0;
+            var dragon_catalyst: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .glass) glass_cnt += 1;
+                if (sl.item == .dragon_head or sl.item == .dragon_egg or sl.item == .chorus_fruit) dragon_catalyst += 1;
+            }
+            if (glass_cnt == 1 and dragon_catalyst == 1) {
+                self.craft_output = .{ .item = .dragons_breath, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 123: Lingering Poison Potion: 1 Dragon's Breath + 1 Poison Potion -> 1 Lingering Poison Potion
+        if (non_empty == 2) {
+            var breath_cnt: usize = 0;
+            var poison_cnt: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .dragons_breath) breath_cnt += 1;
+                if (sl.item == .poison_potion) poison_cnt += 1;
+            }
+            if (breath_cnt == 1 and poison_cnt == 1) {
+                self.craft_output = .{ .item = .lingering_poison_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 124: Lingering Weakness Potion: 1 Dragon's Breath + 1 Weakness Potion -> 1 Lingering Weakness Potion
+        if (non_empty == 2) {
+            var breath_cnt: usize = 0;
+            var weak_cnt: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .dragons_breath) breath_cnt += 1;
+                if (sl.item == .weakness_potion) weak_cnt += 1;
+            }
+            if (breath_cnt == 1 and weak_cnt == 1) {
+                self.craft_output = .{ .item = .lingering_weakness_potion, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 121: End Gateway: 1 Dragon Head + 1 End Crystal -> 1 End Gateway
         if (non_empty == 2) {
@@ -4958,4 +5009,35 @@ test "end gateway item roundtrip, properties, and Recipe 121" {
     try std.testing.expectEqualStrings(ItemType.end_gateway.name(), "End Gateway");
     try std.testing.expectEqual(ItemType.end_gateway.toBlockId().?, .end_gateway);
     try std.testing.expectEqual(ItemType.fromBlockId(.end_gateway), .end_gateway);
+}
+
+test "dragon's breath and lingering potion crafting recipes 122-124 and properties" {
+    var inv = Inventory.init();
+
+    // Recipe 122: 1 Glass + 1 Dragon Head -> 1 Dragon's Breath
+    inv.craft_grid[0] = .{ .item = .glass, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .dragon_head, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .dragons_breath);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 123: 1 Dragon's Breath + 1 Poison Potion -> 1 Lingering Poison Potion
+    inv.craft_grid[0] = .{ .item = .dragons_breath, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .poison_potion, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .lingering_poison_potion);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 124: 1 Dragon's Breath + 1 Weakness Potion -> 1 Lingering Weakness Potion
+    inv.craft_grid[0] = .{ .item = .dragons_breath, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .weakness_potion, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .lingering_weakness_potion);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqualStrings(ItemType.dragons_breath.name(), "Dragon's Breath");
+    try std.testing.expectEqualStrings(ItemType.lingering_poison_potion.name(), "Lingering Potion of Poison");
+    try std.testing.expectEqualStrings(ItemType.lingering_weakness_potion.name(), "Lingering Potion of Weakness");
+    try std.testing.expectEqual(ItemType.dragons_breath.maxStackSize(), 64);
+    try std.testing.expectEqual(ItemType.lingering_poison_potion.maxStackSize(), 16);
 }

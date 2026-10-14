@@ -238,3 +238,38 @@ test "tickOxygenRespiration halves oxygen drain when wearing netherite helmet" {
     // Respiration drain: 15.0 - 1.0 = 14.0
     try std.testing.expectEqual(@as(f32, 14.0), tickOxygenRespiration(15.0, true, true, 2.0));
 }
+
+pub const CloudEffect = enum {
+    dragons_breath,
+    lingering_poison,
+    lingering_weakness,
+};
+
+pub const VaporCloud = struct {
+    pos: [3]f32,
+    radius: f32,
+    life: f32,
+    max_life: f32,
+    effect: CloudEffect,
+
+    pub fn isInside(self: VaporCloud, px: f32, py: f32, pz: f32) bool {
+        const dx = px - self.pos[0];
+        const dy = py - self.pos[1];
+        const dz = pz - self.pos[2];
+        return (dx * dx + dy * dy + dz * dz) <= (self.radius * self.radius);
+    }
+};
+
+test "VaporCloud bounding sphere and effect classification" {
+    const cloud = VaporCloud{
+        .pos = .{ 10.0, 5.0, 10.0 },
+        .radius = 3.0,
+        .life = 10.0,
+        .max_life = 10.0,
+        .effect = .dragons_breath,
+    };
+    try std.testing.expect(cloud.isInside(10.5, 5.0, 10.5));
+    try std.testing.expect(cloud.isInside(12.0, 5.0, 10.0));
+    try std.testing.expect(!cloud.isInside(14.0, 5.0, 10.0));
+    try std.testing.expectEqual(cloud.effect, .dragons_breath);
+}
