@@ -215,6 +215,9 @@ pub fn main() !void {
     const EndRod = struct { x: i32, y: i32, z: i32 };
     var end_rods: [32]EndRod = undefined;
     var end_rod_count: usize = 0;
+    const Conduit = struct { x: i32, y: i32, z: i32 };
+    var conduits: [16]Conduit = undefined;
+    var conduit_count: usize = 0;
     const AnchorState = struct { x: i32, y: i32, z: i32, charges: u8 };
     var anchors: [16]AnchorState = undefined;
     var anchor_count: usize = 0;
@@ -2848,6 +2851,10 @@ pub fn main() !void {
                                             end_rods[end_rod_count] = .{ .x = px, .y = py, .z = pz };
                                             end_rod_count += 1;
                                         }
+                                        if (place_type == .conduit and conduit_count < conduits.len) {
+                                            conduits[conduit_count] = .{ .x = px, .y = py, .z = pz };
+                                            conduit_count += 1;
+                                        }
                                         // Wither summon: completed skull-T consumes the pattern
                                         // and raises an empowered wither champion (30 HP).
                                         // ponytail: dedicated boss mob type + ranged skull attack
@@ -3217,6 +3224,29 @@ pub fn main() !void {
                     particles.spawnEndRodSparks(er.x, er.y, er.z, 1);
                 }
                 eri += 1;
+            }
+            // Oceanic Conduit Power field: emit pulsing cyan vortex particles & refresh water breathing
+            var ci: usize = 0;
+            while (ci < conduit_count) {
+                const c_block = &conduits[ci];
+                const cur_cb = manager.getBlockWorld(c_block.x, c_block.y, c_block.z);
+                if (cur_cb != .conduit) {
+                    conduits[ci] = conduits[conduit_count - 1];
+                    conduit_count -= 1;
+                    continue;
+                }
+                const cdx = @as(f32, @floatFromInt(c_block.x)) + 0.5 - player.pos.x;
+                const cdy = @as(f32, @floatFromInt(c_block.y)) + 0.5 - player.pos.y;
+                const cdz = @as(f32, @floatFromInt(c_block.z)) + 0.5 - player.pos.z;
+                const dist_sq = cdx * cdx + cdy * cdy + cdz * cdz;
+                if (dist_sq <= 32.0 * 32.0) {
+                    // Pulse cyan oceanic vortex particles around conduit core
+                    particles.spawnPortalVortex(.{ @as(f32, @floatFromInt(c_block.x)) + 0.5, @as(f32, @floatFromInt(c_block.y)) + 0.5, @as(f32, @floatFromInt(c_block.z)) + 0.5 }, 1.2, 2, 0.0);
+                    // Conduit Power aura: restores player oxygen & refreshes water breathing timer
+                    player.water_breathing_timer = @max(player.water_breathing_timer, 15.0);
+                    player.oxygen = 15.0;
+                }
+                ci += 1;
             }
         }
 

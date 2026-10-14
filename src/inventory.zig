@@ -177,6 +177,14 @@ pub const ItemType = enum(u8) {
     trident = 171,
     phantom_membrane = 172,
     slow_falling_potion = 173,
+    prismarine_shard = 174,
+    prismarine_crystals = 175,
+    heart_of_the_sea = 176,
+    prismarine = 177,
+    prismarine_bricks = 178,
+    dark_prismarine = 179,
+    sea_lantern = 180,
+    conduit = 181,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -283,6 +291,11 @@ pub const ItemType = enum(u8) {
             .shulker_box => .shulker_box,
             .dragon_head => .dragon_head,
             .end_gateway => .end_gateway,
+            .prismarine => .prismarine,
+            .prismarine_bricks => .prismarine_bricks,
+            .dark_prismarine => .dark_prismarine,
+            .sea_lantern => .sea_lantern,
+            .conduit => .conduit,
             else => null,
         };
     }
@@ -396,6 +409,11 @@ pub const ItemType = enum(u8) {
             .shulker_box => .shulker_box,
             .dragon_head => .dragon_head,
             .end_gateway => .end_gateway,
+            .prismarine => .prismarine,
+            .prismarine_bricks => .prismarine_bricks,
+            .dark_prismarine => .dark_prismarine,
+            .sea_lantern => .sea_lantern,
+            .conduit => .conduit,
         };
     }
 
@@ -445,7 +463,7 @@ pub const ItemType = enum(u8) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion => 16,
+            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea => 16,
             .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat => 1,
             else => 64,
         };
@@ -623,6 +641,14 @@ pub const ItemType = enum(u8) {
             .trident => "Trident",
             .phantom_membrane => "Phantom Membrane",
             .slow_falling_potion => "Potion of Slow Falling",
+            .prismarine_shard => "Prismarine Shard",
+            .prismarine_crystals => "Prismarine Crystals",
+            .heart_of_the_sea => "Heart of the Sea",
+            .prismarine => "Prismarine",
+            .prismarine_bricks => "Prismarine Bricks",
+            .dark_prismarine => "Dark Prismarine",
+            .sea_lantern => "Sea Lantern",
+            .conduit => "Conduit",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -738,6 +764,14 @@ pub const ItemType = enum(u8) {
             .trident => .{ 0.12, 0.65, 0.60, 0.98 },
             .phantom_membrane => .{ 0.70, 0.75, 0.65, 0.85 },
             .slow_falling_potion => .{ 0.88, 0.82, 0.75, 0.90 },
+            .prismarine_shard => .{ 0.40, 0.75, 0.70, 0.95 },
+            .prismarine_crystals => .{ 0.75, 0.95, 0.90, 0.95 },
+            .heart_of_the_sea => .{ 0.15, 0.45, 0.90, 0.98 },
+            .prismarine => .{ 0.38, 0.65, 0.62, 0.98 },
+            .prismarine_bricks => .{ 0.35, 0.68, 0.65, 0.98 },
+            .dark_prismarine => .{ 0.20, 0.38, 0.36, 0.98 },
+            .sea_lantern => .{ 0.82, 0.95, 0.92, 0.98 },
+            .conduit => .{ 0.90, 0.60, 0.45, 0.98 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1286,6 +1320,74 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 130: Prismarine Block: 4 Prismarine Shards (2x2) -> 1 Prismarine Block
+        if (non_empty == 4) {
+            var shard_c: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .prismarine_shard) shard_c += 1;
+            }
+            if (shard_c == 4) {
+                self.craft_output = .{ .item = .prismarine, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 131: Prismarine Bricks: 2 Prismarine + 2 Cobblestone / Stone -> 2 Prismarine Bricks
+        if (non_empty == 4) {
+            var pris_c: usize = 0;
+            var stone_c: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .prismarine) pris_c += 1;
+                if (sl.item == .cobblestone or sl.item == .stone) stone_c += 1;
+            }
+            if (pris_c == 2 and stone_c == 2) {
+                self.craft_output = .{ .item = .prismarine_bricks, .count = 2 };
+                return;
+            }
+        }
+
+        // Recipe 132: Dark Prismarine: 2 Prismarine + 2 Coal -> 2 Dark Prismarine
+        if (non_empty == 4) {
+            var pris_c: usize = 0;
+            var coal_c: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .prismarine) pris_c += 1;
+                if (sl.item == .coal or sl.item == .obsidian) coal_c += 1;
+            }
+            if (pris_c == 2 and coal_c == 2) {
+                self.craft_output = .{ .item = .dark_prismarine, .count = 2 };
+                return;
+            }
+        }
+
+        // Recipe 133: Sea Lantern: 2 Prismarine Shards + 2 Prismarine Crystals (or Glowstone) -> 1 Sea Lantern
+        if (non_empty == 4) {
+            var shard_cnt: usize = 0;
+            var crystal_cnt: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .prismarine_shard) shard_cnt += 1;
+                if (sl.item == .prismarine_crystals or sl.item == .glowstone) crystal_cnt += 1;
+            }
+            if (shard_cnt == 2 and crystal_cnt == 2) {
+                self.craft_output = .{ .item = .sea_lantern, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 134: Conduit: 1 Heart of the Sea + 1 Prismarine Shard / Crystal / Scute -> 1 Conduit
+        if (non_empty == 2) {
+            var heart_cnt: usize = 0;
+            var shell_catalyst: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .heart_of_the_sea) heart_cnt += 1;
+                if (sl.item == .prismarine_shard or sl.item == .prismarine_crystals or sl.item == .scute or sl.item == .trident) shell_catalyst += 1;
+            }
+            if (heart_cnt == 1 and shell_catalyst == 1) {
+                self.craft_output = .{ .item = .conduit, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 128: Slow Falling Potion: 1 Phantom Membrane + 1 Glass vial (or nether wart) -> 1 Slow Falling Potion
         if (non_empty == 2) {
@@ -3111,6 +3213,10 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
     } else if (block == .chorus_plant) {
         out[0] = .{ .item = .chorus_fruit, .count = 1 };
         return 1;
+    } else if (block == .sea_lantern) {
+        out[0] = .{ .item = .prismarine_crystals, .count = 2 };
+        out[1] = .{ .item = .prismarine_shard, .count = 1 };
+        return 2;
     } else {
         const item = ItemType.fromBlockId(block);
         if (item != .none) {
@@ -5233,4 +5339,62 @@ test "phantom membrane, slow falling potion, and elytra repair recipes 128-129" 
     try std.testing.expectEqual(ItemType.slow_falling_potion.maxStackSize(), 16);
     try std.testing.expectEqualStrings(ItemType.slow_falling_potion.name(), "Potion of Slow Falling");
     try std.testing.expectEqual(getMobMeatDrop(.phantom), .phantom_membrane);
+}
+
+test "ocean monument prismarine, sea lantern, and conduit recipes 130-134 and roundtrip" {
+    var inv = Inventory.init();
+
+    // Recipe 130: 4 Prismarine Shards -> 1 Prismarine Block
+    inv.craft_grid[0] = .{ .item = .prismarine_shard, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .prismarine_shard, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .prismarine_shard, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .prismarine_shard, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .prismarine);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 131: 2 Prismarine + 2 Cobblestone -> 2 Prismarine Bricks
+    inv.craft_grid[0] = .{ .item = .prismarine, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .cobblestone, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .cobblestone, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .prismarine, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .prismarine_bricks);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+
+    // Recipe 132: 2 Prismarine + 2 Coal -> 2 Dark Prismarine
+    inv.craft_grid[0] = .{ .item = .prismarine, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .coal, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .coal, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .prismarine, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .dark_prismarine);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+
+    // Recipe 133: 2 Shards + 2 Crystals -> 1 Sea Lantern
+    inv.craft_grid[0] = .{ .item = .prismarine_shard, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .prismarine_crystals, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .prismarine_shard, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .prismarine_crystals, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .sea_lantern);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 134: 1 Heart of the Sea + 1 Shard -> 1 Conduit
+    inv.craft_grid[0] = .{ .item = .heart_of_the_sea, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .prismarine_shard, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .conduit);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.prismarine.toBlockId().?, .prismarine);
+    try std.testing.expectEqual(ItemType.prismarine_bricks.toBlockId().?, .prismarine_bricks);
+    try std.testing.expectEqual(ItemType.dark_prismarine.toBlockId().?, .dark_prismarine);
+    try std.testing.expectEqual(ItemType.sea_lantern.toBlockId().?, .sea_lantern);
+    try std.testing.expectEqual(ItemType.conduit.toBlockId().?, .conduit);
+
+    try std.testing.expectEqual(ItemType.fromBlockId(.conduit), .conduit);
+    try std.testing.expectEqual(ItemType.fromBlockId(.sea_lantern), .sea_lantern);
 }
