@@ -216,6 +216,7 @@ pub const ItemType = enum(u8) {
     observer = 210,
     wooden_trapdoor = 211,
     iron_trapdoor = 212,
+    redstone_block = 213,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -343,6 +344,7 @@ pub const ItemType = enum(u8) {
             .observer => .observer_off,
             .wooden_trapdoor => .wooden_trapdoor_closed,
             .iron_trapdoor => .iron_trapdoor_closed,
+            .redstone_block => .redstone_block,
             else => null,
         };
     }
@@ -477,6 +479,7 @@ pub const ItemType = enum(u8) {
             .observer_off, .observer_on => .observer,
             .wooden_trapdoor_closed, .wooden_trapdoor_open => .wooden_trapdoor,
             .iron_trapdoor_closed, .iron_trapdoor_open => .iron_trapdoor,
+            .redstone_block => .redstone_block,
             .piston_head => .piston,
         };
     }
@@ -745,6 +748,7 @@ pub const ItemType = enum(u8) {
             .observer => "Observer",
             .wooden_trapdoor => "Wooden Trapdoor",
             .iron_trapdoor => "Iron Trapdoor",
+            .redstone_block => "Block of Redstone",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -899,6 +903,7 @@ pub const ItemType = enum(u8) {
             .observer => .{ 0.45, 0.45, 0.48, 0.95 },
             .wooden_trapdoor => .{ 0.65, 0.45, 0.22, 0.95 },
             .iron_trapdoor => .{ 0.85, 0.85, 0.88, 0.95 },
+            .redstone_block => .{ 0.88, 0.12, 0.08, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1731,6 +1736,28 @@ pub const Inventory = struct {
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
                 return;
+            }
+        }
+
+        // Recipe 156: Block of Redstone: 4 Redstone Dust (2x2 filled) -> 1 Block of Redstone
+        if (non_empty == 4) {
+            var red_c: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .redstone_dust) red_c += 1;
+            }
+            if (red_c == 4) {
+                self.craft_output = .{ .item = .redstone_block, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 157: Redstone Dust Unpacking: 1 Block of Redstone -> 4 Redstone Dust
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| {
+                if (sl.item == .redstone_block and sl.count >= 1) {
+                    self.craft_output = .{ .item = .redstone_dust, .count = 4 };
+                    return;
+                }
             }
         }
 
@@ -6182,6 +6209,32 @@ test "observer item and Recipe 153 crafting" {
     try std.testing.expectEqual(ItemType.fromBlockId(.observer_off), .observer);
     try std.testing.expectEqual(ItemType.fromBlockId(.observer_on), .observer);
     try std.testing.expectEqualStrings(ItemType.observer.name(), "Observer");
+}
+
+test "redstone block item and recipes 156 and 157" {
+    var inv = Inventory.init();
+
+    // Recipe 156: 4 Redstone Dust -> 1 Redstone Block
+    inv.craft_grid[0] = .{ .item = .redstone_dust, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .redstone_dust, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .redstone_dust, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .redstone_dust, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .redstone_block);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 157: 1 Redstone Block -> 4 Redstone Dust
+    inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .redstone_block, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .redstone_dust);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    // Stack and roundtrips
+    try std.testing.expectEqual(ItemType.redstone_block.maxStackSize(), 64);
+    try std.testing.expectEqual(ItemType.redstone_block.toBlockId().?, .redstone_block);
+    try std.testing.expectEqual(ItemType.fromBlockId(.redstone_block), .redstone_block);
+    try std.testing.expectEqualStrings(ItemType.redstone_block.name(), "Block of Redstone");
 }
 
 test "wooden and iron trapdoor items and recipes 154 and 155" {

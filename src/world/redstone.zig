@@ -7,7 +7,7 @@ pub const max_strength: u4 = 15;
 
 /// True when a block emits redstone power into adjacent wire.
 pub fn isSource(b: BlockId) bool {
-    return b == .pressure_plate_down or b == .lever_on or b == .repeater_on or b == .redstone_torch_on or b == .detector_rail or b == .redstone_comparator_on or b == .observer_on;
+    return b == .pressure_plate_down or b == .lever_on or b == .repeater_on or b == .redstone_torch_on or b == .detector_rail or b == .redstone_comparator_on or b == .observer_on or b == .redstone_block;
 }
 
 /// True when a block conducts decaying signal (wire in either state).
@@ -677,6 +677,7 @@ pub fn tickObserver(
 test "observer pulse emission and block update detection" {
     try std.testing.expect(isSource(.observer_on));
     try std.testing.expect(!isSource(.observer_off));
+    try std.testing.expect(isSource(.redstone_block));
 
     var obs = ObserverState{
         .x = 0,
