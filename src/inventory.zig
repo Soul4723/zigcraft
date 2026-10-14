@@ -139,6 +139,7 @@ pub const ItemType = enum(u8) {
     lantern = 133,
     soul_lantern = 134,
     chain = 135,
+    iron_bars = 136,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -230,6 +231,7 @@ pub const ItemType = enum(u8) {
             .lantern => .lantern,
             .soul_lantern => .soul_lantern,
             .chain => .chain,
+            .iron_bars => .iron_bars,
             else => null,
         };
     }
@@ -327,6 +329,7 @@ pub const ItemType = enum(u8) {
             .lantern => .lantern,
             .soul_lantern => .soul_lantern,
             .chain => .chain,
+            .iron_bars => .iron_bars,
         };
     }
 
@@ -513,6 +516,7 @@ pub const ItemType = enum(u8) {
             .lantern => "Lantern",
             .soul_lantern => "Soul Lantern",
             .chain => "Chain",
+            .iron_bars => "Iron Bars",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -590,6 +594,7 @@ pub const ItemType = enum(u8) {
             .lantern => .{ 0.95, 0.75, 0.35, 0.95 },
             .soul_lantern => .{ 0.35, 0.75, 0.85, 0.95 },
             .chain => .{ 0.45, 0.45, 0.48, 0.95 },
+            .iron_bars => .{ 0.70, 0.70, 0.72, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1138,6 +1143,22 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 99: Iron Bars: 2 Iron Ingots + 1 Cobblestone (or 2 Iron Ingots + 1 Sandstone) -> 4 Iron Bars
+        if (non_empty == 3) {
+            var iron_count: u8 = 0;
+            var stone_count: u8 = 0;
+            var other_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .iron_ingot) iron_count += 1
+                else if (sl.item == .cobblestone or sl.item == .sandstone) stone_count += 1
+                else if (!sl.isEmpty()) other_count += 1;
+            }
+            if (iron_count == 2 and stone_count == 1 and other_count == 0) {
+                self.craft_output = .{ .item = .iron_bars, .count = 4 };
+                return;
+            }
+        }
 
         // Recipe 98: Chain: 1 Iron Ingot + 1..2 Iron Ore (or 1 Iron Ingot + 1 Iron/Chain link) -> 2 Chains
         if (non_empty >= 2 and non_empty <= 3) {
@@ -3888,6 +3909,30 @@ test "loom item roundtrip, properties, and Recipe 92" {
     try std.testing.expectEqual(ItemType.loom.maxDurability(), 0);
     try std.testing.expect(!ItemType.loom.isTool());
     try std.testing.expectEqual(ItemType.loom.maxStackSize(), 64);
+}
+
+test "iron_bars item roundtrip, properties, and Recipe 99" {
+    var inv = Inventory.init();
+    // Recipe 99: 2 Iron Ingots + 1 Cobblestone -> 4 Iron Bars
+    inv.craft_grid[0] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .cobblestone, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .iron_bars);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    // Alternative: 2 Iron Ingots + 1 Sandstone -> 4 Iron Bars
+    inv.craft_grid[2] = .{ .item = .sandstone, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .iron_bars);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    try std.testing.expectEqual(ItemType.iron_bars.toBlockId().?, .iron_bars);
+    try std.testing.expectEqual(ItemType.fromBlockId(.iron_bars), .iron_bars);
+    try std.testing.expectEqualStrings(ItemType.iron_bars.name(), "Iron Bars");
+    try std.testing.expectEqual(ItemType.iron_bars.maxDurability(), 0);
+    try std.testing.expect(!ItemType.iron_bars.isTool());
+    try std.testing.expectEqual(ItemType.iron_bars.maxStackSize(), 64);
 }
 
 test "chain item roundtrip, properties, and Recipe 98" {
