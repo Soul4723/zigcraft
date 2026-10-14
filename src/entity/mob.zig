@@ -44,6 +44,8 @@ pub const Mob = struct {
     fence_post: ?struct { x: i32, y: i32, z: i32 } = null,
     fuse_timer: f32 = 0.0,
     is_primed: bool = false,
+    is_sheared: bool = false,
+    regrow_timer: f32 = 0.0,
 
     pub fn isLeashed(self: Mob) bool {
         return self.leashed_to_player or self.fence_post != null;
@@ -51,6 +53,13 @@ pub const Mob = struct {
 
     pub fn isGlowing(self: Mob) bool {
         return self.glow_timer > 0.0;
+    }
+
+    pub fn shear(self: *Mob) ?u8 {
+        if (self.mob_type != .sheep or self.is_sheared) return null;
+        self.is_sheared = true;
+        self.regrow_timer = 45.0; // 45 seconds to regrow wool
+        return 2; // drops 2 wool
     }
 
     pub fn init(mob_type: MobType, x: f32, y: f32, z: f32) Mob {
@@ -161,6 +170,12 @@ pub const Mob = struct {
 
         self.barter_timer = @max(0.0, self.barter_timer - clamped_dt);
         self.glow_timer = @max(0.0, self.glow_timer - clamped_dt);
+        if (self.is_sheared) {
+            self.regrow_timer = @max(0.0, self.regrow_timer - clamped_dt);
+            if (self.regrow_timer <= 0.0) {
+                self.is_sheared = false;
+            }
+        }
         if (self.mob_type == .target_dummy or self.mob_type == .shulker) {
             // Stationary practice target
             self.walk_timer = 0.0;
@@ -1049,4 +1064,22 @@ test "slime mob initialization, jumping, and drops" {
     try std.testing.expectEqual(s.walk_speed, 2.0);
     try std.testing.expectEqual(getSound(.slime), .mob_growl);
     try std.testing.expectEqual(inventory_mod.getMobMeatDrop(.slime), .slimeball);
+}
+
+test "sheep shearing mechanics and wool regrow cycle" {
+    var sheep = Mob.init(.sheep, 0, 0, 0);
+    try std.testing.expect(!sheep.is_sheared);
+
+    // Initial shear yields 2 wool
+    const wool = sheep.shear();
+    try std.testing.expectEqual(wool, 2);
+    try std.testing.expect(sheep.is_sheared);
+    try std.testing.expectEqual(sheep.regrow_timer, 45.0);
+
+    // Shearing already sheared sheep yields nothing
+    try std.testing.expect(sheep.shear() == null);
+
+    // Non-sheep cannot be sheared
+    var wolf = Mob.init(.wolf, 0, 0, 0);
+    try std.testing.expect(wolf.shear() == null);
 }

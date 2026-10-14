@@ -519,7 +519,37 @@ pub const MobManager = struct {
         return unhitched_count;
     }
 
-    /// Barter with a Piglin in raycast crosshairs: consumes gold and pacifies the mob.
+    pub const ShearResult = struct {
+        wool_count: u8,
+        pos: math.Vec3,
+    };
+
+    /// Shear a sheep in raycast crosshairs while holding shears.
+    pub fn tryShearSheep(self: *MobManager, origin: math.Vec3, dir: math.Vec3, max_dist: f32) ?ShearResult {
+        var closest_dist: f32 = max_dist;
+        var hit_idx: ?usize = null;
+
+        for (self.mobs.items, 0..) |mob, i| {
+            if (mob.mob_type != .sheep or mob.is_sheared) continue;
+            if (mob.rayIntersects(origin, dir, closest_dist)) |d| {
+                closest_dist = d;
+                hit_idx = i;
+            }
+        }
+
+        if (hit_idx) |i| {
+            if (self.mobs.items[i].shear()) |wool_cnt| {
+                return .{
+                    .wool_count = wool_cnt,
+                    .pos = self.mobs.items[i].pos,
+                };
+            }
+        }
+
+        return null;
+    }
+
+        /// Barter with a Piglin in raycast crosshairs: consumes gold and pacifies the mob.
     pub fn tryBarter(self: *MobManager, origin: math.Vec3, dir: math.Vec3, max_dist: f32) ?BarterResult {
         var closest_dist: f32 = max_dist;
         var hit_idx: ?usize = null;
@@ -889,4 +919,23 @@ test "spider hunts player and engages in pack count" {
 
     const nearby = mm.countNearbyWolves(math.Vec3.init(0, 0, 0), 5.0);
     try std.testing.expectEqual(@as(usize, 1), nearby);
+}
+
+test "MobManager tryShearSheep shearing mechanics" {
+    var mm = try MobManager.init(std.testing.allocator, 0);
+    defer mm.deinit();
+
+    try mm.spawnMob(.sheep, 0.0, 1.0, 3.0);
+    try std.testing.expectEqual(mm.mobs.items.len, 1);
+    try std.testing.expect(!mm.mobs.items[0].is_sheared);
+
+    // Aim at sheep from origin (0, 1, 0) towards (0, 0, 1)
+    const shear_res = mm.tryShearSheep(math.Vec3.init(0.0, 1.0, 0.0), math.Vec3.init(0.0, 0.0, 1.0), 5.0);
+    try std.testing.expect(shear_res != null);
+    try std.testing.expectEqual(shear_res.?.wool_count, 2);
+    try std.testing.expect(mm.mobs.items[0].is_sheared);
+
+    // Second shear fails
+    const shear_res2 = mm.tryShearSheep(math.Vec3.init(0.0, 1.0, 0.0), math.Vec3.init(0.0, 0.0, 1.0), 5.0);
+    try std.testing.expect(shear_res2 == null);
 }

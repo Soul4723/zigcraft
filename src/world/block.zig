@@ -672,6 +672,7 @@ pub const TOOL_WOODEN_HOE: u8 = 236;
 pub const TOOL_IRON_HOE: u8 = 237;
 pub const TOOL_DIAMOND_HOE: u8 = 238;
 pub const TOOL_NETHERITE_HOE: u8 = 239;
+pub const TOOL_SHEARS: u8 = 240;
 
 pub fn hardness(block: BlockId) f32 {
     return switch (block) {
@@ -818,6 +819,13 @@ pub fn isSoilClass(block: BlockId) bool {
     };
 }
 
+pub fn isShearableBlock(block: BlockId) bool {
+    return switch (block) {
+        .leaves, .cobweb, .weeping_vines, .twisting_vines, .wool => true,
+        else => false,
+    };
+}
+
 pub fn isFoliageClass(block: BlockId) bool {
     return switch (block) {
         .leaves, .hay_bale, .nether_wart, .chorus_plant, .chorus_flower, .shroomlight, .sponge, .wet_sponge => true,
@@ -826,6 +834,14 @@ pub fn isFoliageClass(block: BlockId) bool {
 }
 
 pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
+    if (held_tool_id == TOOL_SHEARS) {
+        if (block == .cobweb) return 15.0;
+        if (block == .leaves) return 10.0;
+        if (block == .wool) return 5.0;
+        if (isShearableBlock(block)) return 5.0;
+        return 1.0;
+    }
+
     if (held_tool_id == TOOL_NETHERITE_HOE) {
         if (isFoliageClass(block)) return 6.0;
         return 1.5;
@@ -2887,4 +2903,22 @@ test "hoe tool multiplier speed and foliage efficiency" {
     try std.testing.expect(mineTime(.leaves, TOOL_NETHERITE_HOE) < mineTime(.leaves, TOOL_DIAMOND_HOE));
     try std.testing.expect(mineTime(.leaves, TOOL_DIAMOND_HOE) < mineTime(.leaves, TOOL_IRON_HOE));
     try std.testing.expect(mineTime(.leaves, TOOL_IRON_HOE) < mineTime(.leaves, TOOL_WOODEN_HOE));
+}
+
+test "shears tool multiplier and shearable block efficiency" {
+    try std.testing.expectEqual(toolMultiplier(TOOL_SHEARS, .cobweb), 15.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_SHEARS, .leaves), 10.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_SHEARS, .wool), 5.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_SHEARS, .weeping_vines), 5.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_SHEARS, .twisting_vines), 5.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_SHEARS, .stone), 1.0);
+
+    try std.testing.expect(isShearableBlock(.cobweb));
+    try std.testing.expect(isShearableBlock(.leaves));
+    try std.testing.expect(isShearableBlock(.wool));
+    try std.testing.expect(!isShearableBlock(.dirt));
+
+    // Shears cut cobwebs and leaves much faster than bare hand
+    try std.testing.expect(mineTime(.cobweb, TOOL_SHEARS) < mineTime(.cobweb, 0));
+    try std.testing.expect(mineTime(.leaves, TOOL_SHEARS) < mineTime(.leaves, 0));
 }

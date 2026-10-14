@@ -212,16 +212,17 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
 
     switch (mob.mob_type) {
         .sheep => {
-            const uv_wool = texture.getTileUV(0, 2);
+            const uv_wool = if (mob.is_sheared) texture.getTileUV(1, 2) else texture.getTileUV(0, 2);
             const uv_face = texture.getTileUV(1, 2);
+            const body_scale = if (mob.is_sheared) math.Vec3.init(0.42, 0.38, 0.62) else math.Vec3.init(0.5, 0.45, 0.7);
 
-            // 1. Body: 0.5 x 0.45 x 0.7, centered at (0, 0.45, 0)
+            // 1. Body: 0.5 x 0.45 x 0.7 (or slim 0.42 x 0.38 x 0.62 if sheared), centered at (0, 0.45, 0)
             try appendBox(
                 allocator,
                 verts,
                 inds,
                 math.Vec3.init(0, 0.45, 0),
-                math.Vec3.init(0.5, 0.45, 0.7),
+                body_scale,
                 mob.yaw,
                 mob.pos,
                 uv_wool,

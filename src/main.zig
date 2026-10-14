@@ -2473,6 +2473,21 @@ pub fn main() !void {
                         bartered = true;
                     }
                 }
+                var sheared_sheep = false;
+                if (right and !right_down and !bartered and inventory.slots[selected_slot].item == .shears) {
+                    if (mob_manager.tryShearSheep(cam.position, dir, combat_mod.melee_range)) |sh| {
+                        _ = inventory.addItem(.wool, sh.wool_count);
+                        audio.playAt(.shears_snip, .{ sh.pos.x, sh.pos.y + 0.5, sh.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 24.0);
+                        particles.spawnBlockDebris(@intFromFloat(sh.pos.x), @intFromFloat(sh.pos.y + 0.5), @intFromFloat(sh.pos.z), .{ 0.92, 0.90, 0.85 }, 12);
+                        if (tool_wear.use(selected_slot, inventory.slots[selected_slot].item.maxDurability())) {
+                            inventory.slots[selected_slot].clear();
+                        }
+                        toast.timer = 1.5;
+                        toast.color = .{ 0.90, 0.90, 0.90 };
+                        std.debug.print("sheared sheep, acquired {d} wool\n", .{sh.wool_count});
+                        sheared_sheep = true;
+                    }
+                }
                 var leashed_mob = false;
                 if (right and !right_down and !bartered) {
                     const has_lead = inventory.slots[selected_slot].item == .lead;
@@ -2491,7 +2506,7 @@ pub fn main() !void {
                     }
                 }
 
-                const hit_mob_opt = if (!bartered and !leashed_mob and left and mob_hit_cooldown <= 0.0) mob_manager.tryHitMobDmg(cam.position, dir, combat_mod.melee_range, hit_dmg) else null;
+                const hit_mob_opt = if (!bartered and !sheared_sheep and !leashed_mob and left and mob_hit_cooldown <= 0.0) mob_manager.tryHitMobDmg(cam.position, dir, combat_mod.melee_range, hit_dmg) else null;
                 if (!bartered) {
                 if (hit_mob_opt) |hit_mob| {
                     mob_hit_cooldown = combat_mod.melee_cooldown;

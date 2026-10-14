@@ -243,6 +243,7 @@ pub const ItemType = enum(u8) {
     iron_hoe = 237,
     diamond_hoe = 238,
     netherite_hoe = 239,
+    shears = 240,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -554,6 +555,7 @@ pub const ItemType = enum(u8) {
             .iron_hoe => 120,
             .diamond_hoe => 250,
             .netherite_hoe => 350,
+            .shears => 238,
             .netherite_pickaxe => 350,
             .netherite_sword => 400,
             .warped_fungus_on_a_stick => 100,
@@ -586,6 +588,10 @@ pub const ItemType = enum(u8) {
         return self == .wooden_hoe or self == .iron_hoe or self == .diamond_hoe or self == .netherite_hoe;
     }
 
+    pub fn isShears(self: ItemType) bool {
+        return self == .shears;
+    }
+
     pub fn isTool(self: ItemType) bool {
         return self.maxDurability() > 0;
     }
@@ -594,7 +600,7 @@ pub const ItemType = enum(u8) {
         return switch (self) {
             .none => 0,
             .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea => 16,
-            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart => 1,
+            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .shears, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart => 1,
             else => 64,
         };
     }
@@ -837,6 +843,7 @@ pub const ItemType = enum(u8) {
             .iron_hoe => "Iron Hoe",
             .diamond_hoe => "Diamond Hoe",
             .netherite_hoe => "Netherite Hoe",
+            .shears => "Shears",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1018,6 +1025,7 @@ pub const ItemType = enum(u8) {
             .iron_hoe => .{ 0.86, 0.84, 0.82, 0.95 },
             .diamond_hoe => .{ 0.35, 0.88, 0.95, 0.95 },
             .netherite_hoe => .{ 0.26, 0.22, 0.28, 0.95 },
+            .shears => .{ 0.82, 0.82, 0.84, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1856,6 +1864,20 @@ pub const Inventory = struct {
             }
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 182: Shears: 2 Iron Ingots -> 1 Shears
+        if (non_empty == 2) {
+            if ((g0 == .iron_ingot and g3 == .iron_ingot and g1 == .none and g2 == .none) or
+                (g1 == .iron_ingot and g2 == .iron_ingot and g0 == .none and g3 == .none) or
+                (g0 == .iron_ingot and g1 == .iron_ingot and g2 == .none and g3 == .none) or
+                (g2 == .iron_ingot and g3 == .iron_ingot and g0 == .none and g1 == .none) or
+                (g0 == .iron_ingot and g2 == .iron_ingot and g1 == .none and g3 == .none) or
+                (g1 == .iron_ingot and g3 == .iron_ingot and g0 == .none and g2 == .none))
+            {
+                self.craft_output = .{ .item = .shears, .count = 1 };
                 return;
             }
         }
@@ -3908,7 +3930,7 @@ pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
     return held == .wooden_pickaxe or held == .iron_pickaxe or held == .diamond_pickaxe or held == .netherite_pickaxe or
            held == .wooden_axe or held == .iron_axe or held == .diamond_axe or held == .netherite_axe or
            held == .wooden_shovel or held == .iron_shovel or held == .diamond_shovel or held == .netherite_shovel or
-           held == .wooden_hoe or held == .iron_hoe or held == .diamond_hoe or held == .netherite_hoe;
+           held == .wooden_hoe or held == .iron_hoe or held == .diamond_hoe or held == .netherite_hoe or held == .shears;
 }
 
 pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, cave_spider, skeleton, zombie, creeper, enderman, ender_dragon, shulker, endermite, turtle, drowned, phantom, guardian, elder_guardian, dolphin, slime };
@@ -7137,4 +7159,37 @@ test "hoe items, durability, harvesting, and recipes 178-181" {
     try std.testing.expect(canHarvestBlock(.iron_hoe, .hay_bale));
     try std.testing.expect(canHarvestBlock(.diamond_hoe, .shroomlight));
     try std.testing.expect(canHarvestBlock(.netherite_hoe, .sponge));
+}
+
+test "shears item, durability, tool classification, and Recipe 182" {
+    var inv = Inventory.init();
+
+    // Recipe 182: 2 Iron Ingots -> 1 Shears
+    inv.craft_grid[0] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .iron_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .shears);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Diagonal inverted
+    inv.craft_grid[0] = .{};
+    inv.craft_grid[3] = .{};
+    inv.craft_grid[1] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .iron_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .shears);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Durability & tool properties
+    try std.testing.expect(ItemType.shears.isTool());
+    try std.testing.expect(ItemType.shears.isShears());
+    try std.testing.expect(!ItemType.shears.isHoe());
+    try std.testing.expectEqual(ItemType.shears.maxDurability(), 238);
+    try std.testing.expectEqual(ItemType.shears.maxStackSize(), 1);
+    try std.testing.expectEqualStrings(ItemType.shears.name(), "Shears");
+
+    // Harvesting permissions
+    try std.testing.expect(canHarvestBlock(.shears, .leaves));
+    try std.testing.expect(canHarvestBlock(.shears, .cobweb));
+    try std.testing.expect(canHarvestBlock(.shears, .wool));
 }

@@ -59,6 +59,7 @@ pub const SoundType = enum {
     mob_teleport,
     end_portal_open,
     dragon_roar,
+    shears_snip,
 };
 
 pub const SAMPLE_RATE: u32 = 44100;
@@ -148,6 +149,7 @@ pub const AudioMixer = struct {
             .mob_teleport => SAMPLE_RATE / 3, // ~330ms pitch-bent otherworldly whoosh pop
             .end_portal_open => SAMPLE_RATE * 3 / 2, // ~1500ms deep rumbling cosmic void portal resonance
             .dragon_roar => SAMPLE_RATE * 2, // ~2000ms thunderous draconic roar and subterranean wing flapping
+            .shears_snip => SAMPLE_RATE / 6, // ~166ms crisp dual metallic blade shear snip
         };
 
         slot.?.* = .{
@@ -575,6 +577,15 @@ pub const AudioMixer = struct {
                 const crunch = if (@sin(t * 1200.0) > 0.6) (rng.random().float(f32) * 2.0 - 1.0) * 0.55 else 0.0;
                 return (thump + crunch) * (1.0 - progress) * 0.75;
             },
+            .shears_snip => {
+                // Crisp dual metallic blade shear snip: sharp high-frequency edge scrape (2400Hz -> 1800Hz) + metallic snap
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const scrape_freq = 2400.0 - progress * 600.0;
+                const blade_tone = @sin(t * scrape_freq * 2.0 * std.math.pi) * 0.45;
+                const edge_noise = (rng.random().float(f32) * 2.0 - 1.0) * 0.40;
+                const transient_click = if (progress < 0.10) (rng.random().float(f32) * 2.0 - 1.0) * 0.60 else 0.0;
+                return (blade_tone + edge_noise + transient_click) * (1.0 - progress) * 0.85;
+            },
             .fletching_snap => {
                 // Precision wood nock snap: sharp transient click (1800Hz) + light arrow shaft twang (520Hz)
                 const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
@@ -664,7 +675,7 @@ test "AudioMixer play voice produces non-zero samples" {
 
 test "AudioMixer all sound types render without overflow or crash" {
     var mixer = AudioMixer.init();
-    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .mob_roar, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle, .nether_wind, .glowstone_chime, .bow_shoot, .shield_block, .crossbow_shoot, .crossbow_load, .firework_blast, .note_harp, .note_bass, .note_snare, .note_chime, .record_13, .record_cat, .anvil_clang, .grindstone_scrape, .smithing_strike, .map_rustle, .fletching_snap, .composter_fill, .loom_shuttle, .stonecutter_saw };
+    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .mob_roar, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle, .nether_wind, .glowstone_chime, .bow_shoot, .shield_block, .crossbow_shoot, .crossbow_load, .firework_blast, .note_harp, .note_bass, .note_snare, .note_chime, .record_13, .record_cat, .anvil_clang, .grindstone_scrape, .smithing_strike, .map_rustle, .fletching_snap, .composter_fill, .loom_shuttle, .stonecutter_saw, .mob_hiss, .mob_teleport, .end_portal_open, .dragon_roar, .shears_snip };
     for (sounds) |snd| {
         mixer.play(snd, 1.0);
     }
@@ -807,7 +818,7 @@ test "music disc vinyl audio synthesis voices" {
     var mixer = AudioMixer.init();
     var buf: [256]i16 = undefined;
 
-    const disc_types = [_]SoundType{ .record_13, .record_cat, .anvil_clang, .grindstone_scrape, .smithing_strike, .map_rustle, .fletching_snap, .composter_fill, .loom_shuttle, .stonecutter_saw };
+    const disc_types = [_]SoundType{ .record_13, .record_cat, .anvil_clang, .grindstone_scrape, .smithing_strike, .map_rustle, .fletching_snap, .composter_fill, .loom_shuttle, .stonecutter_saw, .mob_hiss, .mob_teleport, .end_portal_open, .dragon_roar, .shears_snip };
     for (disc_types) |dt| {
         mixer.play(dt, 0.8);
         mixer.render(&buf);
@@ -880,4 +891,19 @@ test "dragon_roar audio synthesis produces non-zero output" {
         }
     }
     try std.testing.expect(non_zero);
+}
+
+test "shears_snip audio synthesis non-zero output" {
+    var mixer = AudioMixer.init();
+    mixer.play(.shears_snip, 1.0);
+    var buf: [256]i16 = undefined;
+    mixer.render(&buf);
+    var has_nonzero = false;
+    for (buf) |s| {
+        if (s != 0) {
+            has_nonzero = true;
+            break;
+        }
+    }
+    try std.testing.expect(has_nonzero);
 }
