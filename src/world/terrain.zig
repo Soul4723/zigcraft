@@ -1187,6 +1187,56 @@ pub const EndGenerator = struct {
             (wx == -16 and wz == -16);
     }
 
+
+    /// Check if (wx, wy, wz) intersects the airborne End Ship vessel floating beside the End City.
+    /// Hull at wx in 80..88, wz in -2..2, elevation wy in 12..15.
+    /// Prow tip mounts the Dragon Head trophy block (wx = 88, wy = 13, wz = 0).
+    pub fn getEndShipBlock(self: EndGenerator, wx: i32, wy: i32, wz: i32) ?BlockId {
+        _ = self;
+        if (wx < 80 or wx > 88 or wz < -2 or wz > 2) return null;
+        if (wy < 12 or wy > 15) return null;
+
+        // Prow tip: Dragon Head mounted on ship bow
+        if (wx == 88) {
+            if (wy == 13 and wz == 0) return .dragon_head;
+            return null;
+        }
+
+        // Keel / hull base at wy = 12
+        if (wy == 12) {
+            if (@abs(wz) <= 1 and (wx >= 81 and wx <= 87)) return .purpur_block;
+            return null;
+        }
+
+        // Main deck, bulwarks, and cargo hold at wy = 13
+        if (wy == 13) {
+            // Gunwale bulwarks along sides
+            if (@abs(wz) == 2) {
+                return if (wx == 80 or wx == 87) .purpur_pillar else .purpur_block;
+            }
+            // Stern transom wall at wx = 80
+            if (wx == 80) return .purpur_block;
+            // Bow taper at wx = 87
+            if (wx == 87) return if (@abs(wz) == 1) .purpur_block else null;
+
+            // Interior deck: Shulker Box loot chest at (82, 13, 0)
+            if (wx == 82 and wz == 0) return .shulker_box;
+            return .air;
+        }
+
+        // Mast and yardarm rigging at wy = 14..15
+        if (wy == 14) {
+            if (wx == 84 and wz == 0) return .purpur_pillar;
+            return null;
+        }
+        if (wy == 15) {
+            if (wx == 84 and @abs(wz) <= 1) return .end_rod;
+            return null;
+        }
+
+        return null;
+    }
+
     /// Check if (wx, wy, wz) intersects the End City fortress structure on the East outer island.
     /// Tower center at (72, 0), floor at y=8, footprint wx in 69..75, wz in -3..3, height up to y=15.
     pub fn getEndCityBlock(self: EndGenerator, wx: i32, wy: i32, wz: i32) ?BlockId {
@@ -1291,7 +1341,10 @@ pub const EndGenerator = struct {
                 while (ly < 16) : (ly += 1) {
                     const wy = ly;
 
-                    if (self.getEndCityBlock(wx, wy, wz)) |b| {
+                    if (self.getEndShipBlock(wx, wy, wz)) |sb| {
+                        // End Ship vessel block takes precedence
+                        chunk.setBlock(@intCast(lx), @intCast(ly), @intCast(lz), sb);
+                    } else if (self.getEndCityBlock(wx, wy, wz)) |b| {
                         // End City architectural block takes precedence
                         chunk.setBlock(@intCast(lx), @intCast(ly), @intCast(lz), b);
                     } else if (is_pillar and wy >= 4 and wy <= 14) {
@@ -1407,4 +1460,30 @@ test "EndGenerator end city fortress architecture, purpur pillars, end rods, and
     end_gen.generateChunk(&chunk, 4, 0);
     // At wx = 72 (lx = 8), wz = 0 (lz = 0), wy = 9 (ly = 9) should be shulker_box
     try std.testing.expectEqual(BlockId.shulker_box, chunk.getBlock(8, 9, 0));
+}
+
+test "EndGenerator end ship structure generation, purpur hull, mast, and dragon head prow" {
+    const end_gen = EndGenerator.init(12345);
+
+    // Prow tip mounts Dragon Head at (88, 13, 0)
+    try std.testing.expectEqual(BlockId.dragon_head, end_gen.getEndShipBlock(88, 13, 0).?);
+    try std.testing.expect(end_gen.getEndShipBlock(88, 13, 1) == null);
+
+    // Keel at wy=12
+    try std.testing.expectEqual(BlockId.purpur_block, end_gen.getEndShipBlock(84, 12, 0).?);
+
+    // Cargo deck Shulker Box at (82, 13, 0)
+    try std.testing.expectEqual(BlockId.shulker_box, end_gen.getEndShipBlock(82, 13, 0).?);
+
+    // Mast at (84, 14, 0) is Purpur Pillar
+    try std.testing.expectEqual(BlockId.purpur_pillar, end_gen.getEndShipBlock(84, 14, 0).?);
+
+    // Rigging yardarm at (84, 15, 1) is End Rod
+    try std.testing.expectEqual(BlockId.end_rod, end_gen.getEndShipBlock(84, 15, 1).?);
+
+    // Chunk generation: chunk (5, 0) covering wx 80..95, wz 0..15 contains ship prow
+    var chunk = Chunk.init();
+    end_gen.generateChunk(&chunk, 5, 0);
+    // wx = 88 (lx = 8), wz = 0 (lz = 0), wy = 13 (ly = 13) has dragon_head
+    try std.testing.expectEqual(BlockId.dragon_head, chunk.getBlock(8, 13, 0));
 }

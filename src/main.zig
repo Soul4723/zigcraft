@@ -580,6 +580,18 @@ pub fn main() !void {
                         audio.play(.dragon_roar, 1.0);
                         std.debug.print("Ender Dragon boss spawned in The End (200 HP)!\n", .{});
                     }
+                    // Spawn End Ship Shulker Guard on the outer island vessel
+                    var shulker_exists = false;
+                    for (mob_manager.mobs.items) |m| {
+                        if (m.mob_type == .shulker) {
+                            shulker_exists = true;
+                            break;
+                        }
+                    }
+                    if (!shulker_exists) {
+                        try mob_manager.spawnMob(.shulker, 84.5, 13.0, 0.5);
+                        std.debug.print("End Ship Shulker guard stationed on vessel!\n", .{});
+                    }
                 } else {
                     manager.is_end = false;
                     // Return to Overworld spawn point
