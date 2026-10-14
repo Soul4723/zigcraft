@@ -11,6 +11,8 @@ pub const diamond_sword_damage: u8 = 3;
 pub const netherite_sword_damage: u8 = 4;
 pub const hand_damage: u8 = 1;
 
+pub const golden_armor_absorption: f32 = 0.15; // 15% golden chestplate reduction
+pub const golden_full_set_absorption: f32 = 0.35; // 35% golden 4-piece set reduction
 pub const iron_armor_absorption: f32 = 0.25; // 25% iron chestplate reduction
 pub const iron_full_set_absorption: f32 = 0.50; // 50% iron 4-piece set reduction
 pub const diamond_armor_absorption: f32 = 0.40; // 40% diamond chestplate reduction
@@ -31,6 +33,10 @@ pub fn applyArmorReductionTier(raw_damage: f32, has_netherite_armor: bool, has_f
 }
 
 pub fn applyArmorReductionFullTiers(raw_damage: f32, has_netherite_armor: bool, has_full_netherite: bool, has_diamond_armor: bool, has_full_diamond: bool, has_iron_armor: bool, has_full_iron: bool) f32 {
+    return applyArmorReductionAllTiers(raw_damage, has_netherite_armor, has_full_netherite, has_diamond_armor, has_full_diamond, has_iron_armor, has_full_iron, false, false);
+}
+
+pub fn applyArmorReductionAllTiers(raw_damage: f32, has_netherite_armor: bool, has_full_netherite: bool, has_diamond_armor: bool, has_full_diamond: bool, has_iron_armor: bool, has_full_iron: bool, has_golden_armor: bool, has_full_golden: bool) f32 {
     if (has_full_netherite) {
         return raw_damage * (1.0 - netherite_full_set_absorption);
     } else if (has_netherite_armor) {
@@ -43,6 +49,10 @@ pub fn applyArmorReductionFullTiers(raw_damage: f32, has_netherite_armor: bool, 
         return raw_damage * (1.0 - iron_full_set_absorption);
     } else if (has_iron_armor) {
         return raw_damage * (1.0 - iron_armor_absorption);
+    } else if (has_full_golden) {
+        return raw_damage * (1.0 - golden_full_set_absorption);
+    } else if (has_golden_armor) {
+        return raw_damage * (1.0 - golden_armor_absorption);
     }
     return raw_damage;
 }
@@ -261,4 +271,15 @@ test "applyArmorReductionFullTiers absorbs iron tier 25% and full set 50%" {
     // Netherite overrides diamond and iron
     try std.testing.expectApproxEqAbs(applyArmorReductionFullTiers(10.0, true, false, true, true, true, true), 5.0, 0.01);
     try std.testing.expectApproxEqAbs(applyArmorReductionFullTiers(10.0, true, true, true, true, true, true), 2.5, 0.01);
+}
+
+test "applyArmorReductionAllTiers absorbs golden tier 15% and full set 35%" {
+    try std.testing.expectApproxEqAbs(applyArmorReductionAllTiers(10.0, false, false, false, false, false, false, false, false), 10.0, 0.01);
+    // Golden chestplate: 15% reduction -> 8.5
+    try std.testing.expectApproxEqAbs(applyArmorReductionAllTiers(10.0, false, false, false, false, false, false, true, false), 8.5, 0.01);
+    // Golden full set: 35% reduction -> 6.5
+    try std.testing.expectApproxEqAbs(applyArmorReductionAllTiers(10.0, false, false, false, false, false, false, true, true), 6.5, 0.01);
+    // Iron overrides golden
+    try std.testing.expectApproxEqAbs(applyArmorReductionAllTiers(10.0, false, false, false, false, true, false, true, true), 7.5, 0.01);
+    try std.testing.expectApproxEqAbs(applyArmorReductionAllTiers(10.0, false, false, false, false, true, true, true, true), 5.0, 0.01);
 }

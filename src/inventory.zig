@@ -248,6 +248,10 @@ pub const ItemType = enum(u8) {
     iron_chestplate = 242,
     iron_leggings = 243,
     iron_boots = 244,
+    golden_helmet = 245,
+    golden_chestplate = 246,
+    golden_leggings = 247,
+    golden_boots = 248,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -530,7 +534,7 @@ pub const ItemType = enum(u8) {
 
     pub fn isArmor(self: ItemType) bool {
         return switch (self) {
-            .netherite_helmet, .turtle_helmet, .netherite_chestplate, .elytra, .netherite_leggings, .netherite_boots, .soul_speed_boots, .dragon_head, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots => true,
+            .netherite_helmet, .turtle_helmet, .netherite_chestplate, .elytra, .netherite_leggings, .netherite_boots, .soul_speed_boots, .dragon_head, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots => true,
             else => false,
         };
     }
@@ -550,6 +554,10 @@ pub const ItemType = enum(u8) {
             .iron_chestplate => 240,
             .iron_leggings => 225,
             .iron_boots => 195,
+            .golden_helmet => 77,
+            .golden_chestplate => 112,
+            .golden_leggings => 105,
+            .golden_boots => 91,
             .flint_and_steel => 64,
             .wooden_axe => 25,
             .iron_axe => 120,
@@ -608,7 +616,7 @@ pub const ItemType = enum(u8) {
         return switch (self) {
             .none => 0,
             .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea => 16,
-            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart => 1,
+            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart => 1,
             else => 64,
         };
     }
@@ -856,6 +864,10 @@ pub const ItemType = enum(u8) {
             .iron_chestplate => "Iron Chestplate",
             .iron_leggings => "Iron Leggings",
             .iron_boots => "Iron Boots",
+            .golden_helmet => "Golden Helmet",
+            .golden_chestplate => "Golden Chestplate",
+            .golden_leggings => "Golden Leggings",
+            .golden_boots => "Golden Boots",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1042,6 +1054,10 @@ pub const ItemType = enum(u8) {
             .iron_chestplate => .{ 0.88, 0.88, 0.90, 0.95 },
             .iron_leggings => .{ 0.82, 0.82, 0.85, 0.95 },
             .iron_boots => .{ 0.80, 0.80, 0.82, 0.95 },
+            .golden_helmet => .{ 0.95, 0.82, 0.18, 0.95 },
+            .golden_chestplate => .{ 0.98, 0.85, 0.22, 0.95 },
+            .golden_leggings => .{ 0.92, 0.80, 0.15, 0.95 },
+            .golden_boots => .{ 0.90, 0.78, 0.12, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1182,6 +1198,20 @@ pub const Inventory = struct {
     pub fn getHotbar(self: *Inventory, index: usize) ?*ItemStack {
         if (index >= HOTBAR_SIZE) return null;
         return &self.slots[index];
+    }
+
+    pub fn hasFullGoldenSet(self: *const Inventory) bool {
+        return self.hasItem(.golden_helmet) and
+               self.hasItem(.golden_chestplate) and
+               self.hasItem(.golden_leggings) and
+               self.hasItem(.golden_boots);
+    }
+
+    pub fn hasAnyGoldenArmor(self: *const Inventory) bool {
+        return self.hasItem(.golden_helmet) or
+               self.hasItem(.golden_chestplate) or
+               self.hasItem(.golden_leggings) or
+               self.hasItem(.golden_boots);
     }
 
     pub fn hasFullIronSet(self: *const Inventory) bool {
@@ -1887,6 +1917,49 @@ pub const Inventory = struct {
             }
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 187: Golden Helmet: 1 Gold Nugget + 1 Sand (or 1 Gold Nugget + 1 Glass) -> 1 Golden Helmet
+        if (non_empty == 2) {
+            const has_gold = (g0 == .gold_nugget or g1 == .gold_nugget or g2 == .gold_nugget or g3 == .gold_nugget);
+            const has_cap = (g0 == .sand or g1 == .sand or g2 == .sand or g3 == .sand or
+                             g0 == .glass or g1 == .glass or g2 == .glass or g3 == .glass);
+            if (has_gold and has_cap) {
+                self.craft_output = .{ .item = .golden_helmet, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 188: Golden Chestplate: 1 Block of Gold + 1 Gold Nugget (or 1 Block of Gold + 1 Leather / Wool) -> 1 Golden Chestplate
+        if (non_empty == 2) {
+            const has_gb = (g0 == .gold_block or g1 == .gold_block or g2 == .gold_block or g3 == .gold_block);
+            const has_mat = (g0 == .gold_nugget or g1 == .gold_nugget or g2 == .gold_nugget or g3 == .gold_nugget or
+                             g0 == .wool or g1 == .wool or g2 == .wool or g3 == .wool);
+            if (has_gb and has_mat) {
+                self.craft_output = .{ .item = .golden_chestplate, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 189: Golden Leggings: 1 Gold Nugget + 1 Chain -> 1 Golden Leggings
+        if (non_empty == 2) {
+            const has_gold = (g0 == .gold_nugget or g1 == .gold_nugget or g2 == .gold_nugget or g3 == .gold_nugget);
+            const has_chain = (g0 == .chain or g1 == .chain or g2 == .chain or g3 == .chain);
+            if (has_gold and has_chain) {
+                self.craft_output = .{ .item = .golden_leggings, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 190: Golden Boots: 1 Gold Nugget + 1 Wool (or 1 Gold Nugget + 1 String) -> 1 Golden Boots
+        if (non_empty == 2) {
+            const has_gold = (g0 == .gold_nugget or g1 == .gold_nugget or g2 == .gold_nugget or g3 == .gold_nugget);
+            const has_soft = (g0 == .wool or g1 == .wool or g2 == .wool or g3 == .wool or
+                              g0 == .string or g1 == .string or g2 == .string or g3 == .string);
+            if (has_gold and has_soft) {
+                self.craft_output = .{ .item = .golden_boots, .count = 1 };
                 return;
             }
         }
@@ -7353,4 +7426,67 @@ test "iron armor suit item properties, recipes 183-186, and full set detection" 
     try std.testing.expect(!player_inv.hasFullIronSet());
     player_inv.slots[3] = .{ .item = .iron_boots, .count = 1 };
     try std.testing.expect(player_inv.hasFullIronSet());
+}
+
+test "golden armor suit item properties, recipes 187-190, full set and any piece checks" {
+    var inv = Inventory.init();
+
+    // Recipe 187: 1 Gold Nugget + 1 Sand -> 1 Golden Helmet
+    inv.craft_grid[0] = .{ .item = .gold_nugget, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .sand, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .golden_helmet);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 188: 1 Block of Gold + 1 Gold Nugget -> 1 Golden Chestplate
+    inv.craft_grid[0] = .{ .item = .gold_block, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .gold_nugget, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .golden_chestplate);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 189: 1 Gold Nugget + 1 Chain -> 1 Golden Leggings
+    inv.craft_grid[0] = .{ .item = .gold_nugget, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .chain, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .golden_leggings);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 190: 1 Gold Nugget + 1 Wool -> 1 Golden Boots
+    inv.craft_grid[0] = .{ .item = .gold_nugget, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wool, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .golden_boots);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Durabilities & Armor classifications
+    try std.testing.expect(ItemType.golden_helmet.isArmor());
+    try std.testing.expect(ItemType.golden_chestplate.isArmor());
+    try std.testing.expect(ItemType.golden_leggings.isArmor());
+    try std.testing.expect(ItemType.golden_boots.isArmor());
+
+    try std.testing.expectEqual(ItemType.golden_helmet.maxDurability(), 77);
+    try std.testing.expectEqual(ItemType.golden_chestplate.maxDurability(), 112);
+    try std.testing.expectEqual(ItemType.golden_leggings.maxDurability(), 105);
+    try std.testing.expectEqual(ItemType.golden_boots.maxDurability(), 91);
+
+    try std.testing.expectEqual(ItemType.golden_helmet.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.golden_chestplate.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.golden_leggings.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.golden_boots.maxStackSize(), 1);
+
+    // Full set detection and any piece pacification check
+    var player_inv = Inventory.init();
+    try std.testing.expect(!player_inv.hasFullGoldenSet());
+    try std.testing.expect(!player_inv.hasAnyGoldenArmor());
+
+    player_inv.slots[0] = .{ .item = .golden_helmet, .count = 1 };
+    try std.testing.expect(!player_inv.hasFullGoldenSet());
+    try std.testing.expect(player_inv.hasAnyGoldenArmor());
+
+    player_inv.slots[1] = .{ .item = .golden_chestplate, .count = 1 };
+    player_inv.slots[2] = .{ .item = .golden_leggings, .count = 1 };
+    try std.testing.expect(!player_inv.hasFullGoldenSet());
+    player_inv.slots[3] = .{ .item = .golden_boots, .count = 1 };
+    try std.testing.expect(player_inv.hasFullGoldenSet());
 }
