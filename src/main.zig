@@ -411,6 +411,12 @@ pub fn main() !void {
             _ = inventory.addItem(.boat, 1);
             audio.play(.click_off, 0.6);
             std.debug.print("dismounted boat\n", .{});
+        } else if (player.in_minecart and key_shift) {
+            // Dismount minecart: recover vehicle into inventory
+            player.in_minecart = false;
+            _ = inventory.addItem(.minecart, 1);
+            audio.play(.click_off, 0.6);
+            std.debug.print("dismounted minecart\n", .{});
         }
         const space_pressed = !inventory_open and (c.glfwGetKey(window, c.GLFW_KEY_SPACE) == c.GLFW_PRESS);
         const jump = space_pressed;
@@ -423,12 +429,15 @@ pub fn main() !void {
         }
         space_down = space_pressed;
 
-        // Detect soul sand floor contact for movement deceleration drag
+        // Detect floor and rail block contact for player kinematics
         const f_px: i32 = @intFromFloat(@floor(player.pos.x));
         const f_py: i32 = @intFromFloat(@floor(player.pos.y - 0.1));
         const f_pz: i32 = @intFromFloat(@floor(player.pos.z));
         const floor_blk = manager.getBlockWorld(f_px, f_py, f_pz);
+        const at_feet_blk = manager.getBlockWorld(f_px, @intFromFloat(@floor(player.pos.y)), f_pz);
         player.on_soulsand = (floor_blk == .soul_sand);
+        player.on_rail = (floor_blk.is_rail() or at_feet_blk.is_rail());
+        player.on_powered_rail = (floor_blk == .powered_rail or at_feet_blk == .powered_rail);
         const body_blk = manager.getBlockWorld(f_px, @intFromFloat(@floor(player.pos.y + 0.5)), f_pz);
         player.in_cobweb = (floor_blk == .cobweb or body_blk == .cobweb);
         player.has_soul_speed = inventory.hasItem(.soul_speed_boots);
@@ -488,6 +497,11 @@ pub fn main() !void {
                 player.health = @max(0.0, player.health - drown_dmg);
                 // Drowning gasp emits bubble burst
                 particles.spawnBubble(.{ eye.x, eye.y, eye.z }, 4);
+            } else if (player.in_minecart and player.on_rail and (norm_wish.x != 0 or norm_wish.z != 0)) {
+                // Minecart rail friction sparks and metallic clatter
+                if (@as(u32, @intFromFloat(current_time * 16.0)) % 4 == 0) {
+                    particles.spawnBlockDebris(f_px, f_py, f_pz, if (player.on_powered_rail) .{ 1.0, 0.8, 0.2 } else .{ 0.8, 0.8, 0.8 }, 2);
+                }
             } else if (player.in_boat and player.in_water and (norm_wish.x != 0 or norm_wish.z != 0)) {
                 // Boat cruising wake & bow spray particles
                 if (@as(u32, @intFromFloat(current_time * 16.0)) % 2 == 0) {
@@ -2732,6 +2746,16 @@ pub fn main() !void {
                                             std.debug.print("planted sapling\n", .{});
                                         }
                                     }
+                                }
+                            } else if (!hotbar_slot.isEmpty() and hotbar_slot.item == .minecart) {
+                                // Deploy minecart on rails or board directly
+                                const target_block = manager.getBlockWorld(hit.x, hit.y, hit.z);
+                                if (target_block.is_rail() or manager.getBlockWorld(px, py, pz).is_rail()) {
+                                    hotbar_slot.decrement(1);
+                                    player.in_minecart = true;
+                                    audio.play(.click_on, 0.8);
+                                    particles.spawnBlockDebris(hit.x, hit.y, hit.z, .{ 0.85, 0.85, 0.85 }, 8);
+                                    std.debug.print("boarded minecart on rail\n", .{});
                                 }
                             } else if (!hotbar_slot.isEmpty() and hotbar_slot.item == .boat) {
                                 // Deploy boat into water or board boat

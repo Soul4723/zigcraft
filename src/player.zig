@@ -15,6 +15,9 @@ pub const Player = struct {
     regen_timer: f32,
     in_water: bool,
     in_boat: bool,
+    in_minecart: bool = false,
+    on_rail: bool = false,
+    on_powered_rail: bool = false,
     water_entry_speed: f32,
     oxygen: f32,
     on_soulsand: bool = false,
@@ -63,6 +66,9 @@ pub const Player = struct {
             .regen_timer = 0.0,
             .in_water = false,
             .in_boat = false,
+            .in_minecart = false,
+            .on_rail = false,
+            .on_powered_rail = false,
             .water_entry_speed = 0.0,
             .oxygen = 15.0,
         };
@@ -138,6 +144,9 @@ pub const Player = struct {
         self.hunger_debuff_timer = 0.0;
         self.in_water = false;
         self.in_boat = false;
+        self.in_minecart = false;
+        self.on_rail = false;
+        self.on_powered_rail = false;
         self.oxygen = 15.0;
         self.water_breathing_timer = 0.0;
         self.insomnia_timer = 0.0;
@@ -302,6 +311,8 @@ pub const Player = struct {
     }
 
         pub const boat_horizontal_speed_scale: f32 = 2.2;
+    pub const minecart_rail_speed_scale: f32 = 2.0;
+    pub const minecart_powered_rail_speed_scale: f32 = 3.5;
     pub const water_horizontal_speed_scale: f32 = 0.65;
     pub const soulsand_horizontal_speed_scale: f32 = 0.40; // Soul sand slow drag
     pub const cobweb_horizontal_speed_scale: f32 = 0.15; // Cobweb heavy drag
@@ -335,6 +346,12 @@ pub const Player = struct {
             rocket_boost_speed / 4.3
         else if (self.is_gliding)
             glide_horizontal_scale
+        else if (self.in_minecart and self.on_powered_rail)
+            minecart_powered_rail_speed_scale
+        else if (self.in_minecart and self.on_rail)
+            minecart_rail_speed_scale
+        else if (self.in_minecart)
+            1.2
         else if (self.in_boat and self.in_water)
             boat_horizontal_speed_scale
         else if (self.in_water)
@@ -1190,4 +1207,31 @@ test "trident riptide launch timer, vitals decay, and propulsion boost" {
     p.tickVitals(0.4);
     try std.testing.expect(!p.isRiptiding());
     try std.testing.expectEqual(p.riptide_timer, 0.0);
+}
+
+test "player minecart boarding, rail riding, and powered rail acceleration" {
+    var p = Player.init(0.5, 2.0, 0.5);
+    try std.testing.expect(!p.in_minecart);
+    try std.testing.expect(!p.on_rail);
+    try std.testing.expect(!p.on_powered_rail);
+
+    p.in_minecart = true;
+    p.on_rail = true;
+
+    const Mock = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return false; }
+    };
+
+    // Standard rail cruising speed (2.0 scale)
+    p.tickPhysics(Mock.solid, null, null, 1.0, 0.0, false, 0.05);
+    try std.testing.expect(p.pos.x > 0.5 + 1.0 * Player.minecart_rail_speed_scale * 0.9);
+
+    // Powered rail high speed acceleration (3.5 scale)
+    var p_pow = Player.init(0.5, 2.0, 0.5);
+    p_pow.in_minecart = true;
+    p_pow.on_rail = true;
+    p_pow.on_powered_rail = true;
+    p_pow.tickPhysics(Mock.solid, null, null, 1.0, 0.0, false, 0.05);
+    try std.testing.expect(p_pow.pos.x > 0.5 + 1.0 * Player.minecart_powered_rail_speed_scale * 0.9);
+    try std.testing.expect(p_pow.pos.x > p.pos.x);
 }

@@ -199,6 +199,9 @@ pub const ItemType = enum(u8) {
     pufferfish = 193,
     tropical_fish = 194,
     nautilus_shell = 195,
+    rail = 196,
+    powered_rail = 197,
+    minecart = 198,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -315,6 +318,8 @@ pub const ItemType = enum(u8) {
             .kelp => .kelp,
             .dried_kelp_block => .dried_kelp_block,
             .sea_pickle => .sea_pickle,
+            .rail => .rail,
+            .powered_rail => .powered_rail,
             else => null,
         };
     }
@@ -438,6 +443,8 @@ pub const ItemType = enum(u8) {
             .kelp => .kelp,
             .dried_kelp_block => .dried_kelp_block,
             .sea_pickle => .sea_pickle,
+            .rail => .rail,
+            .powered_rail => .powered_rail,
         };
     }
 
@@ -489,7 +496,7 @@ pub const ItemType = enum(u8) {
         return switch (self) {
             .none => 0,
             .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea => 16,
-            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod => 1,
+            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart => 1,
             else => 64,
         };
     }
@@ -688,6 +695,9 @@ pub const ItemType = enum(u8) {
             .pufferfish => "Pufferfish",
             .tropical_fish => "Tropical Fish",
             .nautilus_shell => "Nautilus Shell",
+            .rail => "Rail",
+            .powered_rail => "Powered Rail",
+            .minecart => "Minecart",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -825,6 +835,9 @@ pub const ItemType = enum(u8) {
             .pufferfish => .{ 0.88, 0.78, 0.25, 0.95 },
             .tropical_fish => .{ 0.95, 0.50, 0.15, 0.95 },
             .nautilus_shell => .{ 0.88, 0.82, 0.72, 0.95 },
+            .rail => .{ 0.75, 0.75, 0.75, 0.95 },
+            .powered_rail => .{ 0.95, 0.75, 0.20, 0.95 },
+            .minecart => .{ 0.60, 0.60, 0.65, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1532,6 +1545,42 @@ pub const Inventory = struct {
             }
             if (scute_cnt == 4) {
                 self.craft_output = .{ .item = .turtle_helmet, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 139: Rail: 2 Iron Ingots in vertical column + 1 Stick -> 4 Rails
+        if (non_empty == 3) {
+            if ((g0 == .iron_ingot and g2 == .iron_ingot and (g1 == .stick or g3 == .stick)) or
+                (g1 == .iron_ingot and g3 == .iron_ingot and (g0 == .stick or g2 == .stick)))
+            {
+                self.craft_output = .{ .item = .rail, .count = 4 };
+                return;
+            }
+        }
+
+        // Recipe 140: Powered Rail: 2 Gold Nuggets + 1 Redstone Dust + 1 Stick -> 4 Powered Rails
+        if (non_empty == 4) {
+            var gold_c: usize = 0;
+            var red_c: usize = 0;
+            var stick_c: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .gold_nugget) gold_c += sl.count;
+                if (sl.item == .redstone_dust) red_c += sl.count;
+                if (sl.item == .stick) stick_c += sl.count;
+            }
+            if (gold_c >= 2 and red_c >= 1 and stick_c >= 1) {
+                self.craft_output = .{ .item = .powered_rail, .count = 4 };
+                return;
+            }
+        }
+
+        // Recipe 141: Minecart: 3 Iron Ingots (U-shape in 2x2 grid) -> 1 Minecart
+        if (non_empty == 3) {
+            if ((g0 == .iron_ingot and g2 == .iron_ingot and g3 == .iron_ingot and g1 == .none) or
+                (g1 == .iron_ingot and g2 == .iron_ingot and g3 == .iron_ingot and g0 == .none))
+            {
+                self.craft_output = .{ .item = .minecart, .count = 1 };
                 return;
             }
         }
@@ -5660,4 +5709,48 @@ test "nautilus shell item properties, Recipe 134 conduit synergy, and drowned dr
         if (dropsDrownedNautilus(x, 4, 10)) nautilus_count += 1;
     }
     try std.testing.expect(nautilus_count >= 5);
+}
+
+test "rail, powered rail, and minecart items, recipes, and stack limits" {
+    var inv = Inventory.init();
+
+    // Recipe 139: 2 Iron Ingots + 1 Stick -> 4 Rails
+    inv.craft_grid[0] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .stick, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .rail);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    // Recipe 140: 2 Gold Nuggets + 1 Redstone Dust + 1 Stick -> 4 Powered Rails
+    inv.craft_grid[0] = .{ .item = .gold_nugget, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .gold_nugget, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .redstone_dust, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .stick, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .powered_rail);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    // Recipe 141: 3 Iron Ingots U-shape -> 1 Minecart
+    inv.craft_grid[0] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .iron_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .minecart);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Stacks and names
+    try std.testing.expectEqual(ItemType.rail.maxStackSize(), 64);
+    try std.testing.expectEqual(ItemType.powered_rail.maxStackSize(), 64);
+    try std.testing.expectEqual(ItemType.minecart.maxStackSize(), 1);
+    try std.testing.expectEqualStrings(ItemType.rail.name(), "Rail");
+    try std.testing.expectEqualStrings(ItemType.powered_rail.name(), "Powered Rail");
+    try std.testing.expectEqualStrings(ItemType.minecart.name(), "Minecart");
+
+    // Block ID roundtrips
+    try std.testing.expectEqual(ItemType.rail.toBlockId().?, .rail);
+    try std.testing.expectEqual(ItemType.powered_rail.toBlockId().?, .powered_rail);
+    try std.testing.expect(ItemType.minecart.toBlockId() == null);
 }
