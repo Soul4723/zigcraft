@@ -1768,6 +1768,9 @@ pub fn main() !void {
                         } else if (m.mob_type == .spider) {
                             player.applyPoison();
                             std.debug.print("poisoned by spider venom", .{});
+                        } else if (m.mob_type == .zombie) {
+                            player.applyHungerDebuff();
+                            std.debug.print("infected with hunger by zombie bite", .{});
                         }
                         audio.play(.hurt, 0.8);
                         const has_leggings = inventory.hasItem(.netherite_leggings);
@@ -2212,6 +2215,9 @@ pub fn main() !void {
                         } else if (hit_mob.mob_type == .skeleton and inventory_mod.dropsSkeletonArrow(px, py, pz)) {
                             _ = inventory.addItem(.arrow, 2);
                             std.debug.print("skeleton dropped reserve arrows\n", .{});
+                        } else if (hit_mob.mob_type == .zombie and inventory_mod.dropsZombieIron(px, py, pz)) {
+                            _ = inventory.addItem(.iron_ingot, 1);
+                            std.debug.print("zombie dropped rare iron ingot\n", .{});
                         }
                         if (hit_mob.wool) _ = inventory.addItem(.wool, 1);
                         std.debug.print("killed {s}, dropped {s}\n", .{ @tagName(hit_mob.mob_type), drop.name() });
@@ -3103,6 +3109,9 @@ pub fn main() !void {
                                     } else if (m.mob_type == .skeleton and inventory_mod.dropsSkeletonArrow(mbx, mby, mbz)) {
                                         _ = inventory.addItem(.arrow, 2);
                                         std.debug.print("skeleton dropped reserve arrows\n", .{});
+                                    } else if (m.mob_type == .zombie and inventory_mod.dropsZombieIron(mbx, mby, mbz)) {
+                                        _ = inventory.addItem(.iron_ingot, 1);
+                                        std.debug.print("zombie dropped rare iron ingot\n", .{});
                                     }
                                     if (m.mob_type == .sheep) _ = inventory.addItem(.wool, 1);
                                     _ = mp;
@@ -4411,6 +4420,13 @@ pub fn main() !void {
                 audio.play(.eat, 0.8);
                 particles.spawnBlockDebris(@intFromFloat(@floor(player.pos.x)), @intFromFloat(@floor(player.pos.y + 1)), @intFromFloat(@floor(player.pos.z)), .{ 0.65, 0.12, 0.18 }, 6);
                 std.debug.print("ate spider eye (poisoned, timer={d:.1}s)\n", .{player.poison_timer});
+            } else if (held_eat.item == .rotten_flesh) {
+                player.applyHungerDebuff();
+                player.hunger = @min(20.0, player.hunger + 4.0);
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.8);
+                particles.spawnBlockDebris(@intFromFloat(@floor(player.pos.x)), @intFromFloat(@floor(player.pos.y + 1)), @intFromFloat(@floor(player.pos.z)), .{ 0.60, 0.38, 0.22 }, 6);
+                std.debug.print("ate rotten flesh (hunger debuff active, timer={d:.1}s)\n", .{player.hunger_debuff_timer});
             } else if (held_eat.item == .fire_resistance_potion) {
                 player.drinkFireResistance();
                 inventory.slots[selected_slot].decrement(1);

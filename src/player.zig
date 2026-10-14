@@ -26,6 +26,7 @@ pub const Player = struct {
     wither_timer: f32 = 0.0,
     poison_timer: f32 = 0.0,
     weakness_timer: f32 = 0.0,
+    hunger_debuff_timer: f32 = 0.0,
     lodestone_target: ?math.Vec3 = null,
 
     pub fn init(x: f32, y: f32, z: f32) Player {
@@ -65,6 +66,7 @@ pub const Player = struct {
         self.saturation = @min(20.0, self.saturation + 6.0);
         self.regen_timer = 30.0;
         self.wither_timer = 0.0;
+        self.hunger_debuff_timer = 0.0;
     }
 
     /// Eat apple: light snack.
@@ -98,6 +100,7 @@ pub const Player = struct {
         self.saturation = 5.0;
         self.regen_timer = 0.0;
         self.wither_timer = 0.0;
+        self.hunger_debuff_timer = 0.0;
         self.in_water = false;
         self.in_boat = false;
         self.oxygen = 15.0;
@@ -134,6 +137,17 @@ pub const Player = struct {
         return self.weakness_timer > 0.0;
     }
 
+    pub const hunger_debuff_duration: f32 = 15.0;
+    pub const hunger_debuff_drain_bonus: f32 = 0.20;
+
+    pub fn applyHungerDebuff(self: *Player) void {
+        self.hunger_debuff_timer = hunger_debuff_duration;
+    }
+
+    pub fn hasHungerDebuff(self: Player) bool {
+        return self.hunger_debuff_timer > 0.0;
+    }
+
     pub fn applyWither(self: *Player) void {
         self.wither_timer = wither_duration;
     }
@@ -148,6 +162,7 @@ pub const Player = struct {
         self.wither_timer = @max(0.0, self.wither_timer - dt);
         self.poison_timer = @max(0.0, self.poison_timer - dt);
         self.weakness_timer = @max(0.0, self.weakness_timer - dt);
+        self.hunger_debuff_timer = @max(0.0, self.hunger_debuff_timer - dt);
         if (self.wither_timer > 0.0 and self.health > 0.0) {
             self.health = @max(0.0, self.health - dt * wither_rate);
         }
@@ -160,7 +175,8 @@ pub const Player = struct {
         if (!debuffed and self.regen_timer > 0.0 and self.health < 20.0) {
             self.health = @min(20.0, self.health + dt * regen_rate);
         }
-        self.hunger = @max(0.0, self.hunger - dt * hunger_drain);
+        const active_hunger_drain = hunger_drain + (if (self.hunger_debuff_timer > 0.0) hunger_debuff_drain_bonus else 0.0);
+        self.hunger = @max(0.0, self.hunger - dt * active_hunger_drain);
         if (!debuffed and self.hunger > heal_hunger_threshold and self.health < 20.0) {
             self.health = @min(20.0, self.health + dt * passive_heal_rate);
         } else if (self.hunger <= 0.0 and self.health > 0.0) {
@@ -848,4 +864,21 @@ test "player weakness effect timer decay and status" {
     p.tickVitals(11.0);
     try std.testing.expectEqual(@as(f32, 0.0), p.weakness_timer);
     try std.testing.expect(!p.isWeakened());
+}
+
+test "player hunger debuff effect from rotten flesh accelerates hunger depletion" {
+    var p = Player.init(0, 0, 0);
+    try std.testing.expect(!p.hasHungerDebuff());
+    p.applyHungerDebuff();
+    try std.testing.expect(p.hasHungerDebuff());
+    try std.testing.expectEqual(@as(f32, 15.0), p.hunger_debuff_timer);
+
+    p.hunger = 20.0;
+    p.tickVitals(5.0);
+    try std.testing.expectEqual(@as(f32, 10.0), p.hunger_debuff_timer);
+    try std.testing.expectApproxEqAbs(@as(f32, 18.75), p.hunger, 0.01);
+
+    p.tickVitals(11.0);
+    try std.testing.expectEqual(@as(f32, 0.0), p.hunger_debuff_timer);
+    try std.testing.expect(!p.hasHungerDebuff());
 }

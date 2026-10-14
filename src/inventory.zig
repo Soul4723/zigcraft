@@ -148,6 +148,7 @@ pub const ItemType = enum(u8) {
     fermented_spider_eye = 142,
     weakness_potion = 143,
     bone = 144,
+    rotten_flesh = 145,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -376,7 +377,7 @@ pub const ItemType = enum(u8) {
 
     pub fn isCompostable(self: ItemType) bool {
         return switch (self) {
-            .leaves, .hay_bale, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton => true,
+            .leaves, .hay_bale, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh => true,
             else => false,
         };
     }
@@ -537,6 +538,7 @@ pub const ItemType = enum(u8) {
             .fermented_spider_eye => "Fermented Spider Eye",
             .weakness_potion => "Potion of Weakness",
             .bone => "Bone",
+            .rotten_flesh => "Rotten Flesh",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -623,6 +625,7 @@ pub const ItemType = enum(u8) {
             .fermented_spider_eye => .{ 0.45, 0.12, 0.22, 0.95 },
             .weakness_potion => .{ 0.42, 0.40, 0.48, 0.90 },
             .bone => .{ 0.88, 0.86, 0.80, 0.95 },
+            .rotten_flesh => .{ 0.60, 0.38, 0.22, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -2544,7 +2547,7 @@ pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
     return held == .wooden_pickaxe or held == .iron_pickaxe or held == .netherite_pickaxe;
 }
 
-pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, skeleton };
+pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, skeleton, zombie };
 
 pub fn getMobMeatDrop(mob_type: MobType) ItemType {
     return switch (mob_type) {
@@ -2558,6 +2561,7 @@ pub fn getMobMeatDrop(mob_type: MobType) ItemType {
         .target_dummy => .hay_bale,
         .spider => .string,
         .skeleton => .bone,
+        .zombie => .rotten_flesh,
     };
 }
 
@@ -2605,6 +2609,13 @@ pub fn dropsSkeletonArrow(wx: i32, wy: i32, wz: i32) bool {
     const h: u32 = @as(u32, @bitCast(wx *% 19 +% wy *% 37 +% wz *% 5)) % 2;
     return h == 0;
 }
+
+pub fn dropsZombieIron(wx: i32, wy: i32, wz: i32) bool {
+    // Rare trophy: zombies drop an iron ingot on ~1-in-8 deterministic kills
+    const h: u32 = @as(u32, @bitCast(wx *% 23 +% wy *% 41 +% wz *% 13)) % 8;
+    return h == 0;
+}
+
 
 test "piglin drops gold nugget and barters nether wares" {
     try std.testing.expectEqual(getMobMeatDrop(.piglin), .gold_nugget);
@@ -4351,4 +4362,21 @@ test "skeleton mob drop, bone item, and Recipe 106 bone meal" {
     }
     try std.testing.expect(arrow_drops > 0 and arrow_drops < 20);
     try std.testing.expectEqual(dropsSkeletonArrow(3, 4, 5), dropsSkeletonArrow(3, 4, 5));
+}
+
+test "zombie mob drop, rotten flesh item, and rare iron ingot drop" {
+    try std.testing.expectEqual(getMobMeatDrop(.zombie), .rotten_flesh);
+    try std.testing.expectEqualStrings(ItemType.rotten_flesh.name(), "Rotten Flesh");
+    try std.testing.expect(!ItemType.rotten_flesh.isTool());
+    try std.testing.expect(ItemType.rotten_flesh.toBlockId() == null);
+    try std.testing.expectEqual(ItemType.rotten_flesh.maxStackSize(), 64);
+    try std.testing.expect(ItemType.rotten_flesh.isCompostable());
+
+    var iron_drops: usize = 0;
+    var x: i32 = 0;
+    while (x < 64) : (x += 1) {
+        if (dropsZombieIron(x, 2, 5)) iron_drops += 1;
+    }
+    try std.testing.expect(iron_drops > 0 and iron_drops < 64);
+    try std.testing.expectEqual(dropsZombieIron(7, 3, 11), dropsZombieIron(7, 3, 11));
 }

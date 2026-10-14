@@ -123,7 +123,7 @@ pub const MobManager = struct {
             const iy: i32 = 1 + @as(i32, @intFromFloat(self.rng.random().float(f32) * 10.0));
             if (!spawn_rules.isCaveSpawn(chunk_manager, ix, iy, iz, 15)) continue;
             const roll_m = self.rng.random().float(f32);
-            const cave_mtype: mob_mod.MobType = if (roll_m < 0.35) .skeleton else if (roll_m < 0.70) .spider else .wolf;
+            const cave_mtype: mob_mod.MobType = if (roll_m < 0.28) .zombie else if (roll_m < 0.56) .skeleton else if (roll_m < 0.80) .spider else .wolf;
             try self.spawnMob(cave_mtype, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
         }
     }
@@ -191,7 +191,7 @@ pub const MobManager = struct {
                     mob.yaw = std.math.atan2(pdx, pdz);
                     mob.walk_timer = hunt_mod.walk_pulse;
                 }
-            } else if (mob.mob_type == .wolf or mob.mob_type == .emberbeast or mob.mob_type == .wither_skeleton or mob.mob_type == .piglin or mob.mob_type == .piglin_brute or mob.mob_type == .blaze or mob.mob_type == .spider or mob.mob_type == .skeleton) {
+            } else if (mob.mob_type == .wolf or mob.mob_type == .emberbeast or mob.mob_type == .wither_skeleton or mob.mob_type == .piglin or mob.mob_type == .piglin_brute or mob.mob_type == .blaze or mob.mob_type == .spider or mob.mob_type == .skeleton or mob.mob_type == .zombie) {
                 var is_repelled = false;
                 if (mob.mob_type == .piglin) {
                     if (isPiglinRepelled(mob.pos, player_pos, player_holding_fungus, block_at)) |repel_source| {
@@ -524,7 +524,7 @@ pub const MobManager = struct {
         var count: usize = 0;
         const r_sq = radius * radius;
         for (self.mobs.items) |m| {
-            if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider and m.mob_type != .skeleton) continue;
+            if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider and m.mob_type != .skeleton and m.mob_type != .zombie) continue;
             const dx = m.pos.x - center.x;
             const dy = m.pos.y - center.y;
             const dz = m.pos.z - center.z;

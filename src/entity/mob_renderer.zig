@@ -448,6 +448,23 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
             try appendBox(allocator, verts, inds, math.Vec3.init(-0.12, 0.30, 0 + leg_swing), math.Vec3.init(0.11, 0.58, 0.11), mob.yaw, mob.pos, uv_bone, uv_bone);
             try appendBox(allocator, verts, inds, math.Vec3.init(0.12, 0.30, 0 - leg_swing), math.Vec3.init(0.11, 0.58, 0.11), mob.yaw, mob.pos, uv_bone, uv_bone);
         },
+        .zombie => {
+            const uv_shirt = texture.getTileUV(7, 1); // cyan/teal shirt
+            const uv_skin = texture.getTileUV(7, 0); // rotting moss green skin
+            const uv_pants = texture.getTileUV(6, 1); // dark blue/purple trousers
+
+            // 1. Torso (teal shirt): 0.44 x 0.60 x 0.28 at (0, 0.90, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.90, 0), math.Vec3.init(0.44, 0.60, 0.28), mob.yaw, mob.pos, uv_shirt, uv_shirt);
+            // 2. Head (green zombie face): 0.36 cube at (0, 1.34 + head_bob_y, 0.04)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 1.34 + head_bob_y, 0.04), math.Vec3.init(0.36, 0.36, 0.36), mob.yaw, mob.pos, uv_skin, uv_skin);
+            // 3. Left arm outstretched forward: 0.12 x 0.12 x 0.52 at (-0.28, 0.95, 0.22)
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.28, 0.95, 0.22), math.Vec3.init(0.12, 0.12, 0.52), mob.yaw, mob.pos, uv_skin, uv_shirt);
+            // 4. Right arm outstretched forward: 0.12 x 0.12 x 0.52 at (0.28, 0.95, 0.22)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.28, 0.95, 0.22), math.Vec3.init(0.12, 0.12, 0.52), mob.yaw, mob.pos, uv_skin, uv_shirt);
+            // 5-6. Legs (pants): 0.14 x 0.60 x 0.14
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.12, 0.30, 0 + leg_swing), math.Vec3.init(0.14, 0.60, 0.14), mob.yaw, mob.pos, uv_pants, uv_pants);
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.12, 0.30, 0 - leg_swing), math.Vec3.init(0.14, 0.60, 0.14), mob.yaw, mob.pos, uv_pants, uv_pants);
+        },
         .piglin, .piglin_brute => {
             const uv_skin = if (mob.mob_type == .piglin_brute) texture.getTileUV(2, 5) else texture.getTileUV(5, 4); // Brute dark charcoal armor
             const uv_face = texture.getTileUV(6, 4);
@@ -696,4 +713,17 @@ test "skeleton mob mesh generation" {
     // 7 boxes (ribcage, skull, 2 arms, bow, 2 legs) = 168 verts, 252 indices
     try std.testing.expectEqual(@as(usize, 168), verts.items.len);
     try std.testing.expectEqual(@as(usize, 252), inds.items.len);
+}
+
+test "zombie mob mesh generation" {
+    var verts = std.ArrayList(MobVertex).empty;
+    defer verts.deinit(std.testing.allocator);
+    var inds = std.ArrayList(u32).empty;
+    defer inds.deinit(std.testing.allocator);
+
+    const zombie = mob_mod.Mob.init(.zombie, 0, 0, 0);
+    try appendMobMesh(std.testing.allocator, &verts, &inds, zombie);
+    // 6 boxes (torso, head, 2 forward arms, 2 legs) = 144 verts, 216 indices
+    try std.testing.expectEqual(@as(usize, 144), verts.items.len);
+    try std.testing.expectEqual(@as(usize, 216), inds.items.len);
 }
