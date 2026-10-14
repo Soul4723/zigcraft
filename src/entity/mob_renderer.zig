@@ -694,6 +694,33 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
 
             // 7. Articulated massive tail fin: 0.22 x 0.60 x 0.70 at (tail_wag, 0.70, -0.80)
             try appendBox(allocator, verts, inds, math.Vec3.init(tail_wag, 0.70, -0.80), math.Vec3.init(0.22, 0.60, 0.70), mob.yaw, mob.pos, uv_ivory, uv_orange);
+        },
+        .dolphin => {
+            // Dolphin: sleek playful cetacean geometry (fuselage, snout, dorsal fin, 2 pectoral flippers, tail fluke)
+            const uv_grey = texture.getTileUV(0, 0);    // Smooth blue-grey slate skin
+            const uv_belly = texture.getTileUV(7, 6);   // Pale cream/white belly underbelly
+            const uv_snout = texture.getTileUV(1, 4);   // Beak snout / flippers
+
+            const tail_pitch = @sin(mob.anim_time * 8.0) * 0.25;
+            const flipper_roll = @sin(mob.anim_time * 6.0) * 0.12;
+
+            // 1. Torso fuselage: 0.40 x 0.42 x 0.85 at (0, 0.35, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.35, 0), math.Vec3.init(0.40, 0.42, 0.85), mob.yaw, mob.pos, uv_grey, uv_belly);
+
+            // 2. Beak / Snout: 0.18 x 0.16 x 0.28 at (0, 0.30, 0.52)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.30, 0.52), math.Vec3.init(0.18, 0.16, 0.28), mob.yaw, mob.pos, uv_snout, uv_belly);
+
+            // 3. Dorsal fin: 0.08 x 0.24 x 0.26 at (0, 0.65, -0.05)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.65, -0.05), math.Vec3.init(0.08, 0.24, 0.26), mob.yaw, mob.pos, uv_grey, uv_grey);
+
+            // 4. Left pectoral flipper: 0.25 x 0.06 x 0.20 at (-0.28, 0.25 + flipper_roll, 0.15)
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.28, 0.25 + flipper_roll, 0.15), math.Vec3.init(0.25, 0.06, 0.20), mob.yaw, mob.pos, uv_grey, uv_snout);
+
+            // 5. Right pectoral flipper: 0.25 x 0.06 x 0.20 at (0.28, 0.25 - flipper_roll, 0.15)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.28, 0.25 - flipper_roll, 0.15), math.Vec3.init(0.25, 0.06, 0.20), mob.yaw, mob.pos, uv_grey, uv_snout);
+
+            // 6. Caudal tail fluke: 0.45 x 0.08 x 0.25 at (0, 0.35 + tail_pitch, -0.55)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.35 + tail_pitch, -0.55), math.Vec3.init(0.45, 0.08, 0.25), mob.yaw, mob.pos, uv_grey, uv_snout);
         }, .target_dummy => {
             const uv_hay = texture.getTileUV(1, 4); // Hay bale textured body
             const uv_post = texture.getTileUV(2, 2); // Wood post & crossbar

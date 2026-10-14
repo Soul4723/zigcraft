@@ -500,6 +500,28 @@ pub fn main() !void {
                 }
             }
 
+            // Dolphin proximity aura: swimming within 8m of a live dolphin grants Dolphin's Grace buff
+            if (player.in_water) {
+                for (mob_manager.mobs.items) |m| {
+                    if (m.mob_type == .dolphin and m.health > 0) {
+                        const mdx = m.pos.x - player.pos.x;
+                        const mdy = m.pos.y - player.pos.y;
+                        const mdz = m.pos.z - player.pos.z;
+                        if (mdx * mdx + mdy * mdy + mdz * mdz <= 64.0) {
+                            if (!player.hasDolphinsGrace()) {
+                                player.applyDolphinsGrace();
+                                audio.play(.mob_baa, 0.7);
+                                particles.spawnBubble(.{ player.pos.x, player.pos.y + 0.5, player.pos.z }, 8);
+                                toast.timer = 2.5;
+                                toast.color = .{ 0.35, 0.85, 0.95 };
+                                std.debug.print("Dolphin's Grace buff acquired! Swim speed boosted.\n", .{});
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+
             const px_i: i32 = @intFromFloat(@floor(player.pos.x));
             const py_i: i32 = @intFromFloat(@floor(player.pos.y));
             const pz_i: i32 = @intFromFloat(@floor(player.pos.z));
@@ -4962,7 +4984,7 @@ pub fn main() !void {
                     // feed held item as input or fuel
                     const held_f = inventory.slots[selected_slot];
                     const smeltable = switch (held_f.item) {
-                        .raw_pork, .raw_mutton, .sand, .iron_ore, .ancient_debris => true,
+                        .raw_pork, .raw_mutton, .raw_cod, .sand, .iron_ore, .ancient_debris => true,
                         else => false,
                     };
                     var fed = false;
@@ -5148,11 +5170,41 @@ pub fn main() !void {
         if (right and !right_down and !inventory_open) {
             const held_eat = inventory.slots[selected_slot];
             const cooked = switch (held_eat.item) {
-                .cooked_pork, .cooked_mutton => true,
-                .raw_pork, .raw_mutton => false,
+                .cooked_pork, .cooked_mutton, .cooked_cod => true,
+                .raw_pork, .raw_mutton, .raw_cod => false,
                 else => null,
             };
-            if (player.is_gliding and held_eat.item == .fireworks_rocket) {
+            if (held_eat.item == .fishing_rod) {
+                // Cast fishing line into water: if aimed at water within 8m or player standing in water, catch fish
+                const cast_dir = cam.front();
+                const cast_hit = pick_mod.raycast(&pickSolid, cam.position, cast_dir, 8);
+                var water_hit = player.in_water;
+                if (!water_hit and cast_hit != null) {
+                    const h = cast_hit.?;
+                    const b_at = manager.getBlockWorld(h.x, h.y, h.z);
+                    const b_above = manager.getBlockWorld(h.x + h.nx, h.y + h.ny, h.z + h.nz);
+                    if (b_at == .water or b_above == .water or pickFluid(h.x, h.y, h.z) or pickFluid(h.x + h.nx, h.y + h.ny, h.z + h.nz)) {
+                        water_hit = true;
+                    }
+                }
+                if (water_hit) {
+                    audio.play(.splash, 0.85);
+                    particles.spawnWaterSplash(.{ player.pos.x + cast_dir.x * 2.0, player.pos.y, player.pos.z + cast_dir.z * 2.0 }, 10);
+                    particles.spawnBubble(.{ player.pos.x + cast_dir.x * 2.0, player.pos.y + 0.3, player.pos.z + cast_dir.z * 2.0 }, 6);
+                    _ = inventory.addItem(.raw_cod, 1);
+                    if (tool_wear.use(selected_slot, inventory_mod.ItemType.fishing_rod.maxDurability())) {
+                        inventory.slots[selected_slot].clear();
+                        audio.play(.break_block, 0.8);
+                        std.debug.print("fishing rod broke\n", .{});
+                    }
+                    toast.timer = 2.0;
+                    toast.color = .{ 0.40, 0.75, 0.90 };
+                    std.debug.print("caught Raw Cod via fishing rod!\n", .{});
+                } else {
+                    audio.play(.bow_shoot, 0.6);
+                    std.debug.print("cast fishing rod (no water caught)\n", .{});
+                }
+            } else if (player.is_gliding and held_eat.item == .fireworks_rocket) {
                 player.boostWithRocket();
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.burn_sizzle, 0.9);

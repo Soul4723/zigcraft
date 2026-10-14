@@ -132,6 +132,8 @@ pub const MobManager = struct {
                     .guardian
                 else if (is_night and roll_w < 0.70)
                     .drowned
+                else if (roll_w < 0.65)
+                    .dolphin
                 else
                     .turtle;
                 try self.spawnMob(water_mtype, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);

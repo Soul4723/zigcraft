@@ -34,6 +34,7 @@ pub const Player = struct {
     insomnia_timer: f32 = 0.0,
     slow_falling_timer: f32 = 0.0,
     mining_fatigue_timer: f32 = 0.0,
+    dolphins_grace_timer: f32 = 0.0,
     lodestone_target: ?math.Vec3 = null,
 
     pub fn resetInsomnia(self: *Player) void {
@@ -190,6 +191,16 @@ pub const Player = struct {
         return self.mining_fatigue_timer > 0.0;
     }
 
+    pub const dolphins_grace_duration: f32 = 30.0;
+
+    pub fn applyDolphinsGrace(self: *Player) void {
+        self.dolphins_grace_timer = dolphins_grace_duration;
+    }
+
+    pub fn hasDolphinsGrace(self: Player) bool {
+        return self.dolphins_grace_timer > 0.0;
+    }
+
     pub const levitation_duration: f32 = 10.0;
     pub const levitation_lift_speed: f32 = 2.5;
 
@@ -241,6 +252,7 @@ pub const Player = struct {
         self.water_breathing_timer = @max(0.0, self.water_breathing_timer - dt);
         self.slow_falling_timer = @max(0.0, self.slow_falling_timer - dt);
         self.mining_fatigue_timer = @max(0.0, self.mining_fatigue_timer - dt);
+        self.dolphins_grace_timer = @max(0.0, self.dolphins_grace_timer - dt);
         self.regen_timer = @max(0.0, self.regen_timer - dt);
         self.wither_timer = @max(0.0, self.wither_timer - dt);
         self.poison_timer = @max(0.0, self.poison_timer - dt);
@@ -309,7 +321,7 @@ pub const Player = struct {
         else if (self.in_boat and self.in_water)
             boat_horizontal_speed_scale
         else if (self.in_water)
-            water_horizontal_speed_scale
+            (if (self.hasDolphinsGrace()) water_horizontal_speed_scale * 1.6 else water_horizontal_speed_scale)
         else if (self.in_cobweb)
             cobweb_horizontal_speed_scale
         else if (self.on_soulsand and self.has_soul_speed)
@@ -1108,4 +1120,37 @@ test "mining fatigue timer, application, and vitals decay" {
     p.tickVitals(55.0);
     try std.testing.expect(!p.hasMiningFatigue());
     try std.testing.expectEqual(p.mining_fatigue_timer, 0.0);
+}
+
+test "dolphins grace timer, application, vitals decay, and swim speed scale" {
+    var p = Player.init(0.0, 5.0, 0.0);
+    try std.testing.expect(!p.hasDolphinsGrace());
+    try std.testing.expectEqual(p.dolphins_grace_timer, 0.0);
+
+    p.applyDolphinsGrace();
+    try std.testing.expect(p.hasDolphinsGrace());
+    try std.testing.expectEqual(p.dolphins_grace_timer, 30.0);
+
+    p.tickVitals(10.0);
+    try std.testing.expect(p.hasDolphinsGrace());
+    try std.testing.expectEqual(p.dolphins_grace_timer, 20.0);
+
+    p.tickVitals(25.0);
+    try std.testing.expect(!p.hasDolphinsGrace());
+    try std.testing.expectEqual(p.dolphins_grace_timer, 0.0);
+
+    // Swimming speed test with dolphins grace
+    var p_normal = Player.init(0.5, 2.0, 0.5);
+    var p_boosted = Player.init(0.5, 2.0, 0.5);
+    p_boosted.applyDolphinsGrace();
+    const Mock = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return false; }
+        fn water(_: i32, _: i32, _: i32) bool { return true; }
+    };
+    p_normal.tickPhysics(Mock.solid, null, Mock.water, 1.0, 0.0, false, 0.05);
+    p_boosted.tickPhysics(Mock.solid, null, Mock.water, 1.0, 0.0, false, 0.05);
+
+    try std.testing.expect(p_normal.in_water);
+    try std.testing.expect(p_boosted.in_water);
+    try std.testing.expect(p_boosted.pos.x > p_normal.pos.x);
 }

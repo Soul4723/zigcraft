@@ -187,6 +187,9 @@ pub const ItemType = enum(u8) {
     conduit = 181,
     sponge = 182,
     wet_sponge = 183,
+    raw_cod = 184,
+    cooked_cod = 185,
+    fishing_rod = 186,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -450,6 +453,7 @@ pub const ItemType = enum(u8) {
             .bow => 384,
             .shield => 336,
             .crossbow => 465,
+            .fishing_rod => 64,
             else => 0,
         };
     }
@@ -457,7 +461,7 @@ pub const ItemType = enum(u8) {
 
     pub fn isCompostable(self: ItemType) bool {
         return switch (self) {
-            .leaves, .hay_bale, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh => true,
+            .leaves, .hay_bale, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod => true,
             else => false,
         };
     }
@@ -470,7 +474,7 @@ pub const ItemType = enum(u8) {
         return switch (self) {
             .none => 0,
             .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea => 16,
-            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat => 1,
+            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod => 1,
             else => 64,
         };
     }
@@ -657,6 +661,9 @@ pub const ItemType = enum(u8) {
             .conduit => "Conduit",
             .sponge => "Sponge",
             .wet_sponge => "Wet Sponge",
+            .raw_cod => "Raw Cod",
+            .cooked_cod => "Cooked Cod",
+            .fishing_rod => "Fishing Rod",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -782,6 +789,9 @@ pub const ItemType = enum(u8) {
             .conduit => .{ 0.90, 0.60, 0.45, 0.98 },
             .sponge => .{ 0.85, 0.80, 0.30, 0.98 },
             .wet_sponge => .{ 0.65, 0.68, 0.28, 0.98 },
+            .raw_cod => .{ 0.72, 0.60, 0.50, 0.95 },
+            .cooked_cod => .{ 0.85, 0.68, 0.42, 0.95 },
+            .fishing_rod => .{ 0.55, 0.40, 0.22, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1381,6 +1391,22 @@ pub const Inventory = struct {
             }
             if (shard_cnt == 2 and crystal_cnt == 2) {
                 self.craft_output = .{ .item = .sea_lantern, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 135: Fishing Rod: 2 Sticks + 2 Strings (or 1 String + 1 Scute/Membrane) -> 1 Fishing Rod
+        if (non_empty >= 2 and non_empty <= 4) {
+            var stick_c: usize = 0;
+            var line_c: usize = 0;
+            var other_c: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .stick) stick_c += sl.count
+                else if (sl.item == .string or sl.item == .scute or sl.item == .phantom_membrane) line_c += sl.count
+                else if (sl.item != .none) other_c += 1;
+            }
+            if (stick_c >= 2 and line_c >= 2 and other_c == 0) {
+                self.craft_output = .{ .item = .fishing_rod, .count = 1 };
                 return;
             }
         }
@@ -3075,12 +3101,13 @@ pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
     return held == .wooden_pickaxe or held == .iron_pickaxe or held == .netherite_pickaxe;
 }
 
-pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, skeleton, zombie, creeper, enderman, ender_dragon, shulker, endermite, turtle, drowned, phantom, guardian, elder_guardian };
+pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, skeleton, zombie, creeper, enderman, ender_dragon, shulker, endermite, turtle, drowned, phantom, guardian, elder_guardian, dolphin };
 
 pub fn getMobMeatDrop(mob_type: MobType) ItemType {
     return switch (mob_type) {
         .guardian => .prismarine_shard,
         .elder_guardian => .sponge,
+        .dolphin => .raw_cod,
         .phantom => .phantom_membrane,
         .drowned => .rotten_flesh,
         .turtle => .scute,
@@ -5431,4 +5458,30 @@ test "sponge and wet sponge item roundtrip, properties, and elder guardian drops
     try std.testing.expect(!ItemType.wet_sponge.isTool());
 
     try std.testing.expectEqual(getMobMeatDrop(.elder_guardian), .sponge);
+}
+
+test "fishing rod recipe 135, cod properties, and dolphin drops" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .stick, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .stick, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .string, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .string, .count = 1 };
+    inv.updateCrafting();
+
+    try std.testing.expectEqual(inv.craft_output.item, .fishing_rod);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expect(ItemType.fishing_rod.isTool());
+    try std.testing.expectEqual(ItemType.fishing_rod.maxDurability(), 64);
+    try std.testing.expectEqual(ItemType.fishing_rod.maxStackSize(), 1);
+    try std.testing.expectEqualStrings(ItemType.fishing_rod.name(), "Fishing Rod");
+
+    try std.testing.expect(!ItemType.raw_cod.isTool());
+    try std.testing.expect(!ItemType.cooked_cod.isTool());
+    try std.testing.expectEqual(ItemType.raw_cod.maxStackSize(), 64);
+    try std.testing.expectEqual(ItemType.cooked_cod.maxStackSize(), 64);
+    try std.testing.expect(ItemType.raw_cod.isCompostable());
+    try std.testing.expect(ItemType.cooked_cod.isCompostable());
+
+    try std.testing.expectEqual(getMobMeatDrop(.dolphin), .raw_cod);
 }
