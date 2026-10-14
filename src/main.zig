@@ -332,6 +332,7 @@ pub fn main() !void {
     var portal_ambient_timer: f32 = 0.0;
     var nether_ambient_timer: f32 = 0.0;
     var portal_transit = portal_mod.PortalTransitState{};
+    var end_portal_transit = portal_mod.EndPortalTransitState{};
     var portal_flash_timer: f32 = 0.0;
     var chunk_retry_timer: f32 = 0.0;
     var world_time: f32 = 45.0; // Start at morning daylight
@@ -537,6 +538,41 @@ pub fn main() !void {
                 }
             }
 
+            // Check if player is standing inside an End Portal block (instantaneous dimension jump)
+            const in_end_portal = (feet_b == .end_portal or head_b == .end_portal);
+            if (in_end_portal) {
+                particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 0.5, player.pos.z }, 4);
+                particles.spawnGlowstoneShimmer(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 2);
+            }
+            if (end_portal_transit.tick(in_end_portal, dt)) {
+                // Dimension warp between Overworld and The End!
+                if (end_portal_transit.current_dim == .the_end) {
+                    manager.is_end = true;
+                    manager.is_nether = false;
+                    // Spawn on obsidian arrival platform at (0, 11, 0)
+                    player.pos = math.Vec3.init(0.5, 11.2, 0.5);
+                    player.vel_y = 0.0;
+                } else {
+                    manager.is_end = false;
+                    // Return to Overworld spawn point
+                    player.pos = player.spawn_point;
+                    player.vel_y = 0.0;
+                }
+                portal_flash_timer = 1.0;
+                particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 1.0, player.pos.z }, 32);
+                particles.spawnPortalVortex(.{ player.pos.x, player.pos.y + 0.9, player.pos.z }, 1.4, 24, 0.0);
+                audio.play(.portal_warp, 1.0);
+                audio.play(.mob_teleport, 0.9);
+                toast.timer = 3.0;
+                toast.color = if (manager.is_end) .{ 0.82, 0.20, 0.96 } else .{ 0.20, 0.80, 0.35 };
+                std.debug.print("dimension transit: warped to {s} at ({d:.1}, {d:.1}, {d:.1})\n", .{
+                    @tagName(end_portal_transit.current_dim),
+                    player.pos.x,
+                    player.pos.y,
+                    player.pos.z,
+                });
+            }
+
             // Check if player is standing inside a nether portal block
             const in_portal = (feet_b == .nether_portal or head_b == .nether_portal);
             if (in_portal) {
@@ -576,6 +612,11 @@ pub fn main() !void {
                     player.pos.y,
                     player.pos.z,
                 });
+            }
+
+            // In The End dimension: emit ambient purple void shimmer and portal drift
+            if (manager.is_end) {
+                particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 1);
             }
 
             // In Nether dimension: emit ambient falling ash flakes, cinder particles, and subterranean wind drone
@@ -1862,10 +1903,14 @@ pub fn main() !void {
         // Dimension atmosphere palettes
         const nether_sky_top = math.Vec3.init(0.18, 0.04, 0.04);
         const nether_sky_horizon = math.Vec3.init(0.32, 0.08, 0.06);
+        const end_sky_top = math.Vec3.init(0.02, 0.01, 0.04);
+        const end_sky_horizon = math.Vec3.init(0.08, 0.03, 0.12);
 
         // Render world
         if (cam_underwater) {
             c.glClearColor(0.08, 0.28, 0.58, 1.0);
+        } else if (manager.is_end) {
+            c.glClearColor(0.04, 0.02, 0.06, 1.0);
         } else if (manager.is_nether) {
             c.glClearColor(0.24, 0.06, 0.05, 1.0);
         } else {
@@ -1877,6 +1922,8 @@ pub fn main() !void {
             const water_deep = math.Vec3.init(0.04, 0.14, 0.32);
             const water_hzn = math.Vec3.init(0.08, 0.28, 0.58);
             sky.draw(mvp, cam.position, water_deep, water_hzn);
+        } else if (manager.is_end) {
+            sky.draw(mvp, cam.position, end_sky_top, end_sky_horizon);
         } else if (manager.is_nether) {
             sky.draw(mvp, cam.position, nether_sky_top, nether_sky_horizon);
         } else {

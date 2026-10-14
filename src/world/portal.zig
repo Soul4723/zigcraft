@@ -233,6 +233,37 @@ test "activatePortalFrame fills 2x3 interior cells" {
 pub const Dimension = enum(u8) {
     overworld = 0,
     nether = 1,
+    the_end = 2,
+};
+
+pub const EndPortalTransitState = struct {
+    inside_timer: f32 = 0.0,
+    cooldown_timer: f32 = 0.0,
+    current_dim: Dimension = .overworld,
+
+    /// Update standing inside End Portal. Returns true when warp triggers (instant on step-in: 0.25s).
+    pub fn tick(self: *EndPortalTransitState, in_portal: bool, dt: f32) bool {
+        self.cooldown_timer = @max(0.0, self.cooldown_timer - dt);
+
+        if (!in_portal) {
+            self.inside_timer = 0.0;
+            return false;
+        }
+
+        if (self.cooldown_timer > 0.0) {
+            return false;
+        }
+
+        self.inside_timer += dt;
+        if (self.inside_timer >= 0.25) {
+            self.inside_timer = 0.0;
+            self.cooldown_timer = PORTAL_COOLDOWN_TIME;
+            self.current_dim = if (self.current_dim == .the_end) .overworld else .the_end;
+            return true;
+        }
+
+        return false;
+    }
 };
 
 pub const PORTAL_TRIGGER_TIME: f32 = 3.0; // 3 seconds standing inside portal to warp
@@ -586,4 +617,18 @@ test "End Portal Altar detection and 3x3 activation" {
     for (world.interior) |b| {
         try std.testing.expectEqual(BlockId.end_portal, b);
     }
+}
+
+test "EndPortalTransitState triggers instant transit to the_end and return" {
+    var transit = EndPortalTransitState{};
+    try std.testing.expectEqual(Dimension.overworld, transit.current_dim);
+
+    // Step into portal for 0.3s -> triggers transit to the_end
+    const warps = transit.tick(true, 0.3);
+    try std.testing.expect(warps);
+    try std.testing.expectEqual(Dimension.the_end, transit.current_dim);
+    try std.testing.expect(transit.cooldown_timer > 0.0);
+
+    // Cooldown prevents immediate re-warp
+    try std.testing.expect(!transit.tick(true, 0.5));
 }

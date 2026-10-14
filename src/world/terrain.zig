@@ -1096,3 +1096,120 @@ test "NetherGenerator incorporates chiseled nether bricks in fortress walkways" 
     }
     try std.testing.expect(found_chiseled);
 }
+
+
+pub const EndGenerator = struct {
+    seed: u64,
+
+    pub fn init(seed: u64) EndGenerator {
+        return .{ .seed = seed };
+    }
+
+    /// Check if horizontal coordinate (wx, wz) lies within the End central island.
+    /// Island radius ~40 blocks around (0, 0) with gentle circular falloff.
+    pub fn isIsland(self: EndGenerator, wx: i32, wz: i32) bool {
+        _ = self;
+        const fx = @as(f32, @floatFromInt(wx));
+        const fz = @as(f32, @floatFromInt(wz));
+        const dist = @sqrt(fx * fx + fz * fz);
+        return dist <= 40.0;
+    }
+
+    /// Returns height range [floor_y, ceil_y] for the End stone island at (wx, wz).
+    /// Center of island sits around y=6..10.
+    pub fn islandFloorCeil(self: EndGenerator, wx: i32, wz: i32) ?struct { min_y: i32, max_y: i32 } {
+        if (!self.isIsland(wx, wz)) return null;
+        const fx = @as(f32, @floatFromInt(wx));
+        const fz = @as(f32, @floatFromInt(wz));
+        const dist = @sqrt(fx * fx + fz * fz);
+        // Radius falloff: thicker at center (y=4..10), tapering at edges (y=7..8)
+        const taper = 1.0 - (dist / 40.0);
+        const half_thick: i32 = @intFromFloat(@floor(1.0 + taper * 3.0));
+        const center_y: i32 = 8;
+        return .{
+            .min_y = center_y - half_thick,
+            .max_y = center_y + half_thick,
+        };
+    }
+
+    /// Check if (wx, wz) is an obsidian pillar column.
+    /// 4 colossal obsidian monolith pillars placed at distance ~22 blocks on main axes / diagonals:
+    /// (16, 16), (-16, 16), (16, -16), (-16, -16)
+    pub fn isObsidianPillar(self: EndGenerator, wx: i32, wz: i32) bool {
+        _ = self;
+        const pillars = [_][2]i32{
+            .{ 16, 16 },
+            .{ -16, 16 },
+            .{ 16, -16 },
+            .{ -16, -16 },
+        };
+        for (pillars) |p| {
+            const dx = wx - p[0];
+            const dz = wz - p[1];
+            // 3x3 square pillar column
+            if (dx >= -1 and dx <= 1 and dz >= -1 and dz <= 1) return true;
+        }
+        return false;
+    }
+
+    pub fn generateChunk(self: EndGenerator, chunk: *Chunk, cx: i32, cz: i32) void {
+        const ox = cx * 16;
+        const oz = cz * 16;
+
+        var lx: i32 = 0;
+        while (lx < 16) : (lx += 1) {
+            const wx = ox + lx;
+            var lz: i32 = 0;
+            while (lz < 16) : (lz += 1) {
+                const wz = oz + lz;
+
+                const is_pillar = self.isObsidianPillar(wx, wz);
+                const island = self.islandFloorCeil(wx, wz);
+
+                var ly: i32 = 0;
+                while (ly < 16) : (ly += 1) {
+                    const wy = ly;
+
+                    if (is_pillar and wy >= 4 and wy <= 15) {
+                        // Obsidian monolith rising up to world ceiling
+                        chunk.setBlock(@intCast(lx), @intCast(ly), @intCast(lz), .obsidian);
+                    } else if (island) |isl| {
+                        if (wy >= isl.min_y and wy <= isl.max_y) {
+                            chunk.setBlock(@intCast(lx), @intCast(ly), @intCast(lz), .end_stone);
+                        } else {
+                            chunk.setBlock(@intCast(lx), @intCast(ly), @intCast(lz), .air);
+                        }
+                    } else {
+                        chunk.setBlock(@intCast(lx), @intCast(ly), @intCast(lz), .air);
+                    }
+                }
+            }
+        }
+    }
+};
+
+
+test "EndGenerator central island and obsidian monolith pillars" {
+    const end_gen = EndGenerator.init(12345);
+
+    // Center (0, 0) is island
+    try std.testing.expect(end_gen.isIsland(0, 0));
+    const center_isl = end_gen.islandFloorCeil(0, 0);
+    try std.testing.expect(center_isl != null);
+    try std.testing.expect(center_isl.?.max_y >= 10);
+    try std.testing.expect(center_isl.?.min_y <= 6);
+
+    // Outside island (>45m) is void
+    try std.testing.expect(!end_gen.isIsland(50, 0));
+    try std.testing.expect(end_gen.islandFloorCeil(50, 0) == null);
+
+    // Pillar at (16, 16)
+    try std.testing.expect(end_gen.isObsidianPillar(16, 16));
+    try std.testing.expect(end_gen.isObsidianPillar(15, 17));
+    try std.testing.expect(!end_gen.isObsidianPillar(0, 0));
+
+    // Chunk generation
+    var chunk = Chunk.init();
+    end_gen.generateChunk(&chunk, 0, 0); // chunk (0, 0) contains island center
+    try std.testing.expectEqual(BlockId.end_stone, chunk.getBlock(0, 8, 0));
+}

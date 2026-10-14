@@ -49,7 +49,9 @@ pub const ChunkManager = struct {
     radius: i32,
     terrain: terrain_mod.TerrainGenerator,
     nether: terrain_mod.NetherGenerator,
+    end: terrain_mod.EndGenerator,
     is_nether: bool = false,
+    is_end: bool = false,
     persistence: persistence_mod.Persistence,
 
     pub fn init(allocator: std.mem.Allocator, radius: i32, center_cx: i32, center_cz: i32, seed: u64, save_dir: [:0]const u8) !ChunkManager {
@@ -59,7 +61,9 @@ pub const ChunkManager = struct {
             .radius = radius,
             .terrain = terrain_mod.TerrainGenerator.init(seed),
             .nether = terrain_mod.NetherGenerator.init(seed),
+            .end = terrain_mod.EndGenerator.init(seed),
             .is_nether = false,
+            .is_end = false,
             .persistence = persistence_mod.Persistence.init(save_dir),
         };
         errdefer self.deinit();
@@ -113,7 +117,9 @@ pub const ChunkManager = struct {
                     var ch = Chunk.init();
                     const from_disk = self.persistence.loadChunk(cx, cz, &ch);
                     if (!from_disk) {
-                        if (self.is_nether) {
+                        if (self.is_end) {
+                            self.end.generateChunk(&ch, cx, cz);
+                        } else if (self.is_nether) {
                             self.nether.generateChunk(&ch, cx, cz);
                         } else {
                             self.terrain.generateChunk(&ch, cx, cz);
@@ -394,6 +400,7 @@ test "streaming loads radius and unloads outside" {
         .radius = 1,
         .terrain = terrain_mod.TerrainGenerator.init(123),
         .nether = terrain_mod.NetherGenerator.init(123),
+        .end = terrain_mod.EndGenerator.init(123),
         .is_nether = false,
         .persistence = persistence_mod.Persistence.init(".zig-cache/test_mgr_stream"),
     };
@@ -429,6 +436,7 @@ test "isSolidWorld checks negative chunk coords" {
         .radius = 1,
         .terrain = terrain_mod.TerrainGenerator.init(0),
         .nether = terrain_mod.NetherGenerator.init(0),
+        .end = terrain_mod.EndGenerator.init(0),
         .is_nether = false,
         .persistence = persistence_mod.Persistence.init(".zig-cache/test_mgr_solid"),
     };
@@ -451,6 +459,7 @@ test "getBlockWorld returns block id or air" {
         .radius = 1,
         .terrain = terrain_mod.TerrainGenerator.init(0),
         .nether = terrain_mod.NetherGenerator.init(0),
+        .end = terrain_mod.EndGenerator.init(0),
         .is_nether = false,
         .persistence = persistence_mod.Persistence.init(".zig-cache/test_mgr_block"),
     };
@@ -485,6 +494,7 @@ test "streaming retains modified chunk when chunk or sidecar save fails" {
             .radius = 0,
             .terrain = terrain_mod.TerrainGenerator.init(0),
         .nether = terrain_mod.NetherGenerator.init(0),
+        .end = terrain_mod.EndGenerator.init(0),
         .is_nether = false,
             .persistence = persistence_mod.Persistence.init(dir),
         };
