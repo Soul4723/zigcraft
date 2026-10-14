@@ -259,3 +259,23 @@ test "decrementPierce multi-entity penetration sequence" {
     try std.testing.expectEqual(true, r3.dead);
     try std.testing.expectEqual(@as(u8, 0), r3.next_pierce);
 }
+
+pub const trident_speed: f32 = 28.0;
+pub const trident_damage: u8 = 8;
+pub const trident_life: f32 = 5.0;
+
+pub fn tridentInitialVelocity(dir_x: f32, dir_y: f32, dir_z: f32) [3]f32 {
+    return .{
+        dir_x * trident_speed,
+        dir_y * trident_speed + 1.5,
+        dir_z * trident_speed,
+    };
+}
+
+test "trident initial velocity and damage constants" {
+    const v = tridentInitialVelocity(0.0, 1.0, 0.0);
+    try std.testing.expectEqual(@as(f32, 0.0), v[0]);
+    try std.testing.expectEqual(@as(f32, 29.5), v[1]);
+    try std.testing.expectEqual(@as(f32, 0.0), v[2]);
+    try std.testing.expectEqual(@as(u8, 8), trident_damage);
+}

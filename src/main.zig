@@ -221,7 +221,7 @@ pub fn main() !void {
     const PortalTarget = portal_mod.PortalTarget;
     var portal_targets: [32]PortalTarget = undefined;
     var portal_target_count: usize = 0;
-    const ThrownKind = enum { snowball, hostile_fireball, hostile_arrow, player_fire_charge, spectral_arrow, arrow, firework_rocket, ender_pearl, eye_of_ender, shulker_bullet };
+    const ThrownKind = enum { snowball, hostile_fireball, hostile_arrow, player_fire_charge, spectral_arrow, arrow, firework_rocket, ender_pearl, eye_of_ender, shulker_bullet, trident };
     const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball, damage: u8 = 1, pierce: u8 = 0, last_hit_mob: ?usize = null };
     var thrown: [proj_mod.thrown_cap]Thrown = undefined;
     var thrown_count: usize = 0;
@@ -1930,7 +1930,7 @@ pub fn main() !void {
         if (wolf_bite_cooldown <= 0.0) {
             const held_gold = (inventory.slots[selected_slot].item == .gold_nugget or inventory.slots[selected_slot].item == .golden_apple);
             for (mob_manager.mobs.items) |*m| {
-                if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider and m.mob_type != .endermite) continue;
+                if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider and m.mob_type != .endermite and m.mob_type != .drowned) continue;
                 if (m.mob_type == .piglin and (held_gold or m.barter_timer > 0.0 or entity_mod.mob_manager.MobManager.isPiglinRepelled(m.pos, player.pos, held_warped_fungus, &pickBlockWorld) != null)) continue;
                 const bdx = m.pos.x - player.pos.x;
                 const bdz = m.pos.z - player.pos.z;
@@ -1976,6 +1976,12 @@ pub fn main() !void {
                         } else if (m.mob_type == .zombie) {
                             player.applyHungerDebuff();
                             std.debug.print("infected with hunger by zombie bite", .{});
+                        } else if (m.mob_type == .drowned) {
+                            // Drowned melee attack deals 3 bonus damage (trident strike)
+                            const dr_dmg = combat_mod.applyArmorReductionFullSet(3.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet());
+                            player.health = @max(0.0, player.health - dr_dmg);
+                            audio.play(.splash, 0.7);
+                            std.debug.print("drowned trident strike (dmg={d:.1}, hp={d:.1})\n", .{ dr_dmg, player.health });
                         }
                         audio.play(.hurt, 0.8);
                         const has_leggings = inventory.hasItem(.netherite_leggings);
@@ -2440,6 +2446,9 @@ pub fn main() !void {
                         } else if (hit_mob.mob_type == .zombie and inventory_mod.dropsZombieIron(px, py, pz)) {
                             _ = inventory.addItem(.iron_ingot, 1);
                             std.debug.print("zombie dropped rare iron ingot\n", .{});
+                        } else if (hit_mob.mob_type == .drowned and inventory_mod.dropsDrownedTrident(px, py, pz)) {
+                            _ = inventory.addItem(.trident, 1);
+                            std.debug.print("drowned dropped rare trident!\n", .{});
                         }
                         if (hit_mob.mob_type == .ender_dragon) {
                             // Ender Dragon Defeat: celestial victory explosion and return portal fountain
@@ -3207,6 +3216,12 @@ pub fn main() !void {
                 const mby = mbc[1];
                 const mbz = mbc[2];
                 var dead = proj_mod.isExpired(t.life);
+                if (dead and t.kind == .trident) {
+                    particles.spawnWaterSplash(.{ t.pos.x, t.pos.y, t.pos.z }, 8);
+                    audio.playAt(.splash, .{ t.pos.x, t.pos.y, t.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.6, 25.0);
+                    _ = inventory.addItem(.trident, 1);
+                    std.debug.print("thrown trident flight completed and recovered\n", .{});
+                }
                 if (dead and t.kind == .eye_of_ender) {
                     const seed_roll: u32 = @as(u32, @bitCast(@as(i32, @intFromFloat(t.pos.x * 13.0 + t.pos.z * 29.0))));
                     if (inventory_mod.dropsEyeShatter(seed_roll)) {
@@ -3436,6 +3451,12 @@ pub fn main() !void {
                                 particles.spawnBurnSparks(.{ @as(f32, @floatFromInt(mbx)) + 0.5, @as(f32, @floatFromInt(mby)) + 0.5, @as(f32, @floatFromInt(mbz)) + 0.5 }, 12);
                                 std.debug.print("target block struck (strength={d}/15): emitting redstone signal\n", .{sig_str});
                             }
+                        } else if (t.kind == .trident) {
+                            particles.spawnWaterSplash(.{ t.pos.x, t.pos.y, t.pos.z }, 12);
+                            audio.playAt(.place_block, .{ t.pos.x, t.pos.y, t.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 30.0);
+                            _ = inventory.addItem(.trident, 1);
+                            std.debug.print("thrown trident struck block and recovered to inventory\n", .{});
+                            dead = true;
                         } else if (t.kind == .eye_of_ender) {
                             particles.spawnPortalParticles(.{ t.pos.x, t.pos.y, t.pos.z }, 12);
                             audio.playAt(.glowstone_chime, .{ t.pos.x, t.pos.y, t.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.7, 25.0);
@@ -3493,7 +3514,8 @@ pub fn main() !void {
                                 const is_fc = (t.kind == .player_fire_charge);
                                 const is_sa = (t.kind == .spectral_arrow);
                                 const is_arr = (t.kind == .arrow);
-                                const hit_dmg = if (is_sa or is_arr) t.damage else if (is_fc) @as(u8, 2) else @as(u8, 1);
+                                const is_trident = (t.kind == .trident);
+                                const hit_dmg = if (is_trident) t.damage else if (is_sa or is_arr) t.damage else if (is_fc) @as(u8, 2) else @as(u8, 1);
                                 const died = m.takeHitDmg(cam.front(), hit_dmg);
                                 if (is_fc) particles.spawnFlame(mbx, mby, mbz, 8);
                                 if (is_sa) {
@@ -3504,6 +3526,11 @@ pub fn main() !void {
                                 }
                                 audio.play(.hurt, 0.5);
                                 particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.93, 0.95, 1.0 }, 8);
+                                if (is_trident) {
+                                    particles.spawnWaterSplash(.{ m.pos.x, m.pos.y + 0.5, m.pos.z }, 14);
+                                    _ = inventory.addItem(.trident, 1);
+                                    std.debug.print("trident struck mob ({d} dmg) and returned to inventory!\n", .{hit_dmg});
+                                }
                                 if (died) {
                                     const md = inventory_mod.getMobMeatDrop(m.mob_type);
                                     const mp = m.pos;
@@ -3531,6 +3558,9 @@ pub fn main() !void {
                                     } else if (m.mob_type == .zombie and inventory_mod.dropsZombieIron(mbx, mby, mbz)) {
                                         _ = inventory.addItem(.iron_ingot, 1);
                                         std.debug.print("zombie dropped rare iron ingot\n", .{});
+                                    } else if (m.mob_type == .drowned and inventory_mod.dropsDrownedTrident(mbx, mby, mbz)) {
+                                        _ = inventory.addItem(.trident, 1);
+                                        std.debug.print("drowned dropped rare trident!\n", .{});
                                     }
                                     if (m.mob_type == .sheep) _ = inventory.addItem(.wool, 1);
                                     _ = mp;
@@ -3570,6 +3600,8 @@ pub fn main() !void {
                     } else if (t.kind == .firework_rocket) {
                         particles.spawnFlame(mbx, mby, mbz, 1);
                         particles.spawnCampfireSmoke(mbx, mby, mbz, false, false, 1);
+                    } else if (t.kind == .trident) {
+                        particles.spawnWaterSplash(.{ t.pos.x, t.pos.y, t.pos.z }, 2);
                     } else if (t.kind == .arrow) {
                         particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.85, 0.85, 0.85 }, 1);
                     } else {
@@ -3710,7 +3742,7 @@ pub fn main() !void {
         throw_cooldown = @max(0.0, throw_cooldown - dt);
         if (!inventory_open and throw_cooldown <= 0.0 and c.glfwGetKey(window, c.GLFW_KEY_G) == c.GLFW_PRESS) {
             const held_throw = inventory.slots[selected_slot].item;
-            if ((held_throw == .snowball or held_throw == .fire_charge or held_throw == .spectral_arrow or held_throw == .arrow or held_throw == .fireworks_rocket or held_throw == .ender_pearl or held_throw == .eye_of_ender) and thrown_count < thrown.len) {
+            if ((held_throw == .snowball or held_throw == .fire_charge or held_throw == .spectral_arrow or held_throw == .arrow or held_throw == .fireworks_rocket or held_throw == .ender_pearl or held_throw == .eye_of_ender or held_throw == .trident) and thrown_count < thrown.len) {
                 const dir_g = cam.front();
                 const vel_g = proj_mod.initialVelocity(dir_g.x, dir_g.y, dir_g.z);
                 const k: ThrownKind = if (held_throw == .fire_charge)
@@ -3725,9 +3757,13 @@ pub fn main() !void {
                     .ender_pearl
                 else if (held_throw == .eye_of_ender)
                     .eye_of_ender
+                else if (held_throw == .trident)
+                    .trident
                 else
                     .snowball;
-                const dmg: u8 = if (held_throw == .spectral_arrow)
+                const dmg: u8 = if (held_throw == .trident)
+                    proj_mod.trident_damage
+                else if (held_throw == .spectral_arrow)
                     proj_mod.spectral_arrow_damage
                 else if (held_throw == .arrow)
                     2
@@ -3737,8 +3773,13 @@ pub fn main() !void {
                     proj_mod.firework_explosion_damage
                 else
                     1;
-                const life_g: f32 = if (held_throw == .fireworks_rocket) proj_mod.firework_rocket_life else if (held_throw == .eye_of_ender) 2.5 else proj_mod.throw_life;
-                var vel_final = if (held_throw == .fireworks_rocket) proj_mod.fireworkInitialVelocity(dir_g.x, dir_g.y, dir_g.z) else vel_g;
+                const life_g: f32 = if (held_throw == .fireworks_rocket) proj_mod.firework_rocket_life else if (held_throw == .eye_of_ender) 2.5 else if (held_throw == .trident) proj_mod.trident_life else proj_mod.throw_life;
+                var vel_final = if (held_throw == .fireworks_rocket)
+                    proj_mod.fireworkInitialVelocity(dir_g.x, dir_g.y, dir_g.z)
+                else if (held_throw == .trident)
+                    proj_mod.tridentInitialVelocity(dir_g.x, dir_g.y, dir_g.z)
+                else
+                    vel_g;
                 if (held_throw == .eye_of_ender) {
                     // Navigate towards Stronghold origin (0, 0)
                     const sdx = 0.0 - cam.position.x;
@@ -3758,7 +3799,10 @@ pub fn main() !void {
                 thrown[thrown_count] = .{ .pos = cam.position, .vel = math.Vec3.init(vel_final[0], vel_final[1], vel_final[2]), .life = life_g, .kind = k, .damage = dmg };
                 thrown_count += 1;
                 inventory.slots[selected_slot].decrement(1);
-                if (held_throw == .fire_charge) {
+                if (held_throw == .trident) {
+                    audio.play(.splash, 0.9);
+                    audio.play(.break_block, 0.7);
+                } else if (held_throw == .fire_charge) {
                     audio.play(.lava_pop, 0.6);
                 } else if (held_throw == .spectral_arrow) {
                     audio.play(.glowstone_chime, 0.8);

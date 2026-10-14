@@ -113,6 +113,23 @@ pub const MobManager = struct {
             break;
         }
 
+        // Aquatic pass: oceans and water pools spawn turtles and drowned mobs
+        var water_attempts: usize = 0;
+        while (self.mobs.items.len < 8 and water_attempts < 4) : (water_attempts += 1) {
+            const rx = center_x + (self.rng.random().float(f32) * 36.0 - 18.0);
+            const rz = center_z + (self.rng.random().float(f32) * 36.0 - 18.0);
+            const ix: i32 = @intFromFloat(@floor(rx));
+            const iz: i32 = @intFromFloat(@floor(rz));
+            var iy: i32 = 8;
+            while (iy >= 1) : (iy -= 1) {
+                if (!spawn_rules.isWaterSpawn(chunk_manager, ix, iy, iz)) continue;
+                const roll_w = self.rng.random().float(f32);
+                const water_mtype: mob_mod.MobType = if (is_night and roll_w < 0.60) .drowned else .turtle;
+                try self.spawnMob(water_mtype, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
+                break;
+            }
+        }
+
         // Cave & night pass: dark hollows spawn wolves and arachnid spiders up to cap.
         var cave_attempts: usize = 0;
         while (self.mobs.items.len < 8 and cave_attempts < 6) : (cave_attempts += 1) {

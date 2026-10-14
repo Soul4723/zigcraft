@@ -174,6 +174,7 @@ pub const ItemType = enum(u8) {
     scute = 168,
     turtle_helmet = 169,
     water_breathing_potion = 170,
+    trident = 171,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -419,6 +420,7 @@ pub const ItemType = enum(u8) {
             .netherite_boots => 425,
             .elytra => 432,
             .turtle_helmet => 275,
+            .trident => 250,
             .bow => 384,
             .shield => 336,
             .crossbow => 465,
@@ -442,7 +444,7 @@ pub const ItemType = enum(u8) {
         return switch (self) {
             .none => 0,
             .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion => 16,
-            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat => 1,
+            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat => 1,
             else => 64,
         };
     }
@@ -616,6 +618,7 @@ pub const ItemType = enum(u8) {
             .scute => "Scute",
             .turtle_helmet => "Turtle Shell Helmet",
             .water_breathing_potion => "Potion of Water Breathing",
+            .trident => "Trident",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -728,6 +731,7 @@ pub const ItemType = enum(u8) {
             .scute => .{ 0.22, 0.58, 0.35, 0.95 },
             .turtle_helmet => .{ 0.18, 0.62, 0.32, 0.98 },
             .water_breathing_potion => .{ 0.15, 0.65, 0.85, 0.90 },
+            .trident => .{ 0.12, 0.65, 0.60, 0.98 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1276,6 +1280,22 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 127: Trident: 2 Iron Ingots + 1 Scute + 1 Stick -> 1 Trident
+        if (non_empty == 4) {
+            var iron_c: usize = 0;
+            var scute_c: usize = 0;
+            var stick_c: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .iron_ingot) iron_c += 1;
+                if (sl.item == .scute) scute_c += 1;
+                if (sl.item == .stick) stick_c += 1;
+            }
+            if (iron_c == 2 and scute_c == 1 and stick_c == 1) {
+                self.craft_output = .{ .item = .trident, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 125: Turtle Shell Helmet: 4 Scutes (filling 2x2 grid) -> 1 Turtle Shell Helmet
         if (non_empty == 4) {
@@ -2909,10 +2929,11 @@ pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
     return held == .wooden_pickaxe or held == .iron_pickaxe or held == .netherite_pickaxe;
 }
 
-pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, skeleton, zombie, creeper, enderman, ender_dragon, shulker, endermite, turtle };
+pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, skeleton, zombie, creeper, enderman, ender_dragon, shulker, endermite, turtle, drowned };
 
 pub fn getMobMeatDrop(mob_type: MobType) ItemType {
     return switch (mob_type) {
+        .drowned => .rotten_flesh,
         .turtle => .scute,
         .shulker => .shulker_shell,
         .endermite => .ender_pearl,
@@ -2975,6 +2996,12 @@ pub fn dropsSpiderEye(wx: i32, wy: i32, wz: i32) bool {
 pub fn dropsSkeletonArrow(wx: i32, wy: i32, wz: i32) bool {
     // 50% deterministic chance for skeleton archers to drop reserve arrows
     const h: u32 = @as(u32, @bitCast(wx *% 19 +% wy *% 37 +% wz *% 5)) % 2;
+    return h == 0;
+}
+
+pub fn dropsDrownedTrident(wx: i32, wy: i32, wz: i32) bool {
+    // Rare trophy: drowned mobs drop a trident on ~1-in-6 deterministic kills
+    const h: u32 = @as(u32, @bitCast(wx *% 31 +% wy *% 47 +% wz *% 19)) % 6;
     return h == 0;
 }
 
@@ -5113,4 +5140,34 @@ test "turtle scute, turtle shell helmet, and water breathing potion recipes 125-
     try std.testing.expectEqualStrings(ItemType.water_breathing_potion.name(), "Potion of Water Breathing");
     try std.testing.expectEqual(ItemType.water_breathing_potion.maxStackSize(), 16);
     try std.testing.expectEqual(getMobMeatDrop(.turtle), .scute);
+}
+
+test "trident item properties, tool status, Recipe 127, and drowned mob drops" {
+    var inv = Inventory.init();
+
+    // Recipe 127: 2 Iron Ingots + 1 Scute + 1 Stick -> 1 Trident
+    inv.craft_grid[0] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .scute, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .stick, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .trident);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expect(ItemType.trident.isTool());
+    try std.testing.expectEqual(ItemType.trident.maxDurability(), 250);
+    try std.testing.expectEqual(ItemType.trident.maxStackSize(), 1);
+    try std.testing.expectEqualStrings(ItemType.trident.name(), "Trident");
+    try std.testing.expect(ItemType.trident.toBlockId() == null);
+
+    try std.testing.expectEqual(getMobMeatDrop(.drowned), .rotten_flesh);
+
+    // Verify deterministic trident drop frequency
+    var trident_drops: usize = 0;
+    var x: i32 = 0;
+    while (x < 60) : (x += 1) {
+        if (dropsDrownedTrident(x, 4, 10)) trident_drops += 1;
+    }
+    try std.testing.expect(trident_drops > 0 and trident_drops < 30);
+    try std.testing.expectEqual(dropsDrownedTrident(12, 4, 10), dropsDrownedTrident(12, 4, 10));
 }

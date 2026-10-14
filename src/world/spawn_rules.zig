@@ -55,6 +55,14 @@ pub fn isCaveSpawn(world: anytype, x: i32, y: i32, z: i32, max_y: i32) bool {
     return true;
 }
 
+pub fn isWaterSpawn(world: anytype, x: i32, y: i32, z: i32) bool {
+    const ground = world.getBlockWorld(x, y, z);
+    if (ground != .water and ground != .sand and ground != .dirt) return false;
+    const water_layer = world.getBlockWorld(x, y + 1, z);
+    if (water_layer != .water) return false;
+    return true;
+}
+
 pub fn isSafeSpawn(world: anytype, x: i32, y: i32, z: i32) bool {
     const ground = world.getBlockWorld(x, y, z);
     if (!isSpawnGround(ground)) return false;
@@ -299,4 +307,17 @@ test "nearest junction centers on 48-cell fortress grid" {
     const k = nearestJunction(70.0, 70.0);
     try std.testing.expectEqual(@as(i32, 71), k.jx);
     try std.testing.expectEqual(@as(i32, 71), k.jz);
+}
+
+test "water spawn checks water presence at y+1" {
+    const WWorld = struct {
+        pub fn getBlockWorld(_: @This(), x: i32, y: i32, z: i32) BlockId {
+            _ = x; _ = z;
+            if (y == 2) return .sand;
+            if (y == 3) return .water;
+            return .air;
+        }
+    };
+    try std.testing.expect(isWaterSpawn(WWorld{}, 0, 2, 0));
+    try std.testing.expect(!isWaterSpawn(WWorld{}, 0, 3, 0));
 }

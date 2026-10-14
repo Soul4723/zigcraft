@@ -581,6 +581,36 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
 
             // 6. Rear-right hind flipper: 0.22 x 0.08 x 0.26 at (0.38, 0.08, -0.40)
             try appendBox(allocator, verts, inds, math.Vec3.init(0.38, 0.08, -0.40 + paddle), math.Vec3.init(0.22, 0.08, 0.26), mob.yaw, mob.pos, uv_flipper, uv_flipper);
+        },
+        .drowned => {
+            // Drowned: waterlogged submerged zombie with teal/cyan skin, dark sunken tunic, and raised arms
+            const uv_aqua_skin = texture.getTileUV(7, 1); // Cyan-teal waterlogged decaying flesh
+            const uv_tunic = texture.getTileUV(6, 1);     // Dark mossy navy drenched tunic
+            const uv_pants = texture.getTileUV(7, 0);     // Algae-stained tattered pants
+            const uv_trident = texture.getTileUV(7, 6);   // Radiant cyan-teal trident head / weapon
+
+            const walk_swing = @sin(mob.anim_time * 4.0) * 0.25;
+
+            // 1. Torso: 0.50 x 0.65 x 0.30 centered at (0, 0.95, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.95, 0), math.Vec3.init(0.50, 0.65, 0.30), mob.yaw, mob.pos, uv_tunic, uv_tunic);
+
+            // 2. Head: 0.40 x 0.40 x 0.40 centered at (0, 1.45, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 1.45, 0), math.Vec3.init(0.40, 0.40, 0.40), mob.yaw, mob.pos, uv_aqua_skin, uv_aqua_skin);
+
+            // 3. Left Arm (reaching forward in zombie stance): 0.18 x 0.55 x 0.18 at (-0.35, 1.05, 0.25)
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.35, 1.05, 0.25 + walk_swing * 0.2), math.Vec3.init(0.18, 0.55, 0.18), mob.yaw, mob.pos, uv_aqua_skin, uv_tunic);
+
+            // 4. Right Arm holding Trident: 0.18 x 0.55 x 0.18 at (0.35, 1.05, 0.25)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.35, 1.05, 0.25 - walk_swing * 0.2), math.Vec3.init(0.18, 0.55, 0.18), mob.yaw, mob.pos, uv_aqua_skin, uv_tunic);
+
+            // 5. Trident weapon in right hand: 0.08 x 0.85 x 0.08 at (0.42, 1.15, 0.35)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.42, 1.15, 0.35 - walk_swing * 0.2), math.Vec3.init(0.08, 0.85, 0.08), mob.yaw, mob.pos, uv_trident, uv_trident);
+
+            // 6. Left Leg: 0.20 x 0.60 x 0.20 at (-0.14, 0.30 + walk_swing * 0.1, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.14, 0.30, walk_swing), math.Vec3.init(0.20, 0.60, 0.20), mob.yaw, mob.pos, uv_pants, uv_pants);
+
+            // 7. Right Leg: 0.20 x 0.60 x 0.20 at (0.14, 0.30 - walk_swing * 0.1, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.14, 0.30, -walk_swing), math.Vec3.init(0.20, 0.60, 0.20), mob.yaw, mob.pos, uv_pants, uv_pants);
         }, .target_dummy => {
             const uv_hay = texture.getTileUV(1, 4); // Hay bale textured body
             const uv_post = texture.getTileUV(2, 2); // Wood post & crossbar
