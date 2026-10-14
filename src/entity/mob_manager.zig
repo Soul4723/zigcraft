@@ -219,7 +219,7 @@ pub const MobManager = struct {
                     mob.yaw = std.math.atan2(pdx, pdz);
                     mob.walk_timer = hunt_mod.walk_pulse;
                 }
-            } else if (mob.mob_type == .wolf or mob.mob_type == .emberbeast or mob.mob_type == .wither_skeleton or mob.mob_type == .piglin or mob.mob_type == .piglin_brute or mob.mob_type == .blaze or mob.mob_type == .spider or mob.mob_type == .skeleton or mob.mob_type == .zombie or mob.mob_type == .creeper or mob.mob_type == .enderman) {
+            } else if (mob.mob_type == .wolf or mob.mob_type == .emberbeast or mob.mob_type == .wither_skeleton or mob.mob_type == .piglin or mob.mob_type == .piglin_brute or mob.mob_type == .blaze or mob.mob_type == .spider or mob.mob_type == .cave_spider or mob.mob_type == .skeleton or mob.mob_type == .zombie or mob.mob_type == .creeper or mob.mob_type == .enderman) {
                 var is_repelled = false;
                 if (mob.mob_type == .piglin) {
                     if (isPiglinRepelled(mob.pos, player_pos, player_holding_fungus, block_at)) |repel_source| {
@@ -329,7 +329,7 @@ pub const MobManager = struct {
             self.spawner_timer = 0.0;
             var near: usize = 0;
             for (self.mobs.items) |mob| {
-                if (mob.mob_type != .emberbeast and mob.mob_type != .wither_skeleton and mob.mob_type != .blaze) continue;
+                if (mob.mob_type != .emberbeast and mob.mob_type != .wither_skeleton and mob.mob_type != .blaze and mob.mob_type != .cave_spider) continue;
                 const dx = mob.pos.x - player_pos.x;
                 const dz = mob.pos.z - player_pos.z;
                 if (dx * dx + dz * dz < 24.0 * 24.0) near += 1;
@@ -377,6 +377,15 @@ pub const MobManager = struct {
                                         self.spawnMob(spawn_type, @as(f32, @floatFromInt(gx)) + 0.5, @as(f32, @floatFromInt(gy + 1)), @as(f32, @floatFromInt(gz)) + 0.5) catch {};
                                         if (audio) |a| {
                                             a.playAt(.mob_roar, .{ @as(f32, @floatFromInt(gx)), @as(f32, @floatFromInt(gy + 1)), @as(f32, @floatFromInt(gz)) }, .{ player_pos.x, player_pos.y, player_pos.z }, 0.8, 30.0);
+                                        }
+                                        spawned = true;
+                                    }
+                                    break;
+                                } else if (g == .wood_planks or g == .cobblestone or g == .stone) {
+                                    if (bat(gx, gy + 1, gz) == .air and bat(gx, gy + 2, gz) == .air) {
+                                        self.spawnMob(.cave_spider, @as(f32, @floatFromInt(gx)) + 0.5, @as(f32, @floatFromInt(gy + 1)), @as(f32, @floatFromInt(gz)) + 0.5) catch {};
+                                        if (audio) |a| {
+                                            a.playAt(.mob_hiss, .{ @as(f32, @floatFromInt(gx)), @as(f32, @floatFromInt(gy + 1)), @as(f32, @floatFromInt(gz)) }, .{ player_pos.x, player_pos.y, player_pos.z }, 0.8, 25.0);
                                         }
                                         spawned = true;
                                     }
@@ -552,7 +561,7 @@ pub const MobManager = struct {
         var count: usize = 0;
         const r_sq = radius * radius;
         for (self.mobs.items) |m| {
-            if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider and m.mob_type != .skeleton and m.mob_type != .zombie and m.mob_type != .creeper and m.mob_type != .enderman) continue;
+            if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider and m.mob_type != .cave_spider and m.mob_type != .skeleton and m.mob_type != .zombie and m.mob_type != .creeper and m.mob_type != .enderman) continue;
             const dx = m.pos.x - center.x;
             const dy = m.pos.y - center.y;
             const dz = m.pos.z - center.z;

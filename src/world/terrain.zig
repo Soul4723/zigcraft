@@ -230,6 +230,15 @@ pub const TerrainGenerator = struct {
             return .air;
         }
 
+        // Cave spider spawner cage nest at wx = -16, wz = 16 surrounded by dense cobwebs
+        if (wx >= -18 and wx <= -14 and wz >= 15 and wz <= 17) {
+            if (wx == -16 and wz == 16 and wy == 4) return .spawner_cage;
+            if (wy >= 4 and wy <= 5) {
+                // Dense web nest around spawner
+                if (@abs(wx - (-16)) <= 1 and (wy == 4 or wy == 5)) return .cobweb;
+            }
+        }
+
         // Center track corridor at wy = 4: Rails, Powered Rails, Torches, Chests
         if (wy == 4 and is_center) {
             // Chest at branch junction or dead ends
@@ -1748,6 +1757,12 @@ test "procedural sea pickle colonies generate on seafloor in ocean water" {
 
 test "TerrainGenerator abandoned mineshaft corridors, rails, timber frames, and chests" {
     const tg = TerrainGenerator.init(42);
+    // Cave spider spawner cage at (-16, 4, 16) with dense cobweb cocoon
+    try std.testing.expectEqual(BlockId.spawner_cage, tg.getAbandonedMineshaftBlock(-16, 4, 16).?);
+    try std.testing.expectEqual(BlockId.cobweb, tg.getAbandonedMineshaftBlock(-15, 4, 16).?);
+    try std.testing.expectEqual(BlockId.cobweb, tg.getAbandonedMineshaftBlock(-16, 5, 16).?);
+
+
 
     // Primary corridor at (10, wy, 16):
     // Floor wy=3 -> wood_planks

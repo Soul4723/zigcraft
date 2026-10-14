@@ -64,6 +64,7 @@ pub const Mob = struct {
             .blaze => 0.6,
             .target_dummy => 0.6,
             .spider => 0.8,
+            .cave_spider => 0.7,
             .skeleton, .zombie, .creeper, .enderman => 0.6,
             .ender_dragon => 2.4,
             .shulker => 0.8,
@@ -85,6 +86,7 @@ pub const Mob = struct {
             .blaze => 1.8,
             .target_dummy => 1.8,
             .spider => 0.5,
+            .cave_spider => 0.4,
             .skeleton, .zombie => 1.8,
             .creeper => 1.7,
             .enderman => 2.9,
@@ -109,6 +111,7 @@ pub const Mob = struct {
             .blaze => 2.4,
             .target_dummy => 0.0,
             .spider => 3.5,
+            .cave_spider => 3.8,
             .skeleton => 2.4,
             .zombie => 2.2,
             .creeper => 2.5,
@@ -137,7 +140,7 @@ pub const Mob = struct {
             .anim_time = 0.0,
             .change_dir_timer = 2.0,
             .wants_sound = false,
-            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze or mob_type == .enderman or mob_type == .phantom) 20 else if (mob_type == .piglin_brute or mob_type == .drowned) 15 else if (mob_type == .ender_dragon) 200 else if (mob_type == .elder_guardian) 80 else if (mob_type == .target_dummy) 50 else if (mob_type == .shulker or mob_type == .turtle or mob_type == .guardian) 30 else if (mob_type == .spider or mob_type == .endermite) 8 else if (mob_type == .skeleton or mob_type == .zombie or mob_type == .creeper or mob_type == .dolphin) 10 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
+            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze or mob_type == .enderman or mob_type == .phantom) 20 else if (mob_type == .piglin_brute or mob_type == .drowned) 15 else if (mob_type == .ender_dragon) 200 else if (mob_type == .elder_guardian) 80 else if (mob_type == .target_dummy) 50 else if (mob_type == .shulker or mob_type == .turtle or mob_type == .guardian) 30 else if (mob_type == .spider or mob_type == .endermite) 8 else if (mob_type == .cave_spider) 6 else if (mob_type == .skeleton or mob_type == .zombie or mob_type == .creeper or mob_type == .dolphin) 10 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
             .in_water = false,
             .in_bubble_column = false,
             .in_whirlpool = false,
@@ -272,9 +275,9 @@ pub const Mob = struct {
         // If bumped into obstacle: spiders climb walls directly; other mobs auto-hop 1-block step
         const blocked_x = @abs(self.pos.x - old_x) < @abs(move_dist_x) * 0.5 and @abs(move_dist_x) > 0.001;
         const blocked_z = @abs(self.pos.z - old_z) < @abs(move_dist_z) * 0.5 and @abs(move_dist_z) > 0.001;
-        const is_spider_climbing = self.mob_type == .spider and (blocked_x or blocked_z);
+        const is_spider_climbing = (self.mob_type == .spider or self.mob_type == .cave_spider) and (blocked_x or blocked_z);
         if (blocked_x or blocked_z) {
-            if (self.mob_type == .spider) {
+            if (self.mob_type == .spider or self.mob_type == .cave_spider) {
                 // Arachnid vertical wall climbing physics: ascend wall at steady climb speed
                 self.vel.y = 3.5;
                 self.on_ground = false;
@@ -609,6 +612,7 @@ pub fn getSound(mob_type: MobType) ?@import("../audio/synth.zig").SoundType {
         .piglin, .piglin_brute => .mob_oink,
         .target_dummy => .step_wood,
         .spider => .mob_growl,
+        .cave_spider => .mob_hiss,
         .skeleton, .zombie => .mob_growl,
         .creeper => .mob_hiss,
         .enderman => .mob_teleport,
@@ -1015,4 +1019,15 @@ test "dolphin mob stats, dimensions, swim speed, and raw cod drop" {
     try std.testing.expectEqual(d.height, 0.6);
     try std.testing.expectEqual(getSound(.dolphin), .mob_baa);
     try std.testing.expectEqual(inventory_mod.getMobMeatDrop(.dolphin), .raw_cod);
+}
+
+test "cave spider mob stats, dimensions, wall climbing, and drop" {
+    const cs = Mob.init(.cave_spider, 5.0, 10.0, 15.0);
+    try std.testing.expectEqual(cs.mob_type, .cave_spider);
+    try std.testing.expectEqual(cs.health, 6);
+    try std.testing.expectEqual(cs.width, 0.7);
+    try std.testing.expectEqual(cs.height, 0.4);
+    try std.testing.expectEqual(cs.walk_speed, 3.8);
+    try std.testing.expectEqual(getSound(.cave_spider), .mob_hiss);
+    try std.testing.expectEqual(inventory_mod.getMobMeatDrop(.cave_spider), .string);
 }
