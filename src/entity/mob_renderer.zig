@@ -611,6 +611,29 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
 
             // 7. Right Leg: 0.20 x 0.60 x 0.20 at (0.14, 0.30 - walk_swing * 0.1, 0)
             try appendBox(allocator, verts, inds, math.Vec3.init(0.14, 0.30, -walk_swing), math.Vec3.init(0.20, 0.60, 0.20), mob.yaw, mob.pos, uv_pants, uv_pants);
+        },
+        .phantom => {
+            // Phantom: undead aerial predator with indigo wings, bone ribs, glowing green eyes, and trailing tail
+            const uv_indigo = texture.getTileUV(6, 1); // Dark midnight indigo dorsal body & wings
+            const uv_bone = texture.getTileUV(7, 2);   // Exposed pale ventral skeleton & bone ribbing
+            const uv_eyes = texture.getTileUV(7, 6);   // Radiant luminous yellow-green phantom eyes
+
+            const wing_flap = @sin(mob.anim_time * 6.0) * 0.35;
+
+            // 1. Central body fuselage: 0.38 x 0.16 x 0.70 at (0, 0.20, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.20, 0), math.Vec3.init(0.38, 0.16, 0.70), mob.yaw, mob.pos, uv_indigo, uv_bone);
+
+            // 2. Head with menacing eyes: 0.26 x 0.14 x 0.26 at (0, 0.18, 0.42)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.18, 0.42), math.Vec3.init(0.26, 0.14, 0.26), mob.yaw, mob.pos, uv_eyes, uv_indigo);
+
+            // 3. Left Wing (articulated flap): 0.55 x 0.05 x 0.45 at (-0.46, 0.22 + wing_flap * 0.4, 0.05)
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.46, 0.22 + wing_flap * 0.4, 0.05), math.Vec3.init(0.55, 0.05, 0.45), mob.yaw, mob.pos, uv_indigo, uv_bone);
+
+            // 4. Right Wing (articulated flap): 0.55 x 0.05 x 0.45 at (0.46, 0.22 + wing_flap * 0.4, 0.05)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.46, 0.22 + wing_flap * 0.4, 0.05), math.Vec3.init(0.55, 0.05, 0.45), mob.yaw, mob.pos, uv_indigo, uv_bone);
+
+            // 5. Tail segment (trailing rudder): 0.16 x 0.10 x 0.40 at (0, 0.18 - wing_flap * 0.15, -0.48)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.18 - wing_flap * 0.15, -0.48), math.Vec3.init(0.16, 0.10, 0.40), mob.yaw, mob.pos, uv_indigo, uv_bone);
         }, .target_dummy => {
             const uv_hay = texture.getTileUV(1, 4); // Hay bale textured body
             const uv_post = texture.getTileUV(2, 2); // Wood post & crossbar

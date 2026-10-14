@@ -1795,6 +1795,17 @@ pub fn main() !void {
         // Mob spawning and physics AI tick
         const is_night_spawn = @sin(world_time) <= 0.0;
         try mob_manager.ensureSpawnPopulation(&manager, player.pos.x, player.pos.z, is_night_spawn);
+
+        // Insomnia aerial night spawn: spawn Phantoms circling above insomniac players
+        if (is_night_spawn and player.hasInsomnia() and mob_manager.mobs.items.len < 8 and !manager.is_nether and !manager.is_end) {
+            // 2% chance per tick when insomniac at night to summon a predatory Phantom
+            const p_seed = @as(u32, @bitCast(@as(i32, @intFromFloat(player.pos.x * 23.0)))) ^ @as(u32, @bitCast(@as(i32, @intFromFloat(player.pos.z * 41.0)))) ^ @as(u32, @intFromFloat(player.insomnia_timer * 10.0));
+            if ((p_seed % 50) == 0) {
+                try mob_manager.spawnMob(.phantom, player.pos.x + 4.0, 15.0, player.pos.z + 4.0);
+                audio.play(.mob_roar, 0.85);
+                std.debug.print("Insomnia summoned Phantom circling above at y=15!\n", .{});
+            }
+        }
         const held_warped_fungus = (inventory.slots[selected_slot].item == .warped_fungus or inventory.slots[selected_slot].item == .warped_fungus_on_a_stick);
         mob_manager.tick(&pickSolid, &pickFluid, &pickBlockWorld, player.pos, player.radius, held_warped_fungus, &audio, dt);
         // In The End: emit soaring celestial violet gateway sky-beams from nearby End Gateways
@@ -1930,7 +1941,7 @@ pub fn main() !void {
         if (wolf_bite_cooldown <= 0.0) {
             const held_gold = (inventory.slots[selected_slot].item == .gold_nugget or inventory.slots[selected_slot].item == .golden_apple);
             for (mob_manager.mobs.items) |*m| {
-                if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider and m.mob_type != .endermite and m.mob_type != .drowned) continue;
+                if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider and m.mob_type != .endermite and m.mob_type != .drowned and m.mob_type != .phantom) continue;
                 if (m.mob_type == .piglin and (held_gold or m.barter_timer > 0.0 or entity_mod.mob_manager.MobManager.isPiglinRepelled(m.pos, player.pos, held_warped_fungus, &pickBlockWorld) != null)) continue;
                 const bdx = m.pos.x - player.pos.x;
                 const bdz = m.pos.z - player.pos.z;
@@ -1982,6 +1993,12 @@ pub fn main() !void {
                             player.health = @max(0.0, player.health - dr_dmg);
                             audio.play(.splash, 0.7);
                             std.debug.print("drowned trident strike (dmg={d:.1}, hp={d:.1})\n", .{ dr_dmg, player.health });
+                        } else if (m.mob_type == .phantom) {
+                            // Phantom swoop strike deals 3 damage with aerial roar
+                            const ph_dmg = combat_mod.applyArmorReductionFullSet(3.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet());
+                            player.health = @max(0.0, player.health - ph_dmg);
+                            audio.play(.mob_roar, 0.85);
+                            std.debug.print("phantom swoop attack struck player (dmg={d:.1}, hp={d:.1})\n", .{ ph_dmg, player.health });
                         }
                         audio.play(.hurt, 0.8);
                         const has_leggings = inventory.hasItem(.netherite_leggings);
@@ -2917,6 +2934,7 @@ pub fn main() !void {
                         world_time = sleep_res.new_world_time;
                         player.spawn_point = player.pos;
                         player.health = sleep_res.new_health;
+                        player.resetInsomnia();
                         audio.play(.craft_item, 0.7);
                         std.debug.print("slept; spawn set\n", .{});
                     } else {
@@ -5072,6 +5090,12 @@ pub fn main() !void {
                 audio.play(.eat, 0.8);
                 particles.spawnBurnSparks(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 8);
                 std.debug.print("drank fire resistance potion (timer={d:.1}s)\n", .{player.fire_resistance_timer});
+            } else if (held_eat.item == .slow_falling_potion) {
+                player.drinkSlowFalling();
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.8);
+                particles.spawnGlowstoneShimmer(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 12);
+                std.debug.print("drank slow falling potion (timer={d:.1}s)\n", .{player.slow_falling_timer});
             } else if (held_eat.item == .water_breathing_potion) {
                 player.drinkWaterBreathing();
                 inventory.slots[selected_slot].decrement(1);

@@ -70,6 +70,7 @@ pub const Mob = struct {
             .endermite => 0.4,
             .turtle => 0.9,
             .drowned => 0.6,
+            .phantom => 0.9,
         };
         const h: f32 = switch (mob_type) {
             .sheep => 0.9,
@@ -89,6 +90,7 @@ pub const Mob = struct {
             .endermite => 0.3,
             .turtle => 0.4,
             .drowned => 1.8,
+            .phantom => 0.5,
         };
         const spd: f32 = switch (mob_type) {
             .sheep => 1.4,
@@ -110,6 +112,7 @@ pub const Mob = struct {
             .endermite => 2.8,
             .turtle => 0.8,
             .drowned => 1.8,
+            .phantom => 4.2,
         };
         return .{
             .mob_type = mob_type,
@@ -125,7 +128,7 @@ pub const Mob = struct {
             .anim_time = 0.0,
             .change_dir_timer = 2.0,
             .wants_sound = false,
-            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze or mob_type == .enderman) 20 else if (mob_type == .piglin_brute or mob_type == .drowned) 15 else if (mob_type == .ender_dragon) 200 else if (mob_type == .target_dummy) 50 else if (mob_type == .shulker or mob_type == .turtle) 30 else if (mob_type == .spider or mob_type == .endermite) 8 else if (mob_type == .skeleton or mob_type == .zombie or mob_type == .creeper) 10 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
+            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze or mob_type == .enderman or mob_type == .phantom) 20 else if (mob_type == .piglin_brute or mob_type == .drowned) 15 else if (mob_type == .ender_dragon) 200 else if (mob_type == .target_dummy) 50 else if (mob_type == .shulker or mob_type == .turtle) 30 else if (mob_type == .spider or mob_type == .endermite) 8 else if (mob_type == .skeleton or mob_type == .zombie or mob_type == .creeper) 10 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
             .in_water = false,
             .in_bubble_column = false,
             .in_whirlpool = false,
@@ -171,6 +174,21 @@ pub const Mob = struct {
 
         var wish_x: f32 = 0.0;
         var wish_z: f32 = 0.0;
+
+        if (self.mob_type == .phantom) {
+            // Phantom aerial swoop kinematics: circling high altitude (y=12..16) with undulating wing flaps
+            self.anim_time += clamped_dt * 6.0;
+            self.yaw += clamped_dt * 0.6; // Circling aerial pattern
+            wish_x = @sin(self.yaw) * self.walk_speed;
+            wish_z = @cos(self.yaw) * self.walk_speed;
+            const target_alt: f32 = 14.0 + @sin(self.anim_time * 0.9) * 2.0;
+            self.vel.y += (target_alt - self.pos.y) * 1.8 * clamped_dt;
+            self.vel.y = std.math.clamp(self.vel.y, -4.0, 4.0);
+            self.pos.y += self.vel.y * clamped_dt;
+            self.pos.x += wish_x * clamped_dt;
+            self.pos.z += wish_z * clamped_dt;
+            return;
+        }
 
         if (self.mob_type == .ender_dragon) {
             // Ender Dragon 3D flight trajectory: circular aerial patrol (radius ~24m, altitude y=14..18)
@@ -584,6 +602,7 @@ pub fn getSound(mob_type: MobType) ?@import("../audio/synth.zig").SoundType {
         .endermite => .mob_hiss,
         .turtle => .mob_growl,
         .drowned => .mob_growl,
+        .phantom => .mob_roar,
     };
 }
 
@@ -938,4 +957,15 @@ test "drowned mob stats, dimensions, and rotten flesh drop" {
     try std.testing.expectEqual(d.walk_speed, 1.8);
     try std.testing.expectEqual(getSound(.drowned), .mob_growl);
     try std.testing.expectEqual(inventory_mod.getMobMeatDrop(.drowned), .rotten_flesh);
+}
+
+test "phantom mob stats, dimensions, flight trajectory, and membrane drop" {
+    const ph = Mob.init(.phantom, 2.0, 14.0, 3.0);
+    try std.testing.expectEqual(ph.mob_type, .phantom);
+    try std.testing.expectEqual(ph.health, 20);
+    try std.testing.expectEqual(ph.width, 0.9);
+    try std.testing.expectEqual(ph.height, 0.5);
+    try std.testing.expectEqual(ph.walk_speed, 4.2);
+    try std.testing.expectEqual(getSound(.phantom), .mob_roar);
+    try std.testing.expectEqual(inventory_mod.getMobMeatDrop(.phantom), .phantom_membrane);
 }

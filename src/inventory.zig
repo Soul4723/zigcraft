@@ -175,6 +175,8 @@ pub const ItemType = enum(u8) {
     turtle_helmet = 169,
     water_breathing_potion = 170,
     trident = 171,
+    phantom_membrane = 172,
+    slow_falling_potion = 173,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -443,7 +445,7 @@ pub const ItemType = enum(u8) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion => 16,
+            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion => 16,
             .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat => 1,
             else => 64,
         };
@@ -619,6 +621,8 @@ pub const ItemType = enum(u8) {
             .turtle_helmet => "Turtle Shell Helmet",
             .water_breathing_potion => "Potion of Water Breathing",
             .trident => "Trident",
+            .phantom_membrane => "Phantom Membrane",
+            .slow_falling_potion => "Potion of Slow Falling",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -732,6 +736,8 @@ pub const ItemType = enum(u8) {
             .turtle_helmet => .{ 0.18, 0.62, 0.32, 0.98 },
             .water_breathing_potion => .{ 0.15, 0.65, 0.85, 0.90 },
             .trident => .{ 0.12, 0.65, 0.60, 0.98 },
+            .phantom_membrane => .{ 0.70, 0.75, 0.65, 0.85 },
+            .slow_falling_potion => .{ 0.88, 0.82, 0.75, 0.90 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1280,6 +1286,34 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 128: Slow Falling Potion: 1 Phantom Membrane + 1 Glass vial (or nether wart) -> 1 Slow Falling Potion
+        if (non_empty == 2) {
+            var memb_c: usize = 0;
+            var liquid_c: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .phantom_membrane) memb_c += 1;
+                if (sl.item == .glass or sl.item == .nether_wart or sl.item == .water) liquid_c += 1;
+            }
+            if (memb_c == 1 and liquid_c == 1) {
+                self.craft_output = .{ .item = .slow_falling_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 129: Elytra Membrane Repair / Craft: 2 Phantom Membranes + 2 Feathers/String/Purpur -> 1 Elytra
+        if (non_empty == 4) {
+            var memb_cnt: usize = 0;
+            var supp_cnt: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .phantom_membrane) memb_cnt += 1;
+                if (sl.item == .string or sl.item == .purpur_block or sl.item == .wool) supp_cnt += 1;
+            }
+            if (memb_cnt == 2 and supp_cnt == 2) {
+                self.craft_output = .{ .item = .elytra, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 127: Trident: 2 Iron Ingots + 1 Scute + 1 Stick -> 1 Trident
         if (non_empty == 4) {
@@ -2929,10 +2963,11 @@ pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
     return held == .wooden_pickaxe or held == .iron_pickaxe or held == .netherite_pickaxe;
 }
 
-pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, skeleton, zombie, creeper, enderman, ender_dragon, shulker, endermite, turtle, drowned };
+pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, skeleton, zombie, creeper, enderman, ender_dragon, shulker, endermite, turtle, drowned, phantom };
 
 pub fn getMobMeatDrop(mob_type: MobType) ItemType {
     return switch (mob_type) {
+        .phantom => .phantom_membrane,
         .drowned => .rotten_flesh,
         .turtle => .scute,
         .shulker => .shulker_shell,
@@ -5170,4 +5205,32 @@ test "trident item properties, tool status, Recipe 127, and drowned mob drops" {
     }
     try std.testing.expect(trident_drops > 0 and trident_drops < 30);
     try std.testing.expectEqual(dropsDrownedTrident(12, 4, 10), dropsDrownedTrident(12, 4, 10));
+}
+
+test "phantom membrane, slow falling potion, and elytra repair recipes 128-129" {
+    var inv = Inventory.init();
+
+    // Recipe 128: 1 Phantom Membrane + 1 Glass -> 1 Slow Falling Potion
+    inv.craft_grid[0] = .{ .item = .phantom_membrane, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .slow_falling_potion);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 129: 2 Phantom Membranes + 2 Strings -> 1 Elytra
+    inv.craft_grid[0] = .{ .item = .phantom_membrane, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .string, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .phantom_membrane, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .string, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .elytra);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expectEqual(ItemType.phantom_membrane.maxStackSize(), 64);
+    try std.testing.expectEqualStrings(ItemType.phantom_membrane.name(), "Phantom Membrane");
+    try std.testing.expectEqual(ItemType.slow_falling_potion.maxStackSize(), 16);
+    try std.testing.expectEqualStrings(ItemType.slow_falling_potion.name(), "Potion of Slow Falling");
+    try std.testing.expectEqual(getMobMeatDrop(.phantom), .phantom_membrane);
 }

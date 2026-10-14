@@ -31,7 +31,19 @@ pub const Player = struct {
     levitation_timer: f32 = 0.0,
     is_gliding: bool = false,
     rocket_boost_timer: f32 = 0.0,
+    insomnia_timer: f32 = 0.0,
+    slow_falling_timer: f32 = 0.0,
     lodestone_target: ?math.Vec3 = null,
+
+    pub fn resetInsomnia(self: *Player) void {
+        self.insomnia_timer = 0.0;
+        self.slow_falling_timer = 0.0;
+    }
+
+    pub fn hasInsomnia(self: Player) bool {
+        // Insomnia triggers after 60s without sleep (~3 Minecraft days equivalent)
+        return self.insomnia_timer >= 60.0;
+    }
 
     pub fn init(x: f32, y: f32, z: f32) Player {
         return .{
@@ -54,6 +66,14 @@ pub const Player = struct {
     }
 
     /// Fire Resistance Potion: grants 3 minutes (180s) of complete immunity to fire, lava, and magma heat.
+    pub fn drinkSlowFalling(self: *Player) void {
+        self.slow_falling_timer = 90.0;
+    }
+
+    pub fn hasSlowFalling(self: Player) bool {
+        return self.slow_falling_timer > 0.0;
+    }
+
     pub fn drinkWaterBreathing(self: *Player) void {
         self.water_breathing_timer = 180.0;
     }
@@ -117,6 +137,7 @@ pub const Player = struct {
         self.in_boat = false;
         self.oxygen = 15.0;
         self.water_breathing_timer = 0.0;
+        self.insomnia_timer = 0.0;
         self.spawn_point = self.pos;
     }
 
@@ -207,6 +228,7 @@ pub const Player = struct {
     pub fn tickVitals(self: *Player, dt: f32) void {
         self.fire_resistance_timer = @max(0.0, self.fire_resistance_timer - dt);
         self.water_breathing_timer = @max(0.0, self.water_breathing_timer - dt);
+        self.slow_falling_timer = @max(0.0, self.slow_falling_timer - dt);
         self.regen_timer = @max(0.0, self.regen_timer - dt);
         self.wither_timer = @max(0.0, self.wither_timer - dt);
         self.poison_timer = @max(0.0, self.poison_timer - dt);
@@ -214,6 +236,7 @@ pub const Player = struct {
         self.hunger_debuff_timer = @max(0.0, self.hunger_debuff_timer - dt);
         self.levitation_timer = @max(0.0, self.levitation_timer - dt);
         self.rocket_boost_timer = @max(0.0, self.rocket_boost_timer - dt);
+        self.insomnia_timer += dt;
         if (self.wither_timer > 0.0 and self.health > 0.0) {
             self.health = @max(0.0, self.health - dt * wither_rate);
         }
@@ -344,6 +367,13 @@ pub const Player = struct {
             // Shulker levitation effect: upward gentle anti-gravity lift
             self.vel_y = levitation_lift_speed;
             self.on_ground = false;
+        } else if (self.hasSlowFalling()) {
+            // Slow falling status: clamp terminal descent speed to gentle float (-2.0 m/s) and allow jump
+            if (jump and self.on_ground) {
+                self.vel_y = 8.0;
+                self.on_ground = false;
+            }
+            self.vel_y = @max(-2.0, self.vel_y - 12.0 * clamped_dt);
         } else {
             if (jump and self.on_ground) {
                 self.vel_y = 8.0;
@@ -1018,4 +1048,34 @@ test "player water breathing potion duration and status" {
     p.tickVitals(10.0);
     try std.testing.expectEqual(@as(f32, 170.0), p.water_breathing_timer);
     try std.testing.expect(p.hasWaterBreathing());
+}
+
+test "player insomnia timer accumulation and reset on sleep" {
+    var p = Player.init(0, 0, 0);
+    try std.testing.expectEqual(@as(f32, 0.0), p.insomnia_timer);
+    try std.testing.expect(!p.hasInsomnia());
+
+    p.tickVitals(30.0);
+    try std.testing.expectEqual(@as(f32, 30.0), p.insomnia_timer);
+    try std.testing.expect(!p.hasInsomnia());
+
+    p.tickVitals(35.0);
+    try std.testing.expectEqual(@as(f32, 65.0), p.insomnia_timer);
+    try std.testing.expect(p.hasInsomnia());
+
+    p.resetInsomnia();
+    try std.testing.expectEqual(@as(f32, 0.0), p.insomnia_timer);
+    try std.testing.expect(!p.hasInsomnia());
+}
+
+test "player slow falling potion duration, status, and decay" {
+    var p = Player.init(0, 0, 0);
+    try std.testing.expect(!p.hasSlowFalling());
+    p.drinkSlowFalling();
+    try std.testing.expect(p.hasSlowFalling());
+    try std.testing.expectEqual(@as(f32, 90.0), p.slow_falling_timer);
+
+    p.tickVitals(10.0);
+    try std.testing.expectEqual(@as(f32, 80.0), p.slow_falling_timer);
+    try std.testing.expect(p.hasSlowFalling());
 }
