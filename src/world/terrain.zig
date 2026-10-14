@@ -1115,21 +1115,47 @@ pub const EndGenerator = struct {
         return dist <= 40.0;
     }
 
-    /// Returns height range [floor_y, ceil_y] for the End stone island at (wx, wz).
-    /// Center of island sits around y=6..10.
-    pub fn islandFloorCeil(self: EndGenerator, wx: i32, wz: i32) ?struct { min_y: i32, max_y: i32 } {
-        if (!self.isIsland(wx, wz)) return null;
-        const fx = @as(f32, @floatFromInt(wx));
-        const fz = @as(f32, @floatFromInt(wz));
-        const dist = @sqrt(fx * fx + fz * fz);
-        // Radius falloff: thicker at center (y=4..10), tapering at edges (y=7..8)
-        const taper = 1.0 - (dist / 40.0);
-        const half_thick: i32 = @intFromFloat(@floor(1.0 + taper * 3.0));
-        const center_y: i32 = 8;
-        return .{
-            .min_y = center_y - half_thick,
-            .max_y = center_y + half_thick,
+    /// Check if horizontal coordinate (wx, wz) lies within an outer End satellite island.
+    /// Outer islands centered at (72, 0), (-72, 0), (0, 72), (0, -72) with radius 16.
+    pub fn isOuterIsland(self: EndGenerator, wx: i32, wz: i32) bool {
+        _ = self;
+        const centers = [_][2]i32{
+            .{ 72, 0 },
+            .{ -72, 0 },
+            .{ 0, 72 },
+            .{ 0, -72 },
         };
+        for (centers) |c| {
+            const dx = wx - c[0];
+            const dz = wz - c[1];
+            if (dx * dx + dz * dz <= 16 * 16) return true;
+        }
+        return false;
+    }
+
+    /// Returns height range [floor_y, ceil_y] for the End stone island at (wx, wz).
+    /// Center of central island sits around y=6..10.
+    /// Outer islands sit around y=6..8.
+    pub fn islandFloorCeil(self: EndGenerator, wx: i32, wz: i32) ?struct { min_y: i32, max_y: i32 } {
+        if (self.isIsland(wx, wz)) {
+            const fx = @as(f32, @floatFromInt(wx));
+            const fz = @as(f32, @floatFromInt(wz));
+            const dist = @sqrt(fx * fx + fz * fz);
+            const taper = 1.0 - (dist / 40.0);
+            const half_thick: i32 = @intFromFloat(@floor(1.0 + taper * 3.0));
+            const center_y: i32 = 8;
+            return .{
+                .min_y = center_y - half_thick,
+                .max_y = center_y + half_thick,
+            };
+        }
+        if (self.isOuterIsland(wx, wz)) {
+            return .{
+                .min_y = 6,
+                .max_y = 8,
+            };
+        }
+        return null;
     }
 
     /// Check if (wx, wz) is an obsidian pillar column.
@@ -1161,6 +1187,92 @@ pub const EndGenerator = struct {
             (wx == -16 and wz == -16);
     }
 
+    /// Check if (wx, wy, wz) intersects the End City fortress structure on the East outer island.
+    /// Tower center at (72, 0), floor at y=8, footprint wx in 69..75, wz in -3..3, height up to y=15.
+    pub fn getEndCityBlock(self: EndGenerator, wx: i32, wy: i32, wz: i32) ?BlockId {
+        _ = self;
+        if (wx < 69 or wx > 75 or wz < -3 or wz > 3) return null;
+        if (wy < 8 or wy > 15) return null;
+
+        const is_corner = (wx == 69 or wx == 75) and (wz == -3 or wz == 3);
+        const is_wall = (wx == 69 or wx == 75 or wz == -3 or wz == 3);
+
+        // Foundation floor at y=8
+        if (wy == 8) return .purpur_block;
+
+        // Ground floor walls, doorway, and loot container
+        if (wy == 9) {
+            if (is_wall) {
+                // Entrance portal at wx == 69, wz == 0
+                if (wx == 69 and wz == 0) return .air;
+                return if (is_corner) .purpur_pillar else .purpur_block;
+            }
+            if (wx == 72 and wz == 0) return .shulker_box;
+            return .air;
+        }
+
+        // Mid-wall / doorway arch
+        if (wy == 10) {
+            if (is_wall) {
+                if (wx == 69 and wz == 0) return .air;
+                return if (is_corner) .purpur_pillar else .purpur_block;
+            }
+            return .air;
+        }
+
+        // Window level: End Rod light sources on center wall flanks
+        if (wy == 11) {
+            if (is_wall) {
+                if ((wx == 72 and (wz == -3 or wz == 3)) or (wz == 0 and wx == 75)) return .end_rod;
+                return if (is_corner) .purpur_pillar else .purpur_block;
+            }
+            return .air;
+        }
+
+        // Upper tower walls
+        if (wy == 12 or wy == 13) {
+            if (is_wall) return if (is_corner) .purpur_pillar else .purpur_block;
+            return .air;
+        }
+
+        // Roof slab at y=14
+        if (wy == 14) return .purpur_block;
+
+        // Parapet spires at y=15 (End Rods on corners)
+        if (wy == 15) {
+            if (is_corner) return .end_rod;
+            return .air;
+        }
+
+        return null;
+    }
+
+    /// Deterministic hash check for Chorus Plant grove generation on outer islands.
+    pub fn isChorusTree(self: EndGenerator, wx: i32, wz: i32) bool {
+        // Exclude End City tower footprint
+        if (wx >= 68 and wx <= 76 and wz >= -4 and wz <= 4) return false;
+        if (!self.isOuterIsland(wx, wz)) return false;
+
+        const u_wx: u64 = @bitCast(@as(i64, wx));
+        const u_wz: u64 = @bitCast(@as(i64, wz));
+        var h: u64 = (u_wx *% 73856093) ^ (u_wz *% 19349663) ^ (self.seed *% 83492791);
+        h ^= (h >> 13);
+        h *%= 0x5bd1e995;
+        return (h % 31) == 0;
+    }
+
+    /// Generates segmented Chorus Plant stem and Chorus Flower crown.
+    pub fn getChorusBlock(self: EndGenerator, wx: i32, wy: i32, wz: i32, ground_y: i32) ?BlockId {
+        if (!self.isChorusTree(wx, wz)) return null;
+        if (wy <= ground_y or wy > ground_y + 4) return null;
+
+        // Trunk: y = ground+1, ground+2, ground+3 are chorus_plant
+        if (wy <= ground_y + 3) return .chorus_plant;
+        // Crown: y = ground+4 is chorus_flower
+        if (wy == ground_y + 4) return .chorus_flower;
+        return null;
+    }
+
     pub fn generateChunk(self: EndGenerator, chunk: *Chunk, cx: i32, cz: i32) void {
         const ox = cx * 16;
         const oz = cz * 16;
@@ -1179,7 +1291,10 @@ pub const EndGenerator = struct {
                 while (ly < 16) : (ly += 1) {
                     const wy = ly;
 
-                    if (is_pillar and wy >= 4 and wy <= 14) {
+                    if (self.getEndCityBlock(wx, wy, wz)) |b| {
+                        // End City architectural block takes precedence
+                        chunk.setBlock(@intCast(lx), @intCast(ly), @intCast(lz), b);
+                    } else if (is_pillar and wy >= 4 and wy <= 14) {
                         // Obsidian monolith pillar shaft
                         chunk.setBlock(@intCast(lx), @intCast(ly), @intCast(lz), .obsidian);
                     } else if (wy == 15 and is_pillar) {
@@ -1192,6 +1307,8 @@ pub const EndGenerator = struct {
                     } else if (island) |isl| {
                         if (wy >= isl.min_y and wy <= isl.max_y) {
                             chunk.setBlock(@intCast(lx), @intCast(ly), @intCast(lz), .end_stone);
+                        } else if (self.getChorusBlock(wx, wy, wz, isl.max_y)) |cb| {
+                            chunk.setBlock(@intCast(lx), @intCast(ly), @intCast(lz), cb);
                         } else {
                             chunk.setBlock(@intCast(lx), @intCast(ly), @intCast(lz), .air);
                         }
@@ -1204,7 +1321,6 @@ pub const EndGenerator = struct {
     }
 };
 
-
 test "EndGenerator central island and obsidian monolith pillars" {
     const end_gen = EndGenerator.init(12345);
 
@@ -1215,8 +1331,9 @@ test "EndGenerator central island and obsidian monolith pillars" {
     try std.testing.expect(center_isl.?.max_y >= 10);
     try std.testing.expect(center_isl.?.min_y <= 6);
 
-    // Outside island (>45m) is void
+    // Void gap between central and outer islands
     try std.testing.expect(!end_gen.isIsland(50, 0));
+    try std.testing.expect(!end_gen.isOuterIsland(50, 0));
     try std.testing.expect(end_gen.islandFloorCeil(50, 0) == null);
 
     // Pillar at (16, 16)
@@ -1224,8 +1341,70 @@ test "EndGenerator central island and obsidian monolith pillars" {
     try std.testing.expect(end_gen.isObsidianPillar(15, 17));
     try std.testing.expect(!end_gen.isObsidianPillar(0, 0));
 
-    // Chunk generation
+    // Chunk generation: central island
     var chunk = Chunk.init();
     end_gen.generateChunk(&chunk, 0, 0); // chunk (0, 0) contains island center
     try std.testing.expectEqual(BlockId.end_stone, chunk.getBlock(0, 8, 0));
+}
+
+test "EndGenerator outer satellite islands and chorus forest grove generation" {
+    const end_gen = EndGenerator.init(12345);
+
+    // East outer island at (72, 0)
+    try std.testing.expect(!end_gen.isIsland(72, 0));
+    try std.testing.expect(end_gen.isOuterIsland(72, 0));
+    try std.testing.expect(end_gen.islandFloorCeil(72, 0) != null);
+
+    // North outer island at (0, 72)
+    try std.testing.expect(end_gen.isOuterIsland(0, 72));
+
+    // Chorus tree generation on outer islands
+    var found_tree = false;
+    var wx: i32 = 58;
+    while (wx <= 86) : (wx += 1) {
+        if (end_gen.isChorusTree(wx, 8)) {
+            found_tree = true;
+            // Verify stem and flower vertical structure
+            try std.testing.expectEqual(BlockId.chorus_plant, end_gen.getChorusBlock(wx, 9, 8, 8).?);
+            try std.testing.expectEqual(BlockId.chorus_plant, end_gen.getChorusBlock(wx, 10, 8, 8).?);
+            try std.testing.expectEqual(BlockId.chorus_plant, end_gen.getChorusBlock(wx, 11, 8, 8).?);
+            try std.testing.expectEqual(BlockId.chorus_flower, end_gen.getChorusBlock(wx, 12, 8, 8).?);
+            try std.testing.expect(end_gen.getChorusBlock(wx, 13, 8, 8) == null);
+            break;
+        }
+    }
+    try std.testing.expect(found_tree);
+}
+
+test "EndGenerator end city fortress architecture, purpur pillars, end rods, and shulker box loot" {
+    const end_gen = EndGenerator.init(12345);
+
+    // End City tower at wx in 69..75, wz in -3..3
+    // Corner at (69, -3) has Purpur Pillar walls
+    try std.testing.expectEqual(BlockId.purpur_pillar, end_gen.getEndCityBlock(69, 9, -3).?);
+    try std.testing.expectEqual(BlockId.purpur_pillar, end_gen.getEndCityBlock(75, 12, 3).?);
+
+    // Wall at (72, 3) has Purpur Block
+    try std.testing.expectEqual(BlockId.purpur_block, end_gen.getEndCityBlock(72, 9, 3).?);
+
+    // Entrance at (69, 0) is air (walkway entry)
+    try std.testing.expectEqual(BlockId.air, end_gen.getEndCityBlock(69, 9, 0).?);
+
+    // Window light sources at y=11 are End Rods
+    try std.testing.expectEqual(BlockId.end_rod, end_gen.getEndCityBlock(72, 11, 3).?);
+
+    // Loot container at tower interior center (72, 9, 0)
+    try std.testing.expectEqual(BlockId.shulker_box, end_gen.getEndCityBlock(72, 9, 0).?);
+
+    // Roof at y=14 is Purpur Block
+    try std.testing.expectEqual(BlockId.purpur_block, end_gen.getEndCityBlock(72, 14, 0).?);
+
+    // Spire pinnacles at y=15 are End Rods
+    try std.testing.expectEqual(BlockId.end_rod, end_gen.getEndCityBlock(69, 15, -3).?);
+
+    // Chunk generation for chunk (4, 0) covering wx 64..79, wz 0..15 (contains half of city)
+    var chunk = Chunk.init();
+    end_gen.generateChunk(&chunk, 4, 0);
+    // At wx = 72 (lx = 8), wz = 0 (lz = 0), wy = 9 (ly = 9) should be shulker_box
+    try std.testing.expectEqual(BlockId.shulker_box, chunk.getBlock(8, 9, 0));
 }
