@@ -182,6 +182,67 @@ pub const TerrainGenerator = struct {
         return .water;
     }
 
+
+    /// Check if cavern coordinates (wx, wy, wz) intersect an Abandoned Mineshaft corridor structure.
+    /// Deep underground subterranean corridors (wy in 3..6) featuring oak plank floor/walkways,
+    /// oak fence support struts & arch timber frames every 4 blocks, rail track lines,
+    /// intermittent powered rails, cobweb clusters, and abandoned minecart loot chests.
+    pub fn getAbandonedMineshaftBlock(self: TerrainGenerator, wx: i32, wy: i32, wz: i32) ?BlockId {
+        _ = self;
+        // Deep underground elevation bound
+        if (wy < 3 or wy > 6) return null;
+
+        // Primary corridor axis: East-West along wz in 15..17 (center wz = 16), length wx in -32..32
+        const is_primary_ew = (wx >= -32 and wx <= 32 and wz >= 15 and wz <= 17);
+        // Crossing branch corridor: North-South along wx in -1..1 (center wx = 0), length wz in -16..32
+        const is_branch_ns = (wz >= -16 and wz <= 32 and wx >= -1 and wx <= 1);
+
+        if (!is_primary_ew and !is_branch_ns) return null;
+
+        const is_center = (is_primary_ew and wz == 16) or (is_branch_ns and wx == 0);
+
+        // Floor at wy = 3: wooden walkways under rail tracks, cobblestone/gravel ballast
+        if (wy == 3) {
+            if (is_center) return .wood_planks;
+            return .cobblestone;
+        }
+
+        // Timber arch support frames every 4 blocks along corridor
+        const is_arch_x = is_primary_ew and (@mod(wx, 4) == 0);
+        const is_arch_z = is_branch_ns and (@mod(wz, 4) == 0);
+
+        // Ceiling beam at wy = 6
+        if (wy == 6) {
+            if (is_arch_x or is_arch_z) return .wood_planks;
+            // Cobwebs hanging from ceiling
+            const web_hash: u32 = @as(u32, @bitCast(wx *% 31 +% wz *% 73));
+            if ((web_hash % 10) == 0) return .cobweb;
+            return .air;
+        }
+
+        // Walls / support posts at sides (wy in 4..5)
+        const is_side = (is_primary_ew and (wz == 15 or wz == 17)) or (is_branch_ns and (wx == -1 or wx == 1));
+        if (is_side) {
+            if (is_arch_x or is_arch_z) return .oak_fence;
+            // Occasional cobwebs in side corners
+            const side_hash: u32 = @as(u32, @bitCast(wx *% 53 +% wz *% 29 +% wy *% 11));
+            if ((side_hash % 8) == 0) return .cobweb;
+            return .air;
+        }
+
+        // Center track corridor at wy = 4: Rails, Powered Rails, Torches, Chests
+        if (wy == 4 and is_center) {
+            // Chest at branch junction or dead ends
+            if ((wx == 0 and wz == 16) or (wx == 30 and wz == 16)) return .chest;
+            // Redstone powered rail every 8 blocks
+            if (@mod(wx, 8) == 4 or @mod(wz, 8) == 4) return .powered_rail;
+            return .rail;
+        }
+
+        // Corridor interior air clearance
+        return .air;
+    }
+
     /// Fill chunk at world chunk coords (cx,cz) with terrain columns, water bodies, and trees.
     pub fn generateChunk(self: TerrainGenerator, chunk: *Chunk, cx: i32, cz: i32) void {
         // 1. Terrain base columns & water
@@ -248,6 +309,14 @@ pub const TerrainGenerator = struct {
                     if (self.getOceanMonumentBlock(wx, my, wz)) |mb| {
                         chunk.setBlock(@intCast(lx), @intCast(my), @intCast(lz), mb);
                         if (mb == .water) chunk.setLevel(@intCast(lx), @intCast(my), @intCast(lz), 7);
+                    }
+                }
+
+                // Subterranean Abandoned Mineshaft structure override (wy in 3..6)
+                var shy: i32 = 3;
+                while (shy <= 6) : (shy += 1) {
+                    if (self.getAbandonedMineshaftBlock(wx, shy, wz)) |sb| {
+                        chunk.setBlock(@intCast(lx), @intCast(shy), @intCast(lz), sb);
                     }
                 }
             }
@@ -1675,4 +1744,37 @@ test "procedural sea pickle colonies generate on seafloor in ocean water" {
         if (found_sp) break;
     }
     try std.testing.expect(found_sp);
+}
+
+test "TerrainGenerator abandoned mineshaft corridors, rails, timber frames, and chests" {
+    const tg = TerrainGenerator.init(42);
+
+    // Primary corridor at (10, wy, 16):
+    // Floor wy=3 -> wood_planks
+    try std.testing.expectEqual(BlockId.wood_planks, tg.getAbandonedMineshaftBlock(10, 3, 16).?);
+    // Rail at wy=4
+    try std.testing.expectEqual(BlockId.rail, tg.getAbandonedMineshaftBlock(10, 4, 16).?);
+    // Air at wy=5
+    try std.testing.expectEqual(BlockId.air, tg.getAbandonedMineshaftBlock(10, 5, 16).?);
+
+    // Powered rail at wx=4, wy=4, wz=16 (mod 8 == 4)
+    try std.testing.expectEqual(BlockId.powered_rail, tg.getAbandonedMineshaftBlock(4, 4, 16).?);
+
+    // Arch timber frame post at wx=8, wy=4, wz=15 (side post, mod 4 == 0)
+    try std.testing.expectEqual(BlockId.oak_fence, tg.getAbandonedMineshaftBlock(8, 4, 15).?);
+    // Arch ceiling beam at wx=8, wy=6, wz=16
+    try std.testing.expectEqual(BlockId.wood_planks, tg.getAbandonedMineshaftBlock(8, 6, 16).?);
+
+    // Loot chest at junction (0, 4, 16)
+    try std.testing.expectEqual(BlockId.chest, tg.getAbandonedMineshaftBlock(0, 4, 16).?);
+
+    // Coordinates outside bounds return null
+    try std.testing.expect(tg.getAbandonedMineshaftBlock(100, 4, 16) == null);
+    try std.testing.expect(tg.getAbandonedMineshaftBlock(0, 8, 16) == null);
+
+    // Verify chunk generator applies mineshaft blocks
+    var chunk = Chunk.init(); tg.generateChunk(&chunk, 0, 1); // cx=0, cz=1 -> wz in 16..31
+    try std.testing.expectEqual(BlockId.wood_planks, chunk.getBlock(4, 3, 0)); // wx=4, wy=3, wz=16
+    try std.testing.expectEqual(BlockId.powered_rail, chunk.getBlock(4, 4, 0)); // wx=4, wy=4, wz=16
+    try std.testing.expectEqual(BlockId.chest, chunk.getBlock(0, 4, 0)); // junction chest at wx=0, wy=4, wz=16
 }
