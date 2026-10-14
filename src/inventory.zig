@@ -223,6 +223,8 @@ pub const ItemType = enum(u8) {
     diamond = 217,
     diamond_ore = 218,
     diamond_block = 219,
+    diamond_sword = 220,
+    diamond_pickaxe = 221,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -515,6 +517,8 @@ pub const ItemType = enum(u8) {
             .wooden_pickaxe => 25,
             .iron_pickaxe => 120,
             .iron_sword => 100,
+            .diamond_pickaxe => 250,
+            .diamond_sword => 250,
             .netherite_pickaxe => 350,
             .netherite_sword => 400,
             .warped_fungus_on_a_stick => 100,
@@ -550,7 +554,7 @@ pub const ItemType = enum(u8) {
         return switch (self) {
             .none => 0,
             .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea => 16,
-            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart => 1,
+            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart => 1,
             else => 64,
         };
     }
@@ -773,6 +777,8 @@ pub const ItemType = enum(u8) {
             .diamond => "Diamond",
             .diamond_ore => "Diamond Ore",
             .diamond_block => "Block of Diamond",
+            .diamond_sword => "Diamond Sword",
+            .diamond_pickaxe => "Diamond Pickaxe",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -934,6 +940,8 @@ pub const ItemType = enum(u8) {
             .diamond => .{ 0.35, 0.85, 0.95, 0.95 },
             .diamond_ore => .{ 0.45, 0.70, 0.80, 0.95 },
             .diamond_block => .{ 0.40, 0.90, 0.95, 0.95 },
+            .diamond_sword => .{ 0.35, 0.88, 0.95, 0.95 },
+            .diamond_pickaxe => .{ 0.35, 0.88, 0.95, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1765,6 +1773,38 @@ pub const Inventory = struct {
             }
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 162: Diamond Sword: 2 Diamonds vertically or 1 Iron Sword + 1 Diamond -> 1 Diamond Sword
+        if (non_empty == 2) {
+            if ((g0 == .diamond and g2 == .diamond and g1 == .none and g3 == .none) or
+                (g1 == .diamond and g3 == .diamond and g0 == .none and g2 == .none))
+            {
+                self.craft_output = .{ .item = .diamond_sword, .count = 1 };
+                return;
+            }
+            const has_iron_sword = (g0 == .iron_sword or g1 == .iron_sword or g2 == .iron_sword or g3 == .iron_sword);
+            const has_diamond = (g0 == .diamond or g1 == .diamond or g2 == .diamond or g3 == .diamond);
+            if (has_iron_sword and has_diamond) {
+                self.craft_output = .{ .item = .diamond_sword, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 163: Diamond Pickaxe: 2 Diamonds top row + 1 Stick below, or 1 Iron Pickaxe + 1 Diamond -> 1 Diamond Pickaxe
+        if (non_empty == 3) {
+            if (g0 == .diamond and g1 == .diamond and (g2 == .stick or g3 == .stick)) {
+                self.craft_output = .{ .item = .diamond_pickaxe, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 2) {
+            const has_iron_pick = (g0 == .iron_pickaxe or g1 == .iron_pickaxe or g2 == .iron_pickaxe or g3 == .iron_pickaxe);
+            const has_diamond = (g0 == .diamond or g1 == .diamond or g2 == .diamond or g3 == .diamond);
+            if (has_iron_pick and has_diamond) {
+                self.craft_output = .{ .item = .diamond_pickaxe, .count = 1 };
                 return;
             }
         }
@@ -3089,9 +3129,10 @@ pub const Inventory = struct {
             }
         }
 
-        // Recipe 40: Netherite Sword: 1 Iron Sword + 1 Netherite Ingot (non_empty == 2) -> 1 Netherite Sword
+        // Recipe 40: Netherite Sword: 1 Iron/Diamond Sword + 1 Netherite Ingot (non_empty == 2) -> 1 Netherite Sword
         if (non_empty == 2) {
-            const has_sword = (g0 == .iron_sword or g1 == .iron_sword or g2 == .iron_sword or g3 == .iron_sword);
+            const has_sword = (g0 == .iron_sword or g1 == .iron_sword or g2 == .iron_sword or g3 == .iron_sword or
+                g0 == .diamond_sword or g1 == .diamond_sword or g2 == .diamond_sword or g3 == .diamond_sword);
             const has_ingot = (g0 == .netherite_ingot or g1 == .netherite_ingot or g2 == .netherite_ingot or g3 == .netherite_ingot);
             if (has_sword and has_ingot) {
                 self.craft_output = .{ .item = .netherite_sword, .count = 1 };
@@ -3099,9 +3140,10 @@ pub const Inventory = struct {
             }
         }
 
-        // Recipe 39: Netherite Pickaxe: 1 Iron Pickaxe + 1 Netherite Ingot (non_empty == 2) -> 1 Netherite Pickaxe
+        // Recipe 39: Netherite Pickaxe: 1 Iron/Diamond Pickaxe + 1 Netherite Ingot (non_empty == 2) -> 1 Netherite Pickaxe
         if (non_empty == 2) {
-            const has_pick = (g0 == .iron_pickaxe or g1 == .iron_pickaxe or g2 == .iron_pickaxe or g3 == .iron_pickaxe);
+            const has_pick = (g0 == .iron_pickaxe or g1 == .iron_pickaxe or g2 == .iron_pickaxe or g3 == .iron_pickaxe or
+                g0 == .diamond_pickaxe or g1 == .diamond_pickaxe or g2 == .diamond_pickaxe or g3 == .diamond_pickaxe);
             const has_ingot = (g0 == .netherite_ingot or g1 == .netherite_ingot or g2 == .netherite_ingot or g3 == .netherite_ingot);
             if (has_pick and has_ingot) {
                 self.craft_output = .{ .item = .netherite_pickaxe, .count = 1 };
@@ -3572,7 +3614,7 @@ test "cactus item mapping and conversion" {
 pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
     const need = block_mod.requiredTier(block);
     if (need == .hand) return true;
-    return held == .wooden_pickaxe or held == .iron_pickaxe or held == .netherite_pickaxe;
+    return held == .wooden_pickaxe or held == .iron_pickaxe or held == .diamond_pickaxe or held == .netherite_pickaxe;
 }
 
 pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, cave_spider, skeleton, zombie, creeper, enderman, ender_dragon, shulker, endermite, turtle, drowned, phantom, guardian, elder_guardian, dolphin, slime };
@@ -6455,4 +6497,70 @@ test "wooden and iron trapdoor items and recipes 154 and 155" {
     try std.testing.expectEqual(ItemType.fromBlockId(.wooden_trapdoor_open), .wooden_trapdoor);
     try std.testing.expectEqual(ItemType.fromBlockId(.iron_trapdoor_closed), .iron_trapdoor);
     try std.testing.expectEqual(ItemType.fromBlockId(.iron_trapdoor_open), .iron_trapdoor);
+}
+
+test "diamond sword and diamond pickaxe items, durability, harvest tier, and recipes 162 and 163" {
+    var inv = Inventory.init();
+
+    // Recipe 162: 2 Diamonds vertically -> 1 Diamond Sword
+    inv.craft_grid[0] = .{ .item = .diamond, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .diamond, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .diamond_sword);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 162 alternative: 1 Iron Sword + 1 Diamond -> 1 Diamond Sword
+    inv.craft_grid[0] = .{ .item = .iron_sword, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .diamond, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .diamond_sword);
+
+    // Recipe 163: 2 Diamonds top row + 1 Stick below -> 1 Diamond Pickaxe
+    inv.craft_grid[0] = .{ .item = .diamond, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .diamond, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .stick, .count = 1 };
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .diamond_pickaxe);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 163 alternative: 1 Iron Pickaxe + 1 Diamond -> 1 Diamond Pickaxe
+    inv.craft_grid[0] = .{ .item = .iron_pickaxe, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .diamond, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .diamond_pickaxe);
+
+    // Netherite tool upgrading with Diamond tier:
+    // Recipe 40: 1 Diamond Sword + 1 Netherite Ingot -> 1 Netherite Sword
+    inv.craft_grid[0] = .{ .item = .diamond_sword, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .netherite_ingot, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .netherite_sword);
+
+    // Recipe 39: 1 Diamond Pickaxe + 1 Netherite Ingot -> 1 Netherite Pickaxe
+    inv.craft_grid[0] = .{ .item = .diamond_pickaxe, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .netherite_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .netherite_pickaxe);
+
+    // Tool properties
+    try std.testing.expect(ItemType.diamond_sword.isTool());
+    try std.testing.expect(ItemType.diamond_pickaxe.isTool());
+    try std.testing.expectEqual(ItemType.diamond_sword.maxDurability(), 250);
+    try std.testing.expectEqual(ItemType.diamond_pickaxe.maxDurability(), 250);
+    try std.testing.expectEqual(ItemType.diamond_sword.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.diamond_pickaxe.maxStackSize(), 1);
+    try std.testing.expectEqualStrings(ItemType.diamond_sword.name(), "Diamond Sword");
+    try std.testing.expectEqualStrings(ItemType.diamond_pickaxe.name(), "Diamond Pickaxe");
+
+    // Block harvesting permissions
+    try std.testing.expect(canHarvestBlock(.diamond_pickaxe, .stone));
+    try std.testing.expect(canHarvestBlock(.diamond_pickaxe, .iron_ore));
+    try std.testing.expect(canHarvestBlock(.diamond_pickaxe, .diamond_ore));
+    try std.testing.expect(canHarvestBlock(.diamond_pickaxe, .obsidian));
+    try std.testing.expect(canHarvestBlock(.diamond_pickaxe, .ancient_debris));
 }

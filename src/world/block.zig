@@ -659,6 +659,7 @@ pub const BlockDef = struct {
 pub const TOOL_WOODEN_PICKAXE: u8 = 9;
 pub const TOOL_IRON_PICKAXE: u8 = 27;
 pub const TOOL_NETHERITE_PICKAXE: u8 = 73;
+pub const TOOL_DIAMOND_PICKAXE: u8 = 221;
 
 pub fn hardness(block: BlockId) f32 {
     return switch (block) {
@@ -791,13 +792,19 @@ pub fn requiredTier(block: BlockId) ToolTier {
 pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
     if (held_tool_id == TOOL_NETHERITE_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block => 6.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .obsidian, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block => 6.0,
             else => 3.0,
+        };
+    }
+    if (held_tool_id == TOOL_DIAMOND_PICKAXE) {
+        return switch (block) {
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .obsidian, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block => 5.0,
+            else => 2.5,
         };
     }
     if (held_tool_id == TOOL_IRON_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block => 4.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .obsidian, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block => 4.0,
             else => 2.0,
         };
     }
@@ -2726,4 +2733,19 @@ test "wooden and iron trapdoor block properties, transparency, and hardness" {
     try std.testing.expectEqual(hardness(.iron_trapdoor_closed), 3.0);
     try std.testing.expectEqual(footstepType(.wooden_trapdoor_closed), .wood);
     try std.testing.expectEqual(footstepType(.iron_trapdoor_closed), .stone);
+}
+
+test "diamond pickaxe tool multiplier speed and tool id" {
+    try std.testing.expectEqual(TOOL_DIAMOND_PICKAXE, 221);
+    try std.testing.expectEqual(toolMultiplier(TOOL_DIAMOND_PICKAXE, .stone), 5.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_DIAMOND_PICKAXE, .diamond_ore), 5.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_DIAMOND_PICKAXE, .obsidian), 5.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_DIAMOND_PICKAXE, .ancient_debris), 5.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_DIAMOND_PICKAXE, .dirt), 2.5);
+
+    // Speed tier hierarchy: Netherite (6.0) > Diamond (5.0) > Iron (4.0) > Wooden (3.0)
+    try std.testing.expect(toolMultiplier(TOOL_NETHERITE_PICKAXE, .stone) > toolMultiplier(TOOL_DIAMOND_PICKAXE, .stone));
+    try std.testing.expect(toolMultiplier(TOOL_DIAMOND_PICKAXE, .stone) > toolMultiplier(TOOL_IRON_PICKAXE, .stone));
+    try std.testing.expect(mineTime(.stone, TOOL_DIAMOND_PICKAXE) < mineTime(.stone, TOOL_IRON_PICKAXE));
+    try std.testing.expect(mineTime(.stone, TOOL_NETHERITE_PICKAXE) < mineTime(.stone, TOOL_DIAMOND_PICKAXE));
 }

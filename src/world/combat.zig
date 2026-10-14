@@ -7,6 +7,7 @@ pub const wolf_bite_height: f32 = 2.0;
 pub const melee_cooldown: f32 = 0.35;
 pub const melee_range: f32 = 4.0;
 pub const sword_damage: u8 = 2;
+pub const diamond_sword_damage: u8 = 3;
 pub const netherite_sword_damage: u8 = 4;
 pub const hand_damage: u8 = 1;
 
@@ -44,13 +45,22 @@ pub fn tickCooldown(cd: f32, dt: f32) f32 {
 }
 
 pub fn weaponDamage(is_netherite: bool, is_iron: bool) u8 {
+    return weaponDamageTier(is_netherite, false, is_iron);
+}
+
+pub fn weaponDamageTier(is_netherite: bool, is_diamond: bool, is_iron: bool) u8 {
     if (is_netherite) return netherite_sword_damage;
+    if (is_diamond) return diamond_sword_damage;
     if (is_iron) return sword_damage;
     return hand_damage;
 }
 
 pub fn calculatePlayerAttackDamage(is_netherite: bool, is_iron: bool, is_weakened: bool) u8 {
-    const raw = weaponDamage(is_netherite, is_iron);
+    return calculatePlayerAttackDamageTier(is_netherite, false, is_iron, is_weakened);
+}
+
+pub fn calculatePlayerAttackDamageTier(is_netherite: bool, is_diamond: bool, is_iron: bool, is_weakened: bool) u8 {
+    const raw = weaponDamageTier(is_netherite, is_diamond, is_iron);
     if (is_weakened) {
         // Weakness reduces attack potency by 2 damage, floor of 1
         return if (raw > 2) raw - 2 else 1;
@@ -183,4 +193,21 @@ test "weakness reduces player attack damage to floor 1" {
     // Hand: 1 -> 1 under weakness
     try std.testing.expectEqual(calculatePlayerAttackDamage(false, false, false), 1);
     try std.testing.expectEqual(calculatePlayerAttackDamage(false, false, true), 1);
+}
+
+test "diamond sword attack damage tier and weakness interaction" {
+    try std.testing.expectEqual(diamond_sword_damage, 3);
+    try std.testing.expectEqual(weaponDamageTier(false, true, false), 3);
+
+    // Full hierarchy unweakened: Netherite (4) > Diamond (3) > Iron (2) > Hand (1)
+    try std.testing.expectEqual(calculatePlayerAttackDamageTier(true, false, false, false), 4);
+    try std.testing.expectEqual(calculatePlayerAttackDamageTier(false, true, false, false), 3);
+    try std.testing.expectEqual(calculatePlayerAttackDamageTier(false, false, true, false), 2);
+    try std.testing.expectEqual(calculatePlayerAttackDamageTier(false, false, false, false), 1);
+
+    // Weakened: weakness reduces raw damage by 2 (floor 1)
+    // Diamond (3 - 2 = 1)
+    try std.testing.expectEqual(calculatePlayerAttackDamageTier(false, true, false, true), 1);
+    // Netherite (4 - 2 = 2)
+    try std.testing.expectEqual(calculatePlayerAttackDamageTier(true, false, false, true), 2);
 }
