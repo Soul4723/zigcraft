@@ -23,6 +23,7 @@ pub const Player = struct {
     in_bubble_column: bool = false,
     in_whirlpool: bool = false,
     fire_resistance_timer: f32 = 0.0,
+    water_breathing_timer: f32 = 0.0,
     wither_timer: f32 = 0.0,
     poison_timer: f32 = 0.0,
     weakness_timer: f32 = 0.0,
@@ -53,6 +54,14 @@ pub const Player = struct {
     }
 
     /// Fire Resistance Potion: grants 3 minutes (180s) of complete immunity to fire, lava, and magma heat.
+    pub fn drinkWaterBreathing(self: *Player) void {
+        self.water_breathing_timer = 180.0;
+    }
+
+    pub fn hasWaterBreathing(self: Player) bool {
+        return self.water_breathing_timer > 0.0;
+    }
+
     pub fn drinkFireResistance(self: *Player) void {
         self.fire_resistance_timer = 180.0;
     }
@@ -107,6 +116,7 @@ pub const Player = struct {
         self.in_water = false;
         self.in_boat = false;
         self.oxygen = 15.0;
+        self.water_breathing_timer = 0.0;
         self.spawn_point = self.pos;
     }
 
@@ -196,6 +206,7 @@ pub const Player = struct {
 
     pub fn tickVitals(self: *Player, dt: f32) void {
         self.fire_resistance_timer = @max(0.0, self.fire_resistance_timer - dt);
+        self.water_breathing_timer = @max(0.0, self.water_breathing_timer - dt);
         self.regen_timer = @max(0.0, self.regen_timer - dt);
         self.wither_timer = @max(0.0, self.wither_timer - dt);
         self.poison_timer = @max(0.0, self.poison_timer - dt);
@@ -995,4 +1006,16 @@ test "player elytra gliding kinematics and rocket boost" {
     try std.testing.expect(p.on_ground);
     try std.testing.expect(!p.is_gliding);
     try std.testing.expectEqual(@as(f32, 0.0), p.rocket_boost_timer);
+}
+
+test "player water breathing potion duration and status" {
+    var p = Player.init(0, 0, 0);
+    try std.testing.expect(!p.hasWaterBreathing());
+    p.drinkWaterBreathing();
+    try std.testing.expect(p.hasWaterBreathing());
+    try std.testing.expectEqual(@as(f32, 180.0), p.water_breathing_timer);
+
+    p.tickVitals(10.0);
+    try std.testing.expectEqual(@as(f32, 170.0), p.water_breathing_timer);
+    try std.testing.expect(p.hasWaterBreathing());
 }

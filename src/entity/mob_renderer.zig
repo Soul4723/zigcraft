@@ -555,6 +555,32 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
 
             // 4. Posterior tail segment (rear): 0.18 x 0.16 x 0.14 at (0, 0.08, -0.22)
             try appendBox(allocator, verts, inds, math.Vec3.init(-crawl_wobble, 0.08, -0.22), math.Vec3.init(0.18, 0.16, 0.14), mob.yaw, mob.pos, uv_body, uv_body);
+        },
+        .turtle => {
+            // Turtle: amphibious marine reptile geometry (0.9m width, 0.4m height, 1.0m length)
+            const uv_carapace = texture.getTileUV(7, 0); // Mottled green scute carapace shell
+            const uv_flipper = texture.getTileUV(6, 4);  // Olive-tan flipper & reptilian skin
+            const uv_head = texture.getTileUV(1, 2);     // Head with facial features
+
+            const paddle = @sin(mob.anim_time * 5.0) * 0.12;
+
+            // 1. Carapace dome shell: 0.82 x 0.24 x 0.86 at (0, 0.18, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.18, 0), math.Vec3.init(0.82, 0.24, 0.86), mob.yaw, mob.pos, uv_carapace, uv_carapace);
+
+            // 2. Head with gentle bobbing: 0.24 x 0.18 x 0.24 at (0, 0.16, 0.50)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.16 + paddle * 0.2, 0.50), math.Vec3.init(0.24, 0.18, 0.24), mob.yaw, mob.pos, uv_head, uv_flipper);
+
+            // 3. Front-left flipper paddle: 0.28 x 0.08 x 0.36 at (-0.46, 0.10, 0.30)
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.46, 0.10, 0.30 + paddle), math.Vec3.init(0.28, 0.08, 0.36), mob.yaw, mob.pos, uv_flipper, uv_flipper);
+
+            // 4. Front-right flipper paddle: 0.28 x 0.08 x 0.36 at (0.46, 0.10, 0.30)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.46, 0.10, 0.30 - paddle), math.Vec3.init(0.28, 0.08, 0.36), mob.yaw, mob.pos, uv_flipper, uv_flipper);
+
+            // 5. Rear-left hind flipper: 0.22 x 0.08 x 0.26 at (-0.38, 0.08, -0.40)
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.38, 0.08, -0.40 - paddle), math.Vec3.init(0.22, 0.08, 0.26), mob.yaw, mob.pos, uv_flipper, uv_flipper);
+
+            // 6. Rear-right hind flipper: 0.22 x 0.08 x 0.26 at (0.38, 0.08, -0.40)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.38, 0.08, -0.40 + paddle), math.Vec3.init(0.22, 0.08, 0.26), mob.yaw, mob.pos, uv_flipper, uv_flipper);
         }, .target_dummy => {
             const uv_hay = texture.getTileUV(1, 4); // Hay bale textured body
             const uv_post = texture.getTileUV(2, 2); // Wood post & crossbar

@@ -24,11 +24,13 @@ pub fn checkDrowning(eye_block: BlockId) bool {
 }
 
 pub fn tickOxygen(oxygen: f32, is_underwater: bool, dt: f32) f32 {
-    return tickOxygenRespiration(oxygen, is_underwater, false, dt);
+    return tickOxygenRespiration(oxygen, is_underwater, false, false, dt);
 }
 
-pub fn tickOxygenRespiration(oxygen: f32, is_underwater: bool, has_respiration: bool, dt: f32) f32 {
+pub fn tickOxygenRespiration(oxygen: f32, is_underwater: bool, has_respiration: bool, has_water_breathing: bool, dt: f32) f32 {
     if (is_underwater) {
+        // Water breathing buff completely prevents oxygen depletion
+        if (has_water_breathing) return oxygen;
         // Netherite helmet respiration cuts oxygen consumption in half (2x breath duration)
         const drain = if (has_respiration) dt * 0.5 else dt;
         return @max(0.0, oxygen - drain);
@@ -234,9 +236,11 @@ test "ignited flame lifetime is positive and bounded" {
 
 test "tickOxygenRespiration halves oxygen drain when wearing netherite helmet" {
     // Normal drain: 15.0 - 2.0 = 13.0
-    try std.testing.expectEqual(@as(f32, 13.0), tickOxygenRespiration(15.0, true, false, 2.0));
+    try std.testing.expectEqual(@as(f32, 13.0), tickOxygenRespiration(15.0, true, false, false, 2.0));
     // Respiration drain: 15.0 - 1.0 = 14.0
-    try std.testing.expectEqual(@as(f32, 14.0), tickOxygenRespiration(15.0, true, true, 2.0));
+    try std.testing.expectEqual(@as(f32, 14.0), tickOxygenRespiration(15.0, true, true, false, 2.0));
+    // Water breathing: no drain
+    try std.testing.expectEqual(@as(f32, 15.0), tickOxygenRespiration(15.0, true, false, true, 2.0));
 }
 
 pub const CloudEffect = enum {

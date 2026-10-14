@@ -171,6 +171,9 @@ pub const ItemType = enum(u8) {
     dragons_breath = 165,
     lingering_poison_potion = 166,
     lingering_weakness_potion = 167,
+    scute = 168,
+    turtle_helmet = 169,
+    water_breathing_potion = 170,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -396,7 +399,7 @@ pub const ItemType = enum(u8) {
 
     pub fn isArmor(self: ItemType) bool {
         return switch (self) {
-            .netherite_helmet, .netherite_chestplate, .elytra, .netherite_leggings, .netherite_boots, .soul_speed_boots, .dragon_head => true,
+            .netherite_helmet, .turtle_helmet, .netherite_chestplate, .elytra, .netherite_leggings, .netherite_boots, .soul_speed_boots, .dragon_head => true,
             else => false,
         };
     }
@@ -415,6 +418,7 @@ pub const ItemType = enum(u8) {
             .netherite_leggings => 475,
             .netherite_boots => 425,
             .elytra => 432,
+            .turtle_helmet => 275,
             .bow => 384,
             .shield => 336,
             .crossbow => 465,
@@ -437,8 +441,8 @@ pub const ItemType = enum(u8) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion => 16,
-            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat => 1,
+            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion => 16,
+            .wooden_pickaxe, .iron_pickaxe, .netherite_pickaxe, .iron_sword, .netherite_sword, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat => 1,
             else => 64,
         };
     }
@@ -609,6 +613,9 @@ pub const ItemType = enum(u8) {
             .dragons_breath => "Dragon's Breath",
             .lingering_poison_potion => "Lingering Potion of Poison",
             .lingering_weakness_potion => "Lingering Potion of Weakness",
+            .scute => "Scute",
+            .turtle_helmet => "Turtle Shell Helmet",
+            .water_breathing_potion => "Potion of Water Breathing",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -718,6 +725,9 @@ pub const ItemType = enum(u8) {
             .dragons_breath => .{ 0.85, 0.35, 0.88, 0.95 },
             .lingering_poison_potion => .{ 0.40, 0.85, 0.25, 0.92 },
             .lingering_weakness_potion => .{ 0.50, 0.45, 0.60, 0.92 },
+            .scute => .{ 0.22, 0.58, 0.35, 0.95 },
+            .turtle_helmet => .{ 0.18, 0.62, 0.32, 0.98 },
+            .water_breathing_potion => .{ 0.15, 0.65, 0.85, 0.90 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1266,6 +1276,32 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 125: Turtle Shell Helmet: 4 Scutes (filling 2x2 grid) -> 1 Turtle Shell Helmet
+        if (non_empty == 4) {
+            var scute_cnt: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .scute) scute_cnt += 1;
+            }
+            if (scute_cnt == 4) {
+                self.craft_output = .{ .item = .turtle_helmet, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 126: Water Breathing Potion: 1 Scute + 1 Glass vial (or water bucket / nether wart) -> 1 Water Breathing Potion
+        if (non_empty == 2) {
+            var scute_c: usize = 0;
+            var liquid_catalyst: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .scute) scute_c += 1;
+                if (sl.item == .glass or sl.item == .water or sl.item == .nether_wart) liquid_catalyst += 1;
+            }
+            if (scute_c == 1 and liquid_catalyst == 1) {
+                self.craft_output = .{ .item = .water_breathing_potion, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 122: Dragon's Breath Alchemy: 1 Glass (vial) + 1 Dragon Head / Chorus Fruit -> 1 Dragon's Breath
         if (non_empty == 2) {
@@ -2873,10 +2909,11 @@ pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
     return held == .wooden_pickaxe or held == .iron_pickaxe or held == .netherite_pickaxe;
 }
 
-pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, skeleton, zombie, creeper, enderman, ender_dragon, shulker, endermite };
+pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, skeleton, zombie, creeper, enderman, ender_dragon, shulker, endermite, turtle };
 
 pub fn getMobMeatDrop(mob_type: MobType) ItemType {
     return switch (mob_type) {
+        .turtle => .scute,
         .shulker => .shulker_shell,
         .endermite => .ender_pearl,
         .pig => .raw_pork,
@@ -5041,4 +5078,39 @@ test "dragon's breath and lingering potion crafting recipes 122-124 and properti
     try std.testing.expectEqualStrings(ItemType.lingering_weakness_potion.name(), "Lingering Potion of Weakness");
     try std.testing.expectEqual(ItemType.dragons_breath.maxStackSize(), 64);
     try std.testing.expectEqual(ItemType.lingering_poison_potion.maxStackSize(), 16);
+}
+
+test "turtle scute, turtle shell helmet, and water breathing potion recipes 125-126 and properties" {
+    var inv = Inventory.init();
+
+    // Recipe 125: 4 Scutes -> 1 Turtle Shell Helmet
+    inv.craft_grid[0] = .{ .item = .scute, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .scute, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .scute, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .scute, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .turtle_helmet);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 126: 1 Scute + 1 Glass -> 1 Water Breathing Potion
+    inv.craft_grid[0] = .{ .item = .scute, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .water_breathing_potion);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    try std.testing.expect(ItemType.turtle_helmet.isArmor());
+    try std.testing.expect(ItemType.turtle_helmet.isTool());
+    try std.testing.expectEqual(ItemType.turtle_helmet.maxDurability(), 275);
+    try std.testing.expectEqual(ItemType.turtle_helmet.maxStackSize(), 1);
+    try std.testing.expectEqualStrings(ItemType.turtle_helmet.name(), "Turtle Shell Helmet");
+
+    try std.testing.expectEqualStrings(ItemType.scute.name(), "Scute");
+    try std.testing.expectEqual(ItemType.scute.maxStackSize(), 64);
+
+    try std.testing.expectEqualStrings(ItemType.water_breathing_potion.name(), "Potion of Water Breathing");
+    try std.testing.expectEqual(ItemType.water_breathing_potion.maxStackSize(), 16);
+    try std.testing.expectEqual(getMobMeatDrop(.turtle), .scute);
 }

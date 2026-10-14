@@ -478,7 +478,8 @@ pub fn main() !void {
                 was_in_water = player.in_water;
             }
 
-            player.oxygen = hazard_mod.tickOxygenRespiration(player.oxygen, is_underwater, inventory.hasItem(.netherite_helmet), dt);
+            const has_water_breathing = player.hasWaterBreathing() or inventory.hasItem(.turtle_helmet);
+            player.oxygen = hazard_mod.tickOxygenRespiration(player.oxygen, is_underwater, inventory.hasItem(.netherite_helmet), has_water_breathing, dt);
             const drown_dmg = hazard_mod.calculateDrowningDamage(player.oxygen, dt);
             if (drown_dmg > 0.0) {
                 player.health = @max(0.0, player.health - drown_dmg);
@@ -5027,6 +5028,12 @@ pub fn main() !void {
                 audio.play(.eat, 0.8);
                 particles.spawnBurnSparks(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 8);
                 std.debug.print("drank fire resistance potion (timer={d:.1}s)\n", .{player.fire_resistance_timer});
+            } else if (held_eat.item == .water_breathing_potion) {
+                player.drinkWaterBreathing();
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.8);
+                particles.spawnWaterSplash(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 10);
+                std.debug.print("drank water breathing potion (timer={d:.1}s)\n", .{player.water_breathing_timer});
             } else if (held_eat.item == .chorus_fruit) {
                 // Eating chorus fruit restores 4 hunger and teleports player to a random spot within 8 blocks
                 player.hunger = @min(20.0, player.hunger + 4.0);
