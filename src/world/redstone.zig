@@ -7,7 +7,7 @@ pub const max_strength: u4 = 15;
 
 /// True when a block emits redstone power into adjacent wire.
 pub fn isSource(b: BlockId) bool {
-    return b == .pressure_plate_down or b == .lever_on or b == .repeater_on or b == .redstone_torch_on or b == .detector_rail or b == .redstone_comparator_on or b == .observer_on or b == .redstone_block;
+    return b == .pressure_plate_down or b == .lever_on or b == .repeater_on or b == .redstone_torch_on or b == .detector_rail or b == .redstone_comparator_on or b == .observer_on or b == .redstone_block or b == .tripwire_hook_on;
 }
 
 /// True when a block conducts decaying signal (wire in either state).
@@ -678,6 +678,8 @@ test "observer pulse emission and block update detection" {
     try std.testing.expect(isSource(.observer_on));
     try std.testing.expect(!isSource(.observer_off));
     try std.testing.expect(isSource(.redstone_block));
+    try std.testing.expect(isSource(.tripwire_hook_on));
+    try std.testing.expect(!isSource(.tripwire_hook_off));
 
     var obs = ObserverState{
         .x = 0,
@@ -719,4 +721,54 @@ test "updateRedstoneOreState lighting and decay" {
     try std.testing.expectEqual(BlockId.redstone_ore, updateRedstoneOreState(.lit_redstone_ore, false).?);
     try std.testing.expect(updateRedstoneOreState(.redstone_ore, false) == null);
     try std.testing.expect(updateRedstoneOreState(.stone, true) == null);
+}
+
+/// Scan a straight line of tripwire blocks between (x, y, z) and find connected tripwire hooks up to max_len.
+/// Returns true if hooks on both ends are armed.
+pub fn isTripwireLineArmed(lookup: *const fn (x: i32, y: i32, z: i32) BlockId, x: i32, y: i32, z: i32, axis_z: bool) bool {
+    var neg_hook = false;
+    var pos_hook = false;
+
+    // Scan negative direction
+    var i: i32 = 1;
+    while (i <= 20) : (i += 1) {
+        const bx = if (axis_z) x else x - i;
+        const bz = if (axis_z) z - i else z;
+        const b = lookup(bx, y, bz);
+        if (b == .tripwire_hook_off or b == .tripwire_hook_on) {
+            neg_hook = true;
+            break;
+        }
+        if (b != .tripwire) break;
+    }
+
+    // Scan positive direction
+    i = 1;
+    while (i <= 20) : (i += 1) {
+        const bx = if (axis_z) x else x + i;
+        const bz = if (axis_z) z + i else z;
+        const b = lookup(bx, y, bz);
+        if (b == .tripwire_hook_off or b == .tripwire_hook_on) {
+            pos_hook = true;
+            break;
+        }
+        if (b != .tripwire) break;
+    }
+
+    return neg_hook and pos_hook;
+}
+
+test "isTripwireLineArmed checks complete hook line" {
+    const Mock = struct {
+        fn get(bx: i32, by: i32, bz: i32) BlockId {
+            _ = by;
+            if (bz == 0) {
+                if (bx == 0 or bx == 1 or bx == 2) return .tripwire;
+                if (bx == -1 or bx == 3) return .tripwire_hook_off;
+            }
+            return .air;
+        }
+    };
+    try std.testing.expect(isTripwireLineArmed(Mock.get, 1, 0, 0, false));
+    try std.testing.expect(!isTripwireLineArmed(Mock.get, 1, 0, 0, true));
 }

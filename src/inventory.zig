@@ -311,6 +311,7 @@ pub const ItemType = enum(u8) {
             .chain => .chain,
             .iron_bars => .iron_bars,
             .tripwire_hook => .tripwire_hook_off,
+            .string => .tripwire,
             .cobweb => .cobweb,
             .end_stone => .end_stone,
             .end_portal_frame => .end_portal_frame,
@@ -446,6 +447,7 @@ pub const ItemType = enum(u8) {
             .chain => .chain,
             .iron_bars => .iron_bars,
             .tripwire_hook_off, .tripwire_hook_on => .tripwire_hook,
+            .tripwire => .string,
             .cobweb => .cobweb,
             .end_stone => .end_stone,
             .end_portal_frame, .end_portal_frame_filled => .end_portal_frame,
@@ -3661,7 +3663,7 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
     } else if (block == .nether_wart) {
         out[0] = .{ .item = .nether_wart, .count = 2 };
         return 1;
-    } else if (block == .cobweb) {
+    } else if (block == .cobweb or block == .tripwire) {
         out[0] = .{ .item = .string, .count = 1 };
         return 1;
     } else if (block == .chorus_plant) {
@@ -5088,7 +5090,11 @@ test "string item roundtrip, properties, and Recipe 101" {
     try std.testing.expectEqual(inv.craft_output.item, .string);
     try std.testing.expectEqual(inv.craft_output.count, 4);
 
-    try std.testing.expectEqual(ItemType.string.toBlockId(), null);
+    try std.testing.expectEqual(ItemType.string.toBlockId().?, .tripwire);
+    try std.testing.expectEqual(ItemType.fromBlockId(.tripwire), .string);
+    var drops: [2]BlockDrop = undefined;
+    try std.testing.expectEqual(@as(usize, 1), getBlockDrops(.tripwire, &drops));
+    try std.testing.expectEqual(drops[0].item, .string);
     try std.testing.expectEqualStrings(ItemType.string.name(), "String");
     try std.testing.expectEqual(ItemType.string.maxDurability(), 0);
     try std.testing.expect(!ItemType.string.isTool());
