@@ -143,6 +143,8 @@ pub const ItemType = enum(u8) {
     tripwire_hook = 137,
     string = 138,
     cobweb = 139,
+    spider_eye = 140,
+    poison_potion = 141,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -527,6 +529,8 @@ pub const ItemType = enum(u8) {
             .tripwire_hook => "Tripwire Hook",
             .string => "String",
             .cobweb => "Cobweb",
+            .spider_eye => "Spider Eye",
+            .poison_potion => "Potion of Poison",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -608,6 +612,8 @@ pub const ItemType = enum(u8) {
             .tripwire_hook => .{ 0.65, 0.50, 0.30, 0.95 },
             .string => .{ 0.90, 0.90, 0.92, 0.95 },
             .cobweb => .{ 0.85, 0.85, 0.88, 0.95 },
+            .spider_eye => .{ 0.65, 0.12, 0.18, 0.95 },
+            .poison_potion => .{ 0.35, 0.68, 0.22, 0.90 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1156,6 +1162,17 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 103: Potion of Poison: 1 Spider Eye + 1 Glass vial (or 1 Spider Eye + 1 Nether Wart) -> 1 Poison Potion
+        if (non_empty == 2) {
+            const has_eye = (g0 == .spider_eye or g1 == .spider_eye or g2 == .spider_eye or g3 == .spider_eye);
+            const has_glass = (g0 == .glass or g1 == .glass or g2 == .glass or g3 == .glass);
+            const has_wart = (g0 == .nether_wart or g1 == .nether_wart or g2 == .nether_wart or g3 == .nether_wart);
+            if (has_eye and (has_glass or has_wart)) {
+                self.craft_output = .{ .item = .poison_potion, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 102: Cobweb: 4 Strings -> 1 Cobweb
         if (non_empty == 4) {
@@ -2531,6 +2548,12 @@ pub fn getEmberBonus(wx: i32, wz: i32) u8 {
 /// Rare trophy: wither skeletons drop a skull on ~1-in-8 deterministic kills.
 pub fn dropsWitherSkull(wx: i32, wy: i32, wz: i32) bool {
     const h: u32 = @as(u32, @bitCast(wx *% 13 +% wy *% 29 +% wz *% 7)) % 8;
+    return h == 0;
+}
+
+pub fn dropsSpiderEye(wx: i32, wy: i32, wz: i32) bool {
+    // 33% deterministic chance for spider mobs to yield an intact spider eye
+    const h: u32 = @as(u32, @bitCast(wx *% 17 +% wy *% 31 +% wz *% 11)) % 3;
     return h == 0;
 }
 
@@ -4194,4 +4217,37 @@ test "smoker item roundtrip, properties, and Recipe 93" {
     try std.testing.expectEqual(ItemType.smoker.maxDurability(), 0);
     try std.testing.expect(!ItemType.smoker.isTool());
     try std.testing.expectEqual(ItemType.smoker.maxStackSize(), 64);
+}
+
+test "spider eye item properties and drop probability" {
+    try std.testing.expectEqualStrings(ItemType.spider_eye.name(), "Spider Eye");
+    try std.testing.expectEqual(ItemType.spider_eye.maxDurability(), 0);
+    try std.testing.expect(!ItemType.spider_eye.isTool());
+    try std.testing.expectEqual(ItemType.spider_eye.maxStackSize(), 64);
+    try std.testing.expect(ItemType.spider_eye.toBlockId() == null);
+
+    var eyes: usize = 0;
+    var x: i32 = 0;
+    while (x < 30) : (x += 1) {
+        if (dropsSpiderEye(x, 1, 0)) eyes += 1;
+    }
+    try std.testing.expect(eyes > 0 and eyes < 30);
+    try std.testing.expectEqual(dropsSpiderEye(5, 2, 7), dropsSpiderEye(5, 2, 7));
+}
+
+test "poison potion recipe and item properties" {
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .spider_eye, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .poison_potion);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    inv.craft_grid[1] = .{ .item = .nether_wart, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .poison_potion);
+
+    try std.testing.expectEqualStrings(ItemType.poison_potion.name(), "Potion of Poison");
+    try std.testing.expect(!ItemType.poison_potion.isTool());
+    try std.testing.expect(ItemType.poison_potion.toBlockId() == null);
 }

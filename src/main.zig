@@ -253,7 +253,7 @@ pub fn main() !void {
     const HopperState = struct { x: i32, y: i32, z: i32, cooldown: f32 = 0.0, items: [4]inventory_mod.ItemStack = undefined };
     var hoppers: [32]HopperState = undefined;
     var hopper_count: usize = 0;
-    const BrewingStandState = struct { x: i32, y: i32, z: i32, progress: f32 = 0.0, fuel: u8 = 0, wart: u8 = 0, bottles: u8 = 0, potions: u8 = 0 };
+    const BrewingStandState = struct { x: i32, y: i32, z: i32, progress: f32 = 0.0, fuel: u8 = 0, wart: u8 = 0, spider_eyes: u8 = 0, bottles: u8 = 0, potions: u8 = 0, poison_potions: u8 = 0 };
     var brewing_stands: [32]BrewingStandState = undefined;
     var brewing_stand_count: usize = 0;
     const CauldronFluid = enum { empty, water, lava };
@@ -702,8 +702,22 @@ pub fn main() !void {
                     continue;
                 }
 
-                // If active brew conditions are met (has fuel or fuel available, has wart, has bottle, room for potion)
-                if (bs.fuel > 0 and bs.wart > 0 and bs.bottles > 0 and bs.potions < 3) {
+                // If active brew conditions are met (has fuel, bottle, and ingredient)
+                const can_brew_poison = bs.fuel > 0 and bs.spider_eyes > 0 and bs.bottles > 0 and (bs.potions + bs.poison_potions) < 3;
+                const can_brew_fire = bs.fuel > 0 and bs.wart > 0 and bs.bottles > 0 and (bs.potions + bs.poison_potions) < 3;
+                if (can_brew_poison) {
+                    bs.progress += dt;
+                    if (bs.progress >= 2.5) {
+                        bs.progress = 0.0;
+                        bs.fuel -= 1;
+                        bs.spider_eyes -= 1;
+                        bs.bottles -= 1;
+                        bs.poison_potions += 1;
+                        audio.playAt(.lava_pop, .{ @as(f32, @floatFromInt(bs.x)) + 0.5, @as(f32, @floatFromInt(bs.y)) + 0.5, @as(f32, @floatFromInt(bs.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
+                        particles.spawnBlockDebris(bs.x, bs.y, bs.z, .{ 0.35, 0.75, 0.25 }, 12);
+                        std.debug.print("brewed potion of poison at ({d},{d},{d}) (poison potions={d})\n", .{ bs.x, bs.y, bs.z, bs.poison_potions });
+                    }
+                } else if (can_brew_fire) {
                     bs.progress += dt;
                     if (bs.progress >= 2.5) {
                         bs.progress = 0.0;
@@ -1736,6 +1750,9 @@ pub fn main() !void {
                         if (m.mob_type == .wither_skeleton) {
                             player.applyWither();
                             std.debug.print("withered", .{});
+                        } else if (m.mob_type == .spider) {
+                            player.applyPoison();
+                            std.debug.print("poisoned by spider venom", .{});
                         }
                         audio.play(.hurt, 0.8);
                         const has_leggings = inventory.hasItem(.netherite_leggings);
@@ -2174,6 +2191,9 @@ pub fn main() !void {
                         } else if (hit_mob.mob_type == .wither_skeleton and inventory_mod.dropsWitherSkull(px, py, pz)) {
                             _ = inventory.addItem(.wither_skull, 1);
                             std.debug.print("wither skull dropped\n", .{});
+                        } else if (hit_mob.mob_type == .spider and inventory_mod.dropsSpiderEye(px, py, pz)) {
+                            _ = inventory.addItem(.spider_eye, 1);
+                            std.debug.print("spider eye harvested\n", .{});
                         }
                         if (hit_mob.wool) _ = inventory.addItem(.wool, 1);
                         std.debug.print("killed {s}, dropped {s}\n", .{ @tagName(hit_mob.mob_type), drop.name() });
@@ -3027,6 +3047,9 @@ pub fn main() !void {
                                     } else if (m.mob_type == .wither_skeleton and inventory_mod.dropsWitherSkull(mbx, mby, mbz)) {
                                         _ = inventory.addItem(.wither_skull, 1);
                                         std.debug.print("wither skull dropped\n", .{});
+                                    } else if (m.mob_type == .spider and inventory_mod.dropsSpiderEye(mbx, mby, mbz)) {
+                                        _ = inventory.addItem(.spider_eye, 1);
+                                        std.debug.print("spider eye harvested\n", .{});
                                     }
                                     if (m.mob_type == .sheep) _ = inventory.addItem(.wool, 1);
                                     _ = mp;
@@ -3976,6 +3999,11 @@ pub fn main() !void {
                             audio.play(.place_block, 0.7);
                             particles.spawnFlame(hit_f.x, hit_f.y + 1, hit_f.z, 4);
                             std.debug.print("loaded blaze powder fuel (fuel={d})\n", .{bs.fuel});
+                        } else if (held_item == .spider_eye and bs.spider_eyes < 16) {
+                            bs.spider_eyes += 1;
+                            inventory.slots[selected_slot].decrement(1);
+                            audio.play(.place_block, 0.7);
+                            std.debug.print("loaded spider eye reagent (eyes={d})\n", .{bs.spider_eyes});
                         } else if (held_item == .nether_wart and bs.wart < 16) {
                             bs.wart += 1;
                             inventory.slots[selected_slot].decrement(1);
@@ -3986,6 +4014,12 @@ pub fn main() !void {
                             inventory.slots[selected_slot].decrement(1);
                             audio.play(.place_block, 0.7);
                             std.debug.print("loaded glass vial flask (bottles={d})\n", .{bs.bottles});
+                        } else if (held_item == .none and bs.poison_potions > 0) {
+                            _ = inventory.addItem(.poison_potion, 1);
+                            bs.poison_potions -= 1;
+                            audio.play(.break_block, 0.7);
+                            particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.35, 0.75, 0.25 }, 6);
+                            std.debug.print("retrieved potion of poison (remaining={d})\n", .{bs.poison_potions});
                         } else if (held_item == .none and bs.potions > 0) {
                             _ = inventory.addItem(.fire_resistance_potion, 1);
                             bs.potions -= 1;
@@ -3993,7 +4027,7 @@ pub fn main() !void {
                             particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 6);
                             std.debug.print("retrieved fire resistance potion (remaining={d})\n", .{bs.potions});
                         } else {
-                            std.debug.print("brewing stand status: fuel={d}, wart={d}, bottles={d}, potions={d}\n", .{ bs.fuel, bs.wart, bs.bottles, bs.potions });
+                            std.debug.print("brewing stand status: fuel={d}, eyes={d}, wart={d}, bottles={d}, potions={d}, poison={d}\n", .{ bs.fuel, bs.spider_eyes, bs.wart, bs.bottles, bs.potions, bs.poison_potions });
                         }
                     }
                     flint_cooldown = interact_mod.flint_feed_cooldown;
@@ -4251,7 +4285,20 @@ pub fn main() !void {
                 .raw_pork, .raw_mutton => false,
                 else => null,
             };
-            if (held_eat.item == .fire_resistance_potion) {
+            if (held_eat.item == .poison_potion) {
+                player.applyPoison();
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.8);
+                particles.spawnBlockDebris(@intFromFloat(@floor(player.pos.x)), @intFromFloat(@floor(player.pos.y + 1)), @intFromFloat(@floor(player.pos.z)), .{ 0.35, 0.75, 0.25 }, 8);
+                std.debug.print("drank potion of poison (timer={d:.1}s)\n", .{player.poison_timer});
+            } else if (held_eat.item == .spider_eye) {
+                player.applyPoison();
+                player.hunger = @min(20.0, player.hunger + 2.0);
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.8);
+                particles.spawnBlockDebris(@intFromFloat(@floor(player.pos.x)), @intFromFloat(@floor(player.pos.y + 1)), @intFromFloat(@floor(player.pos.z)), .{ 0.65, 0.12, 0.18 }, 6);
+                std.debug.print("ate spider eye (poisoned, timer={d:.1}s)\n", .{player.poison_timer});
+            } else if (held_eat.item == .fire_resistance_potion) {
                 player.drinkFireResistance();
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.8);

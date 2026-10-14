@@ -24,6 +24,7 @@ pub const Player = struct {
     in_whirlpool: bool = false,
     fire_resistance_timer: f32 = 0.0,
     wither_timer: f32 = 0.0,
+    poison_timer: f32 = 0.0,
     lodestone_target: ?math.Vec3 = null,
 
     pub fn init(x: f32, y: f32, z: f32) Player {
@@ -111,6 +112,16 @@ pub const Player = struct {
     /// Passive drain: hunger falls over time, health regen/suffer follows.
     pub const wither_duration: f32 = 8.0;
     pub const wither_rate: f32 = 1.0;
+    pub const poison_duration: f32 = 10.0;
+    pub const poison_rate: f32 = 1.0;
+
+    pub fn applyPoison(self: *Player) void {
+        self.poison_timer = poison_duration;
+    }
+
+    pub fn isPoisoned(self: Player) bool {
+        return self.poison_timer > 0.0;
+    }
 
     pub fn applyWither(self: *Player) void {
         self.wither_timer = wither_duration;
@@ -124,15 +135,21 @@ pub const Player = struct {
         self.fire_resistance_timer = @max(0.0, self.fire_resistance_timer - dt);
         self.regen_timer = @max(0.0, self.regen_timer - dt);
         self.wither_timer = @max(0.0, self.wither_timer - dt);
+        self.poison_timer = @max(0.0, self.poison_timer - dt);
         if (self.wither_timer > 0.0 and self.health > 0.0) {
             self.health = @max(0.0, self.health - dt * wither_rate);
         }
-        // Wither suppresses all healing while active.
-        if (self.wither_timer <= 0.0 and self.regen_timer > 0.0 and self.health < 20.0) {
+        // Poison damage cannot reduce player health below 1.0 HP (unlike Wither which kills)
+        if (self.poison_timer > 0.0 and self.health > 1.0) {
+            self.health = @max(1.0, self.health - dt * poison_rate);
+        }
+        // Wither and Poison suppress all healing while active.
+        const debuffed = self.wither_timer > 0.0 or self.poison_timer > 0.0;
+        if (!debuffed and self.regen_timer > 0.0 and self.health < 20.0) {
             self.health = @min(20.0, self.health + dt * regen_rate);
         }
         self.hunger = @max(0.0, self.hunger - dt * hunger_drain);
-        if (self.wither_timer <= 0.0 and self.hunger > heal_hunger_threshold and self.health < 20.0) {
+        if (!debuffed and self.hunger > heal_hunger_threshold and self.health < 20.0) {
             self.health = @min(20.0, self.health + dt * passive_heal_rate);
         } else if (self.hunger <= 0.0 and self.health > 0.0) {
             self.health = @max(0.0, self.health - dt * starve_rate);
@@ -788,4 +805,19 @@ test "cobweb entity movement retardation drag" {
     };
     p.tickPhysics(Mock.solid, null, null, 1.0, 0.0, false, 0.05);
     try std.testing.expectApproxEqAbs(@as(f32, 0.5 + 1.0 * Player.cobweb_horizontal_speed_scale), p.pos.x, 0.001);
+}
+
+test "player poison effect drains health down to 1 HP floor" {
+    var p = Player.init(0, 0, 0);
+    p.health = 5.0;
+    p.applyPoison();
+    try std.testing.expect(p.isPoisoned());
+    try std.testing.expectEqual(@as(f32, 10.0), p.poison_timer);
+
+    p.tickVitals(2.0);
+    try std.testing.expectEqual(@as(f32, 3.0), p.health);
+
+    p.tickVitals(5.0);
+    // Should clamp at 1.0 HP floor
+    try std.testing.expectEqual(@as(f32, 1.0), p.health);
 }
