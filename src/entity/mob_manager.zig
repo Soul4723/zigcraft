@@ -124,7 +124,14 @@ pub const MobManager = struct {
             while (iy >= 1) : (iy -= 1) {
                 if (!spawn_rules.isWaterSpawn(chunk_manager, ix, iy, iz)) continue;
                 const roll_w = self.rng.random().float(f32);
-                const water_mtype: mob_mod.MobType = if (is_night and roll_w < 0.60) .drowned else .turtle;
+                // If near ocean monument (-8..8, -24..-8), spawn Guardian marine sentinels
+                const near_monument = (ix >= -12 and ix <= 12 and iz >= -28 and iz <= -4);
+                const water_mtype: mob_mod.MobType = if (near_monument or roll_w < 0.25)
+                    .guardian
+                else if (is_night and roll_w < 0.70)
+                    .drowned
+                else
+                    .turtle;
                 try self.spawnMob(water_mtype, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
                 break;
             }

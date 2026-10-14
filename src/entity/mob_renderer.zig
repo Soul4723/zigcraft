@@ -634,6 +634,36 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
 
             // 5. Tail segment (trailing rudder): 0.16 x 0.10 x 0.40 at (0, 0.18 - wing_flap * 0.15, -0.48)
             try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.18 - wing_flap * 0.15, -0.48), math.Vec3.init(0.16, 0.10, 0.40), mob.yaw, mob.pos, uv_indigo, uv_bone);
+        },
+        .guardian => {
+            // Guardian: spiky cyclopean marine automaton (0.6x0.6x0.6 prismarine body, giant eye, 4 dorsal/lateral spikes, tail fin)
+            const uv_prism = texture.getTileUV(7, 1);   // Mottled sea-green prismarine scales
+            const uv_orange = texture.getTileUV(4, 2);  // Red-orange kinetic defense spikes
+            const uv_eye = texture.getTileUV(7, 6);     // Luminous cyclopean pupil eye aperture
+
+            const tail_wag = @sin(mob.anim_time * 7.0) * 0.18;
+            const spike_retract = @sin(mob.anim_time * 3.0) * 0.05 + 0.05;
+
+            // 1. Central cuboid body: 0.60 x 0.60 x 0.60 at (0, 0.40, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.40, 0), math.Vec3.init(0.60, 0.60, 0.60), mob.yaw, mob.pos, uv_prism, uv_prism);
+
+            // 2. Central Cyclopean Eye: 0.28 x 0.28 x 0.08 at (0, 0.40, 0.32)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.40, 0.32), math.Vec3.init(0.28, 0.28, 0.08), mob.yaw, mob.pos, uv_eye, uv_orange);
+
+            // 3. Top dorsal spike: 0.12 x 0.30 x 0.12 at (0, 0.75 + spike_retract, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.75 + spike_retract, 0), math.Vec3.init(0.12, 0.30, 0.12), mob.yaw, mob.pos, uv_orange, uv_orange);
+
+            // 4. Bottom ventral spike: 0.12 x 0.30 x 0.12 at (0, 0.05 - spike_retract, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.05 - spike_retract, 0), math.Vec3.init(0.12, 0.30, 0.12), mob.yaw, mob.pos, uv_orange, uv_orange);
+
+            // 5. Left lateral spike: 0.30 x 0.12 x 0.12 at (-0.35 - spike_retract, 0.40, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.35 - spike_retract, 0.40, 0), math.Vec3.init(0.30, 0.12, 0.12), mob.yaw, mob.pos, uv_orange, uv_orange);
+
+            // 6. Right lateral spike: 0.30 x 0.12 x 0.12 at (0.35 + spike_retract, 0.40, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.35 + spike_retract, 0.40, 0), math.Vec3.init(0.30, 0.12, 0.12), mob.yaw, mob.pos, uv_orange, uv_orange);
+
+            // 7. Articulated tail fin (swimming propulsion): 0.14 x 0.35 x 0.40 at (tail_wag, 0.40, -0.45)
+            try appendBox(allocator, verts, inds, math.Vec3.init(tail_wag, 0.40, -0.45), math.Vec3.init(0.14, 0.35, 0.40), mob.yaw, mob.pos, uv_prism, uv_orange);
         }, .target_dummy => {
             const uv_hay = texture.getTileUV(1, 4); // Hay bale textured body
             const uv_post = texture.getTileUV(2, 2); // Wood post & crossbar

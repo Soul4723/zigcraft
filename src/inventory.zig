@@ -3065,10 +3065,11 @@ pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
     return held == .wooden_pickaxe or held == .iron_pickaxe or held == .netherite_pickaxe;
 }
 
-pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, skeleton, zombie, creeper, enderman, ender_dragon, shulker, endermite, turtle, drowned, phantom };
+pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, skeleton, zombie, creeper, enderman, ender_dragon, shulker, endermite, turtle, drowned, phantom, guardian };
 
 pub fn getMobMeatDrop(mob_type: MobType) ItemType {
     return switch (mob_type) {
+        .guardian => .prismarine_shard,
         .phantom => .phantom_membrane,
         .drowned => .rotten_flesh,
         .turtle => .scute,
@@ -5397,4 +5398,8 @@ test "ocean monument prismarine, sea lantern, and conduit recipes 130-134 and ro
 
     try std.testing.expectEqual(ItemType.fromBlockId(.conduit), .conduit);
     try std.testing.expectEqual(ItemType.fromBlockId(.sea_lantern), .sea_lantern);
+}
+
+test "guardian mob drop" {
+    try std.testing.expectEqual(getMobMeatDrop(.guardian), .prismarine_shard);
 }

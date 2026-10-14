@@ -133,6 +133,54 @@ pub const TerrainGenerator = struct {
         return .stone;
     }
 
+
+    /// Check if coordinates (wx, wy, wz) intersect the submerged Ocean Monument structure.
+    /// Centered at wx in -8..8, wz in -24..-8, submerged at ocean floor wy in 1..7 (water ceiling wy=8).
+    /// Features Prismarine exterior pyramid, Sea Lantern pillars, and interior Conduit altar.
+    pub fn getOceanMonumentBlock(self: TerrainGenerator, wx: i32, wy: i32, wz: i32) ?BlockId {
+        _ = self;
+        if (wx < -8 or wx > 8 or wz < -24 or wz > -8) return null;
+        if (wy < 1 or wy > 7) return null;
+
+        // Central altar chamber with Conduit at (0, 3, -16)
+        if (wx == 0 and wz == -16) {
+            if (wy == 2) return .dark_prismarine;
+            if (wy == 3) return .conduit;
+            if (wy == 4) return .sea_lantern;
+        }
+
+        // 4 corner Sea Lantern beacon pillars at (+-6, wy, -22 / -10)
+        const is_corner_x = (wx == -6 or wx == 6);
+        const is_corner_z = (wz == -22 or wz == -10);
+        if (is_corner_x and is_corner_z) {
+            if (wy == 5) return .sea_lantern;
+            if (wy <= 4) return .dark_prismarine;
+        }
+
+        // Stepped pyramid roof at wy = 6..7
+        if (wy == 7) {
+            if (@abs(wx) <= 2 and @abs(wz - (-16)) <= 2) return .sea_lantern;
+            return null;
+        }
+        if (wy == 6) {
+            if (@abs(wx) <= 5 and @abs(wz - (-16)) <= 5) return .prismarine_bricks;
+            return null;
+        }
+
+        // Monument foundation floor at wy = 1
+        if (wy == 1) return .dark_prismarine;
+
+        // Perimeter exterior walls at wy = 2..5
+        if (wx == -8 or wx == 8 or wz == -24 or wz == -8) {
+            // Entryway arch at south face (wz == -8, wx in -1..1, wy in 2..3)
+            if (wz == -8 and @abs(wx) <= 1 and (wy == 2 or wy == 3)) return .water;
+            return if (@mod(wy, 2) == 0) .prismarine else .prismarine_bricks;
+        }
+
+        // Interior flooded chambers: water filled with prismarine floor/pillars
+        return .water;
+    }
+
     /// Fill chunk at world chunk coords (cx,cz) with terrain columns, water bodies, and trees.
     pub fn generateChunk(self: TerrainGenerator, chunk: *Chunk, cx: i32, cz: i32) void {
         // 1. Terrain base columns & water
@@ -166,6 +214,15 @@ pub const TerrainGenerator = struct {
                     while (wy <= SEA_LEVEL) : (wy += 1) {
                         chunk.setBlock(@intCast(lx), @intCast(wy), @intCast(lz), .water);
                         chunk.setLevel(@intCast(lx), @intCast(wy), @intCast(lz), 7);
+                    }
+                }
+
+                // Submerged Ocean Monument structure override
+                var my: i32 = 1;
+                while (my <= 7) : (my += 1) {
+                    if (self.getOceanMonumentBlock(wx, my, wz)) |mb| {
+                        chunk.setBlock(@intCast(lx), @intCast(my), @intCast(lz), mb);
+                        if (mb == .water) chunk.setLevel(@intCast(lx), @intCast(my), @intCast(lz), 7);
                     }
                 }
             }
@@ -1532,4 +1589,14 @@ test "EndGenerator end gateway portal structure generation, obsidian frame, and 
     end_gen.generateChunk(&chunk, 2, 0);
     // wx = 32 (lx = 0), wz = 0 (lz = 0), wy = 11 (ly = 11) is end_gateway
     try std.testing.expectEqual(BlockId.end_gateway, chunk.getBlock(0, 11, 0));
+}
+
+test "Ocean Monument generation: submerged pyramid, sea lanterns, and conduit altar" {
+    const tg = TerrainGenerator.init(1337);
+    try std.testing.expectEqual(BlockId.conduit, tg.getOceanMonumentBlock(0, 3, -16).?);
+    try std.testing.expectEqual(BlockId.sea_lantern, tg.getOceanMonumentBlock(0, 4, -16).?);
+    try std.testing.expectEqual(BlockId.sea_lantern, tg.getOceanMonumentBlock(6, 5, -22).?);
+    try std.testing.expectEqual(BlockId.dark_prismarine, tg.getOceanMonumentBlock(0, 1, -16).?);
+    try std.testing.expectEqual(BlockId.prismarine_bricks, tg.getOceanMonumentBlock(2, 6, -16).?);
+    try std.testing.expect(tg.getOceanMonumentBlock(10, 3, -16) == null);
 }

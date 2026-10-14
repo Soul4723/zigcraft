@@ -1944,7 +1944,7 @@ pub fn main() !void {
         if (wolf_bite_cooldown <= 0.0) {
             const held_gold = (inventory.slots[selected_slot].item == .gold_nugget or inventory.slots[selected_slot].item == .golden_apple);
             for (mob_manager.mobs.items) |*m| {
-                if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider and m.mob_type != .endermite and m.mob_type != .drowned and m.mob_type != .phantom) continue;
+                if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider and m.mob_type != .endermite and m.mob_type != .drowned and m.mob_type != .phantom and m.mob_type != .guardian) continue;
                 if (m.mob_type == .piglin and (held_gold or m.barter_timer > 0.0 or entity_mod.mob_manager.MobManager.isPiglinRepelled(m.pos, player.pos, held_warped_fungus, &pickBlockWorld) != null)) continue;
                 const bdx = m.pos.x - player.pos.x;
                 const bdz = m.pos.z - player.pos.z;
@@ -2002,6 +2002,13 @@ pub fn main() !void {
                             player.health = @max(0.0, player.health - ph_dmg);
                             audio.play(.mob_roar, 0.85);
                             std.debug.print("phantom swoop attack struck player (dmg={d:.1}, hp={d:.1})\n", .{ ph_dmg, player.health });
+                        } else if (m.mob_type == .guardian) {
+                            // Guardian marine beam / thorn prick: 4 damage + splash acoustic
+                            const g_dmg = combat_mod.applyArmorReductionFullSet(4.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet());
+                            player.health = @max(0.0, player.health - g_dmg);
+                            audio.play(.mob_roar, 0.9);
+                            audio.play(.splash, 0.8);
+                            std.debug.print("guardian laser beam struck player (dmg={d:.1}, hp={d:.1})\n", .{ g_dmg, player.health });
                         }
                         audio.play(.hurt, 0.8);
                         const has_leggings = inventory.hasItem(.netherite_leggings);
