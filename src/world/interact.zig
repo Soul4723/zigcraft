@@ -60,6 +60,18 @@ pub fn toggleWoodenDoor(door: block_mod.BlockId) ?block_mod.BlockId {
     return switch (door) {
         .wooden_door_closed => .wooden_door_open,
         .wooden_door_open => .wooden_door_closed,
+        .wooden_trapdoor_closed => .wooden_trapdoor_open,
+        .wooden_trapdoor_open => .wooden_trapdoor_closed,
+        else => null,
+    };
+}
+
+pub fn toggleTrapdoor(trapdoor: block_mod.BlockId) ?block_mod.BlockId {
+    return switch (trapdoor) {
+        .wooden_trapdoor_closed => .wooden_trapdoor_open,
+        .wooden_trapdoor_open => .wooden_trapdoor_closed,
+        .iron_trapdoor_closed => .iron_trapdoor_open,
+        .iron_trapdoor_open => .iron_trapdoor_closed,
         else => null,
     };
 }
@@ -67,7 +79,16 @@ pub fn toggleWoodenDoor(door: block_mod.BlockId) ?block_mod.BlockId {
 test "toggleWoodenDoor transitions" {
     try std.testing.expectEqual(block_mod.BlockId.wooden_door_open, toggleWoodenDoor(.wooden_door_closed).?);
     try std.testing.expectEqual(block_mod.BlockId.wooden_door_closed, toggleWoodenDoor(.wooden_door_open).?);
+    try std.testing.expectEqual(block_mod.BlockId.wooden_trapdoor_open, toggleWoodenDoor(.wooden_trapdoor_closed).?);
+    try std.testing.expectEqual(block_mod.BlockId.wooden_trapdoor_closed, toggleWoodenDoor(.wooden_trapdoor_open).?);
     try std.testing.expectEqual(@as(?block_mod.BlockId, null), toggleWoodenDoor(.iron_door_closed));
+    try std.testing.expectEqual(@as(?block_mod.BlockId, null), toggleWoodenDoor(.iron_trapdoor_closed));
+
+    try std.testing.expectEqual(block_mod.BlockId.wooden_trapdoor_open, toggleTrapdoor(.wooden_trapdoor_closed).?);
+    try std.testing.expectEqual(block_mod.BlockId.wooden_trapdoor_closed, toggleTrapdoor(.wooden_trapdoor_open).?);
+    try std.testing.expectEqual(block_mod.BlockId.iron_trapdoor_open, toggleTrapdoor(.iron_trapdoor_closed).?);
+    try std.testing.expectEqual(block_mod.BlockId.iron_trapdoor_closed, toggleTrapdoor(.iron_trapdoor_open).?);
+    try std.testing.expectEqual(@as(?block_mod.BlockId, null), toggleTrapdoor(.stone));
 }
 
 pub const AnchorAction = enum {

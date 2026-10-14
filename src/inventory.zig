@@ -214,6 +214,8 @@ pub const ItemType = enum(u8) {
     piston = 208,
     sticky_piston = 209,
     observer = 210,
+    wooden_trapdoor = 211,
+    iron_trapdoor = 212,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -339,6 +341,8 @@ pub const ItemType = enum(u8) {
             .piston => .piston,
             .sticky_piston => .sticky_piston,
             .observer => .observer_off,
+            .wooden_trapdoor => .wooden_trapdoor_closed,
+            .iron_trapdoor => .iron_trapdoor_closed,
             else => null,
         };
     }
@@ -471,6 +475,8 @@ pub const ItemType = enum(u8) {
             .piston => .piston,
             .sticky_piston => .sticky_piston,
             .observer_off, .observer_on => .observer,
+            .wooden_trapdoor_closed, .wooden_trapdoor_open => .wooden_trapdoor,
+            .iron_trapdoor_closed, .iron_trapdoor_open => .iron_trapdoor,
             .piston_head => .piston,
         };
     }
@@ -737,6 +743,8 @@ pub const ItemType = enum(u8) {
             .piston => "Piston",
             .sticky_piston => "Sticky Piston",
             .observer => "Observer",
+            .wooden_trapdoor => "Wooden Trapdoor",
+            .iron_trapdoor => "Iron Trapdoor",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -889,6 +897,8 @@ pub const ItemType = enum(u8) {
             .piston => .{ 0.65, 0.55, 0.40, 0.95 },
             .sticky_piston => .{ 0.55, 0.70, 0.40, 0.95 },
             .observer => .{ 0.45, 0.45, 0.48, 0.95 },
+            .wooden_trapdoor => .{ 0.65, 0.45, 0.22, 0.95 },
+            .iron_trapdoor => .{ 0.85, 0.85, 0.88, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1721,6 +1731,26 @@ pub const Inventory = struct {
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
                 return;
+            }
+        }
+
+        // Recipe 154: Wooden Trapdoor: 1 Wooden Door -> 2 Wooden Trapdoors
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| {
+                if (sl.item == .wooden_door and sl.count >= 1) {
+                    self.craft_output = .{ .item = .wooden_trapdoor, .count = 2 };
+                    return;
+                }
+            }
+        }
+
+        // Recipe 155: Iron Trapdoor: 1 Iron Door -> 2 Iron Trapdoors
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| {
+                if (sl.item == .iron_door and sl.count >= 1) {
+                    self.craft_output = .{ .item = .iron_trapdoor, .count = 2 };
+                    return;
+                }
             }
         }
 
@@ -6152,4 +6182,31 @@ test "observer item and Recipe 153 crafting" {
     try std.testing.expectEqual(ItemType.fromBlockId(.observer_off), .observer);
     try std.testing.expectEqual(ItemType.fromBlockId(.observer_on), .observer);
     try std.testing.expectEqualStrings(ItemType.observer.name(), "Observer");
+}
+
+test "wooden and iron trapdoor items and recipes 154 and 155" {
+    var inv = Inventory.init();
+
+    // Recipe 154: 1 Wooden Door -> 2 Wooden Trapdoors
+    inv.craft_grid[0] = .{ .item = .wooden_door, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .wooden_trapdoor);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+
+    // Recipe 155: 1 Iron Door -> 2 Iron Trapdoors
+    inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .iron_door, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .iron_trapdoor);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+
+    // Stacks and roundtrips
+    try std.testing.expectEqual(ItemType.wooden_trapdoor.maxStackSize(), 64);
+    try std.testing.expectEqual(ItemType.iron_trapdoor.maxStackSize(), 64);
+    try std.testing.expectEqual(ItemType.wooden_trapdoor.toBlockId().?, .wooden_trapdoor_closed);
+    try std.testing.expectEqual(ItemType.iron_trapdoor.toBlockId().?, .iron_trapdoor_closed);
+    try std.testing.expectEqual(ItemType.fromBlockId(.wooden_trapdoor_closed), .wooden_trapdoor);
+    try std.testing.expectEqual(ItemType.fromBlockId(.wooden_trapdoor_open), .wooden_trapdoor);
+    try std.testing.expectEqual(ItemType.fromBlockId(.iron_trapdoor_closed), .iron_trapdoor);
+    try std.testing.expectEqual(ItemType.fromBlockId(.iron_trapdoor_open), .iron_trapdoor);
 }

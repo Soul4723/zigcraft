@@ -148,9 +148,13 @@ pub const BlockId = enum(u8) {
     piston_head = 137,
     observer_off = 138,
     observer_on = 139,
+    wooden_trapdoor_closed = 140,
+    wooden_trapdoor_open = 141,
+    iron_trapdoor_closed = 142,
+    iron_trapdoor_open = 143,
 
     pub fn is_solid(self: BlockId) bool {
-        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .end_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand and self != .lantern and self != .soul_lantern and self != .chain and self != .iron_bars and self != .tripwire_hook_off and self != .tripwire_hook_on and self != .cobweb and self != .end_crystal and self != .end_rod and self != .chorus_plant and self != .chorus_flower and self != .dragon_head and self != .end_gateway and self != .conduit and self != .kelp and self != .sea_pickle and self != .rail and self != .powered_rail and self != .detector_rail and self != .activator_rail and self != .redstone_comparator_off and self != .redstone_comparator_on;
+        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .wooden_trapdoor_open and self != .iron_trapdoor_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .end_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand and self != .lantern and self != .soul_lantern and self != .chain and self != .iron_bars and self != .tripwire_hook_off and self != .tripwire_hook_on and self != .cobweb and self != .end_crystal and self != .end_rod and self != .chorus_plant and self != .chorus_flower and self != .dragon_head and self != .end_gateway and self != .conduit and self != .kelp and self != .sea_pickle and self != .rail and self != .powered_rail and self != .detector_rail and self != .activator_rail and self != .redstone_comparator_off and self != .redstone_comparator_on;
     }
 
     pub fn is_sponge(self: BlockId) bool {
@@ -214,7 +218,7 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_transparent(self: BlockId) bool {
-        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .end_portal or self == .nether_brick_fence or self == .oak_fence or self == .armor_stand or self == .enchantment_table or self == .anvil or self == .grindstone or self == .composter or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block or self == .beacon or self == .weeping_vines or self == .twisting_vines or self == .crimson_fungus or self == .warped_fungus or self == .brewing_stand or self == .stonecutter or self == .lantern or self == .soul_lantern or self == .chain or self == .iron_bars or self == .tripwire_hook_off or self == .tripwire_hook_on or self == .cobweb or self == .end_portal_frame or self == .end_portal_frame_filled or self == .end_crystal or self == .dragon_egg or self == .end_rod or self == .chorus_plant or self == .chorus_flower or self == .shulker_box or self == .dragon_head or self == .end_gateway or self == .conduit or self == .kelp or self == .sea_pickle or self == .rail or self == .powered_rail or self == .detector_rail or self == .activator_rail or self == .redstone_comparator_off or self == .redstone_comparator_on or self == .slime_block or self == .piston_head;
+        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .end_portal or self == .nether_brick_fence or self == .oak_fence or self == .armor_stand or self == .enchantment_table or self == .anvil or self == .grindstone or self == .composter or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block or self == .beacon or self == .weeping_vines or self == .twisting_vines or self == .crimson_fungus or self == .warped_fungus or self == .brewing_stand or self == .stonecutter or self == .lantern or self == .soul_lantern or self == .chain or self == .iron_bars or self == .tripwire_hook_off or self == .tripwire_hook_on or self == .cobweb or self == .end_portal_frame or self == .end_portal_frame_filled or self == .end_crystal or self == .dragon_egg or self == .end_rod or self == .chorus_plant or self == .chorus_flower or self == .shulker_box or self == .dragon_head or self == .end_gateway or self == .conduit or self == .kelp or self == .sea_pickle or self == .rail or self == .powered_rail or self == .detector_rail or self == .activator_rail or self == .redstone_comparator_off or self == .redstone_comparator_on or self == .slime_block or self == .piston_head or self == .wooden_trapdoor_closed or self == .wooden_trapdoor_open or self == .iron_trapdoor_closed or self == .iron_trapdoor_open;
     }
 
     /// 0.0 = lit by sun only. 1.0 = full glow even at midnight.
@@ -268,7 +272,7 @@ pub const BlockId = enum(u8) {
 
     pub fn isFlammable(self: BlockId) bool {
         return switch (self) {
-            .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest, .note_block, .jukebox, .oak_fence, .armor_stand, .smithing_table, .cartography_table, .fletching_table, .composter, .loom, .wooden_door_closed, .wooden_door_open, .pressure_plate_up, .pressure_plate_down, .weeping_vines, .twisting_vines, .target_block, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight, .dried_kelp_block => true,
+            .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest, .note_block, .jukebox, .oak_fence, .armor_stand, .smithing_table, .cartography_table, .fletching_table, .composter, .loom, .wooden_door_closed, .wooden_door_open, .wooden_trapdoor_closed, .wooden_trapdoor_open, .pressure_plate_up, .pressure_plate_down, .weeping_vines, .twisting_vines, .target_block, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight, .dried_kelp_block => true,
             else => false,
         };
     }
@@ -485,6 +489,10 @@ pub const BlockId = enum(u8) {
                 3 => .{ .x = 7, .y = 6 }, // Observer back output redstone contact (lit red pulse)
                 else => .{ .x = 4, .y = 7 }, // Cobblestone casing
             },
+            .wooden_trapdoor_closed => .{ .x = 0, .y = 6 },
+            .wooden_trapdoor_open => .{ .x = 1, .y = 6 },
+            .iron_trapdoor_closed => .{ .x = 2, .y = 6 },
+            .iron_trapdoor_open => .{ .x = 3, .y = 6 },
             .dragon_egg => .{ .x = 5, .y = 2 }, // Deep obsidian crystalline egg shell with purple specks
             .dragon_head => switch (face_idx) {
                 2 => .{ .x = 7, .y = 3 }, // Draconic horned snout with glowing purple eye
@@ -656,7 +664,7 @@ pub fn hardness(block: BlockId) f32 {
         .redstone_torch_off, .redstone_torch_on => 0.0,
         .redstone_wire_off, .redstone_wire_on => 0.0,
         .chest => 1.0,
-        .wooden_door_closed, .wooden_door_open, .pressure_plate_up, .pressure_plate_down, .lever_off, .lever_on, .tripwire_hook_off, .tripwire_hook_on => 0.5,
+        .wooden_door_closed, .wooden_door_open, .wooden_trapdoor_closed, .wooden_trapdoor_open, .pressure_plate_up, .pressure_plate_down, .lever_off, .lever_on, .tripwire_hook_off, .tripwire_hook_on => 0.5,
         .repeater_off, .repeater_on, .redstone_comparator_off, .redstone_comparator_on => 0.2,
         .slime_block => 0.0,
         .piston, .sticky_piston, .piston_head => 0.5,
@@ -671,7 +679,7 @@ pub fn hardness(block: BlockId) f32 {
         .stone => 2.5,
         .coal_ore => 3.0,
         .iron_ore => 3.5,
-        .iron_door_closed, .iron_door_open => 3.0,
+        .iron_door_closed, .iron_door_open, .iron_trapdoor_closed, .iron_trapdoor_open => 3.0,
         .cactus => 0.4,
         .campfire => 1.0,
         .soul_campfire => 1.0,
@@ -919,6 +927,10 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .piston_head = .{ .name = "piston_head", .solid = true, .transparent = true, .fluid = false },
     .observer_off = .{ .name = "observer_off", .solid = true, .transparent = false, .fluid = false },
     .observer_on = .{ .name = "observer_on", .solid = true, .transparent = false, .fluid = false },
+    .wooden_trapdoor_closed = .{ .name = "wooden_trapdoor_closed", .solid = true, .transparent = true, .fluid = false },
+    .wooden_trapdoor_open = .{ .name = "wooden_trapdoor_open", .solid = false, .transparent = true, .fluid = false },
+    .iron_trapdoor_closed = .{ .name = "iron_trapdoor_closed", .solid = true, .transparent = true, .fluid = false },
+    .iron_trapdoor_open = .{ .name = "iron_trapdoor_open", .solid = false, .transparent = true, .fluid = false },
     .shulker_box = .{ .name = "shulker_box", .solid = true, .transparent = true, .fluid = false },
     .purpur_block = .{ .name = "purpur_block", .solid = true, .transparent = false, .fluid = false },
     .purpur_pillar = .{ .name = "purpur_pillar", .solid = true, .transparent = false, .fluid = false },
@@ -1365,11 +1377,11 @@ pub fn footstepType(block: BlockId) FootstepType {
         .grass, .weeping_vines, .twisting_vines, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight => .grass,
         .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .end_stone, .end_portal_frame, .end_portal_frame_filled, .dragon_egg, .dragon_head, .end_gateway, .purpur_block, .purpur_pillar, .shulker_box, .prismarine, .prismarine_bricks, .dark_prismarine, .sea_lantern, .conduit => .stone,
         .sponge, .wet_sponge, .slime_block => .grass,
-        .piston, .sticky_piston, .piston_head, .observer_off, .observer_on => .stone,
+        .piston, .sticky_piston, .piston_head, .observer_off, .observer_on, .iron_trapdoor_closed, .iron_trapdoor_open => .stone,
         .kelp, .dried_kelp_block, .sea_pickle => .grass,
         .rail, .powered_rail, .detector_rail, .activator_rail, .redstone_comparator_off, .redstone_comparator_on => .stone,
         .end_rod, .chorus_plant, .chorus_flower => .wood,
-        .wood, .target_block, .daylight_detector, .daylight_detector_inverted, .note_block, .jukebox, .oak_fence, .armor_stand, .smithing_table, .cartography_table, .fletching_table, .composter, .loom, .tripwire_hook_off, .tripwire_hook_on => .wood,
+        .wood, .target_block, .wooden_trapdoor_closed, .wooden_trapdoor_open, .daylight_detector, .daylight_detector_inverted, .note_block, .jukebox, .oak_fence, .armor_stand, .smithing_table, .cartography_table, .fletching_table, .composter, .loom, .tripwire_hook_off, .tripwire_hook_on => .wood,
         .dirt => .dirt,
         .sand => .sand,
         .snow => .snow,
@@ -2574,4 +2586,24 @@ test "observer block properties, textures, emissive, and hardness" {
     const obs_back_on = BlockId.observer_on.getFaceTexture(3);
     try std.testing.expectEqual(@as(u32, 7), obs_back_on.x);
     try std.testing.expectEqual(@as(u32, 6), obs_back_on.y);
+}
+
+test "wooden and iron trapdoor block properties, transparency, and hardness" {
+    try std.testing.expect(BlockId.wooden_trapdoor_closed.is_solid());
+    try std.testing.expect(!BlockId.wooden_trapdoor_open.is_solid());
+    try std.testing.expect(BlockId.iron_trapdoor_closed.is_solid());
+    try std.testing.expect(!BlockId.iron_trapdoor_open.is_solid());
+
+    try std.testing.expect(BlockId.wooden_trapdoor_closed.is_transparent());
+    try std.testing.expect(BlockId.wooden_trapdoor_open.is_transparent());
+    try std.testing.expect(BlockId.iron_trapdoor_closed.is_transparent());
+    try std.testing.expect(BlockId.iron_trapdoor_open.is_transparent());
+
+    try std.testing.expect(BlockId.wooden_trapdoor_closed.isFlammable());
+    try std.testing.expect(!BlockId.iron_trapdoor_closed.isFlammable());
+
+    try std.testing.expectEqual(hardness(.wooden_trapdoor_closed), 0.5);
+    try std.testing.expectEqual(hardness(.iron_trapdoor_closed), 3.0);
+    try std.testing.expectEqual(footstepType(.wooden_trapdoor_closed), .wood);
+    try std.testing.expectEqual(footstepType(.iron_trapdoor_closed), .stone);
 }

@@ -4436,9 +4436,9 @@ pub fn main() !void {
                         std.debug.print("toggled lever to {s} ({d},{d},{d})\n", .{ @tagName(toggled), hit_f.x, hit_f.y, hit_f.z });
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
-                } else if (target == .iron_door_closed or target == .iron_door_open) {
+                } else if (target == .iron_door_closed or target == .iron_door_open or target == .iron_trapdoor_closed or target == .iron_trapdoor_open) {
                     audio.play(.step_stone, 0.7);
-                    std.debug.print("iron door locked; requires redstone signal\n", .{});
+                    std.debug.print("iron door/trapdoor locked; requires redstone signal\n", .{});
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (interact_mod.toggleWoodenDoor(target)) |toggled| {
                     if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, toggled)) {

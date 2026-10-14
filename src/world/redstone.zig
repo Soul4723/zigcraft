@@ -276,23 +276,33 @@ pub fn targetDoorState(current: BlockId, torch_lit: bool) ?BlockId {
     if (torch_lit) {
         if (current == .wooden_door_closed) return .wooden_door_open;
         if (current == .iron_door_closed) return .iron_door_open;
+        if (current == .wooden_trapdoor_closed) return .wooden_trapdoor_open;
+        if (current == .iron_trapdoor_closed) return .iron_trapdoor_open;
     } else {
         if (current == .wooden_door_open) return .wooden_door_closed;
         if (current == .iron_door_open) return .iron_door_closed;
+        if (current == .wooden_trapdoor_open) return .wooden_trapdoor_closed;
+        if (current == .iron_trapdoor_open) return .iron_trapdoor_closed;
     }
     return null;
 }
 
 test "targetDoorState transitions" {
-    // Torch ON opens closed doors
+    // Torch ON opens closed doors and trapdoors
     try std.testing.expectEqual(BlockId.wooden_door_open, targetDoorState(.wooden_door_closed, true).?);
     try std.testing.expectEqual(BlockId.iron_door_open, targetDoorState(.iron_door_closed, true).?);
+    try std.testing.expectEqual(BlockId.wooden_trapdoor_open, targetDoorState(.wooden_trapdoor_closed, true).?);
+    try std.testing.expectEqual(BlockId.iron_trapdoor_open, targetDoorState(.iron_trapdoor_closed, true).?);
     try std.testing.expect(targetDoorState(.wooden_door_open, true) == null);
+    try std.testing.expect(targetDoorState(.wooden_trapdoor_open, true) == null);
 
-    // Torch OFF closes open doors
+    // Torch OFF closes open doors and trapdoors
     try std.testing.expectEqual(BlockId.wooden_door_closed, targetDoorState(.wooden_door_open, false).?);
     try std.testing.expectEqual(BlockId.iron_door_closed, targetDoorState(.iron_door_open, false).?);
+    try std.testing.expectEqual(BlockId.wooden_trapdoor_closed, targetDoorState(.wooden_trapdoor_open, false).?);
+    try std.testing.expectEqual(BlockId.iron_trapdoor_closed, targetDoorState(.iron_trapdoor_open, false).?);
     try std.testing.expect(targetDoorState(.wooden_door_closed, false) == null);
+    try std.testing.expect(targetDoorState(.wooden_trapdoor_closed, false) == null);
 
     // Non-doors ignored
     try std.testing.expect(targetDoorState(.stone, true) == null);
