@@ -702,3 +702,21 @@ test "observer pulse emission and block update detection" {
     _ = tickObserver(&obs, .air, 0.07);
     try std.testing.expect(!tickObserver(&obs, .air, 0.01));
 }
+
+/// Convert redstone ore to lit redstone ore on strike/step, or tick back to unlit after decay.
+pub fn updateRedstoneOreState(current: BlockId, interact_or_step: bool) ?BlockId {
+    if (interact_or_step) {
+        if (current == .redstone_ore) return .lit_redstone_ore;
+    } else {
+        if (current == .lit_redstone_ore) return .redstone_ore;
+    }
+    return null;
+}
+
+test "updateRedstoneOreState lighting and decay" {
+    try std.testing.expectEqual(BlockId.lit_redstone_ore, updateRedstoneOreState(.redstone_ore, true).?);
+    try std.testing.expect(updateRedstoneOreState(.lit_redstone_ore, true) == null);
+    try std.testing.expectEqual(BlockId.redstone_ore, updateRedstoneOreState(.lit_redstone_ore, false).?);
+    try std.testing.expect(updateRedstoneOreState(.redstone_ore, false) == null);
+    try std.testing.expect(updateRedstoneOreState(.stone, true) == null);
+}

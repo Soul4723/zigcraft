@@ -4440,6 +4440,12 @@ pub fn main() !void {
                     audio.play(.step_stone, 0.7);
                     std.debug.print("iron door/trapdoor locked; requires redstone signal\n", .{});
                     flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .redstone_ore) {
+                    if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, .lit_redstone_ore)) {
+                        audio.play(.step_stone, 0.9);
+                        std.debug.print("lit redstone ore ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (interact_mod.toggleWoodenDoor(target)) |toggled| {
                     if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, toggled)) {
                         audio.play(.place_block, 0.9);
