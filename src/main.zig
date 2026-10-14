@@ -1702,7 +1702,7 @@ pub fn main() !void {
         if (wolf_bite_cooldown <= 0.0) {
             const held_gold = (inventory.slots[selected_slot].item == .gold_nugget or inventory.slots[selected_slot].item == .golden_apple);
             for (mob_manager.mobs.items) |*m| {
-                if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze) continue;
+                if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider) continue;
                 if (m.mob_type == .piglin and (held_gold or m.barter_timer > 0.0 or entity_mod.mob_manager.MobManager.isPiglinRepelled(m.pos, player.pos, held_warped_fungus, &pickBlockWorld) != null)) continue;
                 const bdx = m.pos.x - player.pos.x;
                 const bdz = m.pos.z - player.pos.z;

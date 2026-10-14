@@ -113,7 +113,7 @@ pub const MobManager = struct {
             break;
         }
 
-        // Cave pass: dark hollows spawn wolves even by day, up to a shared cap.
+        // Cave & night pass: dark hollows spawn wolves and arachnid spiders up to cap.
         var cave_attempts: usize = 0;
         while (self.mobs.items.len < 8 and cave_attempts < 6) : (cave_attempts += 1) {
             const rx = center_x + (self.rng.random().float(f32) * 36.0 - 18.0);
@@ -122,7 +122,8 @@ pub const MobManager = struct {
             const iz: i32 = @intFromFloat(@floor(rz));
             const iy: i32 = 1 + @as(i32, @intFromFloat(self.rng.random().float(f32) * 10.0));
             if (!spawn_rules.isCaveSpawn(chunk_manager, ix, iy, iz, 15)) continue;
-            try self.spawnMob(.wolf, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
+            const cave_mtype: mob_mod.MobType = if (self.rng.random().float(f32) < 0.5) .spider else .wolf;
+            try self.spawnMob(cave_mtype, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
         }
     }
 
@@ -189,7 +190,7 @@ pub const MobManager = struct {
                     mob.yaw = std.math.atan2(pdx, pdz);
                     mob.walk_timer = hunt_mod.walk_pulse;
                 }
-            } else if (mob.mob_type == .wolf or mob.mob_type == .emberbeast or mob.mob_type == .wither_skeleton or mob.mob_type == .piglin or mob.mob_type == .piglin_brute or mob.mob_type == .blaze) {
+            } else if (mob.mob_type == .wolf or mob.mob_type == .emberbeast or mob.mob_type == .wither_skeleton or mob.mob_type == .piglin or mob.mob_type == .piglin_brute or mob.mob_type == .blaze or mob.mob_type == .spider) {
                 var is_repelled = false;
                 if (mob.mob_type == .piglin) {
                     if (isPiglinRepelled(mob.pos, player_pos, player_holding_fungus, block_at)) |repel_source| {
@@ -522,7 +523,7 @@ pub const MobManager = struct {
         var count: usize = 0;
         const r_sq = radius * radius;
         for (self.mobs.items) |m| {
-            if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze) continue;
+            if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider) continue;
             const dx = m.pos.x - center.x;
             const dy = m.pos.y - center.y;
             const dz = m.pos.z - center.z;
@@ -835,4 +836,19 @@ test "mob manager leash mob and hitch to fence post" {
     const unhitched = mm.unhitchFence(10, 1, 10);
     try std.testing.expectEqual(@as(usize, 1), unhitched);
     try std.testing.expect(!mm.mobs.items[0].isLeashed());
+}
+
+test "spider hunts player and engages in pack count" {
+    var mobs = std.ArrayList(mob_mod.Mob).empty;
+    defer mobs.deinit(std.testing.allocator);
+    try mobs.append(std.testing.allocator, mob_mod.Mob.init(.spider, 2, 0, 2));
+
+    var mm = try MobManager.init(std.testing.allocator, 0);
+    defer mm.deinit();
+    try mm.spawnMob(.spider, 1.0, 0.0, 1.0);
+    try std.testing.expectEqual(mm.mobs.items.len, 1);
+    try std.testing.expectEqual(mm.mobs.items[0].mob_type, .spider);
+
+    const nearby = mm.countNearbyWolves(math.Vec3.init(0, 0, 0), 5.0);
+    try std.testing.expectEqual(@as(usize, 1), nearby);
 }

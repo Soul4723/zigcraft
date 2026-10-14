@@ -495,6 +495,26 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
                 }
             }
         },
+        .spider => {
+            const uv_abdomen = texture.getTileUV(2, 5); // dark arachnid chitin
+            const uv_eyes = texture.getTileUV(3, 5); // glowing red eyes & markings
+            const uv_leg = texture.getTileUV(7, 2); // jointed leg segments
+
+            // 1. Cephalothorax (front body): 0.40 x 0.25 x 0.40 at (0, 0.22, 0.12)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.22, 0.12), math.Vec3.init(0.40, 0.25, 0.40), mob.yaw, mob.pos, uv_eyes, uv_abdomen);
+            // 2. Abdomen (rear body): 0.52 x 0.35 x 0.55 at (0, 0.28, -0.32)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.28, -0.32), math.Vec3.init(0.52, 0.35, 0.55), mob.yaw, mob.pos, uv_abdomen, uv_abdomen);
+
+            // 3-10. 8 arachnid splayed legs (4 left, 4 right) with alternating walking swing
+            const leg_z_offsets = [_]f32{ 0.24, 0.12, -0.02, -0.16 };
+            for (leg_z_offsets, 0..) |lz, i| {
+                const swing = if (i % 2 == 0) leg_swing else -leg_swing;
+                // Left leg: splayed outward at -0.35 x
+                try appendBox(allocator, verts, inds, math.Vec3.init(-0.35, 0.16, lz + swing), math.Vec3.init(0.36, 0.08, 0.08), mob.yaw, mob.pos, uv_leg, uv_leg);
+                // Right leg: splayed outward at +0.35 x
+                try appendBox(allocator, verts, inds, math.Vec3.init(0.35, 0.16, lz - swing), math.Vec3.init(0.36, 0.08, 0.08), mob.yaw, mob.pos, uv_leg, uv_leg);
+            }
+        },
     }
 
     if (mob.isGlowing()) {
@@ -631,4 +651,17 @@ test "target dummy mob mesh generation" {
     // 4 boxes * 24 = 96 verts, 4 boxes * 36 = 144 indices
     try std.testing.expectEqual(@as(usize, 96), verts.items.len);
     try std.testing.expectEqual(@as(usize, 144), inds.items.len);
+}
+
+test "spider mob mesh generation" {
+    var verts = std.ArrayList(MobVertex).empty;
+    defer verts.deinit(std.testing.allocator);
+    var inds = std.ArrayList(u32).empty;
+    defer inds.deinit(std.testing.allocator);
+
+    const spider = mob_mod.Mob.init(.spider, 0, 0, 0);
+    try appendMobMesh(std.testing.allocator, &verts, &inds, spider);
+    // 10 boxes (cephalothorax, abdomen, 8 legs) * 24 = 240 verts, * 36 = 360 indices
+    try std.testing.expectEqual(@as(usize, 240), verts.items.len);
+    try std.testing.expectEqual(@as(usize, 360), inds.items.len);
 }

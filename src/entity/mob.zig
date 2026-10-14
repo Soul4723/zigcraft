@@ -61,6 +61,7 @@ pub const Mob = struct {
             .piglin, .piglin_brute => 0.6,
             .blaze => 0.6,
             .target_dummy => 0.6,
+            .spider => 0.8,
         };
         const h: f32 = switch (mob_type) {
             .sheep => 0.9,
@@ -71,6 +72,7 @@ pub const Mob = struct {
             .piglin, .piglin_brute => 1.5,
             .blaze => 1.8,
             .target_dummy => 1.8,
+            .spider => 0.5,
         };
         const spd: f32 = switch (mob_type) {
             .sheep => 1.4,
@@ -82,6 +84,7 @@ pub const Mob = struct {
             .piglin_brute => 3.0,
             .blaze => 2.4,
             .target_dummy => 0.0,
+            .spider => 3.5,
         };
         return .{
             .mob_type = mob_type,
@@ -97,7 +100,7 @@ pub const Mob = struct {
             .anim_time = 0.0,
             .change_dir_timer = 2.0,
             .wants_sound = false,
-            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze) 20 else if (mob_type == .piglin_brute) 15 else if (mob_type == .target_dummy) 50 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
+            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze) 20 else if (mob_type == .piglin_brute) 15 else if (mob_type == .target_dummy) 50 else if (mob_type == .spider) 8 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
             .in_water = false,
             .in_bubble_column = false,
             .in_whirlpool = false,
@@ -188,14 +191,21 @@ pub const Mob = struct {
         self.pos.x = moveAxis(self.pos, half_w, self.height, solid, move_dist_x, .x);
         self.pos.z = moveAxis(self.pos, half_w, self.height, solid, move_dist_z, .z);
 
-        // If bumped into a 1-block obstacle while on ground, auto-hop over it
+        // If bumped into obstacle: spiders climb walls directly; other mobs auto-hop 1-block step
         const blocked_x = @abs(self.pos.x - old_x) < @abs(move_dist_x) * 0.5 and @abs(move_dist_x) > 0.001;
         const blocked_z = @abs(self.pos.z - old_z) < @abs(move_dist_z) * 0.5 and @abs(move_dist_z) > 0.001;
-        if (self.on_ground and (blocked_x or blocked_z)) {
-            const check_p = math.Vec3.init(self.pos.x + move_dist_x * 2.0, self.pos.y + 1.1, self.pos.z + move_dist_z * 2.0);
-            if (!aabbHits(check_p, half_w, self.height, solid)) {
-                self.vel.y = 5.0; // Small jump / step
+        const is_spider_climbing = self.mob_type == .spider and (blocked_x or blocked_z);
+        if (blocked_x or blocked_z) {
+            if (self.mob_type == .spider) {
+                // Arachnid vertical wall climbing physics: ascend wall at steady climb speed
+                self.vel.y = 3.5;
                 self.on_ground = false;
+            } else if (self.on_ground) {
+                const check_p = math.Vec3.init(self.pos.x + move_dist_x * 2.0, self.pos.y + 1.1, self.pos.z + move_dist_z * 2.0);
+                if (!aabbHits(check_p, half_w, self.height, solid)) {
+                    self.vel.y = 5.0; // Small jump / step
+                    self.on_ground = false;
+                }
             }
         }
 
@@ -215,6 +225,8 @@ pub const Mob = struct {
         } else if (self.mob_type == .blaze) {
             // Blaze hovers gently without falling
             self.vel.y = @sin(self.anim_time * 2.5) * 0.4;
+        } else if (is_spider_climbing) {
+            // Spider wall climbing maintains upward velocity against gravity
         } else {
             self.vel.y -= 25.0 * clamped_dt;
             if (self.vel.y < -30.0) self.vel.y = -30.0;
@@ -518,6 +530,7 @@ pub fn getSound(mob_type: MobType) ?@import("../audio/synth.zig").SoundType {
         .wither_skeleton => .mob_growl,
         .piglin, .piglin_brute => .mob_oink,
         .target_dummy => .step_wood,
+        .spider => .mob_growl,
     };
 }
 
@@ -732,4 +745,33 @@ test "target dummy mob properties and stationary behavior" {
     try std.testing.expectEqual(dummy.pos.z, 10.0);
     try std.testing.expectEqual(dummy.vel.x, 0.0);
     try std.testing.expectEqual(dummy.vel.z, 0.0);
+}
+
+test "spider mob stats, dimensions, and string drop" {
+    const sp = Mob.init(.spider, 5.0, 10.0, 15.0);
+    try std.testing.expectEqual(sp.mob_type, .spider);
+    try std.testing.expectEqual(sp.health, 8);
+    try std.testing.expectEqual(sp.width, 0.8);
+    try std.testing.expectEqual(sp.height, 0.5);
+    try std.testing.expectEqual(sp.walk_speed, 3.5);
+    try std.testing.expectEqual(getSound(.spider), .mob_growl);
+    try std.testing.expectEqual(inventory_mod.getMobMeatDrop(.spider), .string);
+}
+
+test "spider climbs wall when blocked horizontally" {
+    var sp = Mob.init(.spider, 0.599, 0.0, 0.5);
+    const WallWorld = struct {
+        fn solid(x: i32, y: i32, _: i32) bool {
+            return x >= 1 or y <= -1;
+        }
+        fn fluid(_: i32, _: i32, _: i32) bool {
+            return false;
+        }
+    };
+    var rng = std.Random.DefaultPrng.init(1234);
+    sp.change_dir_timer = 10.0;
+    sp.yaw = std.math.pi * 0.5;
+    sp.walk_timer = 2.0;
+    sp.tick(WallWorld.solid, WallWorld.fluid, 0.05, &rng);
+    try std.testing.expect(sp.vel.y > 0.0);
 }
