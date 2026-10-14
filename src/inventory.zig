@@ -149,6 +149,7 @@ pub const ItemType = enum(u8) {
     weakness_potion = 143,
     bone = 144,
     rotten_flesh = 145,
+    gunpowder = 146,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -539,6 +540,7 @@ pub const ItemType = enum(u8) {
             .weakness_potion => "Potion of Weakness",
             .bone => "Bone",
             .rotten_flesh => "Rotten Flesh",
+            .gunpowder => "Gunpowder",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -626,6 +628,7 @@ pub const ItemType = enum(u8) {
             .weakness_potion => .{ 0.42, 0.40, 0.48, 0.90 },
             .bone => .{ 0.88, 0.86, 0.80, 0.95 },
             .rotten_flesh => .{ 0.60, 0.38, 0.22, 0.95 },
+            .gunpowder => .{ 0.38, 0.40, 0.42, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1174,6 +1177,24 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 107: TNT: 2 Sand + 2 Gunpowder (checkerboard) or 1 Sand + 1 Gunpowder -> 1 TNT
+        if (non_empty == 4) {
+            if ((g0 == .sand and g3 == .sand and g1 == .gunpowder and g2 == .gunpowder) or
+                (g1 == .sand and g2 == .sand and g0 == .gunpowder and g3 == .gunpowder))
+            {
+                self.craft_output = .{ .item = .tnt, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 2) {
+            const has_sand = (g0 == .sand or g1 == .sand or g2 == .sand or g3 == .sand);
+            const has_gunpowder = (g0 == .gunpowder or g1 == .gunpowder or g2 == .gunpowder or g3 == .gunpowder);
+            if (has_sand and has_gunpowder) {
+                self.craft_output = .{ .item = .tnt, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 106: Bone Meal: 1 Bone -> 3 Bone Meal
         if (non_empty == 1) {
@@ -2547,7 +2568,7 @@ pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
     return held == .wooden_pickaxe or held == .iron_pickaxe or held == .netherite_pickaxe;
 }
 
-pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, skeleton, zombie };
+pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, skeleton, zombie, creeper };
 
 pub fn getMobMeatDrop(mob_type: MobType) ItemType {
     return switch (mob_type) {
@@ -2562,6 +2583,7 @@ pub fn getMobMeatDrop(mob_type: MobType) ItemType {
         .spider => .string,
         .skeleton => .bone,
         .zombie => .rotten_flesh,
+        .creeper => .gunpowder,
     };
 }
 
@@ -4379,4 +4401,30 @@ test "zombie mob drop, rotten flesh item, and rare iron ingot drop" {
     }
     try std.testing.expect(iron_drops > 0 and iron_drops < 64);
     try std.testing.expectEqual(dropsZombieIron(7, 3, 11), dropsZombieIron(7, 3, 11));
+}
+
+test "creeper mob drop, gunpowder item, and Recipe 107 TNT crafting" {
+    try std.testing.expectEqual(getMobMeatDrop(.creeper), .gunpowder);
+    try std.testing.expectEqualStrings(ItemType.gunpowder.name(), "Gunpowder");
+    try std.testing.expect(!ItemType.gunpowder.isTool());
+    try std.testing.expect(ItemType.gunpowder.toBlockId() == null);
+    try std.testing.expectEqual(ItemType.gunpowder.maxStackSize(), 64);
+
+    var inv = Inventory.init();
+    // 2-ingredient TNT recipe: 1 Sand + 1 Gunpowder -> 1 TNT
+    inv.craft_grid[0] = .{ .item = .sand, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .gunpowder, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .tnt);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // 4-ingredient checkerboard TNT recipe: 2 Sand + 2 Gunpowder -> 1 TNT
+    inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .sand, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .gunpowder, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .gunpowder, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .sand, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .tnt);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
 }

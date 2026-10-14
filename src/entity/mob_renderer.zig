@@ -465,6 +465,23 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
             try appendBox(allocator, verts, inds, math.Vec3.init(-0.12, 0.30, 0 + leg_swing), math.Vec3.init(0.14, 0.60, 0.14), mob.yaw, mob.pos, uv_pants, uv_pants);
             try appendBox(allocator, verts, inds, math.Vec3.init(0.12, 0.30, 0 - leg_swing), math.Vec3.init(0.14, 0.60, 0.14), mob.yaw, mob.pos, uv_pants, uv_pants);
         },
+        .creeper => {
+            const uv_green = texture.getTileUV(7, 0); // mottled green creeper hide
+            const uv_face = texture.getTileUV(6, 4); // frowning dark mouth/eyes face
+
+            // 1. Torso: 0.40 x 0.64 x 0.24 at (0, 0.82, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.82, 0), math.Vec3.init(0.40, 0.64, 0.24), mob.yaw, mob.pos, uv_green, uv_green);
+            // 2. Head: 0.36 cube at (0, 1.28 + head_bob_y, 0.02)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 1.28 + head_bob_y, 0.02), math.Vec3.init(0.36, 0.36, 0.36), mob.yaw, mob.pos, uv_face, uv_green);
+            // 3. Front-left leg: 0.14 x 0.50 x 0.14 at (-0.14, 0.25, 0.14 + leg_swing)
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.14, 0.25, 0.14 + leg_swing), math.Vec3.init(0.14, 0.50, 0.14), mob.yaw, mob.pos, uv_green, uv_green);
+            // 4. Front-right leg: 0.14 x 0.50 x 0.14 at (0.14, 0.25, 0.14 - leg_swing)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.14, 0.25, 0.14 - leg_swing), math.Vec3.init(0.14, 0.50, 0.14), mob.yaw, mob.pos, uv_green, uv_green);
+            // 5. Back-left leg: 0.14 x 0.50 x 0.14 at (-0.14, 0.25, -0.14 - leg_swing)
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.14, 0.25, -0.14 - leg_swing), math.Vec3.init(0.14, 0.50, 0.14), mob.yaw, mob.pos, uv_green, uv_green);
+            // 6. Back-right leg: 0.14 x 0.50 x 0.14 at (0.14, 0.25, -0.14 + leg_swing)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.14, 0.25, -0.14 + leg_swing), math.Vec3.init(0.14, 0.50, 0.14), mob.yaw, mob.pos, uv_green, uv_green);
+        },
         .piglin, .piglin_brute => {
             const uv_skin = if (mob.mob_type == .piglin_brute) texture.getTileUV(2, 5) else texture.getTileUV(5, 4); // Brute dark charcoal armor
             const uv_face = texture.getTileUV(6, 4);
@@ -724,6 +741,19 @@ test "zombie mob mesh generation" {
     const zombie = mob_mod.Mob.init(.zombie, 0, 0, 0);
     try appendMobMesh(std.testing.allocator, &verts, &inds, zombie);
     // 6 boxes (torso, head, 2 forward arms, 2 legs) = 144 verts, 216 indices
+    try std.testing.expectEqual(@as(usize, 144), verts.items.len);
+    try std.testing.expectEqual(@as(usize, 216), inds.items.len);
+}
+
+test "creeper mob mesh generation" {
+    var verts = std.ArrayList(MobVertex).empty;
+    defer verts.deinit(std.testing.allocator);
+    var inds = std.ArrayList(u32).empty;
+    defer inds.deinit(std.testing.allocator);
+
+    const creeper = mob_mod.Mob.init(.creeper, 0, 0, 0);
+    try appendMobMesh(std.testing.allocator, &verts, &inds, creeper);
+    // 6 boxes (torso, head, 4 quadruped legs) = 144 verts, 216 indices
     try std.testing.expectEqual(@as(usize, 144), verts.items.len);
     try std.testing.expectEqual(@as(usize, 216), inds.items.len);
 }

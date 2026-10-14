@@ -170,3 +170,23 @@ test "isDetonated check" {
     try std.testing.expect(isDetonated(-0.1));
     try std.testing.expect(!isDetonated(0.5));
 }
+
+pub const creeper_fuse_time: f32 = 1.5;
+pub const creeper_blast_radius: i32 = 3;
+pub const creeper_prime_radius: f32 = 3.0;
+pub const creeper_abort_radius: f32 = 6.0;
+
+pub fn shouldPrimeCreeper(dist_sq: f32) bool {
+    return dist_sq <= creeper_prime_radius * creeper_prime_radius;
+}
+
+pub fn shouldAbortCreeper(dist_sq: f32) bool {
+    return dist_sq >= creeper_abort_radius * creeper_abort_radius;
+}
+
+test "creeper prime and abort distance checks" {
+    try std.testing.expect(shouldPrimeCreeper(2.5 * 2.5));
+    try std.testing.expect(!shouldPrimeCreeper(3.5 * 3.5));
+    try std.testing.expect(shouldAbortCreeper(6.5 * 6.5));
+    try std.testing.expect(!shouldAbortCreeper(5.5 * 5.5));
+}

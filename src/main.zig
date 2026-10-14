@@ -3350,6 +3350,114 @@ pub fn main() !void {
                 break;
             }
         }
+        // Creeper detonation AI: approaches player, hisses & primes within 3m, explodes at 0
+        {
+            var mi: usize = 0;
+            while (mi < mob_manager.mobs.items.len) {
+                var m = &mob_manager.mobs.items[mi];
+                if (m.mob_type == .creeper) {
+                    const cdx = player.pos.x - m.pos.x;
+                    const cdy = player.pos.y - m.pos.y;
+                    const cdz = player.pos.z - m.pos.z;
+                    const dist_sq = cdx * cdx + cdy * cdy + cdz * cdz;
+
+                    if (m.is_primed) {
+                        m.fuse_timer -= dt;
+                        // White smoke and sparking fuse pulses while swelling
+                        particles.spawnCampfireSmoke(@intFromFloat(@floor(m.pos.x)), @intFromFloat(@floor(m.pos.y + 1.2)), @intFromFloat(@floor(m.pos.z)), false, false, 2);
+                        particles.spawnBlockDebris(@intFromFloat(@floor(m.pos.x)), @intFromFloat(@floor(m.pos.y + 1.0)), @intFromFloat(@floor(m.pos.z)), .{ 0.95, 0.95, 0.95 }, 3);
+
+                        if (m.fuse_timer <= 0.0) {
+                            // Detonate!
+                            const ex: i32 = @intFromFloat(@floor(m.pos.x));
+                            const ey: i32 = @intFromFloat(@floor(m.pos.y + 0.8));
+                            const ez: i32 = @intFromFloat(@floor(m.pos.z));
+
+                            // Carve blast crater
+                            var rx: i32 = -boom_mod.creeper_blast_radius;
+                            while (rx <= boom_mod.creeper_blast_radius) : (rx += 1) {
+                                var ry: i32 = -boom_mod.creeper_blast_radius;
+                                while (ry <= boom_mod.creeper_blast_radius) : (ry += 1) {
+                                    var rz: i32 = -boom_mod.creeper_blast_radius;
+                                    while (rz <= boom_mod.creeper_blast_radius) : (rz += 1) {
+                                        if (boom_mod.inBlast(rx, ry, rz)) {
+                                            const bx = ex + rx;
+                                            const by = ey + ry;
+                                            const bz = ez + rz;
+                                            const old_b = manager.getBlockWorld(bx, by, bz);
+                                            switch (boom_mod.evaluateBlastBlock(old_b, by)) {
+                                                .destroy_block => {
+                                                    _ = try manager.editAndRemesh(bx, by, bz, .air);
+                                                },
+                                                .destroy_chest => {
+                                                    if (cache_mod.findChest(&chests, chest_count, bx, by, bz)) |ci| {
+                                                        for (chests[ci].items) |citem| {
+                                                            if (!citem.isEmpty()) _ = inventory.addItem(citem.item, citem.count);
+                                                        }
+                                                        cache_mod.swapRemove(&chests, &chest_count, ci);
+                                                    }
+                                                    _ = try manager.editAndRemesh(bx, by, bz, .air);
+                                                },
+                                                .chain_tnt => {
+                                                    if (boom_mod.canChainFuse(fuses[0..fuse_count], bx, by, bz, fuses.len)) {
+                                                        fuses[fuse_count] = .{ .x = bx, .y = by, .z = bz, .t = boom_mod.chain_fuse_time };
+                                                        fuse_count += 1;
+                                                    }
+                                                },
+                                                .ignore => {},
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Blast acoustics & VFX
+                            audio.playAt(.break_block, .{ m.pos.x, m.pos.y, m.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 45.0);
+                            particles.spawnBlockDebris(ex, ey, ez, .{ 0.40, 0.85, 0.30 }, 64);
+                            particles.spawnFlame(ex, ey, ez, 16);
+
+                            // Blast mob hit
+                            for (mob_manager.mobs.items, 0..) |*other_m, omi| {
+                                if (omi == mi) continue;
+                                if (boom_mod.calculateMobBlastHit(other_m.pos.x, other_m.pos.y, other_m.pos.z, ex, ey, ez)) |h| {
+                                    _ = other_m.takeHitDmg(math.Vec3.init(h.knockback[0], h.knockback[1], h.knockback[2]), h.damage);
+                                }
+                            }
+
+                            // Player damage & launch impulse
+                            if (boom_mod.calculatePlayerBlastImpulse(player.pos.x, player.pos.y, player.pos.z, ex, ey, ez)) |imp| {
+                                const has_chest = inventory.hasItem(.netherite_chestplate);
+                                const has_full = inventory.hasFullNetheriteSet();
+                                const blast_dmg = combat_mod.applyArmorReductionFullSet(imp.damage, has_chest, has_full);
+                                player.health = @max(0.0, player.health - blast_dmg);
+                                player.vel_y = imp.vel_y;
+                                player.pos.x += imp.push_x;
+                                player.pos.z += imp.push_z;
+                                audio.play(.hurt, 1.0);
+                                std.debug.print("creeper explosion hit player (dmg={d:.1}, hp={d:.1})\n", .{ blast_dmg, player.health });
+                            }
+
+                            // Remove detonated creeper
+                            _ = mob_manager.mobs.swapRemove(mi);
+                            std.debug.print("creeper detonated at ({d},{d},{d})\n", .{ ex, ey, ez });
+                            continue;
+                        } else if (boom_mod.shouldAbortCreeper(dist_sq)) {
+                            // Player fled beyond abort range: cancel fuse!
+                            m.is_primed = false;
+                            m.fuse_timer = 0.0;
+                            std.debug.print("creeper fuse aborted (player escaped)\n", .{});
+                        }
+                    } else if (boom_mod.shouldPrimeCreeper(dist_sq)) {
+                        m.is_primed = true;
+                        m.fuse_timer = boom_mod.creeper_fuse_time;
+                        audio.playAt(.mob_hiss, .{ m.pos.x, m.pos.y, m.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 25.0);
+                        std.debug.print("creeper hissed & primed fuse!\n", .{});
+                    }
+                }
+                mi += 1;
+            }
+        }
+
         // Skeleton archery: ranged arrow barrage with 1.8s cadence when player is within 16m
         skeleton_shot_cooldown = combat_mod.tickCooldown(skeleton_shot_cooldown, dt);
         if (skeleton_shot_cooldown <= 0.0) {

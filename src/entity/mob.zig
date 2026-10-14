@@ -42,6 +42,8 @@ pub const Mob = struct {
     glow_timer: f32 = 0.0,
     leashed_to_player: bool = false,
     fence_post: ?struct { x: i32, y: i32, z: i32 } = null,
+    fuse_timer: f32 = 0.0,
+    is_primed: bool = false,
 
     pub fn isLeashed(self: Mob) bool {
         return self.leashed_to_player or self.fence_post != null;
@@ -62,7 +64,7 @@ pub const Mob = struct {
             .blaze => 0.6,
             .target_dummy => 0.6,
             .spider => 0.8,
-            .skeleton, .zombie => 0.6,
+            .skeleton, .zombie, .creeper => 0.6,
         };
         const h: f32 = switch (mob_type) {
             .sheep => 0.9,
@@ -75,6 +77,7 @@ pub const Mob = struct {
             .target_dummy => 1.8,
             .spider => 0.5,
             .skeleton, .zombie => 1.8,
+            .creeper => 1.7,
         };
         const spd: f32 = switch (mob_type) {
             .sheep => 1.4,
@@ -89,6 +92,7 @@ pub const Mob = struct {
             .spider => 3.5,
             .skeleton => 2.4,
             .zombie => 2.2,
+            .creeper => 2.5,
         };
         return .{
             .mob_type = mob_type,
@@ -104,7 +108,7 @@ pub const Mob = struct {
             .anim_time = 0.0,
             .change_dir_timer = 2.0,
             .wants_sound = false,
-            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze) 20 else if (mob_type == .piglin_brute) 15 else if (mob_type == .target_dummy) 50 else if (mob_type == .spider) 8 else if (mob_type == .skeleton or mob_type == .zombie) 10 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
+            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze) 20 else if (mob_type == .piglin_brute) 15 else if (mob_type == .target_dummy) 50 else if (mob_type == .spider) 8 else if (mob_type == .skeleton or mob_type == .zombie or mob_type == .creeper) 10 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
             .in_water = false,
             .in_bubble_column = false,
             .in_whirlpool = false,
@@ -536,6 +540,7 @@ pub fn getSound(mob_type: MobType) ?@import("../audio/synth.zig").SoundType {
         .target_dummy => .step_wood,
         .spider => .mob_growl,
         .skeleton, .zombie => .mob_growl,
+        .creeper => .mob_hiss,
     };
 }
 
@@ -801,4 +806,15 @@ test "zombie mob stats, dimensions, and rotten flesh drop" {
     try std.testing.expectEqual(zm.walk_speed, 2.2);
     try std.testing.expectEqual(getSound(.zombie), .mob_growl);
     try std.testing.expectEqual(inventory_mod.getMobMeatDrop(.zombie), .rotten_flesh);
+}
+
+test "creeper mob stats, dimensions, and gunpowder drop" {
+    const cr = Mob.init(.creeper, 1.0, 2.0, 3.0);
+    try std.testing.expectEqual(cr.mob_type, .creeper);
+    try std.testing.expectEqual(cr.health, 10);
+    try std.testing.expectEqual(cr.width, 0.6);
+    try std.testing.expectEqual(cr.height, 1.7);
+    try std.testing.expectEqual(cr.walk_speed, 2.5);
+    try std.testing.expectEqual(getSound(.creeper), .mob_hiss);
+    try std.testing.expectEqual(inventory_mod.getMobMeatDrop(.creeper), .gunpowder);
 }
