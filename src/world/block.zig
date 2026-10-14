@@ -146,6 +146,8 @@ pub const BlockId = enum(u8) {
     piston = 135,
     sticky_piston = 136,
     piston_head = 137,
+    observer_off = 138,
+    observer_on = 139,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .end_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand and self != .lantern and self != .soul_lantern and self != .chain and self != .iron_bars and self != .tripwire_hook_off and self != .tripwire_hook_on and self != .cobweb and self != .end_crystal and self != .end_rod and self != .chorus_plant and self != .chorus_flower and self != .dragon_head and self != .end_gateway and self != .conduit and self != .kelp and self != .sea_pickle and self != .rail and self != .powered_rail and self != .detector_rail and self != .activator_rail and self != .redstone_comparator_off and self != .redstone_comparator_on;
@@ -257,6 +259,7 @@ pub const BlockId = enum(u8) {
             .sea_pickle => 0.75,
             .powered_rail => 0.6,
             .redstone_comparator_on => 0.65,
+            .observer_on => 0.70,
             .detector_rail => 0.5,
             .activator_rail => 0.55,
             else => 0.0,
@@ -472,6 +475,16 @@ pub const BlockId = enum(u8) {
                 else => .{ .x = 4, .y = 7 }, // Stone mechanical casing
             },
             .piston_head => .{ .x = 3, .y = 7 },
+            .observer_off => switch (face_idx) {
+                2 => .{ .x = 6, .y = 7 }, // Observer front face with optical sensor lens
+                3 => .{ .x = 7, .y = 7 }, // Observer back output redstone contact (unlit)
+                else => .{ .x = 4, .y = 7 }, // Cobblestone casing
+            },
+            .observer_on => switch (face_idx) {
+                2 => .{ .x = 6, .y = 7 }, // Observer front face with optical sensor lens
+                3 => .{ .x = 7, .y = 6 }, // Observer back output redstone contact (lit red pulse)
+                else => .{ .x = 4, .y = 7 }, // Cobblestone casing
+            },
             .dragon_egg => .{ .x = 5, .y = 2 }, // Deep obsidian crystalline egg shell with purple specks
             .dragon_head => switch (face_idx) {
                 2 => .{ .x = 7, .y = 3 }, // Draconic horned snout with glowing purple eye
@@ -647,6 +660,7 @@ pub fn hardness(block: BlockId) f32 {
         .repeater_off, .repeater_on, .redstone_comparator_off, .redstone_comparator_on => 0.2,
         .slime_block => 0.0,
         .piston, .sticky_piston, .piston_head => 0.5,
+        .observer_off, .observer_on => 3.0,
         .redstone_lamp_off, .redstone_lamp_on => 0.4,
         .brick => 2.0,
         .wood => 0.9,
@@ -903,6 +917,8 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .piston = .{ .name = "piston", .solid = true, .transparent = false, .fluid = false },
     .sticky_piston = .{ .name = "sticky_piston", .solid = true, .transparent = false, .fluid = false },
     .piston_head = .{ .name = "piston_head", .solid = true, .transparent = true, .fluid = false },
+    .observer_off = .{ .name = "observer_off", .solid = true, .transparent = false, .fluid = false },
+    .observer_on = .{ .name = "observer_on", .solid = true, .transparent = false, .fluid = false },
     .shulker_box = .{ .name = "shulker_box", .solid = true, .transparent = true, .fluid = false },
     .purpur_block = .{ .name = "purpur_block", .solid = true, .transparent = false, .fluid = false },
     .purpur_pillar = .{ .name = "purpur_pillar", .solid = true, .transparent = false, .fluid = false },
@@ -1349,7 +1365,7 @@ pub fn footstepType(block: BlockId) FootstepType {
         .grass, .weeping_vines, .twisting_vines, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight => .grass,
         .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .end_stone, .end_portal_frame, .end_portal_frame_filled, .dragon_egg, .dragon_head, .end_gateway, .purpur_block, .purpur_pillar, .shulker_box, .prismarine, .prismarine_bricks, .dark_prismarine, .sea_lantern, .conduit => .stone,
         .sponge, .wet_sponge, .slime_block => .grass,
-        .piston, .sticky_piston, .piston_head => .stone,
+        .piston, .sticky_piston, .piston_head, .observer_off, .observer_on => .stone,
         .kelp, .dried_kelp_block, .sea_pickle => .grass,
         .rail, .powered_rail, .detector_rail, .activator_rail, .redstone_comparator_off, .redstone_comparator_on => .stone,
         .end_rod, .chorus_plant, .chorus_flower => .wood,
@@ -2539,4 +2555,23 @@ test "piston and sticky piston block properties, textures, and hardness" {
     const sp_top = BlockId.sticky_piston.getFaceTexture(0);
     try std.testing.expectEqual(@as(u32, 5), sp_top.x);
     try std.testing.expectEqual(@as(u32, 7), sp_top.y);
+}
+
+test "observer block properties, textures, emissive, and hardness" {
+    try std.testing.expect(BlockId.observer_off.is_solid());
+    try std.testing.expect(BlockId.observer_on.is_solid());
+    try std.testing.expect(!BlockId.observer_off.is_transparent());
+    try std.testing.expect(!BlockId.observer_on.is_transparent());
+    try std.testing.expectEqual(hardness(.observer_off), 3.0);
+    try std.testing.expectEqual(footstepType(.observer_off), .stone);
+    try std.testing.expectEqual(BlockId.observer_off.emissive(), 0.0);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.70), BlockId.observer_on.emissive(), 0.001);
+
+    const obs_front = BlockId.observer_off.getFaceTexture(2);
+    try std.testing.expectEqual(@as(u32, 6), obs_front.x);
+    try std.testing.expectEqual(@as(u32, 7), obs_front.y);
+
+    const obs_back_on = BlockId.observer_on.getFaceTexture(3);
+    try std.testing.expectEqual(@as(u32, 7), obs_back_on.x);
+    try std.testing.expectEqual(@as(u32, 6), obs_back_on.y);
 }

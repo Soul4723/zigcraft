@@ -213,6 +213,7 @@ pub const ItemType = enum(u8) {
     slime_block = 207,
     piston = 208,
     sticky_piston = 209,
+    observer = 210,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -337,6 +338,7 @@ pub const ItemType = enum(u8) {
             .slime_block => .slime_block,
             .piston => .piston,
             .sticky_piston => .sticky_piston,
+            .observer => .observer_off,
             else => null,
         };
     }
@@ -468,6 +470,7 @@ pub const ItemType = enum(u8) {
             .slime_block => .slime_block,
             .piston => .piston,
             .sticky_piston => .sticky_piston,
+            .observer_off, .observer_on => .observer,
             .piston_head => .piston,
         };
     }
@@ -733,6 +736,7 @@ pub const ItemType = enum(u8) {
             .slime_block => "Slime Block",
             .piston => "Piston",
             .sticky_piston => "Sticky Piston",
+            .observer => "Observer",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -884,6 +888,7 @@ pub const ItemType = enum(u8) {
             .slime_block => .{ 0.40, 0.85, 0.30, 0.80 },
             .piston => .{ 0.65, 0.55, 0.40, 0.95 },
             .sticky_piston => .{ 0.55, 0.70, 0.40, 0.95 },
+            .observer => .{ 0.45, 0.45, 0.48, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1715,6 +1720,22 @@ pub const Inventory = struct {
             }
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 153: Observer: 2 Cobblestone + 1 Redstone Dust + 1 Nether Quartz -> 1 Observer
+        if (non_empty >= 3) {
+            var cobble_c: usize = 0;
+            var red_c: usize = 0;
+            var quartz_c: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .cobblestone or sl.item == .stone) cobble_c += sl.count;
+                if (sl.item == .redstone_dust) red_c += sl.count;
+                if (sl.item == .nether_quartz) quartz_c += sl.count;
+            }
+            if (cobble_c >= 2 and red_c >= 1 and quartz_c >= 1) {
+                self.craft_output = .{ .item = .observer, .count = 1 };
                 return;
             }
         }
@@ -6111,4 +6132,24 @@ test "piston and sticky piston items and recipes 151 and 152" {
     try std.testing.expectEqual(ItemType.fromBlockId(.piston), .piston);
     try std.testing.expectEqual(ItemType.fromBlockId(.sticky_piston), .sticky_piston);
     try std.testing.expectEqual(ItemType.fromBlockId(.piston_head), .piston);
+}
+
+test "observer item and Recipe 153 crafting" {
+    var inv = Inventory.init();
+
+    // Recipe 153: 2 Cobblestone + 1 Redstone Dust + 1 Nether Quartz -> 1 Observer
+    inv.craft_grid[0] = .{ .item = .cobblestone, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .cobblestone, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .redstone_dust, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .nether_quartz, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .observer);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Stacks and roundtrips
+    try std.testing.expectEqual(ItemType.observer.maxStackSize(), 64);
+    try std.testing.expectEqual(ItemType.observer.toBlockId().?, .observer_off);
+    try std.testing.expectEqual(ItemType.fromBlockId(.observer_off), .observer);
+    try std.testing.expectEqual(ItemType.fromBlockId(.observer_on), .observer);
+    try std.testing.expectEqualStrings(ItemType.observer.name(), "Observer");
 }

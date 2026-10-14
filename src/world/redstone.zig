@@ -7,7 +7,7 @@ pub const max_strength: u4 = 15;
 
 /// True when a block emits redstone power into adjacent wire.
 pub fn isSource(b: BlockId) bool {
-    return b == .pressure_plate_down or b == .lever_on or b == .repeater_on or b == .redstone_torch_on or b == .detector_rail or b == .redstone_comparator_on;
+    return b == .pressure_plate_down or b == .lever_on or b == .repeater_on or b == .redstone_torch_on or b == .detector_rail or b == .redstone_comparator_on or b == .observer_on;
 }
 
 /// True when a block conducts decaying signal (wire in either state).
@@ -629,4 +629,65 @@ test "sticky piston retract target block" {
     const pull = calculateStickyRetract(1, 0, 0, .east, &MockWorld.getBlock);
     try std.testing.expect(pull != null);
     try std.testing.expectEqual(@as(i32, 2), pull.?[0]);
+}
+
+pub const observer_pulse_duration: f32 = 0.10; // 1 redstone tick (0.1s / 2 game ticks)
+
+pub const ObserverState = struct {
+    x: i32,
+    y: i32,
+    z: i32,
+    facing: PistonFacing,
+    observed_last: block_mod.BlockId,
+    pulse_timer: f32 = 0.0,
+};
+
+/// Updates an observer state: if observed block in front changes, triggers 0.10s pulse.
+/// Returns whether observer output is currently energized (observer_on).
+pub fn tickObserver(
+    obs: *ObserverState,
+    current_observed: block_mod.BlockId,
+    dt: f32,
+) bool {
+    if (obs.pulse_timer > 0.0) {
+        obs.pulse_timer = @max(0.0, obs.pulse_timer - dt);
+        obs.observed_last = current_observed;
+        return obs.pulse_timer > 0.0;
+    }
+
+    if (current_observed != obs.observed_last) {
+        obs.observed_last = current_observed;
+        obs.pulse_timer = observer_pulse_duration;
+        return true;
+    }
+
+    return false;
+}
+
+test "observer pulse emission and block update detection" {
+    try std.testing.expect(isSource(.observer_on));
+    try std.testing.expect(!isSource(.observer_off));
+
+    var obs = ObserverState{
+        .x = 0,
+        .y = 5,
+        .z = 0,
+        .facing = .north,
+        .observed_last = .stone,
+        .pulse_timer = 0.0,
+    };
+
+    // No change: stone remains stone -> unpowered
+    try std.testing.expect(!tickObserver(&obs, .stone, 0.05));
+
+    // Block update: stone broken to air -> triggers pulse!
+    try std.testing.expect(tickObserver(&obs, .air, 0.05));
+    try std.testing.expect(obs.pulse_timer > 0.0);
+
+    // Pulse continues during 0.1s window (consumed 0.04s, 0.06s left)
+    try std.testing.expect(tickObserver(&obs, .air, 0.04));
+
+    // Pulse expires after remaining duration (consumed 0.07s -> 0.0s)
+    _ = tickObserver(&obs, .air, 0.07);
+    try std.testing.expect(!tickObserver(&obs, .air, 0.01));
 }
