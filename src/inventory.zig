@@ -211,6 +211,8 @@ pub const ItemType = enum(u8) {
     redstone_comparator = 205,
     slimeball = 206,
     slime_block = 207,
+    piston = 208,
+    sticky_piston = 209,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -333,6 +335,8 @@ pub const ItemType = enum(u8) {
             .activator_rail => .activator_rail,
             .redstone_comparator => .redstone_comparator_off,
             .slime_block => .slime_block,
+            .piston => .piston,
+            .sticky_piston => .sticky_piston,
             else => null,
         };
     }
@@ -462,6 +466,9 @@ pub const ItemType = enum(u8) {
             .activator_rail => .activator_rail,
             .redstone_comparator_off, .redstone_comparator_on => .redstone_comparator,
             .slime_block => .slime_block,
+            .piston => .piston,
+            .sticky_piston => .sticky_piston,
+            .piston_head => .piston,
         };
     }
 
@@ -724,6 +731,8 @@ pub const ItemType = enum(u8) {
             .redstone_comparator => "Redstone Comparator",
             .slimeball => "Slimeball",
             .slime_block => "Slime Block",
+            .piston => "Piston",
+            .sticky_piston => "Sticky Piston",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -873,6 +882,8 @@ pub const ItemType = enum(u8) {
             .redstone_comparator => .{ 0.90, 0.88, 0.85, 0.95 },
             .slimeball => .{ 0.45, 0.82, 0.35, 0.95 },
             .slime_block => .{ 0.40, 0.85, 0.30, 0.80 },
+            .piston => .{ 0.65, 0.55, 0.40, 0.95 },
+            .sticky_piston => .{ 0.55, 0.70, 0.40, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1704,6 +1715,38 @@ pub const Inventory = struct {
             }
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 151: Piston: 1 Wood Planks + 1 Cobblestone + 1 Iron Ingot + 1 Redstone Dust -> 1 Piston
+        if (non_empty == 4) {
+            var plank_c: usize = 0;
+            var cobble_c: usize = 0;
+            var iron_c: usize = 0;
+            var red_c: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .wood_planks) plank_c += sl.count;
+                if (sl.item == .cobblestone or sl.item == .stone) cobble_c += sl.count;
+                if (sl.item == .iron_ingot) iron_c += sl.count;
+                if (sl.item == .redstone_dust) red_c += sl.count;
+            }
+            if (plank_c >= 1 and cobble_c >= 1 and iron_c >= 1 and red_c >= 1) {
+                self.craft_output = .{ .item = .piston, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 152: Sticky Piston: 1 Piston + 1 Slimeball -> 1 Sticky Piston
+        if (non_empty == 2) {
+            var pist_c: usize = 0;
+            var slime_c: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .piston) pist_c += sl.count;
+                if (sl.item == .slimeball) slime_c += sl.count;
+            }
+            if (pist_c == 1 and slime_c == 1) {
+                self.craft_output = .{ .item = .sticky_piston, .count = 1 };
                 return;
             }
         }
@@ -6038,4 +6081,34 @@ test "slime mob drop, slimeball item, slime block recipes 149 and 150" {
     try std.testing.expectEqual(ItemType.fromBlockId(.slime_block), .slime_block);
     try std.testing.expectEqual(ItemType.slimeball.maxStackSize(), 64);
     try std.testing.expectEqual(ItemType.slime_block.maxStackSize(), 64);
+}
+
+test "piston and sticky piston items and recipes 151 and 152" {
+    var inv = Inventory.init();
+
+    // Recipe 151: 1 Wood Planks + 1 Cobblestone + 1 Iron Ingot + 1 Redstone Dust -> 1 Piston
+    inv.craft_grid[0] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .cobblestone, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .redstone_dust, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .piston);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 152: 1 Piston + 1 Slimeball -> 1 Sticky Piston
+    inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .piston, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .slimeball, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .sticky_piston);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Stacks and roundtrips
+    try std.testing.expectEqual(ItemType.piston.maxStackSize(), 64);
+    try std.testing.expectEqual(ItemType.sticky_piston.maxStackSize(), 64);
+    try std.testing.expectEqual(ItemType.piston.toBlockId().?, .piston);
+    try std.testing.expectEqual(ItemType.sticky_piston.toBlockId().?, .sticky_piston);
+    try std.testing.expectEqual(ItemType.fromBlockId(.piston), .piston);
+    try std.testing.expectEqual(ItemType.fromBlockId(.sticky_piston), .sticky_piston);
+    try std.testing.expectEqual(ItemType.fromBlockId(.piston_head), .piston);
 }

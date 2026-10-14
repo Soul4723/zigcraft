@@ -495,3 +495,138 @@ test "containerComparatorSignal inventory fill levels" {
     // Completely full -> 15
     try std.testing.expectEqual(@as(u4, 15), containerComparatorSignal(27, 27));
 }
+
+pub const PistonFacing = enum(u3) {
+    up = 0,
+    down = 1,
+    north = 2,
+    south = 3,
+    west = 4,
+    east = 5,
+
+    pub fn offset(self: PistonFacing) [3]i32 {
+        return switch (self) {
+            .up => .{ 0, 1, 0 },
+            .down => .{ 0, -1, 0 },
+            .north => .{ 0, 0, -1 },
+            .south => .{ 0, 0, 1 },
+            .west => .{ -1, 0, 0 },
+            .east => .{ 1, 0, 0 },
+        };
+    }
+};
+
+pub const max_piston_push_limit: usize = 12;
+
+/// Checks if a block is immovable by pistons (obsidian, bedrock, portals, command blocks, beacons).
+pub fn isPistonImmovable(b: block_mod.BlockId) bool {
+    return b == .obsidian or b == .crying_obsidian or b == .respawn_anchor or b == .nether_portal or b == .end_portal or b == .end_portal_frame or b == .end_portal_frame_filled or b == .end_gateway or b == .beacon;
+}
+
+pub const PistonPushPlan = struct {
+    can_push: bool,
+    block_count: usize,
+    blocks: [max_piston_push_limit][3]i32,
+};
+
+/// Evaluates linear block displacement in the piston push direction.
+/// Returns push plan with blocks to displace, or can_push = false if obstructed or exceeds 12 blocks.
+pub fn calculatePistonPush(
+    piston_x: i32,
+    piston_y: i32,
+    piston_z: i32,
+    facing: PistonFacing,
+    world_fn: *const fn (x: i32, y: i32, z: i32) block_mod.BlockId,
+) PistonPushPlan {
+    const off = facing.offset();
+    var plan = PistonPushPlan{
+        .can_push = false,
+        .block_count = 0,
+        .blocks = undefined,
+    };
+
+    var cur_x = piston_x + off[0];
+    var cur_y = piston_y + off[1];
+    var cur_z = piston_z + off[2];
+
+    while (plan.block_count < max_piston_push_limit) {
+        const b = world_fn(cur_x, cur_y, cur_z);
+        if (b == .air) {
+            plan.can_push = true;
+            return plan;
+        }
+        if (isPistonImmovable(b)) {
+            plan.can_push = false;
+            return plan;
+        }
+        plan.blocks[plan.block_count] = .{ cur_x, cur_y, cur_z };
+        plan.block_count += 1;
+        cur_x += off[0];
+        cur_y += off[1];
+        cur_z += off[2];
+    }
+
+    // Next must be air to allow moving the 12 blocks
+    const final_b = world_fn(cur_x, cur_y, cur_z);
+    plan.can_push = (final_b == .air);
+    return plan;
+}
+
+/// Evaluates block retracted by a sticky piston. Returns coordinates of block pulled back if sticky and movable.
+pub fn calculateStickyRetract(
+    head_x: i32,
+    head_y: i32,
+    head_z: i32,
+    facing: PistonFacing,
+    world_fn: *const fn (x: i32, y: i32, z: i32) block_mod.BlockId,
+) ?[3]i32 {
+    const off = facing.offset();
+    const target_x = head_x + off[0];
+    const target_y = head_y + off[1];
+    const target_z = head_z + off[2];
+    const b = world_fn(target_x, target_y, target_z);
+    if (b == .air or isPistonImmovable(b)) return null;
+    return .{ target_x, target_y, target_z };
+}
+
+test "piston push calculation and limit enforcement" {
+    const MockWorld = struct {
+        fn getBlock(x: i32, y: i32, z: i32) block_mod.BlockId {
+            _ = y; _ = z;
+            // Stone at x = 1, 2, 3; air at x >= 4
+            if (x >= 1 and x <= 3) return .stone;
+            return .air;
+        }
+        fn getImmovable(x: i32, y: i32, z: i32) block_mod.BlockId {
+            _ = y; _ = z;
+            if (x == 1) return .obsidian;
+            return .air;
+        }
+    };
+
+    // Piston at x=0 pushing east towards x=1..3
+    const plan = calculatePistonPush(0, 0, 0, .east, &MockWorld.getBlock);
+    try std.testing.expect(plan.can_push);
+    try std.testing.expectEqual(@as(usize, 3), plan.block_count);
+    try std.testing.expectEqual(@as(i32, 1), plan.blocks[0][0]);
+    try std.testing.expectEqual(@as(i32, 2), plan.blocks[1][0]);
+    try std.testing.expectEqual(@as(i32, 3), plan.blocks[2][0]);
+
+    // Piston blocked by immovable obsidian
+    const plan_blocked = calculatePistonPush(0, 0, 0, .east, &MockWorld.getImmovable);
+    try std.testing.expect(!plan_blocked.can_push);
+}
+
+test "sticky piston retract target block" {
+    const MockWorld = struct {
+        fn getBlock(x: i32, y: i32, z: i32) block_mod.BlockId {
+            _ = y; _ = z;
+            if (x == 2) return .wood_planks;
+            return .air;
+        }
+    };
+    // Head at x=1 facing east; target at x=2 is wood_planks
+    const pull = calculateStickyRetract(1, 0, 0, .east, &MockWorld.getBlock);
+    try std.testing.expect(pull != null);
+    try std.testing.expectEqual(@as(i32, 2), pull.?[0]);
+}
