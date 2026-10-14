@@ -65,6 +65,7 @@ pub const Mob = struct {
             .target_dummy => 0.6,
             .spider => 0.8,
             .skeleton, .zombie, .creeper, .enderman => 0.6,
+            .ender_dragon => 2.4,
         };
         const h: f32 = switch (mob_type) {
             .sheep => 0.9,
@@ -79,6 +80,7 @@ pub const Mob = struct {
             .skeleton, .zombie => 1.8,
             .creeper => 1.7,
             .enderman => 2.9,
+            .ender_dragon => 1.8,
         };
         const spd: f32 = switch (mob_type) {
             .sheep => 1.4,
@@ -95,6 +97,7 @@ pub const Mob = struct {
             .zombie => 2.2,
             .creeper => 2.5,
             .enderman => 3.2,
+            .ender_dragon => 4.5,
         };
         return .{
             .mob_type = mob_type,
@@ -110,7 +113,7 @@ pub const Mob = struct {
             .anim_time = 0.0,
             .change_dir_timer = 2.0,
             .wants_sound = false,
-            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze or mob_type == .enderman) 20 else if (mob_type == .piglin_brute) 15 else if (mob_type == .target_dummy) 50 else if (mob_type == .spider) 8 else if (mob_type == .skeleton or mob_type == .zombie or mob_type == .creeper) 10 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
+            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze or mob_type == .enderman) 20 else if (mob_type == .piglin_brute) 15 else if (mob_type == .ender_dragon) 200 else if (mob_type == .target_dummy) 50 else if (mob_type == .spider) 8 else if (mob_type == .skeleton or mob_type == .zombie or mob_type == .creeper) 10 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
             .in_water = false,
             .in_bubble_column = false,
             .in_whirlpool = false,
@@ -156,6 +159,21 @@ pub const Mob = struct {
 
         var wish_x: f32 = 0.0;
         var wish_z: f32 = 0.0;
+
+        if (self.mob_type == .ender_dragon) {
+            // Ender Dragon 3D flight trajectory: circular aerial patrol (radius ~24m, altitude y=14..18)
+            self.anim_time += clamped_dt * 8.0;
+            self.yaw += clamped_dt * 0.45; // Smooth sweeping orbit
+            wish_x = @sin(self.yaw) * self.walk_speed;
+            wish_z = @cos(self.yaw) * self.walk_speed;
+            const target_alt: f32 = 16.0 + @sin(self.anim_time * 0.8) * 2.5;
+            self.vel.y += (target_alt - self.pos.y) * 1.5 * clamped_dt;
+            self.vel.y = std.math.clamp(self.vel.y, -3.0, 3.0);
+            self.pos.y += self.vel.y * clamped_dt;
+            self.pos.x += wish_x * clamped_dt;
+            self.pos.z += wish_z * clamped_dt;
+            return;
+        }
 
         if (self.walk_timer > 0.0) {
             self.walk_timer -= clamped_dt;
@@ -544,6 +562,7 @@ pub fn getSound(mob_type: MobType) ?@import("../audio/synth.zig").SoundType {
         .skeleton, .zombie => .mob_growl,
         .creeper => .mob_hiss,
         .enderman => .mob_teleport,
+        .ender_dragon => .dragon_roar,
     };
 }
 
@@ -831,4 +850,20 @@ test "enderman mob stats, dimensions, and ender pearl drop" {
     try std.testing.expectEqual(em.walk_speed, 3.2);
     try std.testing.expectEqual(getSound(.enderman), .mob_teleport);
     try std.testing.expectEqual(inventory_mod.getMobMeatDrop(.enderman), .ender_pearl);
+}
+
+test "ender dragon mob stats, boss health, and flight velocity" {
+    var dragon = Mob.init(.ender_dragon, 0.0, 16.0, 0.0);
+    try std.testing.expectEqual(dragon.health, 200);
+    try std.testing.expectEqual(dragon.width, 2.4);
+    try std.testing.expectEqual(dragon.height, 1.8);
+    try std.testing.expectEqual(getSound(.ender_dragon), .dragon_roar);
+
+    const MockWorld = struct {
+        fn solid(x: i32, y: i32, z: i32) bool { _ = x; _ = y; _ = z; return false; }
+        fn fluid(x: i32, y: i32, z: i32) bool { _ = x; _ = y; _ = z; return false; }
+    };
+    var rng = std.Random.DefaultPrng.init(42);
+    dragon.tick(MockWorld.solid, MockWorld.fluid, 0.05, &rng);
+    try std.testing.expect(dragon.anim_time > 0.0);
 }

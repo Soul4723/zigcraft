@@ -58,6 +58,7 @@ pub const SoundType = enum {
     mob_hiss,
     mob_teleport,
     end_portal_open,
+    dragon_roar,
 };
 
 pub const SAMPLE_RATE: u32 = 44100;
@@ -146,6 +147,7 @@ pub const AudioMixer = struct {
             .mob_hiss => SAMPLE_RATE * 3 / 2, // ~1500ms fuse hiss
             .mob_teleport => SAMPLE_RATE / 3, // ~330ms pitch-bent otherworldly whoosh pop
             .end_portal_open => SAMPLE_RATE * 3 / 2, // ~1500ms deep rumbling cosmic void portal resonance
+            .dragon_roar => SAMPLE_RATE * 2, // ~2000ms thunderous draconic roar and subterranean wing flapping
         };
 
         slot.?.* = .{
@@ -515,6 +517,16 @@ pub const AudioMixer = struct {
                 const v_env = (1.0 - progress * 0.2);
                 return (tone + crackle) * v_env * 0.70;
             },
+            .dragon_roar => {
+                // Ender Dragon Roar: low-frequency roar sweep (95Hz -> 50Hz) modulated with wing buffeting flap (7Hz) + fiery breath noise
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const roar_freq = 95.0 - progress * 45.0;
+                const roar_tone = @sin(t * roar_freq * 2.0 * std.math.pi) * 0.50 + @sin(t * (roar_freq * 1.5) * 2.0 * std.math.pi) * 0.25;
+                const wing_flap = 0.75 + 0.25 * @sin(t * 7.0 * 2.0 * std.math.pi);
+                const breath_noise = (rng.random().float(f32) * 2.0 - 1.0) * (0.20 + 0.15 * (1.0 - progress));
+                const env = (1.0 - progress * 0.3) * @min(1.0, progress * 10.0);
+                return (roar_tone * wing_flap + breath_noise) * env * 0.90;
+            },
             .end_portal_open => {
                 // End Portal Open: deep sub-bass roar (65Hz -> 45Hz) with harmonic overtone hum + ethereal void flutter
                 const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
@@ -844,6 +856,21 @@ test "end_portal_open sound synthesis non-zero output" {
     var mixer = AudioMixer.init();
     var buf: [256]i16 = undefined;
     mixer.play(.end_portal_open, 0.9);
+    mixer.render(&buf);
+    var non_zero = false;
+    for (buf) |sample| {
+        if (sample != 0) {
+            non_zero = true;
+            break;
+        }
+    }
+    try std.testing.expect(non_zero);
+}
+
+test "dragon_roar audio synthesis produces non-zero output" {
+    var mixer = AudioMixer.init();
+    var buf: [256]i16 = undefined;
+    mixer.play(.dragon_roar, 1.0);
     mixer.render(&buf);
     var non_zero = false;
     for (buf) |sample| {

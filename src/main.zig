@@ -552,6 +552,20 @@ pub fn main() !void {
                     // Spawn on obsidian arrival platform at (0, 11, 0)
                     player.pos = math.Vec3.init(0.5, 11.2, 0.5);
                     player.vel_y = 0.0;
+
+                    // Spawn boss: Ender Dragon soaring above the central End Island if not already present
+                    var dragon_exists = false;
+                    for (mob_manager.mobs.items) |m| {
+                        if (m.mob_type == .ender_dragon) {
+                            dragon_exists = true;
+                            break;
+                        }
+                    }
+                    if (!dragon_exists) {
+                        try mob_manager.spawnMob(.ender_dragon, 0.0, 16.0, 12.0);
+                        audio.play(.dragon_roar, 1.0);
+                        std.debug.print("Ender Dragon boss spawned in The End (200 HP)!\n", .{});
+                    }
                 } else {
                     manager.is_end = false;
                     // Return to Overworld spawn point

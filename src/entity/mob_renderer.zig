@@ -584,6 +584,32 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
                 try appendBox(allocator, verts, inds, math.Vec3.init(0.35, 0.16, lz - swing), math.Vec3.init(0.36, 0.08, 0.08), mob.yaw, mob.pos, uv_leg, uv_leg);
             }
         },
+        .ender_dragon => {
+            // Ender Dragon: 6-box draconic wyrm geometry (elongated body, horned draconic skull, 2 flapping wings, 2-segment tail)
+            const uv_scales = texture.getTileUV(5, 2); // Obsidian black draconic scales
+            const uv_head = texture.getTileUV(7, 6);   // Luminous purple draconic eyes & horned muzzle
+            const uv_wing = texture.getTileUV(5, 0);   // Dark membrane leathery wing
+
+            const wing_flap = @sin(mob.anim_time) * 0.42;
+
+            // 1. Central Body Torso: 0.8 x 0.7 x 1.6 at (0, 0.6, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.6, 0), math.Vec3.init(0.8, 0.7, 1.6), mob.yaw, mob.pos, uv_scales, uv_scales);
+
+            // 2. Head & Horned Muzzle: 0.6 x 0.5 x 0.8 at (0, 0.75, 1.1)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.75, 1.1), math.Vec3.init(0.6, 0.5, 0.8), mob.yaw, mob.pos, uv_head, uv_scales);
+
+            // 3. Left Wing: 1.4 x 0.08 x 0.9 extended laterally at (-1.0, 0.85 + wing_flap, 0.1)
+            try appendBox(allocator, verts, inds, math.Vec3.init(-1.0, 0.85 + wing_flap, 0.1), math.Vec3.init(1.4, 0.08, 0.9), mob.yaw, mob.pos, uv_wing, uv_wing);
+
+            // 4. Right Wing: 1.4 x 0.08 x 0.9 extended laterally at (+1.0, 0.85 - wing_flap, 0.1)
+            try appendBox(allocator, verts, inds, math.Vec3.init(1.0, 0.85 - wing_flap, 0.1), math.Vec3.init(1.4, 0.08, 0.9), mob.yaw, mob.pos, uv_wing, uv_wing);
+
+            // 5. Tail Segment 1: 0.45 x 0.4 x 0.7 at (0, 0.55, -1.0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.55, -1.0), math.Vec3.init(0.45, 0.4, 0.7), mob.yaw, mob.pos, uv_scales, uv_scales);
+
+            // 6. Tail Segment 2 (tip): 0.3 x 0.3 x 0.7 at (0, 0.50, -1.6)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.50, -1.6), math.Vec3.init(0.3, 0.3, 0.7), mob.yaw, mob.pos, uv_scales, uv_scales);
+        },
     }
 
     if (mob.isGlowing()) {
