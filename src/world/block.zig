@@ -115,9 +115,10 @@ pub const BlockId = enum(u8) {
     end_stone = 104,
     end_portal_frame = 105,
     end_portal_frame_filled = 106,
+    end_portal = 107,
 
     pub fn is_solid(self: BlockId) bool {
-        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand and self != .lantern and self != .soul_lantern and self != .chain and self != .iron_bars and self != .tripwire_hook_off and self != .tripwire_hook_on and self != .cobweb;
+        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .end_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand and self != .lantern and self != .soul_lantern and self != .chain and self != .iron_bars and self != .tripwire_hook_off and self != .tripwire_hook_on and self != .cobweb;
     }
 
     pub fn is_campfire(self: BlockId) bool {
@@ -169,7 +170,7 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_transparent(self: BlockId) bool {
-        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .nether_brick_fence or self == .oak_fence or self == .armor_stand or self == .enchantment_table or self == .anvil or self == .grindstone or self == .composter or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block or self == .beacon or self == .weeping_vines or self == .twisting_vines or self == .crimson_fungus or self == .warped_fungus or self == .brewing_stand or self == .stonecutter or self == .lantern or self == .soul_lantern or self == .chain or self == .iron_bars or self == .tripwire_hook_off or self == .tripwire_hook_on or self == .cobweb or self == .end_portal_frame or self == .end_portal_frame_filled;
+        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .end_portal or self == .nether_brick_fence or self == .oak_fence or self == .armor_stand or self == .enchantment_table or self == .anvil or self == .grindstone or self == .composter or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block or self == .beacon or self == .weeping_vines or self == .twisting_vines or self == .crimson_fungus or self == .warped_fungus or self == .brewing_stand or self == .stonecutter or self == .lantern or self == .soul_lantern or self == .chain or self == .iron_bars or self == .tripwire_hook_off or self == .tripwire_hook_on or self == .cobweb or self == .end_portal_frame or self == .end_portal_frame_filled;
     }
 
     /// 0.0 = lit by sun only. 1.0 = full glow even at midnight.
@@ -197,6 +198,7 @@ pub const BlockId = enum(u8) {
             .respawn_anchor => 0.85,
             .crying_obsidian => 0.7,
             .end_portal_frame_filled => 0.8,
+            .end_portal => 0.90,
             .weeping_vines => 0.35,
             .twisting_vines => 0.4,
             .warped_fungus => 0.35,
@@ -362,6 +364,7 @@ pub const BlockId = enum(u8) {
                 1 => .{ .x = 1, .y = 4 }, // End stone base
                 else => .{ .x = 6, .y = 0 }, // Green runic gilded masonry flank
             },
+            .end_portal => .{ .x = 7, .y = 6 }, // Obsidian celestial void starfield vortex
             .end_portal_frame_filled => switch (face_idx) {
                 0 => .{ .x = 7, .y = 6 }, // Inserted glowing Eye of Ender socket
                 1 => .{ .x = 1, .y = 4 }, // End stone base
@@ -533,6 +536,7 @@ pub fn hardness(block: BlockId) f32 {
         .lava => 0.0,
         .obsidian => 15.0,
         .nether_portal => 0.0,
+        .end_portal => 0.0,
         .netherrack => 0.4,
         .soul_sand => 0.5,
         .magma => 0.5,
@@ -720,6 +724,7 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .end_stone = .{ .name = "end_stone", .solid = true, .transparent = false, .fluid = false },
     .end_portal_frame = .{ .name = "end_portal_frame", .solid = true, .transparent = true, .fluid = false },
     .end_portal_frame_filled = .{ .name = "end_portal_frame_filled", .solid = true, .transparent = true, .fluid = false },
+    .end_portal = .{ .name = "end_portal", .solid = false, .transparent = true, .fluid = false },
 });
 
 /// A beacon activates when the column directly above it up to world ceiling (y=15)
@@ -1956,4 +1961,15 @@ test "end stone and end portal frame properties and textures" {
     const ff_top = BlockId.end_portal_frame_filled.getFaceTexture(0);
     try std.testing.expectEqual(@as(u32, 7), ff_top.x);
     try std.testing.expectEqual(@as(u32, 6), ff_top.y);
+}
+
+test "end portal block properties and textures" {
+    try std.testing.expect(!BlockId.end_portal.is_solid());
+    try std.testing.expect(BlockId.end_portal.is_transparent());
+    try std.testing.expectEqual(hardness(.end_portal), 0.0);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.90), BlockId.end_portal.emissive(), 0.001);
+
+    const f_top = BlockId.end_portal.getFaceTexture(0);
+    try std.testing.expectEqual(@as(u32, 7), f_top.x);
+    try std.testing.expectEqual(@as(u32, 6), f_top.y);
 }

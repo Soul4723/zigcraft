@@ -433,3 +433,157 @@ test "isPortalCellValid detects broken frame and collectPortalCellsToExtinguish 
     const n = collectPortalCellsToExtinguish(MockBroken.get, 11, 21, 5, &cells);
     try std.testing.expectEqual(@as(usize, 6), n);
 }
+
+pub const EndPortalAltar = struct {
+    center_x: i32,
+    center_y: i32,
+    center_z: i32,
+};
+
+/// Check if (cx, cy, cz) is center of a 3x3 horizontal End Portal inside a 5x5 altar of 12 filled frames.
+/// The 12 frame positions are:
+/// x in [cx-1, cx+1], z = cz - 2 (North 3 frames)
+/// x in [cx-1, cx+1], z = cz + 2 (South 3 frames)
+/// z in [cz-1, cz+1], x = cx - 2 (West 3 frames)
+/// z in [cz-1, cz+1], x = cx + 2 (East 3 frames)
+/// The 4 corners (cx+-2, cz+-2) are open/ignored.
+/// The 3x3 interior (x in cx-1..cx+1, z in cz-1..cz+1) at cy must be air or end_portal.
+pub fn checkEndAltarCenter(lookup: BlockLookupFn, cx: i32, cy: i32, cz: i32) bool {
+    // 1. Verify 3x3 interior is air or end_portal
+    var ix: i32 = -1;
+    while (ix <= 1) : (ix += 1) {
+        var iz: i32 = -1;
+        while (iz <= 1) : (iz += 1) {
+            const b = lookup(cx + ix, cy, cz + iz);
+            if (b != .air and b != .end_portal) return false;
+        }
+    }
+
+    // 2. Verify North rim (z = cz - 2, x in cx-1..cx+1)
+    var rx: i32 = -1;
+    while (rx <= 1) : (rx += 1) {
+        if (lookup(cx + rx, cy, cz - 2) != .end_portal_frame_filled) return false;
+        if (lookup(cx + rx, cy, cz + 2) != .end_portal_frame_filled) return false;
+    }
+
+    // 3. Verify West/East rim (x = cx +- 2, z in cz-1..cz+1)
+    var rz: i32 = -1;
+    while (rz <= 1) : (rz += 1) {
+        if (lookup(cx - 2, cy, cz + rz) != .end_portal_frame_filled) return false;
+        if (lookup(cx + 2, cy, cz + rz) != .end_portal_frame_filled) return false;
+    }
+
+    return true;
+}
+
+/// Detect if eye insertion at (fx, fy, fz) completes a 12-frame altar around any adjacent 3x3 center.
+/// Returns the altar center (cx, cy, cz) if found.
+pub fn detectEndPortalAltar(lookup: BlockLookupFn, fx: i32, fy: i32, fz: i32) ?EndPortalAltar {
+    // fx, fz is one of the 12 frame positions.
+    // The center (cx, cz) must be at distance:
+    // Either (fx +- 2, fz) if fx was West/East rim
+    // Or (fx, fz +- 2) if fz was North/South rim
+    // Or (fx +- 1, fz +- 2) etc.
+    // Scan candidate centers cx in [fx-2 .. fx+2], cz in [fz-2 .. fz+2]
+    var dcx: i32 = -2;
+    while (dcx <= 2) : (dcx += 1) {
+        var dcz: i32 = -2;
+        while (dcz <= 2) : (dcz += 1) {
+            // Centers are 2 blocks away along one axis and at most 1 away along the other
+            const ax = if (dcx < 0) -dcx else dcx;
+            const az = if (dcz < 0) -dcz else dcz;
+            if ((ax == 2 and az <= 1) or (az == 2 and ax <= 1)) {
+                const cx = fx + dcx;
+                const cz = fz + dcz;
+                if (checkEndAltarCenter(lookup, cx, fy, cz)) {
+                    return EndPortalAltar{ .center_x = cx, .center_y = fy, .center_z = cz };
+                }
+            }
+        }
+    }
+    return null;
+}
+
+/// Given an EndPortalAltar center, fills the 3x3 interior (9 cells) with end_portal blocks.
+pub fn activateEndPortalAltar(
+    altar: EndPortalAltar,
+    context: anytype,
+    editBlock: *const fn (@TypeOf(context), x: i32, y: i32, z: i32, block: BlockId) bool,
+) usize {
+    var count: usize = 0;
+    var dx: i32 = -1;
+    while (dx <= 1) : (dx += 1) {
+        var dz: i32 = -1;
+        while (dz <= 1) : (dz += 1) {
+            if (editBlock(context, altar.center_x + dx, altar.center_y, altar.center_z + dz, .end_portal)) {
+                count += 1;
+            }
+        }
+    }
+    return count;
+}
+
+test "End Portal Altar detection and 3x3 activation" {
+    const MockWorld = struct {
+        filled: [12][3]i32,
+        interior: [9]BlockId = [_]BlockId{.air} ** 9,
+
+        fn get(self: *@This(), x: i32, y: i32, z: i32) BlockId {
+            if (y != 10) return .air;
+            for (self.filled) |f| {
+                if (f[0] == x and f[1] == y and f[2] == z) return .end_portal_frame_filled;
+            }
+            if (x >= 9 and x <= 11 and z >= 19 and z <= 21) {
+                const idx = @as(usize, @intCast((x - 9) + (z - 19) * 3));
+                return self.interior[idx];
+            }
+            return .air;
+        }
+
+        fn set(self: *@This(), x: i32, y: i32, z: i32, b: BlockId) bool {
+            if (y == 10 and x >= 9 and x <= 11 and z >= 19 and z <= 21) {
+                const idx = @as(usize, @intCast((x - 9) + (z - 19) * 3));
+                self.interior[idx] = b;
+                return true;
+            }
+            return false;
+        }
+    };
+
+    // Center at (10, 10, 20)
+    // 12 filled frames:
+    // North: (9, 10, 18), (10, 10, 18), (11, 10, 18)
+    // South: (9, 10, 22), (10, 10, 22), (11, 10, 22)
+    // West:  (8, 10, 19), (8, 10, 20), (8, 10, 21)
+    // East:  (12, 10, 19), (12, 10, 20), (12, 10, 21)
+    var world = MockWorld{
+        .filled = [_][3]i32{
+            .{ 9, 10, 18 }, .{ 10, 10, 18 }, .{ 11, 10, 18 },
+            .{ 9, 10, 22 }, .{ 10, 10, 22 }, .{ 11, 10, 22 },
+            .{ 8, 10, 19 }, .{ 8, 10, 20 }, .{ 8, 10, 21 },
+            .{ 12, 10, 19 }, .{ 12, 10, 20 }, .{ 12, 10, 21 },
+        },
+    };
+
+    const GlobalMock = struct {
+        var current: *MockWorld = undefined;
+        fn lookup(x: i32, y: i32, z: i32) BlockId {
+            return current.get(x, y, z);
+        }
+    };
+    GlobalMock.current = &world;
+
+    // Detect from one of the frames (e.g. 10, 10, 18)
+    const altar = detectEndPortalAltar(GlobalMock.lookup, 10, 10, 18);
+    try std.testing.expect(altar != null);
+    try std.testing.expectEqual(@as(i32, 10), altar.?.center_x);
+    try std.testing.expectEqual(@as(i32, 10), altar.?.center_y);
+    try std.testing.expectEqual(@as(i32, 20), altar.?.center_z);
+
+    // Activate: should fill all 9 cells with .end_portal
+    const n = activateEndPortalAltar(altar.?, &world, MockWorld.set);
+    try std.testing.expectEqual(@as(usize, 9), n);
+    for (world.interior) |b| {
+        try std.testing.expectEqual(BlockId.end_portal, b);
+    }
+}

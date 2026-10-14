@@ -352,6 +352,7 @@ pub const ItemType = enum(u8) {
             .cobweb => .cobweb,
             .end_stone => .end_stone,
             .end_portal_frame, .end_portal_frame_filled => .end_portal_frame,
+            .end_portal => .none,
         };
     }
 

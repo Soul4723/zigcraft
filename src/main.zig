@@ -2307,6 +2307,30 @@ pub fn main() !void {
                             particles.spawnPortalParticles(.{ fx, fy, fz }, 16);
                             particles.spawnGlowstoneShimmer(.{ fx, fy, fz }, 8);
                             std.debug.print("eye of ender inserted into portal frame at ({d},{d},{d})\n", .{ hit.x, hit.y, hit.z });
+
+                            // Check if this insertion completes a 12-frame End Portal Altar!
+                            if (portal_mod.detectEndPortalAltar(&pickBlockWorld, hit.x, hit.y, hit.z)) |altar| {
+                                var filled_portal_count: usize = 0;
+                                var dx: i32 = -1;
+                                while (dx <= 1) : (dx += 1) {
+                                    var dz: i32 = -1;
+                                    while (dz <= 1) : (dz += 1) {
+                                        if (try manager.editAndRemesh(altar.center_x + dx, altar.center_y, altar.center_z + dz, .end_portal)) {
+                                            filled_portal_count += 1;
+                                        }
+                                    }
+                                }
+                                audio.play(.end_portal_open, 1.0);
+                                const acx: f32 = @as(f32, @floatFromInt(altar.center_x)) + 0.5;
+                                const acy: f32 = @as(f32, @floatFromInt(altar.center_y)) + 0.5;
+                                const acz: f32 = @as(f32, @floatFromInt(altar.center_z)) + 0.5;
+                                particles.spawnPortalParticles(.{ acx, acy, acz }, 48);
+                                particles.spawnPortalVortex(.{ acx, acy, acz }, 1.5, 32, 0.0);
+                                particles.spawnGlowstoneShimmer(.{ acx, acy, acz }, 24);
+                                toast.timer = 3.0;
+                                toast.color = .{ 0.82, 0.20, 0.96 };
+                                std.debug.print("activated 3x3 End Portal altar at ({d},{d},{d})! (cells={d})\n", .{ altar.center_x, altar.center_y, altar.center_z, filled_portal_count });
+                            }
                         }
                     } else if (inventory.slots[selected_slot].item != .bow and inventory.slots[selected_slot].item != .crossbow and !is_blocking) {
                         const px = hit.x + hit.nx;

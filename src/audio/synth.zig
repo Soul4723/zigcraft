@@ -57,6 +57,7 @@ pub const SoundType = enum {
     stonecutter_saw,
     mob_hiss,
     mob_teleport,
+    end_portal_open,
 };
 
 pub const SAMPLE_RATE: u32 = 44100;
@@ -144,6 +145,7 @@ pub const AudioMixer = struct {
             .stonecutter_saw => SAMPLE_RATE / 4, // ~250ms high-speed circular diamond saw whir (880Hz) & stone grit buzz
             .mob_hiss => SAMPLE_RATE * 3 / 2, // ~1500ms fuse hiss
             .mob_teleport => SAMPLE_RATE / 3, // ~330ms pitch-bent otherworldly whoosh pop
+            .end_portal_open => SAMPLE_RATE * 3 / 2, // ~1500ms deep rumbling cosmic void portal resonance
         };
 
         slot.?.* = .{
@@ -513,6 +515,16 @@ pub const AudioMixer = struct {
                 const v_env = (1.0 - progress * 0.2);
                 return (tone + crackle) * v_env * 0.70;
             },
+            .end_portal_open => {
+                // End Portal Open: deep sub-bass roar (65Hz -> 45Hz) with harmonic overtone hum + ethereal void flutter
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const sub_freq = 65.0 - progress * 20.0;
+                const sub_bass = @sin(t * sub_freq * 2.0 * std.math.pi) * 0.60;
+                const overtone = @sin(t * (sub_freq * 2.5) * 2.0 * std.math.pi) * 0.25;
+                const void_flutter = (rng.random().float(f32) * 2.0 - 1.0) * (0.15 + 0.10 * @sin(progress * 25.0));
+                const env = (1.0 - progress * 0.4) * @min(1.0, progress * 8.0);
+                return (sub_bass + overtone + void_flutter) * env * 0.85;
+            },
             .mob_teleport => {
                 // Otherworldly pitch-sweep pop: starts high (880Hz) sweeps down to (220Hz) with shimmer noise
                 const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
@@ -817,6 +829,21 @@ test "enderman mob_teleport audio synthesis" {
     var mixer = AudioMixer.init();
     var buf: [256]i16 = undefined;
     mixer.play(.mob_teleport, 0.8);
+    mixer.render(&buf);
+    var non_zero = false;
+    for (buf) |sample| {
+        if (sample != 0) {
+            non_zero = true;
+            break;
+        }
+    }
+    try std.testing.expect(non_zero);
+}
+
+test "end_portal_open sound synthesis non-zero output" {
+    var mixer = AudioMixer.init();
+    var buf: [256]i16 = undefined;
+    mixer.play(.end_portal_open, 0.9);
     mixer.render(&buf);
     var non_zero = false;
     for (buf) |sample| {
