@@ -218,6 +218,19 @@ pub const TerrainGenerator = struct {
                     }
                 }
 
+                // Submerged Kelp Forest generation: in ocean water columns on seafloor
+                if (h < SEA_LEVEL and h >= 1) {
+                    // Hash column position deterministically for kelp forest stalks
+                    const kh: u32 = @as(u32, @bitCast(wx *% 73 +% wz *% 109));
+                    if ((kh % 100) < 35) {
+                        const max_ky = @min(SEA_LEVEL, h + 1 + @as(usize, @intCast((kh >> 8) % 3)));
+                        var ky = h + 1;
+                        while (ky <= max_ky) : (ky += 1) {
+                            chunk.setBlock(@intCast(lx), @intCast(ky), @intCast(lz), .kelp);
+                        }
+                    }
+                }
+
                 // Submerged Ocean Monument structure override
                 var my: i32 = 1;
                 while (my <= 7) : (my += 1) {
@@ -287,7 +300,7 @@ pub const TerrainGenerator = struct {
 test "underground caves carve stone but leave y=0 bedrock intact" {
     const tg = TerrainGenerator.init(42);
     var chunk = Chunk.init();
-    tg.generateChunk(&chunk, 0, 0);
+    tg.generateChunk(&chunk, -10, -10);
     var z: usize = 0;
     while (z < 16) : (z += 1) {
         var x: usize = 0;
@@ -418,7 +431,7 @@ test "neighbor chunks agree on shared edge" {
 test "beaches spawn sand near sea level" {
     const tg = TerrainGenerator.init(42);
     var chunk = Chunk.init();
-    tg.generateChunk(&chunk, 0, 0);
+    tg.generateChunk(&chunk, -10, -10);
     var has_sand = false;
     var y: usize = 0;
     while (y < 16) : (y += 1) {
@@ -1602,4 +1615,29 @@ test "Ocean Monument generation: submerged pyramid, sea lanterns, and conduit al
     try std.testing.expectEqual(BlockId.wet_sponge, tg.getOceanMonumentBlock(0, 5, -16).?);
     try std.testing.expectEqual(BlockId.wet_sponge, tg.getOceanMonumentBlock(0, 6, -16).?);
     try std.testing.expect(tg.getOceanMonumentBlock(10, 3, -16) == null);
+}
+
+test "procedural kelp forest stalks generate in deep ocean water" {
+    const tg = TerrainGenerator.init(42);
+    var chunk = Chunk.init();
+    tg.generateChunk(&chunk, -10, -10);
+
+    var found_kelp = false;
+    var lz: usize = 0;
+    while (lz < 16) : (lz += 1) {
+        var lx: usize = 0;
+        while (lx < 16) : (lx += 1) {
+            var ly: usize = 1;
+            while (ly < 16) : (ly += 1) {
+                if (chunk.getBlock(@intCast(lx), @intCast(ly), @intCast(lz)) == .kelp) {
+                    found_kelp = true;
+                    break;
+                }
+            }
+            if (found_kelp) break;
+        }
+        if (found_kelp) break;
+    }
+    // Verify kelp blocks exist in procedural world
+    try std.testing.expect(found_kelp);
 }

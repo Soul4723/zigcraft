@@ -20,6 +20,9 @@ pub const Sponge: u8 = 182;
 pub const RawCod: u8 = 184;
 pub const CookedCod: u8 = 185;
 pub const WetSponge: u8 = 183;
+pub const Kelp: u8 = 187;
+pub const DriedKelp: u8 = 188;
+pub const DriedKelpBlock: u8 = 189;
 pub const None: u8 = 0;
 
 pub fn smeltResult(input: u8) u8 {
@@ -32,6 +35,7 @@ pub fn smeltResult(input: u8) u8 {
         ChorusFruit => PoppedChorusFruit,
         WetSponge => Sponge,
         RawCod => CookedCod,
+        Kelp => DriedKelp,
         else => None,
     };
 }
@@ -49,6 +53,7 @@ test "smelting recipes" {
     try std.testing.expectEqual(smeltResult(ChorusFruit), PoppedChorusFruit);
     try std.testing.expectEqual(smeltResult(WetSponge), Sponge);
     try std.testing.expectEqual(smeltResult(RawCod), CookedCod);
+    try std.testing.expectEqual(smeltResult(Kelp), DriedKelp);
     try std.testing.expectEqual(smeltResult(None), None);
     try std.testing.expectEqual(smeltResult(99), None);
 }
@@ -146,7 +151,7 @@ test "evaluateFurnaceFeed actions" {
 pub const smoker_time: f32 = 5.0;
 
 pub fn isFoodItem(input: u8) bool {
-    return input == RawPork or input == RawMutton or input == ChorusFruit or input == RawCod;
+    return input == RawPork or input == RawMutton or input == ChorusFruit or input == RawCod or input == Kelp;
 }
 
 pub fn tickSmokerJob(t: *f32, fuel: *u8, input: *u8, dt: f32) SmeltTickOutcome {

@@ -133,9 +133,11 @@ pub const BlockId = enum(u8) {
     conduit = 122,
     sponge = 123,
     wet_sponge = 124,
+    kelp = 125,
+    dried_kelp_block = 126,
 
     pub fn is_solid(self: BlockId) bool {
-        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .end_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand and self != .lantern and self != .soul_lantern and self != .chain and self != .iron_bars and self != .tripwire_hook_off and self != .tripwire_hook_on and self != .cobweb and self != .end_crystal and self != .end_rod and self != .chorus_plant and self != .chorus_flower and self != .dragon_head and self != .end_gateway and self != .conduit;
+        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .end_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand and self != .lantern and self != .soul_lantern and self != .chain and self != .iron_bars and self != .tripwire_hook_off and self != .tripwire_hook_on and self != .cobweb and self != .end_crystal and self != .end_rod and self != .chorus_plant and self != .chorus_flower and self != .dragon_head and self != .end_gateway and self != .conduit and self != .kelp;
     }
 
     pub fn is_sponge(self: BlockId) bool {
@@ -159,7 +161,7 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_ladder(self: BlockId) bool {
-        return self == .ladder or self == .weeping_vines or self == .twisting_vines;
+        return self == .ladder or self == .weeping_vines or self == .twisting_vines or self == .kelp;
     }
 
     pub fn is_weeping_vines(self: BlockId) bool {
@@ -191,7 +193,7 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_transparent(self: BlockId) bool {
-        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .end_portal or self == .nether_brick_fence or self == .oak_fence or self == .armor_stand or self == .enchantment_table or self == .anvil or self == .grindstone or self == .composter or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block or self == .beacon or self == .weeping_vines or self == .twisting_vines or self == .crimson_fungus or self == .warped_fungus or self == .brewing_stand or self == .stonecutter or self == .lantern or self == .soul_lantern or self == .chain or self == .iron_bars or self == .tripwire_hook_off or self == .tripwire_hook_on or self == .cobweb or self == .end_portal_frame or self == .end_portal_frame_filled or self == .end_crystal or self == .dragon_egg or self == .end_rod or self == .chorus_plant or self == .chorus_flower or self == .shulker_box or self == .dragon_head or self == .end_gateway or self == .conduit;
+        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .end_portal or self == .nether_brick_fence or self == .oak_fence or self == .armor_stand or self == .enchantment_table or self == .anvil or self == .grindstone or self == .composter or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block or self == .beacon or self == .weeping_vines or self == .twisting_vines or self == .crimson_fungus or self == .warped_fungus or self == .brewing_stand or self == .stonecutter or self == .lantern or self == .soul_lantern or self == .chain or self == .iron_bars or self == .tripwire_hook_off or self == .tripwire_hook_on or self == .cobweb or self == .end_portal_frame or self == .end_portal_frame_filled or self == .end_crystal or self == .dragon_egg or self == .end_rod or self == .chorus_plant or self == .chorus_flower or self == .shulker_box or self == .dragon_head or self == .end_gateway or self == .conduit or self == .kelp;
     }
 
     /// 0.0 = lit by sun only. 1.0 = full glow even at midnight.
@@ -239,7 +241,7 @@ pub const BlockId = enum(u8) {
 
     pub fn isFlammable(self: BlockId) bool {
         return switch (self) {
-            .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest, .note_block, .jukebox, .oak_fence, .armor_stand, .smithing_table, .cartography_table, .fletching_table, .composter, .loom, .wooden_door_closed, .wooden_door_open, .pressure_plate_up, .pressure_plate_down, .weeping_vines, .twisting_vines, .target_block, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight => true,
+            .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest, .note_block, .jukebox, .oak_fence, .armor_stand, .smithing_table, .cartography_table, .fletching_table, .composter, .loom, .wooden_door_closed, .wooden_door_open, .pressure_plate_up, .pressure_plate_down, .weeping_vines, .twisting_vines, .target_block, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight, .dried_kelp_block => true,
             else => false,
         };
     }
@@ -401,6 +403,11 @@ pub const BlockId = enum(u8) {
             .conduit => .{ .x = 7, .y = 6 }, // Mystic oceanic heart of the sea conduit sphere
             .sponge => .{ .x = 0, .y = 3 }, // Porous golden-yellow cellular sponge
             .wet_sponge => .{ .x = 7, .y = 1 }, // Dark saturated waterlogged sponge
+            .kelp => .{ .x = 7, .y = 0 }, // Deep forest-green marine kelp fronds
+            .dried_kelp_block => switch (face_idx) {
+                0, 1 => .{ .x = 6, .y = 0 }, // Dried bound kelp end grain
+                else => .{ .x = 7, .y = 0 }, // Compressed dark olive dried kelp wraps
+            },
             .dragon_egg => .{ .x = 5, .y = 2 }, // Deep obsidian crystalline egg shell with purple specks
             .dragon_head => switch (face_idx) {
                 2 => .{ .x = 7, .y = 3 }, // Draconic horned snout with glowing purple eye
@@ -641,6 +648,8 @@ pub fn hardness(block: BlockId) f32 {
         .sea_lantern => 0.3,
         .conduit => 3.0,
         .sponge, .wet_sponge => 0.6,
+        .kelp => 0.0,
+        .dried_kelp_block => 0.5,
         .purpur_block, .purpur_pillar => 1.5,
         .shulker_box => 2.0,
         .end_rod => 0.0,
@@ -813,6 +822,8 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .conduit = .{ .name = "conduit", .solid = false, .transparent = true, .fluid = false },
     .sponge = .{ .name = "sponge", .solid = true, .transparent = false, .fluid = false },
     .wet_sponge = .{ .name = "wet_sponge", .solid = true, .transparent = false, .fluid = false },
+    .kelp = .{ .name = "kelp", .solid = false, .transparent = true, .fluid = false },
+    .dried_kelp_block = .{ .name = "dried_kelp_block", .solid = true, .transparent = false, .fluid = false },
     .shulker_box = .{ .name = "shulker_box", .solid = true, .transparent = true, .fluid = false },
     .purpur_block = .{ .name = "purpur_block", .solid = true, .transparent = false, .fluid = false },
     .purpur_pillar = .{ .name = "purpur_pillar", .solid = true, .transparent = false, .fluid = false },
@@ -1259,6 +1270,7 @@ pub fn footstepType(block: BlockId) FootstepType {
         .grass, .weeping_vines, .twisting_vines, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight => .grass,
         .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .end_stone, .end_portal_frame, .end_portal_frame_filled, .dragon_egg, .dragon_head, .end_gateway, .purpur_block, .purpur_pillar, .shulker_box, .prismarine, .prismarine_bricks, .dark_prismarine, .sea_lantern, .conduit => .stone,
         .sponge, .wet_sponge => .grass,
+        .kelp, .dried_kelp_block => .grass,
         .end_rod, .chorus_plant, .chorus_flower => .wood,
         .wood, .target_block, .daylight_detector, .daylight_detector_inverted, .note_block, .jukebox, .oak_fence, .armor_stand, .smithing_table, .cartography_table, .fletching_table, .composter, .loom, .tripwire_hook_off, .tripwire_hook_on => .wood,
         .dirt => .dirt,
@@ -2312,4 +2324,22 @@ test "sponge and wet sponge block properties, textures, and absorption checks" {
     const ws_tex = BlockId.wet_sponge.getFaceTexture(0);
     try std.testing.expectEqual(@as(u32, 7), ws_tex.x);
     try std.testing.expectEqual(@as(u32, 1), ws_tex.y);
+}
+
+test "kelp and dried kelp block properties, transparency, and textures" {
+    try std.testing.expect(!BlockId.kelp.is_solid());
+    try std.testing.expect(BlockId.kelp.is_transparent());
+    try std.testing.expect(BlockId.kelp.is_ladder());
+    try std.testing.expectEqual(hardness(.kelp), 0.0);
+    try std.testing.expectEqual(footstepType(.kelp), .grass);
+
+    try std.testing.expect(BlockId.dried_kelp_block.is_solid());
+    try std.testing.expect(!BlockId.dried_kelp_block.is_transparent());
+    try std.testing.expect(BlockId.dried_kelp_block.isFlammable());
+    try std.testing.expectEqual(hardness(.dried_kelp_block), 0.5);
+    try std.testing.expectEqual(footstepType(.dried_kelp_block), .grass);
+
+    const k_tex = BlockId.kelp.getFaceTexture(0);
+    try std.testing.expectEqual(@as(u32, 7), k_tex.x);
+    try std.testing.expectEqual(@as(u32, 0), k_tex.y);
 }

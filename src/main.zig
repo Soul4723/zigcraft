@@ -2738,6 +2738,17 @@ pub fn main() !void {
                                     particles.spawnWaterSplash(.{ player.pos.x, player.pos.y, player.pos.z }, 10);
                                     std.debug.print("boarded wooden boat\n", .{});
                                 }
+                            } else if (!hotbar_slot.isEmpty() and hotbar_slot.item == .kelp) {
+                                // Plant Kelp underwater on solid floor (sand, dirt, gravel, stone) or on existing kelp
+                                const below_b = manager.getBlockWorld(px, py - 1, pz);
+                                const cur_b = manager.getBlockWorld(px, py, pz);
+                                if ((below_b.is_solid() or below_b == .kelp) and (cur_b == .water or pickFluid(px, py, pz) or cur_b == .air)) {
+                                    if (try manager.editAndRemesh(px, py, pz, .kelp)) {
+                                        audio.play(.splash, 0.7);
+                                        hotbar_slot.decrement(1);
+                                        std.debug.print("planted kelp frond underwater\n", .{});
+                                    }
+                                }
                             } else if (!hotbar_slot.isEmpty() and hotbar_slot.item == .twisting_vines) {
                                 const below_b = manager.getBlockWorld(px, py - 1, pz);
                                 if (below_b.is_solid() or below_b == .twisting_vines) {
@@ -4984,7 +4995,7 @@ pub fn main() !void {
                     // feed held item as input or fuel
                     const held_f = inventory.slots[selected_slot];
                     const smeltable = switch (held_f.item) {
-                        .raw_pork, .raw_mutton, .raw_cod, .sand, .iron_ore, .ancient_debris => true,
+                        .raw_pork, .raw_mutton, .raw_cod, .kelp, .sand, .iron_ore, .ancient_debris => true,
                         else => false,
                     };
                     var fed = false;
@@ -4995,7 +5006,8 @@ pub fn main() !void {
                         furnace_count += 1;
                     }
                     if (k_opt) |k| {
-                        switch (smelt_mod.evaluateFurnaceFeed(held_f.item == .coal, smeltable, furnaces[k].fuel, furnaces[k].input)) {
+                        const is_fuel = (held_f.item == .coal or held_f.item == .dried_kelp_block);
+                        switch (smelt_mod.evaluateFurnaceFeed(is_fuel, smeltable, furnaces[k].fuel, furnaces[k].input)) {
                             .add_fuel => {
                                 furnaces[k].fuel += 1;
                                 inventory.slots[selected_slot].decrement(1);
@@ -5359,6 +5371,11 @@ pub fn main() !void {
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.8);
                 std.debug.print("ate golden apple (hp={d:.1})\n", .{player.health});
+            } else if (held_eat.item == .dried_kelp and player.hunger < 20.0) {
+                player.hunger = @min(20.0, player.hunger + 1.0);
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.6);
+                std.debug.print("ate dried kelp (hunger={d:.1})\n", .{player.hunger});
             } else if (held_eat.item == .apple and player.hunger < 20.0) {
                 player.eatApple();
                 inventory.slots[selected_slot].decrement(1);

@@ -190,6 +190,9 @@ pub const ItemType = enum(u8) {
     raw_cod = 184,
     cooked_cod = 185,
     fishing_rod = 186,
+    kelp = 187,
+    dried_kelp = 188,
+    dried_kelp_block = 189,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -303,6 +306,8 @@ pub const ItemType = enum(u8) {
             .conduit => .conduit,
             .sponge => .sponge,
             .wet_sponge => .wet_sponge,
+            .kelp => .kelp,
+            .dried_kelp_block => .dried_kelp_block,
             else => null,
         };
     }
@@ -423,6 +428,8 @@ pub const ItemType = enum(u8) {
             .conduit => .conduit,
             .sponge => .sponge,
             .wet_sponge => .wet_sponge,
+            .kelp => .kelp,
+            .dried_kelp_block => .dried_kelp_block,
         };
     }
 
@@ -461,7 +468,7 @@ pub const ItemType = enum(u8) {
 
     pub fn isCompostable(self: ItemType) bool {
         return switch (self) {
-            .leaves, .hay_bale, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod => true,
+            .leaves, .hay_bale, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp => true,
             else => false,
         };
     }
@@ -664,6 +671,9 @@ pub const ItemType = enum(u8) {
             .raw_cod => "Raw Cod",
             .cooked_cod => "Cooked Cod",
             .fishing_rod => "Fishing Rod",
+            .kelp => "Kelp",
+            .dried_kelp => "Dried Kelp",
+            .dried_kelp_block => "Dried Kelp Block",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -792,6 +802,9 @@ pub const ItemType = enum(u8) {
             .raw_cod => .{ 0.72, 0.60, 0.50, 0.95 },
             .cooked_cod => .{ 0.85, 0.68, 0.42, 0.95 },
             .fishing_rod => .{ 0.55, 0.40, 0.22, 0.95 },
+            .kelp => .{ 0.22, 0.55, 0.20, 0.95 },
+            .dried_kelp => .{ 0.18, 0.35, 0.16, 0.95 },
+            .dried_kelp_block => .{ 0.15, 0.32, 0.14, 0.98 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1391,6 +1404,28 @@ pub const Inventory = struct {
             }
             if (shard_cnt == 2 and crystal_cnt == 2) {
                 self.craft_output = .{ .item = .sea_lantern, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 137: Dried Kelp Unpacking: 1 Dried Kelp Block -> 4 Dried Kelp
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| {
+                if (sl.item == .dried_kelp_block) {
+                    self.craft_output = .{ .item = .dried_kelp, .count = 4 };
+                    return;
+                }
+            }
+        }
+
+        // Recipe 136: Dried Kelp Block: 4 Dried Kelp (in 2x2 grid) -> 1 Dried Kelp Block
+        if (non_empty == 4) {
+            var dk_count: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .dried_kelp) dk_count += 1;
+            }
+            if (dk_count == 4) {
+                self.craft_output = .{ .item = .dried_kelp_block, .count = 1 };
                 return;
             }
         }
@@ -5484,4 +5519,37 @@ test "fishing rod recipe 135, cod properties, and dolphin drops" {
     try std.testing.expect(ItemType.cooked_cod.isCompostable());
 
     try std.testing.expectEqual(getMobMeatDrop(.dolphin), .raw_cod);
+}
+
+test "kelp, dried kelp, dried kelp block items and recipes 136-137" {
+    var inv = Inventory.init();
+
+    // Recipe 136: 4 Dried Kelp -> 1 Dried Kelp Block
+    inv.craft_grid[0] = .{ .item = .dried_kelp, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .dried_kelp, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .dried_kelp, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .dried_kelp, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .dried_kelp_block);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 137: 1 Dried Kelp Block -> 4 Dried Kelp
+    inv.craft_grid[0] = .{ .item = .dried_kelp_block, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .dried_kelp);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    try std.testing.expectEqual(ItemType.kelp.toBlockId().?, .kelp);
+    try std.testing.expectEqual(ItemType.dried_kelp_block.toBlockId().?, .dried_kelp_block);
+    try std.testing.expect(ItemType.dried_kelp.toBlockId() == null);
+
+    try std.testing.expectEqual(ItemType.fromBlockId(.kelp), .kelp);
+    try std.testing.expectEqual(ItemType.fromBlockId(.dried_kelp_block), .dried_kelp_block);
+
+    try std.testing.expect(ItemType.kelp.isCompostable());
+    try std.testing.expect(ItemType.dried_kelp.isCompostable());
+    try std.testing.expect(!ItemType.dried_kelp_block.isCompostable());
 }
