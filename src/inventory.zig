@@ -147,6 +147,7 @@ pub const ItemType = enum(u8) {
     poison_potion = 141,
     fermented_spider_eye = 142,
     weakness_potion = 143,
+    bone = 144,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -535,6 +536,7 @@ pub const ItemType = enum(u8) {
             .poison_potion => "Potion of Poison",
             .fermented_spider_eye => "Fermented Spider Eye",
             .weakness_potion => "Potion of Weakness",
+            .bone => "Bone",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -620,6 +622,7 @@ pub const ItemType = enum(u8) {
             .poison_potion => .{ 0.35, 0.68, 0.22, 0.90 },
             .fermented_spider_eye => .{ 0.45, 0.12, 0.22, 0.95 },
             .weakness_potion => .{ 0.42, 0.40, 0.48, 0.90 },
+            .bone => .{ 0.88, 0.86, 0.80, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1168,6 +1171,16 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 106: Bone Meal: 1 Bone -> 3 Bone Meal
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| {
+                if (sl.item == .bone) {
+                    self.craft_output = .{ .item = .bone_meal, .count = 3 };
+                    return;
+                }
+            }
+        }
 
         // Recipe 104: Fermented Spider Eye: 1 Spider Eye + 1 Fungus (Crimson/Warped/Nether Wart/Apple) -> 1 Fermented Spider Eye
         if (non_empty == 2) {
@@ -2531,7 +2544,7 @@ pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
     return held == .wooden_pickaxe or held == .iron_pickaxe or held == .netherite_pickaxe;
 }
 
-pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider };
+pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, skeleton };
 
 pub fn getMobMeatDrop(mob_type: MobType) ItemType {
     return switch (mob_type) {
@@ -2544,6 +2557,7 @@ pub fn getMobMeatDrop(mob_type: MobType) ItemType {
         .blaze => .blaze_rod,
         .target_dummy => .hay_bale,
         .spider => .string,
+        .skeleton => .bone,
     };
 }
 
@@ -2583,6 +2597,12 @@ pub fn dropsWitherSkull(wx: i32, wy: i32, wz: i32) bool {
 pub fn dropsSpiderEye(wx: i32, wy: i32, wz: i32) bool {
     // 33% deterministic chance for spider mobs to yield an intact spider eye
     const h: u32 = @as(u32, @bitCast(wx *% 17 +% wy *% 31 +% wz *% 11)) % 3;
+    return h == 0;
+}
+
+pub fn dropsSkeletonArrow(wx: i32, wy: i32, wz: i32) bool {
+    // 50% deterministic chance for skeleton archers to drop reserve arrows
+    const h: u32 = @as(u32, @bitCast(wx *% 19 +% wy *% 37 +% wz *% 5)) % 2;
     return h == 0;
 }
 
@@ -4309,4 +4329,26 @@ test "fermented spider eye and weakness potion recipes and properties" {
     try std.testing.expectEqualStrings(ItemType.weakness_potion.name(), "Potion of Weakness");
     try std.testing.expect(!ItemType.weakness_potion.isTool());
     try std.testing.expect(ItemType.weakness_potion.toBlockId() == null);
+}
+
+test "skeleton mob drop, bone item, and Recipe 106 bone meal" {
+    try std.testing.expectEqual(getMobMeatDrop(.skeleton), .bone);
+    try std.testing.expectEqualStrings(ItemType.bone.name(), "Bone");
+    try std.testing.expect(!ItemType.bone.isTool());
+    try std.testing.expect(ItemType.bone.toBlockId() == null);
+    try std.testing.expectEqual(ItemType.bone.maxStackSize(), 64);
+
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .bone, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .bone_meal);
+    try std.testing.expectEqual(inv.craft_output.count, 3);
+
+    var arrow_drops: usize = 0;
+    var x: i32 = 0;
+    while (x < 20) : (x += 1) {
+        if (dropsSkeletonArrow(x, 2, 5)) arrow_drops += 1;
+    }
+    try std.testing.expect(arrow_drops > 0 and arrow_drops < 20);
+    try std.testing.expectEqual(dropsSkeletonArrow(3, 4, 5), dropsSkeletonArrow(3, 4, 5));
 }

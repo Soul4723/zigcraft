@@ -429,6 +429,25 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
             try appendBox(allocator, verts, inds, math.Vec3.init(-0.12, 0.3, 0 + leg_swing), math.Vec3.init(0.12, 0.6, 0.12), mob.yaw, mob.pos, uv_bone, uv_bone);
             try appendBox(allocator, verts, inds, math.Vec3.init(0.12, 0.3, 0 - leg_swing), math.Vec3.init(0.12, 0.6, 0.12), mob.yaw, mob.pos, uv_bone, uv_bone);
         },
+        .skeleton => {
+            const uv_bone = texture.getTileUV(7, 2); // bone / light ivory texture
+            const uv_skull = texture.getTileUV(1, 2); // ivory skull face
+            const uv_bow = texture.getTileUV(2, 2); // wooden bow stave
+
+            // 1. Ribcage: 0.38 x 0.52 x 0.28 at (0, 0.85, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.85, 0), math.Vec3.init(0.38, 0.52, 0.28), mob.yaw, mob.pos, uv_bone, uv_bone);
+            // 2. Skull: 0.32 cube at (0, 1.30 + head_bob_y, 0.08)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 1.30 + head_bob_y, 0.08), math.Vec3.init(0.32, 0.32, 0.32), mob.yaw, mob.pos, uv_skull, uv_bone);
+            // 3. Left arm: 0.1 x 0.56 x 0.1
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.26, 0.85, 0 + leg_swing), math.Vec3.init(0.10, 0.56, 0.10), mob.yaw, mob.pos, uv_bone, uv_bone);
+            // 4. Right arm raised holding bow forward
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.26, 0.90, 0.20), math.Vec3.init(0.10, 0.10, 0.50), mob.yaw, mob.pos, uv_bone, uv_bone);
+            // 5. Wooden Bow held in right hand: 0.06 x 0.60 x 0.06
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.26, 0.90, 0.45), math.Vec3.init(0.06, 0.60, 0.06), mob.yaw, mob.pos, uv_bow, uv_bow);
+            // 6-7. Legs
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.12, 0.30, 0 + leg_swing), math.Vec3.init(0.11, 0.58, 0.11), mob.yaw, mob.pos, uv_bone, uv_bone);
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.12, 0.30, 0 - leg_swing), math.Vec3.init(0.11, 0.58, 0.11), mob.yaw, mob.pos, uv_bone, uv_bone);
+        },
         .piglin, .piglin_brute => {
             const uv_skin = if (mob.mob_type == .piglin_brute) texture.getTileUV(2, 5) else texture.getTileUV(5, 4); // Brute dark charcoal armor
             const uv_face = texture.getTileUV(6, 4);
@@ -664,4 +683,17 @@ test "spider mob mesh generation" {
     // 10 boxes (cephalothorax, abdomen, 8 legs) * 24 = 240 verts, * 36 = 360 indices
     try std.testing.expectEqual(@as(usize, 240), verts.items.len);
     try std.testing.expectEqual(@as(usize, 360), inds.items.len);
+}
+
+test "skeleton mob mesh generation" {
+    var verts = std.ArrayList(MobVertex).empty;
+    defer verts.deinit(std.testing.allocator);
+    var inds = std.ArrayList(u32).empty;
+    defer inds.deinit(std.testing.allocator);
+
+    const skeleton = mob_mod.Mob.init(.skeleton, 0, 0, 0);
+    try appendMobMesh(std.testing.allocator, &verts, &inds, skeleton);
+    // 7 boxes (ribcage, skull, 2 arms, bow, 2 legs) = 168 verts, 252 indices
+    try std.testing.expectEqual(@as(usize, 168), verts.items.len);
+    try std.testing.expectEqual(@as(usize, 252), inds.items.len);
 }

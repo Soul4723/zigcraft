@@ -62,6 +62,7 @@ pub const Mob = struct {
             .blaze => 0.6,
             .target_dummy => 0.6,
             .spider => 0.8,
+            .skeleton => 0.6,
         };
         const h: f32 = switch (mob_type) {
             .sheep => 0.9,
@@ -73,6 +74,7 @@ pub const Mob = struct {
             .blaze => 1.8,
             .target_dummy => 1.8,
             .spider => 0.5,
+            .skeleton => 1.8,
         };
         const spd: f32 = switch (mob_type) {
             .sheep => 1.4,
@@ -85,6 +87,7 @@ pub const Mob = struct {
             .blaze => 2.4,
             .target_dummy => 0.0,
             .spider => 3.5,
+            .skeleton => 2.4,
         };
         return .{
             .mob_type = mob_type,
@@ -100,7 +103,7 @@ pub const Mob = struct {
             .anim_time = 0.0,
             .change_dir_timer = 2.0,
             .wants_sound = false,
-            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze) 20 else if (mob_type == .piglin_brute) 15 else if (mob_type == .target_dummy) 50 else if (mob_type == .spider) 8 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
+            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze) 20 else if (mob_type == .piglin_brute) 15 else if (mob_type == .target_dummy) 50 else if (mob_type == .spider) 8 else if (mob_type == .skeleton) 10 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
             .in_water = false,
             .in_bubble_column = false,
             .in_whirlpool = false,
@@ -531,6 +534,7 @@ pub fn getSound(mob_type: MobType) ?@import("../audio/synth.zig").SoundType {
         .piglin, .piglin_brute => .mob_oink,
         .target_dummy => .step_wood,
         .spider => .mob_growl,
+        .skeleton => .mob_growl,
     };
 }
 
@@ -774,4 +778,15 @@ test "spider climbs wall when blocked horizontally" {
     sp.walk_timer = 2.0;
     sp.tick(WallWorld.solid, WallWorld.fluid, 0.05, &rng);
     try std.testing.expect(sp.vel.y > 0.0);
+}
+
+test "skeleton mob stats, dimensions, and bone drop" {
+    const sk = Mob.init(.skeleton, 1.0, 2.0, 3.0);
+    try std.testing.expectEqual(sk.mob_type, .skeleton);
+    try std.testing.expectEqual(sk.health, 10);
+    try std.testing.expectEqual(sk.width, 0.6);
+    try std.testing.expectEqual(sk.height, 1.8);
+    try std.testing.expectEqual(sk.walk_speed, 2.4);
+    try std.testing.expectEqual(getSound(.skeleton), .mob_growl);
+    try std.testing.expectEqual(inventory_mod.getMobMeatDrop(.skeleton), .bone);
 }

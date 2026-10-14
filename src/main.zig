@@ -189,6 +189,7 @@ pub fn main() !void {
     var crossbow_loaded_kind: ?inventory_mod.ItemType = null;
     var wolf_bite_cooldown: f32 = 0.0;
     var fireball_cooldown: f32 = 0.0;
+    var skeleton_shot_cooldown: f32 = 0.0;
     var compass_cooldown: f32 = 0.0;
     const Fuse = boom_mod.Fuse;
     var fuses: [boom_mod.fuse_cap]Fuse = undefined;
@@ -212,7 +213,7 @@ pub fn main() !void {
     const PortalTarget = portal_mod.PortalTarget;
     var portal_targets: [32]PortalTarget = undefined;
     var portal_target_count: usize = 0;
-    const ThrownKind = enum { snowball, hostile_fireball, player_fire_charge, spectral_arrow, arrow, firework_rocket };
+    const ThrownKind = enum { snowball, hostile_fireball, hostile_arrow, player_fire_charge, spectral_arrow, arrow, firework_rocket };
     const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball, damage: u8 = 1, pierce: u8 = 0, last_hit_mob: ?usize = null };
     var thrown: [proj_mod.thrown_cap]Thrown = undefined;
     var thrown_count: usize = 0;
@@ -2208,6 +2209,9 @@ pub fn main() !void {
                         } else if (hit_mob.mob_type == .spider and inventory_mod.dropsSpiderEye(px, py, pz)) {
                             _ = inventory.addItem(.spider_eye, 1);
                             std.debug.print("spider eye harvested\n", .{});
+                        } else if (hit_mob.mob_type == .skeleton and inventory_mod.dropsSkeletonArrow(px, py, pz)) {
+                            _ = inventory.addItem(.arrow, 2);
+                            std.debug.print("skeleton dropped reserve arrows\n", .{});
                         }
                         if (hit_mob.wool) _ = inventory.addItem(.wool, 1);
                         std.debug.print("killed {s}, dropped {s}\n", .{ @tagName(hit_mob.mob_type), drop.name() });
@@ -2866,7 +2870,39 @@ pub fn main() !void {
                     std.debug.print("firework rocket airburst exploded\n", .{});
                 }
                 if (!dead) {
-                    if (t.kind == .hostile_fireball) {
+                    if (t.kind == .hostile_arrow) {
+                        // Skeleton hostile arrow vs player: deals 2 damage on impact, blocked by shield
+                        const pdx = player.pos.x - t.pos.x;
+                        const pdy = (player.pos.y + 1.0) - t.pos.y;
+                        const pdz = player.pos.z - t.pos.z;
+                        if (pdx * pdx + pdy * pdy + pdz * pdz < 1.0) {
+                            const cf = cam.front();
+                            const blocked = is_blocking and combat_mod.canBlockAttack(cf.x, cf.z, -pdx, -pdz);
+                            if (blocked) {
+                                audio.play(.shield_block, 0.9);
+                                particles.spawnBlockDebris(@intFromFloat(@floor(player.pos.x + cf.x * 0.6)), @intFromFloat(@floor(player.pos.y + 0.8)), @intFromFloat(@floor(player.pos.z + cf.z * 0.6)), .{ 0.85, 0.85, 0.85 }, 8);
+                                if (tool_wear.use(selected_slot, inventory_mod.ItemType.shield.maxDurability())) {
+                                    inventory.slots[selected_slot].clear();
+                                    audio.play(.break_block, 0.8);
+                                    std.debug.print("shield broke\n", .{});
+                                }
+                                std.debug.print("shield blocked skeleton arrow\n", .{});
+                            } else {
+                                const arrow_dmg = combat_mod.applyArmorReductionFullSet(2.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet());
+                                player.health = @max(0.0, player.health - arrow_dmg);
+                                audio.play(.hurt, 0.8);
+                                particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.85, 0.20, 0.20 }, 8);
+                                std.debug.print("skeleton arrow struck player (hp={d:.1})\n", .{player.health});
+                            }
+                            dead = true;
+                        } else if (pickSolid(mbx, mby, mbz)) {
+                            particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.85, 0.85, 0.85 }, 3);
+                            audio.playAt(.step_wood, .{ t.pos.x, t.pos.y, t.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.6, 20.0);
+                            dead = true;
+                        }
+                    } else if (t.kind == .hostile_arrow) {
+                        particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.85, 0.85, 0.85 }, 1);
+                    } else if (t.kind == .hostile_fireball) {
                         // Fireball vs player: 3 dmg on close pass, flame burst on block
                         const pdx = player.pos.x - t.pos.x;
                         const pdy = (player.pos.y + 1.0) - t.pos.y;
@@ -2934,7 +2970,7 @@ pub fn main() !void {
                             dead = true;
                         }
                     }
-                    if (!dead and t.kind != .hostile_fireball and pickSolid(mbx, mby, mbz)) {
+                    if (!dead and t.kind != .hostile_fireball and t.kind != .hostile_arrow and pickSolid(mbx, mby, mbz)) {
                         if (t.kind == .firework_rocket) {
                             particles.spawnFireworkBurst(.{ t.pos.x, t.pos.y, t.pos.z }, 32);
                             audio.playAt(.firework_blast, .{ t.pos.x, t.pos.y, t.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 35.0);
@@ -3023,7 +3059,7 @@ pub fn main() !void {
                             }
                         }
                         dead = true;
-                    } else if (!dead and t.kind != .hostile_fireball) {
+                    } else if (!dead and t.kind != .hostile_fireball and t.kind != .hostile_arrow) {
                         // mob hit test (generous radius)
                         for (mob_manager.mobs.items, 0..) |*m, mi| {
                             if (t.last_hit_mob != null and t.last_hit_mob.? == mi) continue;
@@ -3064,6 +3100,9 @@ pub fn main() !void {
                                     } else if (m.mob_type == .spider and inventory_mod.dropsSpiderEye(mbx, mby, mbz)) {
                                         _ = inventory.addItem(.spider_eye, 1);
                                         std.debug.print("spider eye harvested\n", .{});
+                                    } else if (m.mob_type == .skeleton and inventory_mod.dropsSkeletonArrow(mbx, mby, mbz)) {
+                                        _ = inventory.addItem(.arrow, 2);
+                                        std.debug.print("skeleton dropped reserve arrows\n", .{});
                                     }
                                     if (m.mob_type == .sheep) _ = inventory.addItem(.wool, 1);
                                     _ = mp;
@@ -3087,7 +3126,9 @@ pub fn main() !void {
                     cache_mod.swapRemove(&thrown, &thrown_count, ti);
                 } else {
                     // trail puff
-                    if (t.kind == .hostile_fireball) {
+                    if (t.kind == .hostile_arrow) {
+                        particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.85, 0.85, 0.85 }, 1);
+                    } else if (t.kind == .hostile_fireball) {
                         particles.spawnFlame(mbx, mby, mbz, 1);
                     } else if (t.kind == .spectral_arrow) {
                         particles.spawnGlowstoneShimmer(.{ t.pos.x, t.pos.y, t.pos.z }, 1);
@@ -3300,6 +3341,40 @@ pub fn main() !void {
                 break;
             }
         }
+        // Skeleton archery: ranged arrow barrage with 1.8s cadence when player is within 16m
+        skeleton_shot_cooldown = combat_mod.tickCooldown(skeleton_shot_cooldown, dt);
+        if (skeleton_shot_cooldown <= 0.0) {
+            for (mob_manager.mobs.items) |m| {
+                if (m.mob_type != .skeleton) continue;
+                const adx = player.pos.x - m.pos.x;
+                const adz = player.pos.z - m.pos.z;
+                const ady = (player.pos.y + 1.0) - (m.pos.y + 1.3);
+                const dist_sq = adx * adx + adz * adz;
+                if (dist_sq >= 2.0 * 2.0 and dist_sq <= 16.0 * 16.0) {
+                    if (thrown_count < thrown.len) {
+                        const dist = @sqrt(dist_sq + ady * ady);
+                        const arrow_speed: f32 = 18.0;
+                        const vx = (adx / dist) * arrow_speed;
+                        const vy = (ady / dist) * arrow_speed + 1.5; // slight loft
+                        const vz = (adz / dist) * arrow_speed;
+                        thrown[thrown_count] = .{
+                            .pos = math.Vec3.init(m.pos.x, m.pos.y + 1.3, m.pos.z),
+                            .vel = math.Vec3.init(vx, vy, vz),
+                            .life = proj_mod.throw_life,
+                            .kind = .hostile_arrow,
+                            .damage = 2,
+                        };
+                        thrown_count += 1;
+                        audio.playAt(.bow_shoot, .{ m.pos.x, m.pos.y, m.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
+                        particles.spawnBlockDebris(@intFromFloat(@floor(m.pos.x)), @intFromFloat(@floor(m.pos.y + 1)), @intFromFloat(@floor(m.pos.z)), .{ 0.85, 0.85, 0.85 }, 4);
+                        std.debug.print("skeleton archer fired arrow\n", .{});
+                    }
+                    skeleton_shot_cooldown = 1.8;
+                    break;
+                }
+            }
+        }
+
         // TNT tick: white/smoke pulses during fuse; explode on 0
         {
             var fsi: usize = 0;
