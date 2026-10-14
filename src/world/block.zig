@@ -121,9 +121,11 @@ pub const BlockId = enum(u8) {
     purpur_block = 110,
     purpur_pillar = 111,
     end_rod = 112,
+    chorus_plant = 113,
+    chorus_flower = 114,
 
     pub fn is_solid(self: BlockId) bool {
-        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .end_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand and self != .lantern and self != .soul_lantern and self != .chain and self != .iron_bars and self != .tripwire_hook_off and self != .tripwire_hook_on and self != .cobweb and self != .end_crystal and self != .end_rod;
+        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .end_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand and self != .lantern and self != .soul_lantern and self != .chain and self != .iron_bars and self != .tripwire_hook_off and self != .tripwire_hook_on and self != .cobweb and self != .end_crystal and self != .end_rod and self != .chorus_plant and self != .chorus_flower;
     }
 
     pub fn is_campfire(self: BlockId) bool {
@@ -175,7 +177,7 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_transparent(self: BlockId) bool {
-        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .end_portal or self == .nether_brick_fence or self == .oak_fence or self == .armor_stand or self == .enchantment_table or self == .anvil or self == .grindstone or self == .composter or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block or self == .beacon or self == .weeping_vines or self == .twisting_vines or self == .crimson_fungus or self == .warped_fungus or self == .brewing_stand or self == .stonecutter or self == .lantern or self == .soul_lantern or self == .chain or self == .iron_bars or self == .tripwire_hook_off or self == .tripwire_hook_on or self == .cobweb or self == .end_portal_frame or self == .end_portal_frame_filled or self == .end_crystal or self == .dragon_egg or self == .end_rod;
+        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .end_portal or self == .nether_brick_fence or self == .oak_fence or self == .armor_stand or self == .enchantment_table or self == .anvil or self == .grindstone or self == .composter or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block or self == .beacon or self == .weeping_vines or self == .twisting_vines or self == .crimson_fungus or self == .warped_fungus or self == .brewing_stand or self == .stonecutter or self == .lantern or self == .soul_lantern or self == .chain or self == .iron_bars or self == .tripwire_hook_off or self == .tripwire_hook_on or self == .cobweb or self == .end_portal_frame or self == .end_portal_frame_filled or self == .end_crystal or self == .dragon_egg or self == .end_rod or self == .chorus_plant or self == .chorus_flower;
     }
 
     /// 0.0 = lit by sun only. 1.0 = full glow even at midnight.
@@ -207,6 +209,7 @@ pub const BlockId = enum(u8) {
             .end_crystal => 0.85,
             .dragon_egg => 0.35,
             .end_rod => 0.95,
+            .chorus_flower => 0.4,
             .weeping_vines => 0.35,
             .twisting_vines => 0.4,
             .warped_fungus => 0.35,
@@ -374,6 +377,11 @@ pub const BlockId = enum(u8) {
             },
             .end_portal => .{ .x = 7, .y = 6 }, // Obsidian celestial void starfield vortex
             .dragon_egg => .{ .x = 5, .y = 2 }, // Deep obsidian crystalline egg shell with purple specks
+            .chorus_plant => .{ .x = 6, .y = 5 }, // Woody purple segmented tubular plant stem
+            .chorus_flower => switch (face_idx) {
+                0 => .{ .x = 7, .y = 6 }, // Creamy white-lavender blossom petal crown
+                else => .{ .x = 6, .y = 5 }, // Purpur calyx cup sides
+            },
             .purpur_block => .{ .x = 6, .y = 5 }, // Rich royal purple masonry bricks
             .purpur_pillar => switch (face_idx) {
                 0, 1 => .{ .x = 6, .y = 5 }, // Purpur pillar cap
@@ -595,6 +603,7 @@ pub fn hardness(block: BlockId) f32 {
         .dragon_egg => 3.0,
         .purpur_block, .purpur_pillar => 1.5,
         .end_rod => 0.0,
+        .chorus_plant, .chorus_flower => 0.4,
         .end_portal_frame, .end_portal_frame_filled => 20.0,
         .nether_wart => 0.3,
     };
@@ -757,6 +766,8 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .purpur_block = .{ .name = "purpur_block", .solid = true, .transparent = false, .fluid = false },
     .purpur_pillar = .{ .name = "purpur_pillar", .solid = true, .transparent = false, .fluid = false },
     .end_rod = .{ .name = "end_rod", .solid = false, .transparent = true, .fluid = false },
+    .chorus_plant = .{ .name = "chorus_plant", .solid = false, .transparent = true, .fluid = false },
+    .chorus_flower = .{ .name = "chorus_flower", .solid = false, .transparent = true, .fluid = false },
 });
 
 /// A beacon activates when the column directly above it up to world ceiling (y=15)
@@ -1196,7 +1207,7 @@ pub fn footstepType(block: BlockId) FootstepType {
     return switch (block) {
         .grass, .weeping_vines, .twisting_vines, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight => .grass,
         .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .end_stone, .end_portal_frame, .end_portal_frame_filled, .dragon_egg, .purpur_block, .purpur_pillar => .stone,
-        .end_rod => .wood,
+        .end_rod, .chorus_plant, .chorus_flower => .wood,
         .wood, .target_block, .daylight_detector, .daylight_detector_inverted, .note_block, .jukebox, .oak_fence, .armor_stand, .smithing_table, .cartography_table, .fletching_table, .composter, .loom, .tripwire_hook_off, .tripwire_hook_on => .wood,
         .dirt => .dirt,
         .sand => .sand,
@@ -1935,6 +1946,23 @@ test "smoker block properties and textures" {
 
 /// An end rod requires solid support on at least one adjacent face (floor, ceiling, or horizontal side)
 /// or an adjacent end rod / chain.
+
+/// Chorus plant and flower require solid support on floor (y-1) or another connected chorus plant.
+pub fn canSupportChorusPlant(lookup: *const fn (x: i32, y: i32, z: i32) BlockId, x: i32, y: i32, z: i32) bool {
+    const below = lookup(x, y - 1, z);
+    if (below.is_solid() or below == .chorus_plant or below == .end_stone) return true;
+    const adj = [_][3]i32{
+        .{ -1, 0, 0 },
+        .{ 1, 0, 0 },
+        .{ 0, 0, -1 },
+        .{ 0, 0, 1 },
+    };
+    for (adj) |off| {
+        if (lookup(x + off[0], y + off[1], z + off[2]) == .chorus_plant) return true;
+    }
+    return false;
+}
+
 pub fn canSupportEndRod(lookup: *const fn (x: i32, y: i32, z: i32) BlockId, x: i32, y: i32, z: i32) bool {
     const offsets = [_][3]i32{
         .{ 0, -1, 0 },
@@ -2106,4 +2134,51 @@ test "canSupportEndRod physical support check" {
     try std.testing.expect(canSupportEndRod(&mock.getFloor, 0, 5, 0));
     try std.testing.expect(canSupportEndRod(&mock.getSide, 0, 5, 0));
     try std.testing.expect(!canSupportEndRod(&mock.getVoid, 0, 5, 0));
+}
+
+test "chorus plant and chorus flower block properties, textures, and support" {
+    try std.testing.expect(!BlockId.chorus_plant.is_solid());
+    try std.testing.expect(BlockId.chorus_plant.is_transparent());
+    try std.testing.expectEqual(hardness(.chorus_plant), 0.4);
+    try std.testing.expectEqual(footstepType(.chorus_plant), .wood);
+
+    try std.testing.expect(!BlockId.chorus_flower.is_solid());
+    try std.testing.expect(BlockId.chorus_flower.is_transparent());
+    try std.testing.expectEqual(hardness(.chorus_flower), 0.4);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.4), BlockId.chorus_flower.emissive(), 0.001);
+    try std.testing.expectEqual(footstepType(.chorus_flower), .wood);
+
+    const cp_tex = BlockId.chorus_plant.getFaceTexture(0);
+    try std.testing.expectEqual(@as(u32, 6), cp_tex.x);
+    try std.testing.expectEqual(@as(u32, 5), cp_tex.y);
+
+    const cf_top = BlockId.chorus_flower.getFaceTexture(0);
+    try std.testing.expectEqual(@as(u32, 7), cf_top.x);
+    try std.testing.expectEqual(@as(u32, 6), cf_top.y);
+
+    const mock = struct {
+        fn getFloor(x: i32, y: i32, z: i32) BlockId {
+            _ = x; _ = z;
+            if (y == 4) return .end_stone;
+            return .air;
+        }
+        fn getStem(x: i32, y: i32, z: i32) BlockId {
+            _ = x; _ = z;
+            if (y == 4) return .chorus_plant;
+            return .air;
+        }
+        fn getBranch(x: i32, y: i32, z: i32) BlockId {
+            _ = y; _ = z;
+            if (x == 1) return .chorus_plant;
+            return .air;
+        }
+        fn getVoid(x: i32, y: i32, z: i32) BlockId {
+            _ = x; _ = y; _ = z;
+            return .air;
+        }
+    };
+    try std.testing.expect(canSupportChorusPlant(&mock.getFloor, 0, 5, 0));
+    try std.testing.expect(canSupportChorusPlant(&mock.getStem, 0, 5, 0));
+    try std.testing.expect(canSupportChorusPlant(&mock.getBranch, 0, 5, 0));
+    try std.testing.expect(!canSupportChorusPlant(&mock.getVoid, 0, 5, 0));
 }

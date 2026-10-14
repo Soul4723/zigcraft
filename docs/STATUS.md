@@ -17,7 +17,7 @@ Last updated: 2026-10-14 (Session 316)
 - Chunk disk persistence (binary chunk files) with atomic replacement and write failure retention
 - Block picking via fast DDA voxel raycasting and wireframe selection highlight
 - Particle engine: 3D block-break physics debris, smoke puffs, spark/debris for levers, water splashes for falling sand
-- Rich block palette (Air, Stone, Dirt, Grass, Water, Wood, Leaves, Cobblestone, Coal Ore, Iron Ore, Sand, Glass, Sandstone, Bricks, Snow, Torch, Chest, TNT, Ladders, Doors, Crafting Table, Furnace, Bed, Saplings, End Stone, End Portal Frame, End Portal, End Crystal, Dragon Egg, Purpur Block, Purpur Pillar, End Rod)
+- Rich block palette (Air, Stone, Dirt, Grass, Water, Wood, Leaves, Cobblestone, Coal Ore, Iron Ore, Sand, Glass, Sandstone, Bricks, Snow, Torch, Chest, TNT, Ladders, Doors, Crafting Table, Furnace, Bed, Saplings, End Stone, End Portal Frame, End Portal, End Crystal, Dragon Egg, Purpur Block, Purpur Pillar, End Rod, Chorus Plant, Chorus Flower)
 - Redstone logic: Wire transmission with 15-block falloff, torches (NOT inverter with 30s burnout recovery), repeaters (1-4 tick delays), levers, pressure plates, lamps with night glow, iron doors
 - Falling sand physics: unsupported sand drops, crushes non-solid cells, inflicts falling damage, splashes into water
 - Fluid interactions: water washes floor redstone, torches, repeaters, dropping items into player inventory (helpers in `src/world/fluid_wash.zig`, redstone caches in `src/world/component_cache.zig`)
@@ -28,5 +28,5 @@ Last updated: 2026-10-14 (Session 316)
 
 ## Active State
 - Main branch stable (Phase 8: Milestones 43-191)
-- All tests passing (2470/2470 tests across 87 test steps)
+- All tests passing (2492/2492 tests across 87 test steps)
 - Remote and local branches pruned clean

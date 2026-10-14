@@ -14,6 +14,8 @@ pub const Glass: u8 = 15;
 pub const IronIngot: u8 = 26;
 pub const AncientDebris: u8 = 70;
 pub const NetheriteScrap: u8 = 71;
+pub const ChorusFruit: u8 = 156;
+pub const PoppedChorusFruit: u8 = 157;
 pub const None: u8 = 0;
 
 pub fn smeltResult(input: u8) u8 {
@@ -23,6 +25,7 @@ pub fn smeltResult(input: u8) u8 {
         Sand => Glass,
         IronOre => IronIngot,
         AncientDebris => NetheriteScrap,
+        ChorusFruit => PoppedChorusFruit,
         else => None,
     };
 }
@@ -37,6 +40,7 @@ test "smelting recipes" {
     try std.testing.expectEqual(smeltResult(Sand), Glass);
     try std.testing.expectEqual(smeltResult(IronOre), IronIngot);
     try std.testing.expectEqual(smeltResult(AncientDebris), NetheriteScrap);
+    try std.testing.expectEqual(smeltResult(ChorusFruit), PoppedChorusFruit);
     try std.testing.expectEqual(smeltResult(None), None);
     try std.testing.expectEqual(smeltResult(99), None);
 }
@@ -44,6 +48,7 @@ test "smelting recipes" {
 test "smeltable check" {
     try std.testing.expect(isSmeltable(RawPork));
     try std.testing.expect(isSmeltable(AncientDebris));
+    try std.testing.expect(isSmeltable(ChorusFruit));
     try std.testing.expect(!isSmeltable(None));
 }
 
@@ -131,7 +136,7 @@ test "evaluateFurnaceFeed actions" {
 pub const smoker_time: f32 = 5.0;
 
 pub fn isFoodItem(input: u8) bool {
-    return input == RawPork or input == RawMutton;
+    return input == RawPork or input == RawMutton or input == ChorusFruit;
 }
 
 pub fn tickSmokerJob(t: *f32, fuel: *u8, input: *u8, dt: f32) SmeltTickOutcome {

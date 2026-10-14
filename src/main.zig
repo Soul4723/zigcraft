@@ -2603,7 +2603,7 @@ pub fn main() !void {
                                 std.debug.print("fire charge lit TNT fuse\n", .{});
                             } else if (!hotbar_slot.isEmpty()) {
                                 if (hotbar_slot.item.toBlockId()) |place_type| {
-                                    if (((place_type == .lantern or place_type == .soul_lantern) and !block_mod.canSupportLantern(&pickBlockWorld, px, py, pz)) or (place_type == .end_rod and !block_mod.canSupportEndRod(&pickBlockWorld, px, py, pz))) {
+                                    if (((place_type == .lantern or place_type == .soul_lantern) and !block_mod.canSupportLantern(&pickBlockWorld, px, py, pz)) or (place_type == .end_rod and !block_mod.canSupportEndRod(&pickBlockWorld, px, py, pz)) or ((place_type == .chorus_plant or place_type == .chorus_flower) and !block_mod.canSupportChorusPlant(&pickBlockWorld, px, py, pz))) {
                                         // Lantern requires solid floor or ceiling support
                                     } else {
                                         const is_furnace_place = place_type == .furnace;
@@ -4841,6 +4841,27 @@ pub fn main() !void {
                 audio.play(.eat, 0.8);
                 particles.spawnBurnSparks(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 8);
                 std.debug.print("drank fire resistance potion (timer={d:.1}s)\n", .{player.fire_resistance_timer});
+            } else if (held_eat.item == .chorus_fruit) {
+                // Eating chorus fruit restores 4 hunger and teleports player to a random spot within 8 blocks
+                player.hunger = @min(20.0, player.hunger + 4.0);
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.8);
+                audio.play(.mob_teleport, 1.0);
+                particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 20);
+
+                // Disperse player randomly +/- 8 blocks horizontally
+                const seed_u: u32 = @as(u32, @bitCast(@as(i32, @intFromFloat(player.pos.x * 16.0)))) *% 31 +%
+                    @as(u32, @bitCast(@as(i32, @intFromFloat(player.pos.z * 16.0)))) *% 17 +%
+                    @as(u32, @intFromFloat(player.hunger * 10.0));
+                const dx: f32 = @as(f32, @floatFromInt(@as(i32, @intCast((seed_u >> 4) % 15)) - 7));
+                const dz: f32 = @as(f32, @floatFromInt(@as(i32, @intCast((seed_u >> 12) % 15)) - 7));
+                const new_x = player.pos.x + dx;
+                const new_z = player.pos.z + dz;
+                player.pos.x = new_x;
+                player.pos.z = new_z;
+                player.vel_y = 0.0;
+                particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 24);
+                std.debug.print("ate chorus fruit; teleported to ({d:.1}, {d:.1}, {d:.1})\n", .{ player.pos.x, player.pos.y, player.pos.z });
             } else if (held_eat.item == .golden_apple) {
                 player.eatGolden();
                 inventory.slots[selected_slot].decrement(1);

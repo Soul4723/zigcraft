@@ -159,6 +159,10 @@ pub const ItemType = enum(u8) {
     purpur_block = 153,
     purpur_pillar = 154,
     end_rod = 155,
+    chorus_fruit = 156,
+    popped_chorus_fruit = 157,
+    chorus_flower = 158,
+    chorus_plant = 159,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -260,6 +264,8 @@ pub const ItemType = enum(u8) {
             .purpur_block => .purpur_block,
             .purpur_pillar => .purpur_pillar,
             .end_rod => .end_rod,
+            .chorus_plant => .chorus_plant,
+            .chorus_flower => .chorus_flower,
             else => null,
         };
     }
@@ -368,6 +374,8 @@ pub const ItemType = enum(u8) {
             .purpur_block => .purpur_block,
             .purpur_pillar => .purpur_pillar,
             .end_rod => .end_rod,
+            .chorus_plant => .chorus_plant,
+            .chorus_flower => .chorus_flower,
         };
     }
 
@@ -574,6 +582,10 @@ pub const ItemType = enum(u8) {
             .purpur_block => "Purpur Block",
             .purpur_pillar => "Purpur Pillar",
             .end_rod => "End Rod",
+            .chorus_fruit => "Chorus Fruit",
+            .popped_chorus_fruit => "Popped Chorus Fruit",
+            .chorus_flower => "Chorus Flower",
+            .chorus_plant => "Chorus Plant",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -671,6 +683,10 @@ pub const ItemType = enum(u8) {
             .purpur_block => .{ 0.68, 0.44, 0.68, 0.95 },
             .purpur_pillar => .{ 0.72, 0.48, 0.72, 0.95 },
             .end_rod => .{ 0.95, 0.95, 0.98, 0.95 },
+            .chorus_fruit => .{ 0.78, 0.52, 0.78, 0.95 },
+            .popped_chorus_fruit => .{ 0.85, 0.60, 0.70, 0.95 },
+            .chorus_flower => .{ 0.90, 0.80, 0.92, 0.95 },
+            .chorus_plant => .{ 0.60, 0.38, 0.60, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1219,6 +1235,39 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 115: Purpur Block from Popped Chorus Fruit: 4 Popped Chorus Fruit -> 4 Purpur Blocks
+        if (non_empty == 4) {
+            var pop_cnt: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .popped_chorus_fruit) pop_cnt += 1;
+            }
+            if (pop_cnt == 4) {
+                self.craft_output = .{ .item = .purpur_block, .count = 4 };
+                return;
+            }
+        }
+
+        // Recipe 116: End Rod with Chorus Fruit: 1 Blaze Rod + 1 Popped Chorus Fruit / Chorus Fruit -> 4 End Rods
+        if (non_empty == 2) {
+            const has_rod = (g0 == .blaze_rod or g1 == .blaze_rod or g2 == .blaze_rod or g3 == .blaze_rod);
+            const has_fruit = (g0 == .chorus_fruit or g1 == .chorus_fruit or g2 == .chorus_fruit or g3 == .chorus_fruit or
+                g0 == .popped_chorus_fruit or g1 == .popped_chorus_fruit or g2 == .popped_chorus_fruit or g3 == .popped_chorus_fruit);
+            if (has_rod and has_fruit) {
+                self.craft_output = .{ .item = .end_rod, .count = 4 };
+                return;
+            }
+        }
+
+        // Recipe 117: 1 Chorus Fruit + 1 Coal -> 1 Popped Chorus Fruit (quick field roast)
+        if (non_empty == 2) {
+            const has_cf = (g0 == .chorus_fruit or g1 == .chorus_fruit or g2 == .chorus_fruit or g3 == .chorus_fruit);
+            const has_fuel = (g0 == .coal or g1 == .coal or g2 == .coal or g3 == .coal);
+            if (has_cf and has_fuel) {
+                self.craft_output = .{ .item = .popped_chorus_fruit, .count = 1 };
+                return;
+            }
+        }
 
         // Recipe 112: Purpur Block: 4 End Stone -> 4 Purpur Blocks
         if (non_empty == 4) {
@@ -2828,6 +2877,9 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         return 1;
     } else if (block == .cobweb) {
         out[0] = .{ .item = .string, .count = 1 };
+        return 1;
+    } else if (block == .chorus_plant) {
+        out[0] = .{ .item = .chorus_fruit, .count = 1 };
         return 1;
     } else {
         const item = ItemType.fromBlockId(block);
@@ -4698,4 +4750,54 @@ test "purpur and end rod item roundtrip, drops, and recipes 112-114" {
 
     try std.testing.expectEqual(@as(usize, 1), getBlockDrops(.end_rod, &drops));
     try std.testing.expectEqual(drops[0].item, .end_rod);
+}
+
+test "chorus fruit item roundtrip, drops, and recipes 115-117" {
+    var inv = Inventory.init();
+
+    // Recipe 117: Chorus fruit + coal -> popped chorus fruit
+    inv.craft_grid[0] = .{ .item = .chorus_fruit, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .coal, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .popped_chorus_fruit);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 115: 4 popped chorus fruit -> 4 purpur blocks
+    inv.craft_grid[0] = .{ .item = .popped_chorus_fruit, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .popped_chorus_fruit, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .popped_chorus_fruit, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .popped_chorus_fruit, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .purpur_block);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    // Recipe 116: Blaze rod + popped chorus fruit -> 4 end rods
+    inv.craft_grid[1] = .{ .item = .none, .count = 0 };
+    inv.craft_grid[2] = .{ .item = .none, .count = 0 };
+    inv.craft_grid[3] = .{ .item = .none, .count = 0 };
+    inv.craft_grid[0] = .{ .item = .blaze_rod, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .popped_chorus_fruit, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .end_rod);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    // Roundtrips & names
+    try std.testing.expectEqual(ItemType.fromBlockId(.chorus_plant), .chorus_plant);
+    try std.testing.expectEqual(ItemType.chorus_plant.toBlockId().?, .chorus_plant);
+    try std.testing.expectEqualStrings(ItemType.chorus_plant.name(), "Chorus Plant");
+
+    try std.testing.expectEqual(ItemType.fromBlockId(.chorus_flower), .chorus_flower);
+    try std.testing.expectEqual(ItemType.chorus_flower.toBlockId().?, .chorus_flower);
+    try std.testing.expectEqualStrings(ItemType.chorus_flower.name(), "Chorus Flower");
+
+    try std.testing.expectEqualStrings(ItemType.chorus_fruit.name(), "Chorus Fruit");
+    try std.testing.expectEqualStrings(ItemType.popped_chorus_fruit.name(), "Popped Chorus Fruit");
+
+    // Drops: chorus_plant drops chorus_fruit; chorus_flower drops chorus_flower
+    var drops: [2]BlockDrop = undefined;
+    try std.testing.expectEqual(@as(usize, 1), getBlockDrops(.chorus_plant, &drops));
+    try std.testing.expectEqual(drops[0].item, .chorus_fruit);
+
+    try std.testing.expectEqual(@as(usize, 1), getBlockDrops(.chorus_flower, &drops));
+    try std.testing.expectEqual(drops[0].item, .chorus_flower);
 }
