@@ -141,6 +141,7 @@ pub const ItemType = enum(u8) {
     chain = 135,
     iron_bars = 136,
     tripwire_hook = 137,
+    string = 138,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -521,6 +522,7 @@ pub const ItemType = enum(u8) {
             .chain => "Chain",
             .iron_bars => "Iron Bars",
             .tripwire_hook => "Tripwire Hook",
+            .string => "String",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -600,6 +602,7 @@ pub const ItemType = enum(u8) {
             .chain => .{ 0.45, 0.45, 0.48, 0.95 },
             .iron_bars => .{ 0.70, 0.70, 0.72, 0.95 },
             .tripwire_hook => .{ 0.65, 0.50, 0.30, 0.95 },
+            .string => .{ 0.90, 0.90, 0.92, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1148,6 +1151,16 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 101: String: 1 Wool (or 1 Weeping Vines or 1 Twisting Vines) -> 4 Strings
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| {
+                if (sl.item == .wool or sl.item == .weeping_vines or sl.item == .twisting_vines) {
+                    self.craft_output = .{ .item = .string, .count = 4 };
+                    return;
+                }
+            }
+        }
 
         // Recipe 100: Tripwire Hook: 1 Iron Ingot + 1 Stick + 1 Wood Planks -> 2 Tripwire Hooks
         if (non_empty == 3) {
@@ -3932,6 +3945,27 @@ test "loom item roundtrip, properties, and Recipe 92" {
     try std.testing.expectEqual(ItemType.loom.maxDurability(), 0);
     try std.testing.expect(!ItemType.loom.isTool());
     try std.testing.expectEqual(ItemType.loom.maxStackSize(), 64);
+}
+
+test "string item roundtrip, properties, and Recipe 101" {
+    var inv = Inventory.init();
+    // Recipe 101: 1 Wool -> 4 Strings
+    inv.craft_grid[0] = .{ .item = .wool, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .string);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    // Alternative: 1 Weeping Vines -> 4 Strings
+    inv.craft_grid[0] = .{ .item = .weeping_vines, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .string);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    try std.testing.expectEqual(ItemType.string.toBlockId(), null);
+    try std.testing.expectEqualStrings(ItemType.string.name(), "String");
+    try std.testing.expectEqual(ItemType.string.maxDurability(), 0);
+    try std.testing.expect(!ItemType.string.isTool());
+    try std.testing.expectEqual(ItemType.string.maxStackSize(), 64);
 }
 
 test "tripwire hook item roundtrip, properties, and Recipe 100" {
