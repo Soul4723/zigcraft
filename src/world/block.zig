@@ -138,9 +138,11 @@ pub const BlockId = enum(u8) {
     sea_pickle = 127,
     rail = 128,
     powered_rail = 129,
+    detector_rail = 130,
+    activator_rail = 131,
 
     pub fn is_solid(self: BlockId) bool {
-        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .end_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand and self != .lantern and self != .soul_lantern and self != .chain and self != .iron_bars and self != .tripwire_hook_off and self != .tripwire_hook_on and self != .cobweb and self != .end_crystal and self != .end_rod and self != .chorus_plant and self != .chorus_flower and self != .dragon_head and self != .end_gateway and self != .conduit and self != .kelp and self != .sea_pickle and self != .rail and self != .powered_rail;
+        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .end_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand and self != .lantern and self != .soul_lantern and self != .chain and self != .iron_bars and self != .tripwire_hook_off and self != .tripwire_hook_on and self != .cobweb and self != .end_crystal and self != .end_rod and self != .chorus_plant and self != .chorus_flower and self != .dragon_head and self != .end_gateway and self != .conduit and self != .kelp and self != .sea_pickle and self != .rail and self != .powered_rail and self != .detector_rail and self != .activator_rail;
     }
 
     pub fn is_sponge(self: BlockId) bool {
@@ -196,11 +198,11 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_rail(self: BlockId) bool {
-        return self == .rail or self == .powered_rail;
+        return self == .rail or self == .powered_rail or self == .detector_rail or self == .activator_rail;
     }
 
     pub fn is_transparent(self: BlockId) bool {
-        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .end_portal or self == .nether_brick_fence or self == .oak_fence or self == .armor_stand or self == .enchantment_table or self == .anvil or self == .grindstone or self == .composter or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block or self == .beacon or self == .weeping_vines or self == .twisting_vines or self == .crimson_fungus or self == .warped_fungus or self == .brewing_stand or self == .stonecutter or self == .lantern or self == .soul_lantern or self == .chain or self == .iron_bars or self == .tripwire_hook_off or self == .tripwire_hook_on or self == .cobweb or self == .end_portal_frame or self == .end_portal_frame_filled or self == .end_crystal or self == .dragon_egg or self == .end_rod or self == .chorus_plant or self == .chorus_flower or self == .shulker_box or self == .dragon_head or self == .end_gateway or self == .conduit or self == .kelp or self == .sea_pickle or self == .rail or self == .powered_rail;
+        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .end_portal or self == .nether_brick_fence or self == .oak_fence or self == .armor_stand or self == .enchantment_table or self == .anvil or self == .grindstone or self == .composter or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block or self == .beacon or self == .weeping_vines or self == .twisting_vines or self == .crimson_fungus or self == .warped_fungus or self == .brewing_stand or self == .stonecutter or self == .lantern or self == .soul_lantern or self == .chain or self == .iron_bars or self == .tripwire_hook_off or self == .tripwire_hook_on or self == .cobweb or self == .end_portal_frame or self == .end_portal_frame_filled or self == .end_crystal or self == .dragon_egg or self == .end_rod or self == .chorus_plant or self == .chorus_flower or self == .shulker_box or self == .dragon_head or self == .end_gateway or self == .conduit or self == .kelp or self == .sea_pickle or self == .rail or self == .powered_rail or self == .detector_rail or self == .activator_rail;
     }
 
     /// 0.0 = lit by sun only. 1.0 = full glow even at midnight.
@@ -244,6 +246,8 @@ pub const BlockId = enum(u8) {
             .brewing_stand => 0.4,
             .sea_pickle => 0.75,
             .powered_rail => 0.6,
+            .detector_rail => 0.5,
+            .activator_rail => 0.55,
             else => 0.0,
         };
     }
@@ -428,6 +432,14 @@ pub const BlockId = enum(u8) {
             .powered_rail => switch (face_idx) {
                 0, 1 => .{ .x = 7, .y = 7 }, // Redstone-infused gold energized rail guide
                 else => .{ .x = 7, .y = 7 },
+            },
+            .detector_rail => switch (face_idx) {
+                0, 1 => .{ .x = 4, .y = 6 }, // Steel running rails with redstone pressure contact plate
+                else => .{ .x = 4, .y = 6 },
+            },
+            .activator_rail => switch (face_idx) {
+                0, 1 => .{ .x = 6, .y = 7 }, // Redstone torch activated vibrational crossties
+                else => .{ .x = 6, .y = 7 },
             },
             .dragon_egg => .{ .x = 5, .y = 2 }, // Deep obsidian crystalline egg shell with purple specks
             .dragon_head => switch (face_idx) {
@@ -672,7 +684,7 @@ pub fn hardness(block: BlockId) f32 {
         .kelp => 0.0,
         .dried_kelp_block => 0.5,
         .sea_pickle => 0.0,
-        .rail, .powered_rail => 0.7,
+        .rail, .powered_rail, .detector_rail, .activator_rail => 0.7,
         .purpur_block, .purpur_pillar => 1.5,
         .shulker_box => 2.0,
         .end_rod => 0.0,
@@ -850,6 +862,8 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .sea_pickle = .{ .name = "sea_pickle", .solid = false, .transparent = true, .fluid = false },
     .rail = .{ .name = "rail", .solid = false, .transparent = true, .fluid = false },
     .powered_rail = .{ .name = "powered_rail", .solid = false, .transparent = true, .fluid = false },
+    .detector_rail = .{ .name = "detector_rail", .solid = false, .transparent = true, .fluid = false },
+    .activator_rail = .{ .name = "activator_rail", .solid = false, .transparent = true, .fluid = false },
     .shulker_box = .{ .name = "shulker_box", .solid = true, .transparent = true, .fluid = false },
     .purpur_block = .{ .name = "purpur_block", .solid = true, .transparent = false, .fluid = false },
     .purpur_pillar = .{ .name = "purpur_pillar", .solid = true, .transparent = false, .fluid = false },
@@ -1297,7 +1311,7 @@ pub fn footstepType(block: BlockId) FootstepType {
         .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .end_stone, .end_portal_frame, .end_portal_frame_filled, .dragon_egg, .dragon_head, .end_gateway, .purpur_block, .purpur_pillar, .shulker_box, .prismarine, .prismarine_bricks, .dark_prismarine, .sea_lantern, .conduit => .stone,
         .sponge, .wet_sponge => .grass,
         .kelp, .dried_kelp_block, .sea_pickle => .grass,
-        .rail, .powered_rail => .stone,
+        .rail, .powered_rail, .detector_rail, .activator_rail => .stone,
         .end_rod, .chorus_plant, .chorus_flower => .wood,
         .wood, .target_block, .daylight_detector, .daylight_detector_inverted, .note_block, .jukebox, .oak_fence, .armor_stand, .smithing_table, .cartography_table, .fletching_table, .composter, .loom, .tripwire_hook_off, .tripwire_hook_on => .wood,
         .dirt => .dirt,
@@ -2409,4 +2423,28 @@ test "rail and powered rail block properties, transparency, emissive, and textur
     const pr_tex = BlockId.powered_rail.getFaceTexture(0);
     try std.testing.expectEqual(@as(u32, 7), pr_tex.x);
     try std.testing.expectEqual(@as(u32, 7), pr_tex.y);
+}
+
+test "detector rail and activator rail properties, transparency, emissive, and textures" {
+    try std.testing.expect(!BlockId.detector_rail.is_solid());
+    try std.testing.expect(BlockId.detector_rail.is_transparent());
+    try std.testing.expect(BlockId.detector_rail.is_rail());
+    try std.testing.expectEqual(hardness(.detector_rail), 0.7);
+    try std.testing.expectEqual(footstepType(.detector_rail), .stone);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.5), BlockId.detector_rail.emissive(), 0.001);
+
+    try std.testing.expect(!BlockId.activator_rail.is_solid());
+    try std.testing.expect(BlockId.activator_rail.is_transparent());
+    try std.testing.expect(BlockId.activator_rail.is_rail());
+    try std.testing.expectEqual(hardness(.activator_rail), 0.7);
+    try std.testing.expectEqual(footstepType(.activator_rail), .stone);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.55), BlockId.activator_rail.emissive(), 0.001);
+
+    const dr_tex = BlockId.detector_rail.getFaceTexture(0);
+    try std.testing.expectEqual(@as(u32, 4), dr_tex.x);
+    try std.testing.expectEqual(@as(u32, 6), dr_tex.y);
+
+    const ar_tex = BlockId.activator_rail.getFaceTexture(0);
+    try std.testing.expectEqual(@as(u32, 6), ar_tex.x);
+    try std.testing.expectEqual(@as(u32, 7), ar_tex.y);
 }

@@ -7,7 +7,7 @@ pub const max_strength: u4 = 15;
 
 /// True when a block emits redstone power into adjacent wire.
 pub fn isSource(b: BlockId) bool {
-    return b == .pressure_plate_down or b == .lever_on or b == .repeater_on or b == .redstone_torch_on;
+    return b == .pressure_plate_down or b == .lever_on or b == .repeater_on or b == .redstone_torch_on or b == .detector_rail;
 }
 
 /// True when a block conducts decaying signal (wire in either state).
@@ -435,4 +435,10 @@ test "notePitchFrequencyMultiplier two octave progression" {
     try std.testing.expectApproxEqAbs(notePitchFrequencyMultiplier(0), 1.0, 0.01);
     try std.testing.expectApproxEqAbs(notePitchFrequencyMultiplier(12), 2.0, 0.02);
     try std.testing.expectApproxEqAbs(notePitchFrequencyMultiplier(24), 4.0, 0.05);
+}
+
+test "detector rail is redstone source" {
+    try std.testing.expect(isSource(.detector_rail));
+    try std.testing.expect(!isSource(.activator_rail));
+    try std.testing.expect(!isSource(.rail));
 }

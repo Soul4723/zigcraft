@@ -18,6 +18,8 @@ pub const Player = struct {
     in_minecart: bool = false,
     on_rail: bool = false,
     on_powered_rail: bool = false,
+    on_detector_rail: bool = false,
+    on_activator_rail: bool = false,
     water_entry_speed: f32,
     oxygen: f32,
     on_soulsand: bool = false,
@@ -69,6 +71,8 @@ pub const Player = struct {
             .in_minecart = false,
             .on_rail = false,
             .on_powered_rail = false,
+            .on_detector_rail = false,
+            .on_activator_rail = false,
             .water_entry_speed = 0.0,
             .oxygen = 15.0,
         };
@@ -147,6 +151,8 @@ pub const Player = struct {
         self.in_minecart = false;
         self.on_rail = false;
         self.on_powered_rail = false;
+        self.on_detector_rail = false;
+        self.on_activator_rail = false;
         self.oxygen = 15.0;
         self.water_breathing_timer = 0.0;
         self.insomnia_timer = 0.0;
@@ -348,6 +354,10 @@ pub const Player = struct {
             glide_horizontal_scale
         else if (self.in_minecart and self.on_powered_rail)
             minecart_powered_rail_speed_scale
+        else if (self.in_minecart and self.on_activator_rail)
+            minecart_rail_speed_scale
+        else if (self.in_minecart and self.on_detector_rail)
+            minecart_rail_speed_scale
         else if (self.in_minecart and self.on_rail)
             minecart_rail_speed_scale
         else if (self.in_minecart)
@@ -1234,4 +1244,22 @@ test "player minecart boarding, rail riding, and powered rail acceleration" {
     p_pow.tickPhysics(Mock.solid, null, null, 1.0, 0.0, false, 0.05);
     try std.testing.expect(p_pow.pos.x > 0.5 + 1.0 * Player.minecart_powered_rail_speed_scale * 0.9);
     try std.testing.expect(p_pow.pos.x > p.pos.x);
+}
+
+test "player detector rail and activator rail physics and flags" {
+    var p = Player.init(0.5, 2.0, 0.5);
+    try std.testing.expect(!p.on_detector_rail);
+    try std.testing.expect(!p.on_activator_rail);
+
+    p.in_minecart = true;
+    p.on_rail = true;
+    p.on_detector_rail = true;
+
+    const Mock = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return false; }
+    };
+
+    // Detector rail movement
+    p.tickPhysics(Mock.solid, null, null, 1.0, 0.0, false, 0.05);
+    try std.testing.expect(p.pos.x > 0.5 + 1.0 * Player.minecart_rail_speed_scale * 0.9);
 }

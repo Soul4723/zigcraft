@@ -202,6 +202,8 @@ pub const ItemType = enum(u8) {
     rail = 196,
     powered_rail = 197,
     minecart = 198,
+    detector_rail = 199,
+    activator_rail = 200,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -320,6 +322,8 @@ pub const ItemType = enum(u8) {
             .sea_pickle => .sea_pickle,
             .rail => .rail,
             .powered_rail => .powered_rail,
+            .detector_rail => .detector_rail,
+            .activator_rail => .activator_rail,
             else => null,
         };
     }
@@ -445,6 +449,8 @@ pub const ItemType = enum(u8) {
             .sea_pickle => .sea_pickle,
             .rail => .rail,
             .powered_rail => .powered_rail,
+            .detector_rail => .detector_rail,
+            .activator_rail => .activator_rail,
         };
     }
 
@@ -698,6 +704,8 @@ pub const ItemType = enum(u8) {
             .rail => "Rail",
             .powered_rail => "Powered Rail",
             .minecart => "Minecart",
+            .detector_rail => "Detector Rail",
+            .activator_rail => "Activator Rail",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -838,6 +846,8 @@ pub const ItemType = enum(u8) {
             .rail => .{ 0.75, 0.75, 0.75, 0.95 },
             .powered_rail => .{ 0.95, 0.75, 0.20, 0.95 },
             .minecart => .{ 0.60, 0.60, 0.65, 0.95 },
+            .detector_rail => .{ 0.85, 0.35, 0.30, 0.95 },
+            .activator_rail => .{ 0.70, 0.55, 0.35, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1581,6 +1591,38 @@ pub const Inventory = struct {
                 (g1 == .iron_ingot and g2 == .iron_ingot and g3 == .iron_ingot and g0 == .none))
             {
                 self.craft_output = .{ .item = .minecart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 142: Detector Rail: 2 Iron Ingots + 1 Stone/Pressure Plate + 1 Redstone Dust -> 6 Detector Rails
+        if (non_empty == 3 or non_empty == 4) {
+            var iron_c: usize = 0;
+            var red_c: usize = 0;
+            var plate_c: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .iron_ingot) iron_c += sl.count;
+                if (sl.item == .redstone_dust) red_c += sl.count;
+                if (sl.item == .pressure_plate or sl.item == .stone or sl.item == .cobblestone) plate_c += sl.count;
+            }
+            if (iron_c >= 2 and red_c >= 1 and plate_c >= 1) {
+                self.craft_output = .{ .item = .detector_rail, .count = 6 };
+                return;
+            }
+        }
+
+        // Recipe 143: Activator Rail: 2 Iron Ingots + 1 Redstone Torch + 1 Stick -> 6 Activator Rails
+        if (non_empty == 3 or non_empty == 4) {
+            var iron_c: usize = 0;
+            var torch_c: usize = 0;
+            var stick_c: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .iron_ingot) iron_c += sl.count;
+                if (sl.item == .redstone_torch or sl.item == .torch) torch_c += sl.count;
+                if (sl.item == .stick) stick_c += sl.count;
+            }
+            if (iron_c >= 2 and torch_c >= 1 and stick_c >= 1) {
+                self.craft_output = .{ .item = .activator_rail, .count = 6 };
                 return;
             }
         }
@@ -5753,4 +5795,38 @@ test "rail, powered rail, and minecart items, recipes, and stack limits" {
     try std.testing.expectEqual(ItemType.rail.toBlockId().?, .rail);
     try std.testing.expectEqual(ItemType.powered_rail.toBlockId().?, .powered_rail);
     try std.testing.expect(ItemType.minecart.toBlockId() == null);
+}
+
+test "detector rail and activator rail crafting recipes and properties" {
+    var inv = Inventory.init();
+
+    // Recipe 142: 2 Iron + 1 Redstone + 1 Stone -> 6 Detector Rails
+    inv.craft_grid[0] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .redstone_dust, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .stone, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .detector_rail);
+    try std.testing.expectEqual(inv.craft_output.count, 6);
+
+    // Recipe 143: 2 Iron + 1 Redstone Torch + 1 Stick -> 6 Activator Rails
+    inv.craft_grid[0] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .redstone_torch, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .stick, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .activator_rail);
+    try std.testing.expectEqual(inv.craft_output.count, 6);
+
+    // Stacks and names
+    try std.testing.expectEqual(ItemType.detector_rail.maxStackSize(), 64);
+    try std.testing.expectEqual(ItemType.activator_rail.maxStackSize(), 64);
+    try std.testing.expectEqualStrings(ItemType.detector_rail.name(), "Detector Rail");
+    try std.testing.expectEqualStrings(ItemType.activator_rail.name(), "Activator Rail");
+
+    // Roundtrips
+    try std.testing.expectEqual(ItemType.detector_rail.toBlockId().?, .detector_rail);
+    try std.testing.expectEqual(ItemType.activator_rail.toBlockId().?, .activator_rail);
+    try std.testing.expectEqual(ItemType.fromBlockId(.detector_rail), .detector_rail);
+    try std.testing.expectEqual(ItemType.fromBlockId(.activator_rail), .activator_rail);
 }

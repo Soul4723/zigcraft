@@ -438,6 +438,18 @@ pub fn main() !void {
         player.on_soulsand = (floor_blk == .soul_sand);
         player.on_rail = (floor_blk.is_rail() or at_feet_blk.is_rail());
         player.on_powered_rail = (floor_blk == .powered_rail or at_feet_blk == .powered_rail);
+        player.on_detector_rail = (floor_blk == .detector_rail or at_feet_blk == .detector_rail);
+        player.on_activator_rail = (floor_blk == .activator_rail or at_feet_blk == .activator_rail);
+
+        // Activator Rail auto-ejection: when minecart passes over activator rail, eject passenger
+        if (player.in_minecart and player.on_activator_rail) {
+            player.in_minecart = false;
+            _ = inventory.addItem(.minecart, 1);
+            player.vel_y = 5.0; // ejection hop
+            audio.play(.click_off, 0.8);
+            particles.spawnBlockDebris(f_px, f_py, f_pz, .{ 0.85, 0.40, 0.30 }, 6);
+            std.debug.print("activator rail ejected passenger from minecart\n", .{});
+        }
         const body_blk = manager.getBlockWorld(f_px, @intFromFloat(@floor(player.pos.y + 0.5)), f_pz);
         player.in_cobweb = (floor_blk == .cobweb or body_blk == .cobweb);
         player.has_soul_speed = inventory.hasItem(.soul_speed_boots);
