@@ -208,6 +208,7 @@ pub const ItemType = enum(u8) {
     furnace_minecart = 202,
     tnt_minecart = 203,
     hopper_minecart = 204,
+    redstone_comparator = 205,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -328,6 +329,7 @@ pub const ItemType = enum(u8) {
             .powered_rail => .powered_rail,
             .detector_rail => .detector_rail,
             .activator_rail => .activator_rail,
+            .redstone_comparator => .redstone_comparator_off,
             else => null,
         };
     }
@@ -455,6 +457,7 @@ pub const ItemType = enum(u8) {
             .powered_rail => .powered_rail,
             .detector_rail => .detector_rail,
             .activator_rail => .activator_rail,
+            .redstone_comparator_off, .redstone_comparator_on => .redstone_comparator,
         };
     }
 
@@ -714,6 +717,7 @@ pub const ItemType = enum(u8) {
             .furnace_minecart => "Minecart with Furnace",
             .tnt_minecart => "Minecart with TNT",
             .hopper_minecart => "Minecart with Hopper",
+            .redstone_comparator => "Redstone Comparator",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -860,6 +864,7 @@ pub const ItemType = enum(u8) {
             .furnace_minecart => .{ 0.45, 0.45, 0.48, 0.95 },
             .tnt_minecart => .{ 0.85, 0.25, 0.20, 0.95 },
             .hopper_minecart => .{ 0.40, 0.40, 0.45, 0.95 },
+            .redstone_comparator => .{ 0.90, 0.88, 0.85, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1691,6 +1696,22 @@ pub const Inventory = struct {
             }
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 148: Redstone Comparator: 1 Nether Quartz + 1 Redstone Torch (or 2) + 1 Stone (2x2 grid) -> 1 Redstone Comparator
+        if (non_empty >= 3) {
+            var quartz_c: usize = 0;
+            var torch_c: usize = 0;
+            var stone_c: usize = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .nether_quartz) quartz_c += sl.count;
+                if (sl.item == .redstone_torch or sl.item == .torch) torch_c += sl.count;
+                if (sl.item == .stone or sl.item == .cobblestone) stone_c += sl.count;
+            }
+            if (quartz_c >= 1 and torch_c >= 1 and stone_c >= 1) {
+                self.craft_output = .{ .item = .redstone_comparator, .count = 1 };
                 return;
             }
         }
@@ -5937,4 +5958,26 @@ test "minecart functional variants recipes 144-147 and properties" {
     try std.testing.expectEqualStrings(ItemType.furnace_minecart.name(), "Minecart with Furnace");
     try std.testing.expectEqualStrings(ItemType.tnt_minecart.name(), "Minecart with TNT");
     try std.testing.expectEqualStrings(ItemType.hopper_minecart.name(), "Minecart with Hopper");
+}
+
+test "redstone comparator item, roundtrip, and Recipe 148 crafting" {
+    var inv = Inventory.init();
+
+    // Recipe 148: 1 Nether Quartz + 2 Redstone Torches + 1 Stone -> 1 Comparator
+    inv.craft_grid[0] = .{ .item = .nether_quartz, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .redstone_torch, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .redstone_torch, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .stone, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .redstone_comparator);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Stacks and names
+    try std.testing.expectEqual(ItemType.redstone_comparator.maxStackSize(), 64);
+    try std.testing.expectEqualStrings(ItemType.redstone_comparator.name(), "Redstone Comparator");
+
+    // Roundtrips
+    try std.testing.expectEqual(ItemType.redstone_comparator.toBlockId().?, .redstone_comparator_off);
+    try std.testing.expectEqual(ItemType.fromBlockId(.redstone_comparator_off), .redstone_comparator);
+    try std.testing.expectEqual(ItemType.fromBlockId(.redstone_comparator_on), .redstone_comparator);
 }

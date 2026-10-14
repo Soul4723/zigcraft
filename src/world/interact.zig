@@ -117,8 +117,22 @@ pub fn toggleTripwireHook(hook: block_mod.BlockId) ?block_mod.BlockId {
     };
 }
 
+pub fn toggleComparator(comp: block_mod.BlockId) ?block_mod.BlockId {
+    return switch (comp) {
+        .redstone_comparator_off => .redstone_comparator_on,
+        .redstone_comparator_on => .redstone_comparator_off,
+        else => null,
+    };
+}
+
 test "toggleTripwireHook transitions" {
     try std.testing.expectEqual(block_mod.BlockId.tripwire_hook_on, toggleTripwireHook(.tripwire_hook_off).?);
     try std.testing.expectEqual(block_mod.BlockId.tripwire_hook_off, toggleTripwireHook(.tripwire_hook_on).?);
     try std.testing.expectEqual(@as(?block_mod.BlockId, null), toggleTripwireHook(.stone));
+}
+
+test "toggleComparator mode transitions" {
+    try std.testing.expectEqual(block_mod.BlockId.redstone_comparator_on, toggleComparator(.redstone_comparator_off).?);
+    try std.testing.expectEqual(block_mod.BlockId.redstone_comparator_off, toggleComparator(.redstone_comparator_on).?);
+    try std.testing.expectEqual(@as(?block_mod.BlockId, null), toggleComparator(.stone));
 }

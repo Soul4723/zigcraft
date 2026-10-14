@@ -157,7 +157,7 @@ pub fn isTrackedRedstoneComponent(block: @import("block.zig").BlockId) bool {
     return switch (block) {
         .pressure_plate_up, .pressure_plate_down,
         .redstone_wire_off, .redstone_wire_on,
-        .repeater_off, .repeater_on,
+        .repeater_off, .repeater_on, .redstone_comparator_off, .redstone_comparator_on,
         .redstone_lamp_off, .redstone_lamp_on,
         .redstone_torch_off, .redstone_torch_on,
         => true,

@@ -4368,6 +4368,17 @@ pub fn main() !void {
                         std.debug.print("repeater delay stage 2 ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (interact_mod.toggleComparator(target)) |toggled| {
+                    if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, toggled)) {
+                        if (toggled == .redstone_comparator_on) {
+                            audio.play(.click_on, 0.7);
+                            particles.spawnFlame(hit_f.x, hit_f.y, hit_f.z, 2);
+                        } else {
+                            audio.play(.click_off, 0.6);
+                        }
+                        std.debug.print("toggled redstone comparator to {s} ({d},{d},{d})\n", .{ @tagName(toggled), hit_f.x, hit_f.y, hit_f.z });
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (interact_mod.toggleTripwireHook(target)) |toggled| {
                     if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, toggled)) {
                         if (toggled == .tripwire_hook_on) {

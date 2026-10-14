@@ -7,7 +7,7 @@ pub const max_strength: u4 = 15;
 
 /// True when a block emits redstone power into adjacent wire.
 pub fn isSource(b: BlockId) bool {
-    return b == .pressure_plate_down or b == .lever_on or b == .repeater_on or b == .redstone_torch_on or b == .detector_rail;
+    return b == .pressure_plate_down or b == .lever_on or b == .repeater_on or b == .redstone_torch_on or b == .detector_rail or b == .redstone_comparator_on;
 }
 
 /// True when a block conducts decaying signal (wire in either state).
@@ -441,4 +441,57 @@ test "detector rail is redstone source" {
     try std.testing.expect(isSource(.detector_rail));
     try std.testing.expect(!isSource(.activator_rail));
     try std.testing.expect(!isSource(.rail));
+}
+
+
+pub const ComparatorMode = enum {
+    compare,
+    subtract,
+};
+
+/// Evaluates redstone comparator output signal strength:
+/// In compare mode: outputs input strength if input >= max(sideA, sideB), else 0.
+/// In subtract mode: outputs max(0, input - max(sideA, sideB)).
+pub fn evaluateComparatorSignal(input_strength: u4, side_a_strength: u4, side_b_strength: u4, mode: ComparatorMode) u4 {
+    const max_side = @max(side_a_strength, side_b_strength);
+    return switch (mode) {
+        .compare => if (input_strength >= max_side) input_strength else 0,
+        .subtract => if (input_strength > max_side) input_strength - max_side else 0,
+    };
+}
+
+/// Evaluates container fullness to comparator signal strength (0..15).
+/// Empty = 0, full = 15, non-empty partial = 1 + floor(14 * fullness).
+pub fn containerComparatorSignal(filled_slots: usize, total_slots: usize) u4 {
+    if (filled_slots == 0 or total_slots == 0) return 0;
+    if (filled_slots >= total_slots) return 15;
+    const fraction = @as(f32, @floatFromInt(filled_slots)) / @as(f32, @floatFromInt(total_slots));
+    const signal: u4 = @intFromFloat(@floor(1.0 + fraction * 14.0));
+    return @min(15, signal);
+}
+
+
+test "redstone comparator signal evaluation compare and subtract modes" {
+    // Compare mode: input 10, sides 8 and 4 -> output 10
+    try std.testing.expectEqual(@as(u4, 10), evaluateComparatorSignal(10, 8, 4, .compare));
+    // Compare mode: input 10, side 12 -> output 0
+    try std.testing.expectEqual(@as(u4, 0), evaluateComparatorSignal(10, 12, 4, .compare));
+    // Compare mode: input == side -> output passes
+    try std.testing.expectEqual(@as(u4, 10), evaluateComparatorSignal(10, 10, 0, .compare));
+
+    // Subtract mode: input 15, max side 5 -> 10
+    try std.testing.expectEqual(@as(u4, 10), evaluateComparatorSignal(15, 5, 3, .subtract));
+    // Subtract mode: input 8, max side 10 -> 0 (clamped)
+    try std.testing.expectEqual(@as(u4, 0), evaluateComparatorSignal(8, 10, 0, .subtract));
+}
+
+test "containerComparatorSignal inventory fill levels" {
+    // Empty container
+    try std.testing.expectEqual(@as(u4, 0), containerComparatorSignal(0, 27));
+    // 1 item in large chest (27 slots) -> minimal signal 1
+    try std.testing.expectEqual(@as(u4, 1), containerComparatorSignal(1, 27));
+    // Half full (14/27) -> ~8
+    try std.testing.expectEqual(@as(u4, 8), containerComparatorSignal(14, 27));
+    // Completely full -> 15
+    try std.testing.expectEqual(@as(u4, 15), containerComparatorSignal(27, 27));
 }
