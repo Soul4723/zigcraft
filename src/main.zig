@@ -3387,6 +3387,32 @@ pub fn main() !void {
                         std.debug.print("repeater delay stage 2 ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (interact_mod.toggleTripwireHook(target)) |toggled| {
+                    if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, toggled)) {
+                        if (toggled == .tripwire_hook_on) {
+                            audio.play(.click_on, 0.9);
+                            particles.spawnFlame(hit_f.x, hit_f.y, hit_f.z, 2);
+                        } else {
+                            audio.play(.click_off, 0.7);
+                            particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.6, 0.5, 0.3 }, 3);
+                        }
+                        const adj_offsets = [_][3]i32{
+                            .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 },
+                            .{ 1, 1, 0 }, .{ -1, 1, 0 }, .{ 0, 1, 1 }, .{ 0, 1, -1 },
+                            .{ 0, 1, 0 }, .{ 0, -1, 0 },
+                        };
+                        for (adj_offsets) |off| {
+                            const dx = hit_f.x + off[0];
+                            const dy = hit_f.y + off[1];
+                            const dz = hit_f.z + off[2];
+                            const db = manager.getBlockWorld(dx, dy, dz);
+                            if (interact_mod.toggleDoor(db, toggled == .tripwire_hook_on)) |new_db| {
+                                _ = try manager.editAndRemesh(dx, dy, dz, new_db);
+                            }
+                        }
+                        std.debug.print("toggled tripwire hook to {s} ({d},{d},{d})\n", .{ @tagName(toggled), hit_f.x, hit_f.y, hit_f.z });
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (interact_mod.toggleLever(target)) |toggled| {
                     if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, toggled)) {
                         if (toggled == .lever_on) {

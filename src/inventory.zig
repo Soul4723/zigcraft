@@ -140,6 +140,7 @@ pub const ItemType = enum(u8) {
     soul_lantern = 134,
     chain = 135,
     iron_bars = 136,
+    tripwire_hook = 137,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -232,6 +233,7 @@ pub const ItemType = enum(u8) {
             .soul_lantern => .soul_lantern,
             .chain => .chain,
             .iron_bars => .iron_bars,
+            .tripwire_hook => .tripwire_hook_off,
             else => null,
         };
     }
@@ -330,6 +332,7 @@ pub const ItemType = enum(u8) {
             .soul_lantern => .soul_lantern,
             .chain => .chain,
             .iron_bars => .iron_bars,
+            .tripwire_hook_off, .tripwire_hook_on => .tripwire_hook,
         };
     }
 
@@ -517,6 +520,7 @@ pub const ItemType = enum(u8) {
             .soul_lantern => "Soul Lantern",
             .chain => "Chain",
             .iron_bars => "Iron Bars",
+            .tripwire_hook => "Tripwire Hook",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -595,6 +599,7 @@ pub const ItemType = enum(u8) {
             .soul_lantern => .{ 0.35, 0.75, 0.85, 0.95 },
             .chain => .{ 0.45, 0.45, 0.48, 0.95 },
             .iron_bars => .{ 0.70, 0.70, 0.72, 0.95 },
+            .tripwire_hook => .{ 0.65, 0.50, 0.30, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1143,6 +1148,24 @@ pub const Inventory = struct {
 
 
 
+
+        // Recipe 100: Tripwire Hook: 1 Iron Ingot + 1 Stick + 1 Wood Planks -> 2 Tripwire Hooks
+        if (non_empty == 3) {
+            var iron_count: u8 = 0;
+            var stick_count: u8 = 0;
+            var plank_count: u8 = 0;
+            var other_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .iron_ingot) iron_count += 1
+                else if (sl.item == .stick) stick_count += 1
+                else if (sl.item == .wood_planks) plank_count += 1
+                else if (!sl.isEmpty()) other_count += 1;
+            }
+            if (iron_count == 1 and stick_count == 1 and plank_count == 1 and other_count == 0) {
+                self.craft_output = .{ .item = .tripwire_hook, .count = 2 };
+                return;
+            }
+        }
 
         // Recipe 99: Iron Bars: 2 Iron Ingots + 1 Cobblestone (or 2 Iron Ingots + 1 Sandstone) -> 4 Iron Bars
         if (non_empty == 3) {
@@ -3909,6 +3932,25 @@ test "loom item roundtrip, properties, and Recipe 92" {
     try std.testing.expectEqual(ItemType.loom.maxDurability(), 0);
     try std.testing.expect(!ItemType.loom.isTool());
     try std.testing.expectEqual(ItemType.loom.maxStackSize(), 64);
+}
+
+test "tripwire hook item roundtrip, properties, and Recipe 100" {
+    var inv = Inventory.init();
+    // Recipe 100: 1 Iron Ingot + 1 Stick + 1 Wood Planks -> 2 Tripwire Hooks
+    inv.craft_grid[0] = .{ .item = .iron_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .stick, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .wood_planks, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .tripwire_hook);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+
+    try std.testing.expectEqual(ItemType.tripwire_hook.toBlockId().?, .tripwire_hook_off);
+    try std.testing.expectEqual(ItemType.fromBlockId(.tripwire_hook_off), .tripwire_hook);
+    try std.testing.expectEqual(ItemType.fromBlockId(.tripwire_hook_on), .tripwire_hook);
+    try std.testing.expectEqualStrings(ItemType.tripwire_hook.name(), "Tripwire Hook");
+    try std.testing.expectEqual(ItemType.tripwire_hook.maxDurability(), 0);
+    try std.testing.expect(!ItemType.tripwire_hook.isTool());
+    try std.testing.expectEqual(ItemType.tripwire_hook.maxStackSize(), 64);
 }
 
 test "iron_bars item roundtrip, properties, and Recipe 99" {

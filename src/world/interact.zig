@@ -108,3 +108,17 @@ test "evaluateAnchorInteract charging, spawn setting, and overworld explosion" {
     try std.testing.expectEqual(AnchorAction.no_charge_cannot_set, evaluateAnchorInteract(true, 0, false));
     try std.testing.expectEqual(AnchorAction.no_charge_cannot_set, evaluateAnchorInteract(false, 0, false));
 }
+
+pub fn toggleTripwireHook(hook: block_mod.BlockId) ?block_mod.BlockId {
+    return switch (hook) {
+        .tripwire_hook_off => .tripwire_hook_on,
+        .tripwire_hook_on => .tripwire_hook_off,
+        else => null,
+    };
+}
+
+test "toggleTripwireHook transitions" {
+    try std.testing.expectEqual(block_mod.BlockId.tripwire_hook_on, toggleTripwireHook(.tripwire_hook_off).?);
+    try std.testing.expectEqual(block_mod.BlockId.tripwire_hook_off, toggleTripwireHook(.tripwire_hook_on).?);
+    try std.testing.expectEqual(@as(?block_mod.BlockId, null), toggleTripwireHook(.stone));
+}
