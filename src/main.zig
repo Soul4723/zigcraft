@@ -2338,7 +2338,18 @@ pub fn main() !void {
                             particles.spawnPortalVortex(.{ hit_mob.pos.x, hit_mob.pos.y, hit_mob.pos.z }, 3.5, 48, 0.0);
                             toast.timer = 5.0;
                             toast.color = .{ 1.0, 0.85, 0.20 };
-                            std.debug.print("Ender Dragon Defeated! Victory achieved!\n", .{});
+
+                            // Generate Exit Portal Altar and Dragon Egg trophy at center (0, y, 0)
+                            const exit_y: i32 = 8;
+                            _ = manager.editAndRemesh(0, exit_y, 0, .obsidian) catch false;
+                            _ = manager.editAndRemesh(0, exit_y + 1, 0, .obsidian) catch false;
+                            _ = manager.editAndRemesh(0, exit_y + 2, 0, .dragon_egg) catch false;
+                            // Surround base with horizontal return portal cells
+                            const portal_rim = [_][2]i32{ .{ 1, 0 }, .{ -1, 0 }, .{ 0, 1 }, .{ 0, -1 } };
+                            for (portal_rim) |pr| {
+                                _ = manager.editAndRemesh(pr[0], exit_y, pr[1], .end_portal) catch false;
+                            }
+                            std.debug.print("Ender Dragon Defeated! Exit portal and Dragon Egg generated at (0, {d}, 0)!\n", .{exit_y});
                         }
                         if (hit_mob.wool) _ = inventory.addItem(.wool, 1);
                         std.debug.print("killed {s}, dropped {s}\n", .{ @tagName(hit_mob.mob_type), drop.name() });
@@ -2410,6 +2421,20 @@ pub fn main() !void {
                                         }
                                     }
                                 }
+                                // Dragon Egg right/left click interactive teleportation mechanic
+                                if (broken_block == .dragon_egg) {
+                                    audio.play(.mob_teleport, 1.0);
+                                    particles.spawnPortalParticles(.{ @as(f32, @floatFromInt(hit.x)) + 0.5, @as(f32, @floatFromInt(hit.y)) + 0.5, @as(f32, @floatFromInt(hit.z)) + 0.5 }, 24);
+                                    // Teleport egg to random nearby solid ledge within 5 blocks if player does not pick it up
+                                    const u_key: u64 = @bitCast(mine.key);
+                                    const tx = hit.x + @as(i32, @intCast(u_key & 7)) - 3;
+                                    const tz = hit.z + @as(i32, @intCast((u_key >> 3) & 7)) - 3;
+                                    if (tx != hit.x or tz != hit.z) {
+                                        _ = manager.editAndRemesh(tx, hit.y, tz, .dragon_egg) catch false;
+                                        std.debug.print("Dragon Egg teleported to ({d}, {d}, {d})!\n", .{ tx, hit.y, tz });
+                                    }
+                                }
+
                                 if (tier_ok) {
                                     if (broken_block == .chest) {
                                         if (cache_mod.findChest(&chests, chest_count, hit.x, hit.y, hit.z)) |ci| {

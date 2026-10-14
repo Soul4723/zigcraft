@@ -155,6 +155,7 @@ pub const ItemType = enum(u8) {
     end_stone = 149,
     end_portal_frame = 150,
     end_crystal = 151,
+    dragon_egg = 152,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -252,6 +253,7 @@ pub const ItemType = enum(u8) {
             .end_stone => .end_stone,
             .end_portal_frame => .end_portal_frame,
             .end_crystal => .end_crystal,
+            .dragon_egg => .dragon_egg,
             else => null,
         };
     }
@@ -356,6 +358,7 @@ pub const ItemType = enum(u8) {
             .end_portal_frame, .end_portal_frame_filled => .end_portal_frame,
             .end_portal => .none,
             .end_crystal => .end_crystal,
+            .dragon_egg => .dragon_egg,
         };
     }
 
@@ -558,6 +561,7 @@ pub const ItemType = enum(u8) {
             .end_stone => "End Stone",
             .end_portal_frame => "End Portal Frame",
             .end_crystal => "End Crystal",
+            .dragon_egg => "Dragon Egg",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -651,6 +655,7 @@ pub const ItemType = enum(u8) {
             .end_stone => .{ 0.92, 0.90, 0.65, 0.95 },
             .end_portal_frame => .{ 0.18, 0.42, 0.35, 0.95 },
             .end_crystal => .{ 0.85, 0.30, 0.90, 0.95 },
+            .dragon_egg => .{ 0.22, 0.10, 0.28, 0.98 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -4578,4 +4583,16 @@ test "end crystal item roundtrip and Recipe 111" {
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .end_crystal);
     try std.testing.expectEqual(inv.craft_output.count, 1);
+}
+
+test "dragon egg item roundtrip, drops, and properties" {
+    try std.testing.expectEqual(ItemType.fromBlockId(.dragon_egg), .dragon_egg);
+    try std.testing.expectEqual(ItemType.dragon_egg.toBlockId(), .dragon_egg);
+    try std.testing.expectEqualStrings(ItemType.dragon_egg.name(), "Dragon Egg");
+
+    var drops_buf: [2]BlockDrop = undefined;
+    const n = getBlockDrops(.dragon_egg, &drops_buf);
+    try std.testing.expectEqual(@as(usize, 1), n);
+    try std.testing.expectEqual(drops_buf[0].item, .dragon_egg);
+    try std.testing.expectEqual(drops_buf[0].count, 1);
 }
