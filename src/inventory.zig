@@ -268,6 +268,10 @@ pub const ItemType = enum(u16) {
     leather_chestplate = 262,
     leather_leggings = 263,
     leather_boots = 264,
+    farmland = 265,
+    wheat_seeds = 266,
+    wheat = 267,
+    bread = 268,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -402,6 +406,8 @@ pub const ItemType = enum(u16) {
             .gold_block => .gold_block,
             .diamond_ore => .diamond_ore,
             .diamond_block => .diamond_block,
+            .farmland => .farmland,
+            .wheat_seeds => .wheat_crop,
             else => null,
         };
     }
@@ -543,6 +549,8 @@ pub const ItemType = enum(u16) {
             .gold_block => .gold_block,
             .diamond_ore => .diamond_ore,
             .diamond_block => .diamond_block,
+            .farmland => .dirt,
+            .wheat_crop => .wheat_seeds,
             .piston_head => .piston,
         };
     }
@@ -625,7 +633,7 @@ pub const ItemType = enum(u16) {
 
     pub fn isCompostable(self: ItemType) bool {
         return switch (self) {
-            .leaves, .hay_bale, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp, .sea_pickle, .raw_salmon, .cooked_salmon, .pufferfish, .tropical_fish => true,
+            .leaves, .hay_bale, .wheat_seeds, .wheat, .bread, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp, .sea_pickle, .raw_salmon, .cooked_salmon, .pufferfish, .tropical_fish => true,
             else => false,
         };
     }
@@ -915,6 +923,10 @@ pub const ItemType = enum(u16) {
             .leather_chestplate => "Leather Tunic",
             .leather_leggings => "Leather Pants",
             .leather_boots => "Leather Boots",
+            .farmland => "Farmland",
+            .wheat_seeds => "Wheat Seeds",
+            .wheat => "Wheat",
+            .bread => "Bread",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1121,6 +1133,10 @@ pub const ItemType = enum(u16) {
             .leather_chestplate => .{ 0.60, 0.35, 0.19, 0.95 },
             .leather_leggings => .{ 0.58, 0.33, 0.18, 0.95 },
             .leather_boots => .{ 0.55, 0.31, 0.16, 0.95 },
+            .farmland => .{ 0.45, 0.30, 0.16, 0.95 },
+            .wheat_seeds => .{ 0.48, 0.68, 0.24, 0.95 },
+            .wheat => .{ 0.88, 0.76, 0.28, 0.95 },
+            .bread => .{ 0.82, 0.58, 0.24, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -2000,6 +2016,44 @@ pub const Inventory = struct {
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
                 return;
+            }
+        }
+
+        // Recipe 207: Wheat Seeds: 1 Wheat or 1 Grass -> 2 Wheat Seeds
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| {
+                if (sl.item == .wheat or sl.item == .grass) {
+                    self.craft_output = .{ .item = .wheat_seeds, .count = 2 };
+                    return;
+                }
+            }
+        }
+
+        // Recipe 208: Bread: 3 Wheat in 2x2 grid -> 1 Bread
+        if (non_empty == 3) {
+            var wheat_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .wheat) wheat_cnt += 1;
+            }
+            if (wheat_cnt == 3) {
+                self.craft_output = .{ .item = .bread, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 209: Hay Bale from 4 Wheat (2x2 filled), and 1 Hay Bale -> 4 Wheat
+        if (non_empty == 4) {
+            if (g0 == .wheat and g1 == .wheat and g2 == .wheat and g3 == .wheat) {
+                self.craft_output = .{ .item = .hay_bale, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| {
+                if (sl.item == .hay_bale) {
+                    self.craft_output = .{ .item = .wheat, .count = 4 };
+                    return;
+                }
             }
         }
 
@@ -7946,4 +8000,44 @@ test "wooden sword, leather, and leather armor suit recipes 201-206" {
     p_inv.slots[2] = .{ .item = .leather_leggings, .count = 1 };
     p_inv.slots[3] = .{ .item = .leather_boots, .count = 1 };
     try std.testing.expect(p_inv.hasFullLeatherSet());
+}
+
+test "farmland, wheat_seeds, wheat, and bread items and recipes 207-209" {
+    var inv = Inventory.init();
+
+    // Recipe 207: 1 Wheat -> 2 Wheat Seeds
+    inv.craft_grid[0] = .{ .item = .wheat, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .wheat_seeds);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+
+    // Recipe 208: 3 Wheat -> 1 Bread
+    inv.craft_grid[0] = .{ .item = .wheat, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wheat, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .wheat, .count = 1 };
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .bread);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 209: 4 Wheat -> 1 Hay Bale, 1 Hay Bale -> 4 Wheat
+    inv.craft_grid[3] = .{ .item = .wheat, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .hay_bale);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    inv.craft_grid[0] = .{ .item = .hay_bale, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .wheat);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    try std.testing.expect(ItemType.wheat_seeds.isCompostable());
+    try std.testing.expect(ItemType.wheat.isCompostable());
+    try std.testing.expect(ItemType.bread.isCompostable());
+    try std.testing.expectEqual(ItemType.wheat_seeds.toBlockId().?, .wheat_crop);
+    try std.testing.expectEqual(ItemType.fromBlockId(.farmland), .dirt);
+    try std.testing.expectEqual(ItemType.fromBlockId(.wheat_crop), .wheat_seeds);
 }

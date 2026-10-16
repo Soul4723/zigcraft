@@ -8,6 +8,7 @@ const proj_mod = @import("world/projectile.zig");
 const smelt_mod = @import("world/smelting.zig");
 const boom_mod = @import("world/explosives.zig");
 const sapling_mod = @import("world/sapling.zig");
+const farming_mod = @import("world/farming.zig");
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
 const fluid_mod = @import("world/fluid_wash.zig");
@@ -247,6 +248,8 @@ pub fn main() !void {
     var sprout_count: usize = 0;
     var warts: [sapling_mod.sprout_cap]WartCrop = undefined;
     var wart_count: usize = 0;
+    var wheat_crops: [farming_mod.max_crops]farming_mod.WheatCrop = undefined;
+    var wheat_crop_count: usize = 0;
     const IgnitedFlame = struct { x: i32, y: i32, z: i32, t: f32 };
     var flames: [32]IgnitedFlame = undefined;
     var flame_count: usize = 0;
@@ -1819,6 +1822,30 @@ pub fn main() !void {
             }
         }
 
+        // Tick planted wheat crops: hydrated farmland within 4 blocks of water grows 2x faster
+        var wci: usize = 0;
+        while (wci < wheat_crop_count) : (wci += 1) {
+            var wc = &wheat_crops[wci];
+            if (manager.getBlockWorld(wc.x, wc.y, wc.z) != .wheat_crop) continue;
+            var hydrated = false;
+            var hdx: i32 = -4;
+            while (hdx <= 4 and !hydrated) : (hdx += 1) {
+                var hdz: i32 = -4;
+                while (hdz <= 4 and !hydrated) : (hdz += 1) {
+                    if (manager.getBlockWorld(wc.x + hdx, wc.y - 1, wc.z + hdz) == .water or
+                        manager.getBlockWorld(wc.x + hdx, wc.y, wc.z + hdz) == .water)
+                    {
+                        hydrated = true;
+                    }
+                }
+            }
+            wc.hydrated = hydrated;
+            if (farming_mod.tickCrop(wc, dt)) {
+                particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(wc.x)) + 0.5, @as(f32, @floatFromInt(wc.y)) + 0.5, @as(f32, @floatFromInt(wc.z)) + 0.5 }, 6);
+                std.debug.print("wheat crop matured at ({d},{d},{d})\n", .{ wc.x, wc.y, wc.z });
+            }
+        }
+
         // Burn out fireball-ignited flames after lifetime; player campfires are permanent.
         var flame_i: usize = 0;
         while (flame_i < flame_count) {
@@ -2688,6 +2715,19 @@ pub fn main() !void {
                                     if (broken_block == .nether_wart and !isWartTracked(warts[0..wart_count], hit.x, hit.y, hit.z)) {
                                         _ = inventory.addItem(.nether_wart, sapling_mod.wart_mature_bonus);
                                     }
+                                    if (broken_block == .wheat_crop) {
+                                        const seed_roll: u8 = @intCast(@abs(hit.x +% hit.z) & 0xFF);
+                                        if (farming_mod.findCrop(wheat_crops[0..wheat_crop_count], wheat_crop_count, hit.x, hit.y, hit.z)) |ci| {
+                                            const hy = farming_mod.harvestYield(wheat_crops[ci].stage, seed_roll);
+                                            if (hy.wheat > 0) _ = inventory.addItem(.wheat, hy.wheat);
+                                            if (hy.seeds > 1) _ = inventory.addItem(.wheat_seeds, hy.seeds - 1);
+                                            cache_mod.swapRemove(&wheat_crops, &wheat_crop_count, ci);
+                                        } else {
+                                            const hy = farming_mod.harvestYield(7, seed_roll);
+                                            if (hy.wheat > 0) _ = inventory.addItem(.wheat, hy.wheat);
+                                            if (hy.seeds > 1) _ = inventory.addItem(.wheat_seeds, hy.seeds - 1);
+                                        }
+                                    }
                                     if (broken_block == .leaves) {
                                         const bonus = mining_mod.checkLeafBonuses(hit.x, hit.y, hit.z);
                                         if (bonus.apple) _ = inventory.addItem(.apple, 1);
@@ -2748,7 +2788,38 @@ pub fn main() !void {
                         const pz = hit.z + hit.nz;
                         if (!pickSolid(px, py, pz)) {
                             var hotbar_slot = &inventory.slots[selected_slot];
-                            if (hotbar_slot.item == .nether_wart) {
+                            if (hotbar_slot.item.isHoe() and (manager.getBlockWorld(hit.x, hit.y, hit.z) == .dirt or manager.getBlockWorld(hit.x, hit.y, hit.z) == .grass) and manager.getBlockWorld(hit.x, hit.y + 1, hit.z) == .air) {
+                                if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .farmland)) {
+                                    audio.play(.step_dirt, 0.8);
+                                    particles.spawnBlockDebris(hit.x, hit.y, hit.z, .{ 0.45, 0.30, 0.16 }, 6);
+                                    if (tool_wear.use(selected_slot, hotbar_slot.item.maxDurability())) {
+                                        hotbar_slot.clear();
+                                    }
+                                    std.debug.print("tilled farmland at ({d},{d},{d})\n", .{ hit.x, hit.y, hit.z });
+                                }
+                            } else if (hotbar_slot.item == .bone_meal and manager.getBlockWorld(hit.x, hit.y, hit.z) == .wheat_crop) {
+                                if (farming_mod.findCrop(wheat_crops[0..wheat_crop_count], wheat_crop_count, hit.x, hit.y, hit.z)) |ci| {
+                                    if (farming_mod.applyBoneMeal(&wheat_crops[ci])) {
+                                        hotbar_slot.decrement(1);
+                                        audio.play(.place_block, 0.8);
+                                        particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit.x)) + 0.5, @as(f32, @floatFromInt(hit.y)) + 0.5, @as(f32, @floatFromInt(hit.z)) + 0.5 }, 8);
+                                        std.debug.print("fertilized wheat crop to stage {d}/7\n", .{wheat_crops[ci].stage});
+                                    }
+                                }
+                            } else if (hotbar_slot.item == .wheat_seeds) {
+                                const soil = manager.getBlockWorld(hit.x, hit.y, hit.z);
+                                if (soil == .farmland and hit.ny == 1) {
+                                    if (try manager.editAndRemesh(px, py, pz, .wheat_crop)) {
+                                        audio.play(.place_block, 0.7);
+                                        hotbar_slot.decrement(1);
+                                        if (wheat_crop_count < wheat_crops.len) {
+                                            wheat_crops[wheat_crop_count] = .{ .x = px, .y = py, .z = pz };
+                                            wheat_crop_count += 1;
+                                        }
+                                        std.debug.print("planted wheat seeds at ({d},{d},{d})\n", .{ px, py, pz });
+                                    }
+                                }
+                            } else if (hotbar_slot.item == .nether_wart) {
                                 const soil = manager.getBlockWorld(hit.x, hit.y, hit.z);
                                 if (sapling_mod.canPlantWart(soil, hit.ny)) {
                                     if (try manager.editAndRemesh(px, py, pz, .nether_wart)) {
@@ -5503,6 +5574,11 @@ pub fn main() !void {
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.8);
                 std.debug.print("ate golden apple (hp={d:.1})\n", .{player.health});
+            } else if (held_eat.item == .bread and player.hunger < 20.0) {
+                player.hunger = @min(20.0, player.hunger + 5.0);
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.8);
+                std.debug.print("ate freshly baked bread (hunger={d:.1})\n", .{player.hunger});
             } else if (held_eat.item == .dried_kelp and player.hunger < 20.0) {
                 player.hunger = @min(20.0, player.hunger + 1.0);
                 inventory.slots[selected_slot].decrement(1);
