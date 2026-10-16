@@ -57,6 +57,9 @@ zigcraft/
 │       ├── wind_charge.zig      # Wind Charge self-boost rocket jump & radial knockback impulse
 │       ├── mace_combat.zig      # Mace smash attack fall-velocity damage scaling & fall reset
 │       ├── autocrafter.zig      # Crafter batch autocrafting & Trial Vault key loot tables
+│       ├── calibrated_sculk.zig # Calibrated sculk sensor acoustic frequency filtering & resonance
+│       ├── frog.zig             # Frog predation drops, froglight variants & lily pad jump velocity
+│       ├── goat_horn.zig        # Goat horn 64m acoustic broadcast, cooldown & ramming impulse
 │       └── persistence.zig      # Binary chunk serialization
 └── docs/
     ├── STATUS.md                # Real-time state of the project
