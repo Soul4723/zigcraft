@@ -2,7 +2,7 @@ const std = @import("std");
 const block_mod = @import("world/block.zig");
 pub const BlockId = block_mod.BlockId;
 
-pub const ItemType = enum(u8) {
+pub const ItemType = enum(u16) {
     none = 0,
     stone = 1,
     dirt = 2,
@@ -257,6 +257,35 @@ pub const ItemType = enum(u8) {
     stone_axe = 251,
     stone_shovel = 252,
     stone_hoe = 253,
+    golden_sword = 254,
+    golden_pickaxe = 255,
+    golden_axe = 256,
+    golden_shovel = 257,
+    golden_hoe = 258,
+    wooden_sword = 259,
+    leather = 260,
+    leather_helmet = 261,
+    leather_chestplate = 262,
+    leather_leggings = 263,
+    leather_boots = 264,
+    farmland = 265,
+    wheat_seeds = 266,
+    wheat = 267,
+    bread = 268,
+    paper = 269,
+    book = 270,
+    bookshelf = 271,
+    lectern = 272,
+    emerald = 273,
+    emerald_ore = 274,
+    emerald_block = 275,
+    lapis_lazuli = 276,
+    lapis_ore = 277,
+    lapis_block = 278,
+    honeycomb = 279,
+    honey_bottle = 280,
+    beehive = 281,
+    honey_block = 282,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -391,6 +420,16 @@ pub const ItemType = enum(u8) {
             .gold_block => .gold_block,
             .diamond_ore => .diamond_ore,
             .diamond_block => .diamond_block,
+            .farmland => .farmland,
+            .wheat_seeds => .wheat_crop,
+            .bookshelf => .bookshelf,
+            .lectern => .lectern,
+            .emerald_ore => .emerald_ore,
+            .emerald_block => .emerald_block,
+            .lapis_ore => .lapis_ore,
+            .lapis_block => .lapis_block,
+            .beehive => .beehive,
+            .honey_block => .honey_block,
             else => null,
         };
     }
@@ -532,6 +571,16 @@ pub const ItemType = enum(u8) {
             .gold_block => .gold_block,
             .diamond_ore => .diamond_ore,
             .diamond_block => .diamond_block,
+            .farmland => .dirt,
+            .wheat_crop => .wheat_seeds,
+            .bookshelf => .bookshelf,
+            .lectern => .lectern,
+            .emerald_ore => .emerald_ore,
+            .emerald_block => .emerald_block,
+            .lapis_ore => .lapis_ore,
+            .lapis_block => .lapis_block,
+            .beehive => .beehive,
+            .honey_block => .honey_block,
             .piston_head => .piston,
         };
     }
@@ -539,7 +588,7 @@ pub const ItemType = enum(u8) {
 
     pub fn isArmor(self: ItemType) bool {
         return switch (self) {
-            .netherite_helmet, .turtle_helmet, .netherite_chestplate, .elytra, .netherite_leggings, .netherite_boots, .soul_speed_boots, .dragon_head, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots => true,
+            .netherite_helmet, .turtle_helmet, .netherite_chestplate, .elytra, .netherite_leggings, .netherite_boots, .soul_speed_boots, .dragon_head, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots => true,
             else => false,
         };
     }
@@ -568,6 +617,16 @@ pub const ItemType = enum(u8) {
             .stone_axe => 131,
             .stone_shovel => 131,
             .stone_hoe => 131,
+            .golden_sword => 32,
+            .golden_pickaxe => 32,
+            .golden_axe => 32,
+            .golden_shovel => 32,
+            .golden_hoe => 32,
+            .wooden_sword => 59,
+            .leather_helmet => 55,
+            .leather_chestplate => 80,
+            .leather_leggings => 75,
+            .leather_boots => 65,
             .flint_and_steel => 64,
             .wooden_axe => 25,
             .iron_axe => 120,
@@ -604,14 +663,14 @@ pub const ItemType = enum(u8) {
 
     pub fn isCompostable(self: ItemType) bool {
         return switch (self) {
-            .leaves, .hay_bale, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp, .sea_pickle, .raw_salmon, .cooked_salmon, .pufferfish, .tropical_fish => true,
+            .leaves, .hay_bale, .wheat_seeds, .wheat, .bread, .paper, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp, .sea_pickle, .raw_salmon, .cooked_salmon, .pufferfish, .tropical_fish => true,
             else => false,
         };
     }
 
     
     pub fn isHoe(self: ItemType) bool {
-        return self == .wooden_hoe or self == .stone_hoe or self == .iron_hoe or self == .diamond_hoe or self == .netherite_hoe;
+        return self == .wooden_hoe or self == .stone_hoe or self == .golden_hoe or self == .iron_hoe or self == .diamond_hoe or self == .netherite_hoe;
     }
 
     pub fn isShears(self: ItemType) bool {
@@ -625,8 +684,8 @@ pub const ItemType = enum(u8) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea => 16,
-            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .stone_sword, .stone_pickaxe, .stone_axe, .stone_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart => 1,
+            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle => 16,
+            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart => 1,
             else => 64,
         };
     }
@@ -883,6 +942,35 @@ pub const ItemType = enum(u8) {
             .stone_axe => "Stone Axe",
             .stone_shovel => "Stone Shovel",
             .stone_hoe => "Stone Hoe",
+            .golden_sword => "Golden Sword",
+            .golden_pickaxe => "Golden Pickaxe",
+            .golden_axe => "Golden Axe",
+            .golden_shovel => "Golden Shovel",
+            .golden_hoe => "Golden Hoe",
+            .wooden_sword => "Wooden Sword",
+            .leather => "Leather",
+            .leather_helmet => "Leather Cap",
+            .leather_chestplate => "Leather Tunic",
+            .leather_leggings => "Leather Pants",
+            .leather_boots => "Leather Boots",
+            .farmland => "Farmland",
+            .wheat_seeds => "Wheat Seeds",
+            .wheat => "Wheat",
+            .bread => "Bread",
+            .paper => "Paper",
+            .book => "Book",
+            .bookshelf => "Bookshelf",
+            .lectern => "Lectern",
+            .emerald => "Emerald",
+            .emerald_ore => "Emerald Ore",
+            .emerald_block => "Block of Emerald",
+            .lapis_lazuli => "Lapis Lazuli",
+            .lapis_ore => "Lapis Lazuli Ore",
+            .lapis_block => "Block of Lapis Lazuli",
+            .honeycomb => "Honeycomb",
+            .honey_bottle => "Honey Bottle",
+            .beehive => "Beehive",
+            .honey_block => "Honey Block",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1078,6 +1166,35 @@ pub const ItemType = enum(u8) {
             .stone_axe => .{ 0.60, 0.60, 0.62, 0.95 },
             .stone_shovel => .{ 0.63, 0.63, 0.65, 0.95 },
             .stone_hoe => .{ 0.58, 0.58, 0.60, 0.95 },
+            .golden_sword => .{ 0.96, 0.82, 0.18, 0.95 },
+            .golden_pickaxe => .{ 0.94, 0.80, 0.16, 0.95 },
+            .golden_axe => .{ 0.92, 0.78, 0.15, 0.95 },
+            .golden_shovel => .{ 0.95, 0.81, 0.17, 0.95 },
+            .golden_hoe => .{ 0.90, 0.76, 0.14, 0.95 },
+            .wooden_sword => .{ 0.76, 0.58, 0.34, 0.95 },
+            .leather => .{ 0.62, 0.36, 0.20, 0.95 },
+            .leather_helmet => .{ 0.65, 0.38, 0.22, 0.95 },
+            .leather_chestplate => .{ 0.60, 0.35, 0.19, 0.95 },
+            .leather_leggings => .{ 0.58, 0.33, 0.18, 0.95 },
+            .leather_boots => .{ 0.55, 0.31, 0.16, 0.95 },
+            .farmland => .{ 0.45, 0.30, 0.16, 0.95 },
+            .wheat_seeds => .{ 0.48, 0.68, 0.24, 0.95 },
+            .wheat => .{ 0.88, 0.76, 0.28, 0.95 },
+            .bread => .{ 0.82, 0.58, 0.24, 0.95 },
+            .paper => .{ 0.94, 0.93, 0.88, 0.95 },
+            .book => .{ 0.65, 0.38, 0.22, 0.95 },
+            .bookshelf => .{ 0.68, 0.48, 0.26, 0.95 },
+            .lectern => .{ 0.72, 0.54, 0.30, 0.95 },
+            .emerald => .{ 0.15, 0.85, 0.38, 0.95 },
+            .emerald_ore => .{ 0.35, 0.68, 0.42, 0.95 },
+            .emerald_block => .{ 0.18, 0.90, 0.42, 0.95 },
+            .lapis_lazuli => .{ 0.16, 0.32, 0.85, 0.95 },
+            .lapis_ore => .{ 0.28, 0.42, 0.78, 0.95 },
+            .lapis_block => .{ 0.14, 0.28, 0.88, 0.95 },
+            .honeycomb => .{ 0.96, 0.72, 0.18, 0.95 },
+            .honey_bottle => .{ 0.98, 0.76, 0.20, 0.95 },
+            .beehive => .{ 0.78, 0.62, 0.34, 0.95 },
+            .honey_block => .{ 0.98, 0.74, 0.16, 0.85 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1220,6 +1337,13 @@ pub const Inventory = struct {
         return &self.slots[index];
     }
 
+    pub fn hasFullLeatherSet(self: *const Inventory) bool {
+        return self.hasItem(.leather_helmet) and
+               self.hasItem(.leather_chestplate) and
+               self.hasItem(.leather_leggings) and
+               self.hasItem(.leather_boots);
+    }
+
     pub fn hasFullGoldenSet(self: *const Inventory) bool {
         return self.hasItem(.golden_helmet) and
                self.hasItem(.golden_chestplate) and
@@ -1232,6 +1356,18 @@ pub const Inventory = struct {
                self.hasItem(.golden_chestplate) or
                self.hasItem(.golden_leggings) or
                self.hasItem(.golden_boots);
+    }
+
+    pub fn hasAnyGoldenItem(self: *const Inventory) bool {
+        return self.hasAnyGoldenArmor() or
+               self.hasItem(.gold_nugget) or
+               self.hasItem(.golden_apple) or
+               self.hasItem(.gold_block) or
+               self.hasItem(.golden_sword) or
+               self.hasItem(.golden_pickaxe) or
+               self.hasItem(.golden_axe) or
+               self.hasItem(.golden_shovel) or
+               self.hasItem(.golden_hoe);
     }
 
     pub fn hasFullIronSet(self: *const Inventory) bool {
@@ -1937,6 +2073,278 @@ pub const Inventory = struct {
             }
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 216 & 217: Block of Lapis Lazuli (4 Lapis -> 1 Block) & Unpack (1 Block -> 4 Lapis)
+        if (non_empty == 4) {
+            if (g0 == .lapis_lazuli and g1 == .lapis_lazuli and g2 == .lapis_lazuli and g3 == .lapis_lazuli) {
+                self.craft_output = .{ .item = .lapis_block, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| {
+                if (sl.item == .lapis_block) {
+                    self.craft_output = .{ .item = .lapis_lazuli, .count = 4 };
+                    return;
+                }
+            }
+        }
+
+        // Recipe 218: Beehive: 2 Honeycomb + 2 Wood Planks (4 items) -> 1 Beehive
+        if (non_empty == 4) {
+            var comb_cnt: u8 = 0;
+            var plank_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .honeycomb) comb_cnt += 1;
+                if (sl.item == .wood_planks) plank_cnt += 1;
+            }
+            if (comb_cnt == 2 and plank_cnt == 2) {
+                self.craft_output = .{ .item = .beehive, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 219 & 220: Honey Block (4 Honey Bottles -> 1 Honey Block) & Unpack (1 Honey Block + 1..3 Glass -> 4 Honey Bottles)
+        if (non_empty == 4) {
+            if (g0 == .honey_bottle and g1 == .honey_bottle and g2 == .honey_bottle and g3 == .honey_bottle) {
+                self.craft_output = .{ .item = .honey_block, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty >= 2 and non_empty <= 4) {
+            var hb_cnt: u8 = 0;
+            var glass_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .honey_block) hb_cnt += 1;
+                if (sl.item == .glass) glass_cnt += 1;
+            }
+            if (hb_cnt == 1 and glass_cnt >= 1 and (hb_cnt + glass_cnt == non_empty)) {
+                self.craft_output = .{ .item = .honey_bottle, .count = 4 };
+                return;
+            }
+        }
+
+        // Recipe 210: Paper: 2 Wheat or 2 Kelp horizontally -> 3 Paper
+        if (non_empty == 2) {
+            if (((g0 == .wheat and g1 == .wheat) or (g0 == .kelp and g1 == .kelp)) and g2 == .none and g3 == .none) {
+                self.craft_output = .{ .item = .paper, .count = 3 };
+                return;
+            }
+            if (((g2 == .wheat and g3 == .wheat) or (g2 == .kelp and g3 == .kelp)) and g0 == .none and g1 == .none) {
+                self.craft_output = .{ .item = .paper, .count = 3 };
+                return;
+            }
+        }
+
+        // Recipe 211: Book: 2..3 Paper + 1 Leather -> 1 Book
+        if (non_empty >= 3 and non_empty <= 4) {
+            var paper_cnt: u8 = 0;
+            var leather_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .paper) paper_cnt += 1;
+                if (sl.item == .leather) leather_cnt += 1;
+            }
+            if (paper_cnt >= 2 and leather_cnt == 1 and (paper_cnt + leather_cnt == non_empty)) {
+                self.craft_output = .{ .item = .book, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 212: Bookshelf: 2 Books + 2 Wood Planks (4 items) -> 1 Bookshelf
+        if (non_empty == 4) {
+            var book_cnt: u8 = 0;
+            var plank_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .book) book_cnt += 1;
+                if (sl.item == .wood_planks) plank_cnt += 1;
+            }
+            if (book_cnt == 2 and plank_cnt == 2) {
+                self.craft_output = .{ .item = .bookshelf, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 213: Lectern: 1 Bookshelf + 1..3 Wood Planks -> 1 Lectern
+        if (non_empty >= 2 and non_empty <= 4) {
+            var shelf_cnt: u8 = 0;
+            var plank_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .bookshelf) shelf_cnt += 1;
+                if (sl.item == .wood_planks) plank_cnt += 1;
+            }
+            if (shelf_cnt == 1 and plank_cnt >= 1 and (shelf_cnt + plank_cnt == non_empty)) {
+                self.craft_output = .{ .item = .lectern, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 214 & 215: Block of Emerald (4 Emeralds -> 1 Block of Emerald) & Unpack (1 Block of Emerald -> 4 Emeralds)
+        if (non_empty == 4) {
+            if (g0 == .emerald and g1 == .emerald and g2 == .emerald and g3 == .emerald) {
+                self.craft_output = .{ .item = .emerald_block, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| {
+                if (sl.item == .emerald_block) {
+                    self.craft_output = .{ .item = .emerald, .count = 4 };
+                    return;
+                }
+            }
+        }
+
+        // Recipe 207: Wheat Seeds: 1 Wheat or 1 Grass -> 2 Wheat Seeds
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| {
+                if (sl.item == .wheat or sl.item == .grass) {
+                    self.craft_output = .{ .item = .wheat_seeds, .count = 2 };
+                    return;
+                }
+            }
+        }
+
+        // Recipe 208: Bread: 3 Wheat in 2x2 grid -> 1 Bread
+        if (non_empty == 3) {
+            var wheat_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .wheat) wheat_cnt += 1;
+            }
+            if (wheat_cnt == 3) {
+                self.craft_output = .{ .item = .bread, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 209: Hay Bale from 4 Wheat (2x2 filled), and 1 Hay Bale -> 4 Wheat
+        if (non_empty == 4) {
+            if (g0 == .wheat and g1 == .wheat and g2 == .wheat and g3 == .wheat) {
+                self.craft_output = .{ .item = .hay_bale, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| {
+                if (sl.item == .hay_bale) {
+                    self.craft_output = .{ .item = .wheat, .count = 4 };
+                    return;
+                }
+            }
+        }
+
+        // Recipe 201: Wooden Sword: 1 Wood Planks + 1 Stick (diagonal) or 2 bottom Wood Planks + 1 top Stick -> 1 Wooden Sword
+        if (non_empty == 2) {
+            if ((g0 == .wood_planks and g3 == .stick and g1 == .none and g2 == .none) or
+                (g1 == .wood_planks and g2 == .stick and g0 == .none and g3 == .none))
+            {
+                self.craft_output = .{ .item = .wooden_sword, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 3) {
+            if (g2 == .wood_planks and g3 == .wood_planks and (g0 == .stick or g1 == .stick)) {
+                self.craft_output = .{ .item = .wooden_sword, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 202: Leather tanning: 4 Rotten Flesh (2x2 filled) -> 1 Leather
+        if (non_empty == 4) {
+            if (g0 == .rotten_flesh and g1 == .rotten_flesh and g2 == .rotten_flesh and g3 == .rotten_flesh) {
+                self.craft_output = .{ .item = .leather, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 203: Leather Cap: 2 Leather horizontally -> 1 Leather Cap
+        if (non_empty == 2) {
+            if ((g0 == .leather and g1 == .leather and g2 == .none and g3 == .none) or
+                (g2 == .leather and g3 == .leather and g0 == .none and g1 == .none))
+            {
+                self.craft_output = .{ .item = .leather_helmet, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 204: Leather Tunic: 4 Leather (2x2 filled) -> 1 Leather Tunic
+        if (non_empty == 4) {
+            if (g0 == .leather and g1 == .leather and g2 == .leather and g3 == .leather) {
+                self.craft_output = .{ .item = .leather_chestplate, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 205: Leather Pants: 3 Leather in 2x2 grid -> 1 Leather Pants
+        if (non_empty == 3) {
+            var leather_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .leather) leather_cnt += 1;
+            }
+            if (leather_cnt == 3) {
+                self.craft_output = .{ .item = .leather_leggings, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 206: Leather Boots: 2 Leather vertically -> 1 Leather Boots
+        if (non_empty == 2) {
+            if ((g0 == .leather and g2 == .leather and g1 == .none and g3 == .none) or
+                (g1 == .leather and g3 == .leather and g0 == .none and g2 == .none))
+            {
+                self.craft_output = .{ .item = .leather_boots, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 196: Golden Sword: 1 Gold Nugget + 1 Stick (vertical) -> 1 Golden Sword
+        if (non_empty == 2) {
+            if ((g0 == .gold_nugget and g2 == .stick and g1 == .none and g3 == .none) or
+                (g1 == .gold_nugget and g3 == .stick and g0 == .none and g2 == .none))
+            {
+                self.craft_output = .{ .item = .golden_sword, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 197: Golden Pickaxe: top row 2 Gold Nuggets + stick below -> 1 Golden Pickaxe
+        if (non_empty == 3) {
+            if (g0 == .gold_nugget and g1 == .gold_nugget and (g2 == .stick or g3 == .stick)) {
+                self.craft_output = .{ .item = .golden_pickaxe, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 198: Golden Axe: 1 Gold Nugget + 1 Wood Log -> 1 Golden Axe
+        if (non_empty == 2) {
+            if ((g0 == .gold_nugget and g1 == .wood and g2 == .none and g3 == .none) or
+                (g2 == .gold_nugget and g3 == .wood and g0 == .none and g1 == .none) or
+                (g0 == .wood and g1 == .gold_nugget and g2 == .none and g3 == .none) or
+                (g2 == .wood and g3 == .gold_nugget and g0 == .none and g1 == .none))
+            {
+                self.craft_output = .{ .item = .golden_axe, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 199: Golden Shovel: 1 Gold Nugget + 1 Wood Planks -> 1 Golden Shovel
+        if (non_empty == 2) {
+            if ((g0 == .gold_nugget and g2 == .wood_planks and g1 == .none and g3 == .none) or
+                (g1 == .gold_nugget and g3 == .wood_planks and g0 == .none and g2 == .none))
+            {
+                self.craft_output = .{ .item = .golden_shovel, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 200: Golden Hoe: 1 Gold Nugget + 1 Stick (horizontal) -> 1 Golden Hoe
+        if (non_empty == 2) {
+            if ((g0 == .gold_nugget and g1 == .stick and g2 == .none and g3 == .none) or
+                (g2 == .gold_nugget and g3 == .stick and g0 == .none and g1 == .none))
+            {
+                self.craft_output = .{ .item = .golden_hoe, .count = 1 };
                 return;
             }
         }
@@ -4150,12 +4558,13 @@ test "cactus item mapping and conversion" {
 }
 
 pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
+    if (block == .cobweb and (held == .wooden_sword or held == .stone_sword or held == .golden_sword or held == .iron_sword or held == .diamond_sword or held == .netherite_sword or held == .shears)) return true;
     const need = block_mod.requiredTier(block);
     if (need == .hand) return true;
-    return held == .wooden_pickaxe or held == .stone_pickaxe or held == .iron_pickaxe or held == .diamond_pickaxe or held == .netherite_pickaxe or
-           held == .wooden_axe or held == .stone_axe or held == .iron_axe or held == .diamond_axe or held == .netherite_axe or
-           held == .wooden_shovel or held == .stone_shovel or held == .iron_shovel or held == .diamond_shovel or held == .netherite_shovel or
-           held == .wooden_hoe or held == .stone_hoe or held == .iron_hoe or held == .diamond_hoe or held == .netherite_hoe or held == .shears;
+    return held == .wooden_pickaxe or held == .stone_pickaxe or held == .golden_pickaxe or held == .iron_pickaxe or held == .diamond_pickaxe or held == .netherite_pickaxe or
+           held == .wooden_axe or held == .stone_axe or held == .golden_axe or held == .iron_axe or held == .diamond_axe or held == .netherite_axe or
+           held == .wooden_shovel or held == .stone_shovel or held == .golden_shovel or held == .iron_shovel or held == .diamond_shovel or held == .netherite_shovel or
+           held == .wooden_hoe or held == .stone_hoe or held == .golden_hoe or held == .iron_hoe or held == .diamond_hoe or held == .netherite_hoe or held == .shears;
 }
 
 pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, cave_spider, skeleton, zombie, creeper, enderman, ender_dragon, shulker, endermite, turtle, drowned, phantom, guardian, elder_guardian, dolphin, slime };
@@ -4300,6 +4709,15 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         out[0] = .{ .item = .blackstone, .count = 1 };
         out[1] = .{ .item = .gold_nugget, .count = 2 };
         return 2;
+    } else if (block == .bookshelf) {
+        out[0] = .{ .item = .book, .count = 3 };
+        return 1;
+    } else if (block == .lapis_ore) {
+        out[0] = .{ .item = .lapis_lazuli, .count = 4 };
+        return 1;
+    } else if (block == .emerald_ore) {
+        out[0] = .{ .item = .emerald, .count = 1 };
+        return 1;
     } else if (block == .diamond_ore) {
         out[0] = .{ .item = .diamond, .count = 1 };
         return 1;
@@ -7631,4 +8049,288 @@ test "stone tool items, durabilities, tool classification, and recipes 191-195" 
     try std.testing.expect(canHarvestBlock(.stone_axe, .wood));
     try std.testing.expect(canHarvestBlock(.stone_shovel, .dirt));
     try std.testing.expect(canHarvestBlock(.stone_hoe, .leaves));
+}
+
+test "golden tool items, durabilities, tool classification, recipes 196-200, and hasAnyGoldenItem" {
+    var inv = Inventory.init();
+
+    // Recipe 196: 1 Gold Nugget + 1 Stick (vertical) -> 1 Golden Sword
+    inv.craft_grid[0] = .{ .item = .gold_nugget, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .stick, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .golden_sword);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 197: 2 Gold Nuggets + 1 Stick -> 1 Golden Pickaxe
+    inv.craft_grid[0] = .{ .item = .gold_nugget, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .gold_nugget, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .stick, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .golden_pickaxe);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 198: 1 Gold Nugget + 1 Wood Log -> 1 Golden Axe
+    inv.craft_grid[0] = .{ .item = .gold_nugget, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wood, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .golden_axe);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 199: 1 Gold Nugget + 1 Wood Planks -> 1 Golden Shovel
+    inv.craft_grid[0] = .{ .item = .gold_nugget, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{ .item = .wood_planks, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .golden_shovel);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 200: 1 Gold Nugget + 1 Stick (horizontal) -> 1 Golden Hoe
+    inv.craft_grid[0] = .{ .item = .gold_nugget, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .stick, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .golden_hoe);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Tool classification and durabilities
+    try std.testing.expect(ItemType.golden_sword.isTool());
+    try std.testing.expect(ItemType.golden_pickaxe.isTool());
+    try std.testing.expect(ItemType.golden_axe.isTool());
+    try std.testing.expect(ItemType.golden_shovel.isTool());
+    try std.testing.expect(ItemType.golden_hoe.isTool());
+    try std.testing.expect(ItemType.golden_hoe.isHoe());
+
+    try std.testing.expectEqual(ItemType.golden_sword.maxDurability(), 32);
+    try std.testing.expectEqual(ItemType.golden_pickaxe.maxDurability(), 32);
+    try std.testing.expectEqual(ItemType.golden_axe.maxDurability(), 32);
+    try std.testing.expectEqual(ItemType.golden_shovel.maxDurability(), 32);
+    try std.testing.expectEqual(ItemType.golden_hoe.maxDurability(), 32);
+
+    try std.testing.expectEqual(ItemType.golden_sword.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.golden_pickaxe.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.golden_axe.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.golden_shovel.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.golden_hoe.maxStackSize(), 1);
+
+    // Harvesting permissions
+    try std.testing.expect(canHarvestBlock(.golden_pickaxe, .stone));
+    try std.testing.expect(canHarvestBlock(.golden_axe, .wood));
+    try std.testing.expect(canHarvestBlock(.golden_shovel, .dirt));
+    try std.testing.expect(canHarvestBlock(.golden_hoe, .leaves));
+
+    // hasAnyGoldenItem checks
+    var player_inv = Inventory.init();
+    try std.testing.expect(!player_inv.hasAnyGoldenItem());
+    player_inv.slots[0] = .{ .item = .golden_sword, .count = 1 };
+    try std.testing.expect(player_inv.hasAnyGoldenItem());
+}
+
+test "wooden sword, leather, and leather armor suit recipes 201-206" {
+    var inv = Inventory.init();
+
+    // Recipe 201: 1 Wood Planks + 1 Stick (diagonal) -> 1 Wooden Sword
+    inv.craft_grid[0] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .stick, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .wooden_sword);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 202: 4 Rotten Flesh -> 1 Leather
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .rotten_flesh, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .leather);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 203: 2 Leather horizontally -> 1 Leather Cap
+    inv.craft_grid[0] = .{ .item = .leather, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .leather, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .leather_helmet);
+
+    // Recipe 204: 4 Leather -> 1 Leather Tunic
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .leather, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .leather_chestplate);
+
+    // Recipe 205: 3 Leather -> 1 Leather Pants
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .leather_leggings);
+
+    // Recipe 206: 2 Leather vertically -> 1 Leather Boots
+    inv.craft_grid[0] = .{ .item = .leather, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{ .item = .leather, .count = 1 };
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .leather_boots);
+
+    try std.testing.expect(ItemType.wooden_sword.isTool());
+    try std.testing.expectEqual(ItemType.wooden_sword.maxDurability(), 59);
+    try std.testing.expect(ItemType.leather_helmet.isArmor());
+    try std.testing.expect(ItemType.leather_chestplate.isArmor());
+    try std.testing.expect(ItemType.leather_leggings.isArmor());
+    try std.testing.expect(ItemType.leather_boots.isArmor());
+    try std.testing.expectEqual(ItemType.leather_helmet.maxDurability(), 55);
+    try std.testing.expectEqual(ItemType.leather_chestplate.maxDurability(), 80);
+    try std.testing.expectEqual(ItemType.leather_leggings.maxDurability(), 75);
+    try std.testing.expectEqual(ItemType.leather_boots.maxDurability(), 65);
+    try std.testing.expect(canHarvestBlock(.wooden_sword, .cobweb));
+
+    var p_inv = Inventory.init();
+    try std.testing.expect(!p_inv.hasFullLeatherSet());
+    p_inv.slots[0] = .{ .item = .leather_helmet, .count = 1 };
+    p_inv.slots[1] = .{ .item = .leather_chestplate, .count = 1 };
+    p_inv.slots[2] = .{ .item = .leather_leggings, .count = 1 };
+    p_inv.slots[3] = .{ .item = .leather_boots, .count = 1 };
+    try std.testing.expect(p_inv.hasFullLeatherSet());
+}
+
+test "farmland, wheat_seeds, wheat, and bread items and recipes 207-209" {
+    var inv = Inventory.init();
+
+    // Recipe 207: 1 Wheat -> 2 Wheat Seeds
+    inv.craft_grid[0] = .{ .item = .wheat, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .wheat_seeds);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+
+    // Recipe 208: 3 Wheat -> 1 Bread
+    inv.craft_grid[0] = .{ .item = .wheat, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wheat, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .wheat, .count = 1 };
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .bread);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 209: 4 Wheat -> 1 Hay Bale, 1 Hay Bale -> 4 Wheat
+    inv.craft_grid[3] = .{ .item = .wheat, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .hay_bale);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    inv.craft_grid[0] = .{ .item = .hay_bale, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .wheat);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    try std.testing.expect(ItemType.wheat_seeds.isCompostable());
+    try std.testing.expect(ItemType.wheat.isCompostable());
+    try std.testing.expect(ItemType.bread.isCompostable());
+    try std.testing.expectEqual(ItemType.wheat_seeds.toBlockId().?, .wheat_crop);
+    try std.testing.expectEqual(ItemType.fromBlockId(.farmland), .dirt);
+    try std.testing.expectEqual(ItemType.fromBlockId(.wheat_crop), .wheat_seeds);
+}
+
+test "paper, book, bookshelf, lectern, and emerald items, drops, and recipes 210-215" {
+    var inv = Inventory.init();
+
+    // Recipe 210: 2 Wheat horizontally -> 3 Paper
+    inv.craft_grid[0] = .{ .item = .wheat, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wheat, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .paper);
+    try std.testing.expectEqual(inv.craft_output.count, 3);
+
+    // Recipe 211: 2 Paper + 1 Leather -> 1 Book
+    inv.craft_grid[0] = .{ .item = .paper, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .paper, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .leather, .count = 1 };
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .book);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 212: 2 Books + 2 Wood Planks -> 1 Bookshelf
+    inv.craft_grid[0] = .{ .item = .book, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .book, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .wood_planks, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .bookshelf);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 213: 1 Bookshelf + 1 Wood Planks -> 1 Lectern
+    inv.craft_grid[0] = .{ .item = .bookshelf, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .lectern);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 214 & 215: 4 Emeralds <-> 1 Block of Emerald
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .emerald, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .emerald_block);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    inv.craft_grid[0] = .{ .item = .emerald_block, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .emerald);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    var drops: [2]BlockDrop = undefined;
+    try std.testing.expectEqual(getBlockDrops(.bookshelf, &drops), 1);
+    try std.testing.expectEqual(drops[0].item, .book);
+    try std.testing.expectEqual(drops[0].count, 3);
+    try std.testing.expectEqual(getBlockDrops(.emerald_ore, &drops), 1);
+    try std.testing.expectEqual(drops[0].item, .emerald);
+    try std.testing.expectEqual(drops[0].count, 1);
+}
+
+test "lapis lazuli, beehive, honeycomb, honey bottle, and honey block recipes 216-220" {
+    var inv = Inventory.init();
+
+    // Recipe 216 & 217: 4 Lapis <-> 1 Block of Lapis
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .lapis_lazuli, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .lapis_block);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    inv.craft_grid[0] = .{ .item = .lapis_block, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .lapis_lazuli);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    // Recipe 218: 2 Honeycomb + 2 Wood Planks -> 1 Beehive
+    inv.craft_grid[0] = .{ .item = .honeycomb, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .honeycomb, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .wood_planks, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .beehive);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 219 & 220: 4 Honey Bottles <-> 1 Honey Block
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .honey_bottle, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .honey_block);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    inv.craft_grid[0] = .{ .item = .honey_block, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .honey_bottle);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    var drops: [2]BlockDrop = undefined;
+    try std.testing.expectEqual(getBlockDrops(.lapis_ore, &drops), 1);
+    try std.testing.expectEqual(drops[0].item, .lapis_lazuli);
+    try std.testing.expectEqual(drops[0].count, 4);
 }

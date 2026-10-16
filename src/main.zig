@@ -8,6 +8,9 @@ const proj_mod = @import("world/projectile.zig");
 const smelt_mod = @import("world/smelting.zig");
 const boom_mod = @import("world/explosives.zig");
 const sapling_mod = @import("world/sapling.zig");
+const farming_mod = @import("world/farming.zig");
+const trading_mod = @import("world/trading.zig");
+const apiary_mod = @import("world/apiary.zig");
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
 const fluid_mod = @import("world/fluid_wash.zig");
@@ -247,6 +250,12 @@ pub fn main() !void {
     var sprout_count: usize = 0;
     var warts: [sapling_mod.sprout_cap]WartCrop = undefined;
     var wart_count: usize = 0;
+    var wheat_crops: [farming_mod.max_crops]farming_mod.WheatCrop = undefined;
+    var wheat_crop_count: usize = 0;
+    var trades_completed: u16 = 0;
+    var lectern_page: u8 = 0;
+    var beehives: [apiary_mod.max_hives]apiary_mod.Beehive = undefined;
+    var beehive_count: usize = 0;
     const IgnitedFlame = struct { x: i32, y: i32, z: i32, t: f32 };
     var flames: [32]IgnitedFlame = undefined;
     var flame_count: usize = 0;
@@ -1819,6 +1828,30 @@ pub fn main() !void {
             }
         }
 
+        // Tick planted wheat crops: hydrated farmland within 4 blocks of water grows 2x faster
+        var wci: usize = 0;
+        while (wci < wheat_crop_count) : (wci += 1) {
+            var wc = &wheat_crops[wci];
+            if (manager.getBlockWorld(wc.x, wc.y, wc.z) != .wheat_crop) continue;
+            var hydrated = false;
+            var hdx: i32 = -4;
+            while (hdx <= 4 and !hydrated) : (hdx += 1) {
+                var hdz: i32 = -4;
+                while (hdz <= 4 and !hydrated) : (hdz += 1) {
+                    if (manager.getBlockWorld(wc.x + hdx, wc.y - 1, wc.z + hdz) == .water or
+                        manager.getBlockWorld(wc.x + hdx, wc.y, wc.z + hdz) == .water)
+                    {
+                        hydrated = true;
+                    }
+                }
+            }
+            wc.hydrated = hydrated;
+            if (farming_mod.tickCrop(wc, dt)) {
+                particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(wc.x)) + 0.5, @as(f32, @floatFromInt(wc.y)) + 0.5, @as(f32, @floatFromInt(wc.z)) + 0.5 }, 6);
+                std.debug.print("wheat crop matured at ({d},{d},{d})\n", .{ wc.x, wc.y, wc.z });
+            }
+        }
+
         // Burn out fireball-ignited flames after lifetime; player campfires are permanent.
         var flame_i: usize = 0;
         while (flame_i < flame_count) {
@@ -1995,7 +2028,7 @@ pub fn main() !void {
         // Wolf bites & mob melee attacks: contact damage with per-second cooldown
         wolf_bite_cooldown = combat_mod.tickCooldown(wolf_bite_cooldown, dt);
         if (wolf_bite_cooldown <= 0.0) {
-            const held_gold = (inventory.slots[selected_slot].item == .gold_nugget or inventory.slots[selected_slot].item == .golden_apple or inventory.hasAnyGoldenArmor());
+            const held_gold = (inventory.slots[selected_slot].item == .gold_nugget or inventory.slots[selected_slot].item == .golden_apple or inventory.hasAnyGoldenItem());
             for (mob_manager.mobs.items) |*m| {
                 if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider and m.mob_type != .cave_spider and m.mob_type != .endermite and m.mob_type != .drowned and m.mob_type != .phantom and m.mob_type != .guardian and m.mob_type != .elder_guardian and m.mob_type != .slime) continue;
                 if (m.mob_type == .piglin and (held_gold or m.barter_timer > 0.0 or entity_mod.mob_manager.MobManager.isPiglinRepelled(m.pos, player.pos, held_warped_fungus, &pickBlockWorld) != null)) continue;
@@ -2026,7 +2059,7 @@ pub fn main() !void {
                         std.debug.print("shield blocked attack from {s}\n", .{@tagName(m.mob_type)});
                     } else {
                         const raw_dmg = if (m.is_champion) hit.damage * 2.5 else if (m.mob_type == .piglin_brute) hit.damage * 2.5 else if (m.mob_type == .blaze or m.mob_type == .emberbeast) hit.damage * 2.0 else if (m.mob_type == .wither_skeleton or m.mob_type == .piglin) hit.damage * 1.5 else hit.damage;
-                        const dmg = combat_mod.applyArmorReductionAllTiers(raw_dmg, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet());
+                        const dmg = combat_mod.applyArmorReductionEveryTier(raw_dmg, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
                         player.health = @max(0.0, player.health - dmg);
                         if (m.mob_type == .wither_skeleton) {
                             player.applyWither();
@@ -2036,7 +2069,7 @@ pub fn main() !void {
                             std.debug.print("poisoned by {s} venom\n", .{@tagName(m.mob_type)});
                                                 } else if (m.mob_type == .enderman) {
                             // Enderman melee strike on player deals 4 damage
-                            const em_dmg = combat_mod.applyArmorReductionAllTiers(4.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet());
+                            const em_dmg = combat_mod.applyArmorReductionEveryTier(4.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
                             player.health = @max(0.0, player.health - em_dmg);
                             audio.play(.hurt, 0.9);
                             std.debug.print("enderman struck player (dmg={d:.1}, hp={d:.1})\n", .{ em_dmg, player.health });
@@ -2045,26 +2078,26 @@ pub fn main() !void {
                             std.debug.print("infected with hunger by zombie bite", .{});
                         } else if (m.mob_type == .drowned) {
                             // Drowned melee attack deals 3 bonus damage (trident strike)
-                            const dr_dmg = combat_mod.applyArmorReductionAllTiers(3.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet());
+                            const dr_dmg = combat_mod.applyArmorReductionEveryTier(3.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
                             player.health = @max(0.0, player.health - dr_dmg);
                             audio.play(.splash, 0.7);
                             std.debug.print("drowned trident strike (dmg={d:.1}, hp={d:.1})\n", .{ dr_dmg, player.health });
                         } else if (m.mob_type == .phantom) {
                             // Phantom swoop strike deals 3 damage with aerial roar
-                            const ph_dmg = combat_mod.applyArmorReductionAllTiers(3.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet());
+                            const ph_dmg = combat_mod.applyArmorReductionEveryTier(3.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
                             player.health = @max(0.0, player.health - ph_dmg);
                             audio.play(.mob_roar, 0.85);
                             std.debug.print("phantom swoop attack struck player (dmg={d:.1}, hp={d:.1})\n", .{ ph_dmg, player.health });
                         } else if (m.mob_type == .guardian) {
                             // Guardian marine beam / thorn prick: 4 damage + splash acoustic
-                            const g_dmg = combat_mod.applyArmorReductionAllTiers(4.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet());
+                            const g_dmg = combat_mod.applyArmorReductionEveryTier(4.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
                             player.health = @max(0.0, player.health - g_dmg);
                             audio.play(.mob_roar, 0.9);
                             audio.play(.splash, 0.8);
                             std.debug.print("guardian laser beam struck player (dmg={d:.1}, hp={d:.1})\n", .{ g_dmg, player.health });
                         } else if (m.mob_type == .elder_guardian) {
                             // Elder Guardian boss laser beam: 6 damage + splash & heavy roar + Mining Fatigue affliction
-                            const eg_dmg = combat_mod.applyArmorReductionAllTiers(6.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet());
+                            const eg_dmg = combat_mod.applyArmorReductionEveryTier(6.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
                             player.health = @max(0.0, player.health - eg_dmg);
                             player.applyMiningFatigue();
                             audio.play(.mob_roar, 1.0);
@@ -2458,7 +2491,7 @@ pub fn main() !void {
                 const dir = cam.front();
                 mob_hit_cooldown = combat_mod.tickCooldown(mob_hit_cooldown, dt);
                 const held_weapon = inventory.slots[selected_slot].item;
-                const hit_dmg: u8 = combat_mod.calculatePlayerAttackDamageAllTiers(held_weapon == .netherite_sword, held_weapon == .diamond_sword, held_weapon == .iron_sword, held_weapon == .stone_sword, player.isWeakened());
+                const hit_dmg: u8 = combat_mod.calculatePlayerAttackDamageWithWooden(held_weapon == .netherite_sword, held_weapon == .diamond_sword, held_weapon == .iron_sword, held_weapon == .stone_sword, held_weapon == .golden_sword, held_weapon == .wooden_sword, player.isWeakened());
 
                 var bartered = false;
                 if (right and !right_down and inventory.slots[selected_slot].item == .gold_nugget) {
@@ -2688,6 +2721,19 @@ pub fn main() !void {
                                     if (broken_block == .nether_wart and !isWartTracked(warts[0..wart_count], hit.x, hit.y, hit.z)) {
                                         _ = inventory.addItem(.nether_wart, sapling_mod.wart_mature_bonus);
                                     }
+                                    if (broken_block == .wheat_crop) {
+                                        const seed_roll: u8 = @intCast(@abs(hit.x +% hit.z) & 0xFF);
+                                        if (farming_mod.findCrop(wheat_crops[0..wheat_crop_count], wheat_crop_count, hit.x, hit.y, hit.z)) |ci| {
+                                            const hy = farming_mod.harvestYield(wheat_crops[ci].stage, seed_roll);
+                                            if (hy.wheat > 0) _ = inventory.addItem(.wheat, hy.wheat);
+                                            if (hy.seeds > 1) _ = inventory.addItem(.wheat_seeds, hy.seeds - 1);
+                                            cache_mod.swapRemove(&wheat_crops, &wheat_crop_count, ci);
+                                        } else {
+                                            const hy = farming_mod.harvestYield(7, seed_roll);
+                                            if (hy.wheat > 0) _ = inventory.addItem(.wheat, hy.wheat);
+                                            if (hy.seeds > 1) _ = inventory.addItem(.wheat_seeds, hy.seeds - 1);
+                                        }
+                                    }
                                     if (broken_block == .leaves) {
                                         const bonus = mining_mod.checkLeafBonuses(hit.x, hit.y, hit.z);
                                         if (bonus.apple) _ = inventory.addItem(.apple, 1);
@@ -2748,7 +2794,38 @@ pub fn main() !void {
                         const pz = hit.z + hit.nz;
                         if (!pickSolid(px, py, pz)) {
                             var hotbar_slot = &inventory.slots[selected_slot];
-                            if (hotbar_slot.item == .nether_wart) {
+                            if (hotbar_slot.item.isHoe() and (manager.getBlockWorld(hit.x, hit.y, hit.z) == .dirt or manager.getBlockWorld(hit.x, hit.y, hit.z) == .grass) and manager.getBlockWorld(hit.x, hit.y + 1, hit.z) == .air) {
+                                if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .farmland)) {
+                                    audio.play(.step_dirt, 0.8);
+                                    particles.spawnBlockDebris(hit.x, hit.y, hit.z, .{ 0.45, 0.30, 0.16 }, 6);
+                                    if (tool_wear.use(selected_slot, hotbar_slot.item.maxDurability())) {
+                                        hotbar_slot.clear();
+                                    }
+                                    std.debug.print("tilled farmland at ({d},{d},{d})\n", .{ hit.x, hit.y, hit.z });
+                                }
+                            } else if (hotbar_slot.item == .bone_meal and manager.getBlockWorld(hit.x, hit.y, hit.z) == .wheat_crop) {
+                                if (farming_mod.findCrop(wheat_crops[0..wheat_crop_count], wheat_crop_count, hit.x, hit.y, hit.z)) |ci| {
+                                    if (farming_mod.applyBoneMeal(&wheat_crops[ci])) {
+                                        hotbar_slot.decrement(1);
+                                        audio.play(.place_block, 0.8);
+                                        particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit.x)) + 0.5, @as(f32, @floatFromInt(hit.y)) + 0.5, @as(f32, @floatFromInt(hit.z)) + 0.5 }, 8);
+                                        std.debug.print("fertilized wheat crop to stage {d}/7\n", .{wheat_crops[ci].stage});
+                                    }
+                                }
+                            } else if (hotbar_slot.item == .wheat_seeds) {
+                                const soil = manager.getBlockWorld(hit.x, hit.y, hit.z);
+                                if (soil == .farmland and hit.ny == 1) {
+                                    if (try manager.editAndRemesh(px, py, pz, .wheat_crop)) {
+                                        audio.play(.place_block, 0.7);
+                                        hotbar_slot.decrement(1);
+                                        if (wheat_crop_count < wheat_crops.len) {
+                                            wheat_crops[wheat_crop_count] = .{ .x = px, .y = py, .z = pz };
+                                            wheat_crop_count += 1;
+                                        }
+                                        std.debug.print("planted wheat seeds at ({d},{d},{d})\n", .{ px, py, pz });
+                                    }
+                                }
+                            } else if (hotbar_slot.item == .nether_wart) {
                                 const soil = manager.getBlockWorld(hit.x, hit.y, hit.z);
                                 if (sapling_mod.canPlantWart(soil, hit.ny)) {
                                     if (try manager.editAndRemesh(px, py, pz, .nether_wart)) {
@@ -3506,7 +3583,7 @@ pub fn main() !void {
                             } else {
                                 const has_chestplate = inventory.hasItem(.netherite_chestplate);
                                 const has_full = inventory.hasFullNetheriteSet();
-                                const bullet_dmg = combat_mod.applyArmorReductionAllTiers(4.0, has_chestplate, has_full, inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet());
+                                const bullet_dmg = combat_mod.applyArmorReductionEveryTier(4.0, has_chestplate, has_full, inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
                                 player.health = @max(0.0, player.health - bullet_dmg);
                                 player.applyLevitation();
                                 audio.play(.hurt, 0.8);
@@ -3536,7 +3613,7 @@ pub fn main() !void {
                                 }
                                 std.debug.print("shield blocked skeleton arrow\n", .{});
                             } else {
-                                const arrow_dmg = combat_mod.applyArmorReductionAllTiers(2.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet());
+                                const arrow_dmg = combat_mod.applyArmorReductionEveryTier(2.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
                                 player.health = @max(0.0, player.health - arrow_dmg);
                                 audio.play(.hurt, 0.8);
                                 particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.85, 0.20, 0.20 }, 8);
@@ -3577,7 +3654,7 @@ pub fn main() !void {
                             } else {
                                 const resist = player.fire_resistance_timer > 0.0;
                                 if (!resist) {
-                                    player.health = @max(0.0, player.health - combat_mod.applyArmorReductionAllTiers(proj_mod.fireball_damage, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet()));
+                                    player.health = @max(0.0, player.health - combat_mod.applyArmorReductionEveryTier(proj_mod.fireball_damage, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet()));
                                     audio.play(.hurt, 0.8);
                                     std.debug.print("fireball hit (hp={d:.1})\n", .{player.health});
                                 } else {
@@ -4163,7 +4240,7 @@ pub fn main() !void {
                             if (boom_mod.calculatePlayerBlastImpulse(player.pos.x, player.pos.y, player.pos.z, ex, ey, ez)) |imp| {
                                 const has_chest = inventory.hasItem(.netherite_chestplate);
                                 const has_full = inventory.hasFullNetheriteSet();
-                                const blast_dmg = combat_mod.applyArmorReductionAllTiers(imp.damage, has_chest, has_full, inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet());
+                                const blast_dmg = combat_mod.applyArmorReductionEveryTier(imp.damage, has_chest, has_full, inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
                                 player.health = @max(0.0, player.health - blast_dmg);
                                 player.vel_y = imp.vel_y;
                                 player.pos.x += imp.push_x;
@@ -4623,6 +4700,70 @@ pub fn main() !void {
                         }
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .beehive) {
+                    var bh_opt = apiary_mod.findHive(beehives[0..beehive_count], beehive_count, hit_f.x, hit_f.y, hit_f.z);
+                    if (bh_opt == null and beehive_count < beehives.len) {
+                        beehives[beehive_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z, .honey_level = apiary_mod.max_honey_level };
+                        bh_opt = beehive_count;
+                        beehive_count += 1;
+                    }
+                    if (bh_opt) |bi| {
+                        const held_slot = &inventory.slots[selected_slot];
+                        if (held_slot.item == .shears and apiary_mod.isReadyForHarvest(beehives[bi].honey_level)) {
+                            const combs = apiary_mod.harvestHoneycomb(&beehives[bi]);
+                            _ = inventory.addItem(.honeycomb, combs);
+                            if (tool_wear.use(selected_slot, held_slot.item.maxDurability())) {
+                                held_slot.clear();
+                            }
+                            audio.playAt(.shears_snip, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 28.0);
+                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 10);
+                            std.debug.print("sheared {d}x Honeycomb from beehive at ({d},{d},{d})\n", .{ combs, hit_f.x, hit_f.y, hit_f.z });
+                        } else if (held_slot.item == .glass and apiary_mod.harvestHoneyBottle(&beehives[bi])) {
+                            held_slot.decrement(1);
+                            _ = inventory.addItem(.honey_bottle, 1);
+                            audio.playAt(.splash, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.85, 24.0);
+                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 8);
+                            std.debug.print("bottled golden Honey Bottle from beehive at ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                        } else {
+                            beehives[bi].has_flowers_nearby = true;
+                            _ = apiary_mod.tickHive(&beehives[bi], apiary_mod.pollinated_stage_time);
+                            audio.playAt(.place_block, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.7, 20.0);
+                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.9, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 4);
+                            std.debug.print("beehive honey level: {d}/5\n", .{beehives[bi].honey_level});
+                        }
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .lectern or (inventory.slots[selected_slot].item == .emerald and (target == .composter or target == .cartography_table or target == .smithing_table or target == .fletching_table or target == .brewing_stand))) {
+                    const held_slot = &inventory.slots[selected_slot];
+                    if (held_slot.item == .emerald) {
+                        const prof: trading_mod.Profession = if (target == .composter)
+                            .farmer
+                        else if (target == .lectern or target == .cartography_table)
+                            .librarian
+                        else if (target == .smithing_table)
+                            .blacksmith
+                        else if (target == .brewing_stand)
+                            .cleric
+                        else
+                            .fletcher;
+                        const tier = trading_mod.xpToTier(trades_completed);
+                        const offer = trading_mod.getOffer(prof, tier);
+                        if (trading_mod.canAfford(held_slot.count, offer)) {
+                            held_slot.decrement(offer.emerald_cost);
+                            const out_item: inventory_mod.ItemType = @enumFromInt(offer.output_tag);
+                            _ = inventory.addItem(out_item, offer.output_count);
+                            trades_completed +%= 1;
+                            audio.playAt(.glowstone_chime, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.95, 28.0);
+                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 10);
+                            std.debug.print("traded {d} emerald(s) with {s} workstation for {d}x {s} (trades={d})\n", .{ offer.emerald_cost, @tagName(prof), offer.output_count, out_item.name(), trades_completed });
+                        }
+                    } else if (target == .lectern) {
+                        lectern_page = (lectern_page + 1) % 16;
+                        audio.playAt(.map_rustle, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.9, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.85, 24.0);
+                        particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 5);
+                        std.debug.print("turned lectern tome to page {d}/15\n", .{lectern_page});
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .stonecutter) {
                     var sc_opt = cache_mod.findStonecutter(&stonecutters, stonecutter_count, hit_f.x, hit_f.y, hit_f.z);
                     if (sc_opt == null and stonecutter_count < stonecutters.len) {
@@ -4646,7 +4787,7 @@ pub fn main() !void {
                         audio.playAt(.stonecutter_saw, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 30.0);
                         particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.65, 0.65, 0.65 }, 8);
                         std.debug.print("precision shaped 1 cobblestone into smooth stone at ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
-                    } else if (held_slot.item == .wooden_pickaxe or held_slot.item == .iron_pickaxe or held_slot.item == .diamond_pickaxe or held_slot.item == .netherite_pickaxe) {
+                    } else if (held_slot.item == .wooden_pickaxe or held_slot.item == .stone_pickaxe or held_slot.item == .golden_pickaxe or held_slot.item == .iron_pickaxe or held_slot.item == .diamond_pickaxe or held_slot.item == .netherite_pickaxe) {
                         // True the pickaxe chisel head on circular saw guide
                         tool_wear.uses[selected_slot] = 0;
                         audio.playAt(.stonecutter_saw, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 28.0);
@@ -4835,10 +4976,33 @@ pub fn main() !void {
                         enchantment_table_count += 1;
                     }
 
+                    var bookshelf_power: u8 = 0;
+                    var bdx: i32 = -2;
+                    while (bdx <= 2) : (bdx += 1) {
+                        var bdz: i32 = -2;
+                        while (bdz <= 2) : (bdz += 1) {
+                            if (@abs(bdx) == 2 or @abs(bdz) == 2) {
+                                if (manager.getBlockWorld(hit_f.x + bdx, hit_f.y, hit_f.z + bdz) == .bookshelf) bookshelf_power = @min(15, bookshelf_power + 1);
+                                if (manager.getBlockWorld(hit_f.x + bdx, hit_f.y + 1, hit_f.z + bdz) == .bookshelf) bookshelf_power = @min(15, bookshelf_power + 1);
+                            }
+                        }
+                    }
+
                     const held_slot = &inventory.slots[selected_slot];
-                    if (held_slot.item.isTool()) {
-                        // Mystic enchantment honing: restore wear / repair held tool
+                    if (held_slot.item == .lapis_lazuli) {
+                        held_slot.decrement(1);
+                        for (0..tool_wear.uses.len) |tsi| tool_wear.uses[tsi] = 0;
+                        player.health = @min(20.0, player.health + 4.0 + @as(f32, @floatFromInt(@min(bookshelf_power, 6))));
+                        audio.playAt(.glowstone_chime, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 32.0);
+                        particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 16);
+                        std.debug.print("channeled Lapis Lazuli at enchantment table (bookshelves={d}): all tools restored!\n", .{bookshelf_power});
+                    } else if (held_slot.item.isTool()) {
+                        // Mystic enchantment honing: restore wear / repair held tool + bookshelf power blessing
                         tool_wear.uses[selected_slot] = 0;
+                        if (bookshelf_power > 0) {
+                            player.health = @min(20.0, player.health + @as(f32, @floatFromInt(@min(bookshelf_power, 6))));
+                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.2, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, @as(usize, bookshelf_power) * 2);
+                        }
                         audio.playAt(.glowstone_chime, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 32.0);
                         particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 12);
                         std.debug.print("enchantment table sharpened/repaired {s} at ({d},{d},{d})\n", .{ held_slot.item.name(), hit_f.x, hit_f.y, hit_f.z });
@@ -5098,10 +5262,7 @@ pub fn main() !void {
                 } else if (target == .furnace) {
                     // feed held item as input or fuel
                     const held_f = inventory.slots[selected_slot];
-                    const smeltable = switch (held_f.item) {
-                        .raw_pork, .raw_mutton, .raw_cod, .raw_salmon, .kelp, .sand, .iron_ore, .ancient_debris => true,
-                        else => false,
-                    };
+                    const smeltable = smelt_mod.isSmeltable(@intFromEnum(held_f.item));
                     var fed = false;
                     var k_opt = cache_mod.findFurnace(&furnaces, furnace_count, hit_f.x, hit_f.y, hit_f.z);
                     if (k_opt == null and cache_mod.canCreateFurnace(furnace_count, furnaces.len)) {
@@ -5506,6 +5667,18 @@ pub fn main() !void {
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.8);
                 std.debug.print("ate golden apple (hp={d:.1})\n", .{player.health});
+            } else if (held_eat.item == .honey_bottle and (player.hunger < 20.0 or player.poison_timer > 0.0)) {
+                player.hunger = @min(20.0, player.hunger + apiary_mod.honey_bottle_hunger);
+                player.poison_timer = 0.0;
+                inventory.slots[selected_slot].decrement(1);
+                _ = inventory.addItem(.glass, 1);
+                audio.play(.eat, 0.85);
+                std.debug.print("drank Honey Bottle: cured poison and restored hunger ({d:.1})\n", .{player.hunger});
+            } else if (held_eat.item == .bread and player.hunger < 20.0) {
+                player.hunger = @min(20.0, player.hunger + 5.0);
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.8);
+                std.debug.print("ate freshly baked bread (hunger={d:.1})\n", .{player.hunger});
             } else if (held_eat.item == .dried_kelp and player.hunger < 20.0) {
                 player.hunger = @min(20.0, player.hunger + 1.0);
                 inventory.slots[selected_slot].decrement(1);
