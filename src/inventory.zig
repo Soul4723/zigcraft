@@ -359,6 +359,21 @@ pub const ItemType = enum(u16) {
     cocoa_beans = 353,
     cookie = 354,
     sweet_berries = 355,
+    ender_chest = 356,
+    chainmail_helmet = 357,
+    chainmail_chestplate = 358,
+    chainmail_leggings = 359,
+    chainmail_boots = 360,
+    mud = 361,
+    packed_mud = 362,
+    mud_bricks = 363,
+    copper_bulb = 364,
+    chiseled_copper = 365,
+    copper_grate = 366,
+    brush = 367,
+    suspicious_sand = 368,
+    pottery_sherd = 369,
+    decorated_pot = 370,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -544,6 +559,15 @@ pub const ItemType = enum(u16) {
             .bamboo => .bamboo,
             .scaffolding => .scaffolding,
             .sweet_berries => .sweet_berry_bush,
+            .ender_chest => .ender_chest,
+            .mud => .mud,
+            .packed_mud => .packed_mud,
+            .mud_bricks => .mud_bricks,
+            .copper_bulb => .copper_bulb_off,
+            .chiseled_copper => .chiseled_copper,
+            .copper_grate => .copper_grate,
+            .suspicious_sand => .suspicious_sand,
+            .decorated_pot => .decorated_pot,
             else => null,
         };
     }
@@ -737,6 +761,15 @@ pub const ItemType = enum(u16) {
             .bamboo => .bamboo,
             .scaffolding => .scaffolding,
             .sweet_berry_bush => .sweet_berries,
+            .ender_chest => .ender_chest,
+            .mud => .mud,
+            .packed_mud => .packed_mud,
+            .mud_bricks => .mud_bricks,
+            .copper_bulb_off, .copper_bulb_on => .copper_bulb,
+            .chiseled_copper => .chiseled_copper,
+            .copper_grate => .copper_grate,
+            .suspicious_sand => .sand,
+            .decorated_pot => .decorated_pot,
             .piston_head => .piston,
         };
     }
@@ -744,7 +777,7 @@ pub const ItemType = enum(u16) {
 
     pub fn isArmor(self: ItemType) bool {
         return switch (self) {
-            .netherite_helmet, .turtle_helmet, .netherite_chestplate, .elytra, .netherite_leggings, .netherite_boots, .soul_speed_boots, .dragon_head, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .carved_pumpkin => true,
+            .netherite_helmet, .turtle_helmet, .netherite_chestplate, .elytra, .netherite_leggings, .netherite_boots, .soul_speed_boots, .dragon_head, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .carved_pumpkin, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots => true,
             else => false,
         };
     }
@@ -783,6 +816,11 @@ pub const ItemType = enum(u16) {
             .leather_chestplate => 80,
             .leather_leggings => 75,
             .leather_boots => 65,
+            .chainmail_helmet => 165,
+            .chainmail_chestplate => 240,
+            .chainmail_leggings => 225,
+            .chainmail_boots => 195,
+            .brush => 64,
             .flint_and_steel => 64,
             .wooden_axe => 25,
             .iron_axe => 120,
@@ -841,7 +879,7 @@ pub const ItemType = enum(u16) {
         return switch (self) {
             .none => 0,
             .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion => 16,
-            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew => 1,
+            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush => 1,
             else => 64,
         };
     }
@@ -1200,6 +1238,21 @@ pub const ItemType = enum(u16) {
             .cocoa_beans => "Cocoa Beans",
             .cookie => "Cookie",
             .sweet_berries => "Sweet Berries",
+            .ender_chest => "Ender Chest",
+            .chainmail_helmet => "Chainmail Helmet",
+            .chainmail_chestplate => "Chainmail Chestplate",
+            .chainmail_leggings => "Chainmail Leggings",
+            .chainmail_boots => "Chainmail Boots",
+            .mud => "Mud",
+            .packed_mud => "Packed Mud",
+            .mud_bricks => "Mud Bricks",
+            .copper_bulb => "Copper Bulb",
+            .chiseled_copper => "Chiseled Copper",
+            .copper_grate => "Copper Grate",
+            .brush => "Brush",
+            .suspicious_sand => "Suspicious Sand",
+            .pottery_sherd => "Pottery Sherd",
+            .decorated_pot => "Decorated Pot",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1497,6 +1550,21 @@ pub const ItemType = enum(u16) {
             .cocoa_beans => .{ 0.46, 0.26, 0.14, 0.95 },
             .cookie => .{ 0.82, 0.58, 0.28, 0.95 },
             .sweet_berries => .{ 0.86, 0.14, 0.22, 0.95 },
+            .ender_chest => .{ 0.16, 0.34, 0.32, 0.95 },
+            .chainmail_helmet => .{ 0.68, 0.70, 0.74, 0.95 },
+            .chainmail_chestplate => .{ 0.66, 0.68, 0.72, 0.95 },
+            .chainmail_leggings => .{ 0.64, 0.66, 0.70, 0.95 },
+            .chainmail_boots => .{ 0.62, 0.64, 0.68, 0.95 },
+            .mud => .{ 0.28, 0.24, 0.22, 0.95 },
+            .packed_mud => .{ 0.56, 0.44, 0.34, 0.95 },
+            .mud_bricks => .{ 0.52, 0.40, 0.30, 0.95 },
+            .copper_bulb => .{ 0.88, 0.58, 0.28, 0.95 },
+            .chiseled_copper => .{ 0.84, 0.46, 0.26, 0.95 },
+            .copper_grate => .{ 0.80, 0.44, 0.24, 0.85 },
+            .brush => .{ 0.78, 0.52, 0.28, 0.95 },
+            .suspicious_sand => .{ 0.88, 0.80, 0.58, 0.95 },
+            .pottery_sherd => .{ 0.66, 0.38, 0.28, 0.95 },
+            .decorated_pot => .{ 0.64, 0.36, 0.26, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1637,6 +1705,13 @@ pub const Inventory = struct {
     pub fn getHotbar(self: *Inventory, index: usize) ?*ItemStack {
         if (index >= HOTBAR_SIZE) return null;
         return &self.slots[index];
+    }
+
+    pub fn hasFullChainmailSet(self: *const Inventory) bool {
+        return self.hasItem(.chainmail_helmet) and
+               self.hasItem(.chainmail_chestplate) and
+               self.hasItem(.chainmail_leggings) and
+               self.hasItem(.chainmail_boots);
     }
 
     pub fn hasFullLeatherSet(self: *const Inventory) bool {
@@ -2382,6 +2457,124 @@ pub const Inventory = struct {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
                 return;
             }
+        }
+
+        // Recipe 266: Ender Chest: 2..3 Obsidian + 1 Eye of Ender -> 1 Ender Chest
+        if (non_empty >= 3 and non_empty <= 4) {
+            var obs_cnt: u8 = 0;
+            var eye_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .obsidian) obs_cnt += 1;
+                if (sl.item == .eye_of_ender) eye_cnt += 1;
+            }
+            if (obs_cnt >= 2 and eye_cnt == 1 and (obs_cnt + eye_cnt == non_empty)) {
+                self.craft_output = .{ .item = .ender_chest, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipes 267-270: Chainmail Armor Suit (2 Chains horizontally -> Helmet, 4 Chains -> Chestplate, 3 Chains -> Leggings, 2 Chains vertically -> Boots)
+        if (non_empty == 2) {
+            if ((g0 == .chain and g1 == .chain and g2 == .none and g3 == .none) or
+                (g2 == .chain and g3 == .chain and g0 == .none and g1 == .none))
+            {
+                self.craft_output = .{ .item = .chainmail_helmet, .count = 1 };
+                return;
+            }
+            if ((g0 == .chain and g2 == .chain and g1 == .none and g3 == .none) or
+                (g1 == .chain and g3 == .chain and g0 == .none and g2 == .none))
+            {
+                self.craft_output = .{ .item = .chainmail_boots, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 4 and g0 == .chain and g1 == .chain and g2 == .chain and g3 == .chain) {
+            self.craft_output = .{ .item = .chainmail_chestplate, .count = 1 };
+            return;
+        }
+        if (non_empty == 3) {
+            var chn_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .chain) chn_cnt += 1;
+            }
+            if (chn_cnt == 3) {
+                self.craft_output = .{ .item = .chainmail_leggings, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipes 271-273: Mud (Dirt + Water Bucket), Packed Mud (Mud + Wheat), Mud Bricks (4 Packed Mud -> 4 Mud Bricks)
+        if (non_empty == 2) {
+            var drt_cnt: u8 = 0;
+            var wtr_cnt: u8 = 0;
+            var mud_cnt: u8 = 0;
+            var wht_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .dirt) drt_cnt += 1;
+                if (sl.item == .water_bucket) wtr_cnt += 1;
+                if (sl.item == .mud) mud_cnt += 1;
+                if (sl.item == .wheat) wht_cnt += 1;
+            }
+            if (drt_cnt == 1 and wtr_cnt == 1) {
+                self.craft_output = .{ .item = .mud, .count = 1 };
+                return;
+            }
+            if (mud_cnt == 1 and wht_cnt == 1) {
+                self.craft_output = .{ .item = .packed_mud, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 4 and g0 == .packed_mud and g1 == .packed_mud and g2 == .packed_mud and g3 == .packed_mud) {
+            self.craft_output = .{ .item = .mud_bricks, .count = 4 };
+            return;
+        }
+
+        // Recipes 274-276: Copper Bulb (1..2 Copper Block + 1 Blaze Rod + 1 Redstone Dust -> 4 Copper Bulbs), Chiseled Copper (2 Copper Blocks vertically -> 2 Chiseled Copper), Copper Grate (4 Copper Blocks -> 4 Copper Grates)
+        if (non_empty >= 3 and non_empty <= 4) {
+            var cpb_cnt: u8 = 0;
+            var blz_cnt: u8 = 0;
+            var red_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .copper_block) cpb_cnt += 1;
+                if (sl.item == .blaze_rod) blz_cnt += 1;
+                if (sl.item == .redstone_dust) red_cnt += 1;
+            }
+            if (cpb_cnt >= 1 and blz_cnt == 1 and red_cnt == 1 and (cpb_cnt + blz_cnt + red_cnt == non_empty)) {
+                self.craft_output = .{ .item = .copper_bulb, .count = 4 };
+                return;
+            }
+        }
+        if (non_empty == 2) {
+            if ((g0 == .copper_block and g2 == .copper_block and g1 == .none and g3 == .none) or
+                (g1 == .copper_block and g3 == .copper_block and g0 == .none and g2 == .none))
+            {
+                self.craft_output = .{ .item = .chiseled_copper, .count = 2 };
+                return;
+            }
+        }
+        if (non_empty == 4 and g0 == .copper_block and g1 == .copper_block and g2 == .copper_block and g3 == .copper_block) {
+            self.craft_output = .{ .item = .copper_grate, .count = 4 };
+            return;
+        }
+
+        // Recipes 277 & 278: Brush (1 Copper Ingot + 1 Stick + 1 String -> 1 Brush) & Decorated Pot (4 Pottery Sherds -> 1 Decorated Pot)
+        if (non_empty == 3) {
+            var cpi_cnt: u8 = 0;
+            var stk_cnt: u8 = 0;
+            var str_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .copper_ingot) cpi_cnt += 1;
+                if (sl.item == .stick) stk_cnt += 1;
+                if (sl.item == .string) str_cnt += 1;
+            }
+            if (cpi_cnt == 1 and stk_cnt == 1 and str_cnt == 1) {
+                self.craft_output = .{ .item = .brush, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 4 and g0 == .pottery_sherd and g1 == .pottery_sherd and g2 == .pottery_sherd and g3 == .pottery_sherd) {
+            self.craft_output = .{ .item = .decorated_pot, .count = 1 };
+            return;
         }
 
         // Recipe 254 & 255: Packed Ice (4 Ice -> 1 Packed Ice) & Blue Ice (4 Packed Ice -> 1 Blue Ice)
@@ -5509,6 +5702,9 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         return 2;
     } else if (block == .bookshelf) {
         out[0] = .{ .item = .book, .count = 3 };
+        return 1;
+    } else if (block == .ender_chest) {
+        out[0] = .{ .item = .obsidian, .count = 8 };
         return 1;
     } else if (block == .sweet_berry_bush) {
         out[0] = .{ .item = .sweet_berries, .count = 2 };
@@ -9461,4 +9657,88 @@ test "ice, powder snow, bamboo, scaffolding, soups, buff potions, cookies, and s
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .cookie);
     try std.testing.expectEqual(inv.craft_output.count, 8);
+}
+
+test "ender chest, chainmail armor, mud bricks, copper bulb/grate/chiseled, brush, and decorated pot recipes 266-278" {
+    var inv = Inventory.init();
+
+    // Recipe 266: Ender Chest
+    inv.craft_grid[0] = .{ .item = .obsidian, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .obsidian, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .eye_of_ender, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .ender_chest);
+
+    // Recipes 267-270: Chainmail Armor
+    inv.craft_grid[0] = .{ .item = .chain, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .chain, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .chainmail_helmet);
+
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .chain, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .chainmail_chestplate);
+
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .chainmail_leggings);
+
+    inv.craft_grid[1] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .chainmail_boots);
+
+    // Recipes 271-273: Mud, Packed Mud, Mud Bricks
+    inv.craft_grid[0] = .{ .item = .dirt, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .water_bucket, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .mud);
+
+    inv.craft_grid[0] = .{ .item = .mud, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wheat, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .packed_mud);
+
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .packed_mud, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .mud_bricks);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    // Recipes 274-276: Copper Bulb, Chiseled Copper, Copper Grate
+    inv.craft_grid[0] = .{ .item = .copper_block, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .blaze_rod, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .redstone_dust, .count = 1 };
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .copper_bulb);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    inv.craft_grid[0] = .{ .item = .copper_block, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{ .item = .copper_block, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .chiseled_copper);
+
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .copper_block, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .copper_grate);
+
+    // Recipes 277 & 278: Brush & Decorated Pot
+    inv.craft_grid[0] = .{ .item = .copper_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .stick, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .string, .count = 1 };
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .brush);
+
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .pottery_sherd, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .decorated_pot);
+
+    var drops: [2]BlockDrop = undefined;
+    try std.testing.expectEqual(getBlockDrops(.ender_chest, &drops), 1);
+    try std.testing.expectEqual(drops[0].item, .obsidian);
+    try std.testing.expectEqual(drops[0].count, 8);
 }

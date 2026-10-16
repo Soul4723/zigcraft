@@ -17,6 +17,8 @@ pub const hand_damage: u8 = 1;
 pub const leather_armor_absorption: f32 = 0.10; // 10% leather tunic reduction
 pub const leather_full_set_absorption: f32 = 0.28; // 28% leather 4-piece set reduction
 pub const golden_armor_absorption: f32 = 0.15; // 15% golden chestplate reduction
+pub const chainmail_armor_absorption: f32 = 0.20; // 20% chainmail chestplate reduction
+pub const chainmail_full_set_absorption: f32 = 0.42; // 42% chainmail 4-piece set reduction
 pub const golden_full_set_absorption: f32 = 0.35; // 35% golden 4-piece set reduction
 pub const iron_armor_absorption: f32 = 0.25; // 25% iron chestplate reduction
 pub const iron_full_set_absorption: f32 = 0.50; // 50% iron 4-piece set reduction
@@ -343,4 +345,18 @@ test "leather armor reduction and wooden sword damage check" {
     try std.testing.expectApproxEqAbs(applyArmorReductionEveryTier(10.0, false, false, false, false, false, false, false, false, true, true), 7.2, 0.01);
     try std.testing.expectEqual(calculatePlayerAttackDamageWithWooden(false, false, false, false, false, true, false), 2);
     try std.testing.expectEqual(calculatePlayerAttackDamageWithWooden(false, false, false, false, false, true, true), 1);
+}
+
+pub fn applyArmorReductionWithChainmail(raw_damage: f32, has_netherite_armor: bool, has_full_netherite: bool, has_diamond_armor: bool, has_full_diamond: bool, has_iron_armor: bool, has_full_iron: bool, has_chainmail_armor: bool, has_full_chainmail: bool, has_golden_armor: bool, has_full_golden: bool, has_leather_armor: bool, has_full_leather: bool) f32 {
+    if (has_full_netherite or has_netherite_armor or has_full_diamond or has_diamond_armor or has_full_iron or has_iron_armor) {
+        return applyArmorReductionEveryTier(raw_damage, has_netherite_armor, has_full_netherite, has_diamond_armor, has_full_diamond, has_iron_armor, has_full_iron, has_golden_armor, has_full_golden, has_leather_armor, has_full_leather);
+    }
+    if (has_full_chainmail) return raw_damage * (1.0 - chainmail_full_set_absorption);
+    if (has_chainmail_armor) return raw_damage * (1.0 - chainmail_armor_absorption);
+    return applyArmorReductionEveryTier(raw_damage, false, false, false, false, false, false, has_golden_armor, has_full_golden, has_leather_armor, has_full_leather);
+}
+
+test "chainmail armor reduction absorbs 20% chestplate and 42% full set" {
+    try std.testing.expectApproxEqAbs(applyArmorReductionWithChainmail(10.0, false, false, false, false, false, false, true, false, false, false, false, false), 8.0, 0.01);
+    try std.testing.expectApproxEqAbs(applyArmorReductionWithChainmail(10.0, false, false, false, false, false, false, true, true, false, false, false, false), 5.8, 0.01);
 }
