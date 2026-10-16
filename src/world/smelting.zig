@@ -34,6 +34,8 @@ pub const EmeraldOre: u16 = 274;
 pub const RawCopper: u16 = 283;
 pub const CopperIngot: u16 = 284;
 pub const CopperOre: u16 = 285;
+pub const Deepslate: u16 = 309;
+pub const CobbledDeepslate: u16 = 310;
 pub const None: u16 = 0;
 
 pub fn smeltResult(input: u16) u16 {
@@ -52,6 +54,7 @@ pub fn smeltResult(input: u16) u16 {
         DiamondOre => Diamond,
         EmeraldOre => Emerald,
         RawCopper, CopperOre => CopperIngot,
+        CobbledDeepslate => Deepslate,
         else => None,
     };
 }

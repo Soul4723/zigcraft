@@ -186,6 +186,17 @@ pub const BlockId = enum(u8) {
     pumpkin = 175,
     carved_pumpkin = 176,
     jack_o_lantern = 177,
+    sculk = 178,
+    sculk_sensor_off = 179,
+    sculk_sensor_on = 180,
+    deepslate = 181,
+    cobbled_deepslate = 182,
+    polished_deepslate = 183,
+    deepslate_bricks = 184,
+    iron_block = 185,
+    cake = 186,
+    melon = 187,
+    barrel = 188,
 
     pub fn is_solid(self: BlockId) bool {
         return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .wooden_trapdoor_open and self != .iron_trapdoor_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .end_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand and self != .lantern and self != .soul_lantern and self != .chain and self != .iron_bars and self != .tripwire_hook_off and self != .tripwire_hook_on and self != .cobweb and self != .end_crystal and self != .end_rod and self != .chorus_plant and self != .chorus_flower and self != .dragon_head and self != .end_gateway and self != .conduit and self != .kelp and self != .sea_pickle and self != .rail and self != .powered_rail and self != .detector_rail and self != .activator_rail and self != .redstone_comparator_off and self != .redstone_comparator_on and self != .tripwire and self != .wheat_crop and self != .lightning_rod and self != .amethyst_cluster and self != .sugar_cane;
@@ -256,7 +267,7 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_transparent(self: BlockId) bool {
-        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .end_portal or self == .nether_brick_fence or self == .oak_fence or self == .armor_stand or self == .enchantment_table or self == .anvil or self == .grindstone or self == .composter or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block or self == .beacon or self == .weeping_vines or self == .twisting_vines or self == .crimson_fungus or self == .warped_fungus or self == .brewing_stand or self == .stonecutter or self == .lantern or self == .soul_lantern or self == .chain or self == .iron_bars or self == .tripwire_hook_off or self == .tripwire_hook_on or self == .cobweb or self == .end_portal_frame or self == .end_portal_frame_filled or self == .end_crystal or self == .dragon_egg or self == .end_rod or self == .chorus_plant or self == .chorus_flower or self == .shulker_box or self == .dragon_head or self == .end_gateway or self == .conduit or self == .kelp or self == .sea_pickle or self == .rail or self == .powered_rail or self == .detector_rail or self == .activator_rail or self == .redstone_comparator_off or self == .redstone_comparator_on or self == .slime_block or self == .piston_head or self == .wooden_trapdoor_closed or self == .wooden_trapdoor_open or self == .iron_trapdoor_closed or self == .iron_trapdoor_open or self == .tripwire or self == .wheat_crop or self == .lectern or self == .honey_block or self == .lightning_rod or self == .amethyst_cluster or self == .tinted_glass or self == .bell or self == .sugar_cane;
+        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .end_portal or self == .nether_brick_fence or self == .oak_fence or self == .armor_stand or self == .enchantment_table or self == .anvil or self == .grindstone or self == .composter or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block or self == .beacon or self == .weeping_vines or self == .twisting_vines or self == .crimson_fungus or self == .warped_fungus or self == .brewing_stand or self == .stonecutter or self == .lantern or self == .soul_lantern or self == .chain or self == .iron_bars or self == .tripwire_hook_off or self == .tripwire_hook_on or self == .cobweb or self == .end_portal_frame or self == .end_portal_frame_filled or self == .end_crystal or self == .dragon_egg or self == .end_rod or self == .chorus_plant or self == .chorus_flower or self == .shulker_box or self == .dragon_head or self == .end_gateway or self == .conduit or self == .kelp or self == .sea_pickle or self == .rail or self == .powered_rail or self == .detector_rail or self == .activator_rail or self == .redstone_comparator_off or self == .redstone_comparator_on or self == .slime_block or self == .piston_head or self == .wooden_trapdoor_closed or self == .wooden_trapdoor_open or self == .iron_trapdoor_closed or self == .iron_trapdoor_open or self == .tripwire or self == .wheat_crop or self == .lectern or self == .honey_block or self == .lightning_rod or self == .amethyst_cluster or self == .tinted_glass or self == .bell or self == .sugar_cane or self == .sculk_sensor_off or self == .sculk_sensor_on or self == .cake;
     }
 
     /// 0.0 = lit by sun only. 1.0 = full glow even at midnight.
@@ -310,6 +321,9 @@ pub const BlockId = enum(u8) {
             .amethyst_cluster => 0.65,
             .bell => 0.30,
             .jack_o_lantern => 0.95,
+            .sculk => 0.25,
+            .sculk_sensor_off => 0.35,
+            .sculk_sensor_on => 0.85,
             .detector_rail => 0.5,
             .activator_rail => 0.55,
             else => 0.0,
@@ -318,7 +332,7 @@ pub const BlockId = enum(u8) {
 
     pub fn isFlammable(self: BlockId) bool {
         return switch (self) {
-            .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest, .note_block, .jukebox, .oak_fence, .armor_stand, .smithing_table, .cartography_table, .fletching_table, .composter, .loom, .wooden_door_closed, .wooden_door_open, .wooden_trapdoor_closed, .wooden_trapdoor_open, .pressure_plate_up, .pressure_plate_down, .weeping_vines, .twisting_vines, .target_block, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight, .dried_kelp_block, .wheat_crop, .bookshelf, .lectern, .beehive, .sugar_cane => true,
+            .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest, .note_block, .jukebox, .oak_fence, .armor_stand, .smithing_table, .cartography_table, .fletching_table, .composter, .loom, .wooden_door_closed, .wooden_door_open, .wooden_trapdoor_closed, .wooden_trapdoor_open, .pressure_plate_up, .pressure_plate_down, .weeping_vines, .twisting_vines, .target_block, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight, .dried_kelp_block, .wheat_crop, .bookshelf, .lectern, .beehive, .sugar_cane, .barrel => true,
             else => false,
         };
     }
@@ -589,6 +603,34 @@ pub const BlockId = enum(u8) {
                 2 => .{ .x = 5, .y = 2 }, // Glowing carved lantern face
                 else => .{ .x = 5, .y = 3 },
             },
+            .sculk => .{ .x = 7, .y = 6 }, // Dark abyssal sculk with cyan bioluminescent stars
+            .sculk_sensor_off => switch (face_idx) {
+                0 => .{ .x = 7, .y = 1 }, // Dormant cyan acoustic tendrils top
+                else => .{ .x = 7, .y = 6 }, // Sculk sensor base
+            },
+            .sculk_sensor_on => switch (face_idx) {
+                0 => .{ .x = 7, .y = 6 }, // Energized glowing acoustic tendrils top
+                else => .{ .x = 7, .y = 1 }, // Active sculk sensor base
+            },
+            .deepslate => .{ .x = 5, .y = 4 }, // Stratified dark abyssal deepslate
+            .cobbled_deepslate => .{ .x = 2, .y = 5 }, // Fractured dark cobbled deepslate
+            .polished_deepslate => .{ .x = 0, .y = 2 }, // Smooth dressed dark deepslate
+            .deepslate_bricks => .{ .x = 4, .y = 1 }, // Running-bond dark deepslate bricks
+            .iron_block => .{ .x = 1, .y = 1 }, // Gleaming forged block of iron
+            .cake => switch (face_idx) {
+                0 => .{ .x = 1, .y = 5 }, // White icing with red berry toppings
+                1 => .{ .x = 1, .y = 4 }, // Baked sponge base
+                else => .{ .x = 3, .y = 3 }, // Layered icing and golden sponge sides
+            },
+            .melon => switch (face_idx) {
+                0, 1 => .{ .x = 6, .y = 0 }, // Melon stem ring top/bottom
+                else => .{ .x = 7, .y = 0 }, // Striped green melon rind sides
+            },
+            .barrel => switch (face_idx) {
+                0 => .{ .x = 3, .y = 4 }, // Coopered barrel lid with bung-hole
+                1 => .{ .x = 2, .y = 2 }, // Oak barrel base
+                else => .{ .x = 4, .y = 3 }, // Iron-hooped oak stave sides
+            },
             .gold_ore => .{ .x = 3, .y = 2 }, // Stone matrix with rich golden ore nuggets
             .gold_block => .{ .x = 4, .y = 7 }, // Polished gilded auric gold ingot block
             .redstone_block => .{ .x = 3, .y = 7 }, // Radiant crystalline ruby-red block
@@ -828,7 +870,14 @@ pub fn hardness(block: BlockId) f32 {
         .tinted_glass => 0.3,
         .bell => 5.0,
         .sugar_cane => 0.0,
-        .pumpkin, .carved_pumpkin, .jack_o_lantern => 1.0,
+        .pumpkin, .carved_pumpkin, .jack_o_lantern, .melon => 1.0,
+        .sculk => 0.2,
+        .sculk_sensor_off, .sculk_sensor_on => 1.5,
+        .deepslate => 3.0,
+        .cobbled_deepslate, .polished_deepslate, .deepslate_bricks => 3.5,
+        .iron_block => 5.0,
+        .cake => 0.5,
+        .barrel => 2.5,
         .bookshelf => 1.5,
         .lectern => 2.5,
         .gold_ore, .gold_block => 3.0,
@@ -911,7 +960,7 @@ pub const ToolTier = enum(u8) {
 
 pub fn requiredTier(block: BlockId) ToolTier {
     return switch (block) {
-        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .bell => .wooden,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .bell, .deepslate, .cobbled_deepslate, .polished_deepslate, .deepslate_bricks, .iron_block => .wooden,
         else => .hand,
     };
 }
@@ -923,7 +972,7 @@ pub fn isWoodClass(block: BlockId) bool {
         .wood, .wood_planks, .crafting_table, .chest, .wooden_door_closed, .wooden_door_open,
         .wooden_trapdoor_closed, .wooden_trapdoor_open, .oak_fence, .note_block, .jukebox,
         .smithing_table, .cartography_table, .fletching_table, .loom, .composter, .daylight_detector,
-        .daylight_detector_inverted, .bookshelf, .lectern, .beehive => true,
+        .daylight_detector_inverted, .bookshelf, .lectern, .beehive, .barrel => true,
         else => false,
     };
 }
@@ -944,7 +993,7 @@ pub fn isShearableBlock(block: BlockId) bool {
 
 pub fn isFoliageClass(block: BlockId) bool {
     return switch (block) {
-        .leaves, .hay_bale, .nether_wart, .wheat_crop, .sugar_cane, .pumpkin, .carved_pumpkin, .jack_o_lantern, .chorus_plant, .chorus_flower, .shroomlight, .sponge, .wet_sponge => true,
+        .leaves, .hay_bale, .nether_wart, .wheat_crop, .sugar_cane, .pumpkin, .carved_pumpkin, .jack_o_lantern, .melon, .sculk, .sculk_sensor_off, .sculk_sensor_on, .chorus_plant, .chorus_flower, .shroomlight, .sponge, .wet_sponge => true,
         else => false,
     };
 }
@@ -1047,19 +1096,19 @@ pub fn toolMultiplier(held_tool_id: u16, block: BlockId) f32 {
     }
     if (held_tool_id == TOOL_NETHERITE_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .obsidian, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .bell => 6.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .obsidian, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .bell, .deepslate, .cobbled_deepslate, .polished_deepslate, .deepslate_bricks, .iron_block => 6.0,
             else => 3.0,
         };
     }
     if (held_tool_id == TOOL_DIAMOND_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .obsidian, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .bell => 5.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .obsidian, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .bell, .deepslate, .cobbled_deepslate, .polished_deepslate, .deepslate_bricks, .iron_block => 5.0,
             else => 2.5,
         };
     }
     if (held_tool_id == TOOL_IRON_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .obsidian, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .bell => 4.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .obsidian, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .bell, .deepslate, .cobbled_deepslate, .polished_deepslate, .deepslate_bricks, .iron_block => 4.0,
             else => 2.0,
         };
     }
@@ -1071,7 +1120,7 @@ pub fn toolMultiplier(held_tool_id: u16, block: BlockId) f32 {
     }
     if (held_tool_id == TOOL_WOODEN_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .bell => 3.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .bell, .deepslate, .cobbled_deepslate, .polished_deepslate, .deepslate_bricks, .iron_block => 3.0,
             else => 1.5,
         };
     }
@@ -1252,6 +1301,17 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .pumpkin = .{ .name = "pumpkin", .solid = true, .transparent = false, .fluid = false },
     .carved_pumpkin = .{ .name = "carved_pumpkin", .solid = true, .transparent = false, .fluid = false },
     .jack_o_lantern = .{ .name = "jack_o_lantern", .solid = true, .transparent = false, .fluid = false },
+    .sculk = .{ .name = "sculk", .solid = true, .transparent = false, .fluid = false },
+    .sculk_sensor_off = .{ .name = "sculk_sensor_off", .solid = true, .transparent = true, .fluid = false },
+    .sculk_sensor_on = .{ .name = "sculk_sensor_on", .solid = true, .transparent = true, .fluid = false },
+    .deepslate = .{ .name = "deepslate", .solid = true, .transparent = false, .fluid = false },
+    .cobbled_deepslate = .{ .name = "cobbled_deepslate", .solid = true, .transparent = false, .fluid = false },
+    .polished_deepslate = .{ .name = "polished_deepslate", .solid = true, .transparent = false, .fluid = false },
+    .deepslate_bricks = .{ .name = "deepslate_bricks", .solid = true, .transparent = false, .fluid = false },
+    .iron_block = .{ .name = "iron_block", .solid = true, .transparent = false, .fluid = false },
+    .cake = .{ .name = "cake", .solid = true, .transparent = true, .fluid = false },
+    .melon = .{ .name = "melon", .solid = true, .transparent = false, .fluid = false },
+    .barrel = .{ .name = "barrel", .solid = true, .transparent = false, .fluid = false },
     .gold_ore = .{ .name = "gold_ore", .solid = true, .transparent = false, .fluid = false },
     .gold_block = .{ .name = "gold_block", .solid = true, .transparent = false, .fluid = false },
     .redstone_block = .{ .name = "redstone_block", .solid = true, .transparent = false, .fluid = false },
@@ -1703,7 +1763,7 @@ pub fn footstepType(block: BlockId) FootstepType {
         .grass, .weeping_vines, .twisting_vines, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight => .grass,
         .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .end_stone, .end_portal_frame, .end_portal_frame_filled, .dragon_egg, .dragon_head, .end_gateway, .purpur_block, .purpur_pillar, .shulker_box, .prismarine, .prismarine_bricks, .dark_prismarine, .sea_lantern, .conduit => .stone,
         .sponge, .wet_sponge, .slime_block => .grass,
-        .piston, .sticky_piston, .piston_head, .observer_off, .observer_on, .iron_trapdoor_closed, .iron_trapdoor_open, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .tinted_glass, .bell => .stone,
+        .piston, .sticky_piston, .piston_head, .observer_off, .observer_on, .iron_trapdoor_closed, .iron_trapdoor_open, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .tinted_glass, .bell, .deepslate, .cobbled_deepslate, .polished_deepslate, .deepslate_bricks, .iron_block => .stone,
         .kelp, .dried_kelp_block, .sea_pickle => .grass,
         .rail, .powered_rail, .detector_rail, .activator_rail, .redstone_comparator_off, .redstone_comparator_on => .stone,
         .end_rod, .chorus_plant, .chorus_flower => .wood,
@@ -3200,4 +3260,17 @@ test "copper, lightning rod, amethyst, tinted glass, bell, sugar cane, and pumpk
     try std.testing.expect(!BlockId.sugar_cane.is_solid());
     try std.testing.expect(BlockId.pumpkin.is_solid());
     try std.testing.expectEqual(BlockId.jack_o_lantern.emissive(), 0.95);
+}
+
+test "sculk, deepslate, iron_block, cake, melon, and barrel block properties" {
+    try std.testing.expect(BlockId.sculk.is_solid());
+    try std.testing.expectEqual(BlockId.sculk_sensor_on.emissive(), 0.85);
+    try std.testing.expect(BlockId.deepslate.is_solid());
+    try std.testing.expectEqual(requiredTier(.deepslate), .wooden);
+    try std.testing.expect(BlockId.iron_block.is_solid());
+    try std.testing.expect(BlockId.cake.is_solid());
+    try std.testing.expect(BlockId.cake.is_transparent());
+    try std.testing.expect(BlockId.melon.is_solid());
+    try std.testing.expect(BlockId.barrel.is_solid());
+    try std.testing.expect(BlockId.barrel.isFlammable());
 }

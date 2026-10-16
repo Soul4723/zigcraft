@@ -308,6 +308,21 @@ pub const ItemType = enum(u16) {
     carved_pumpkin = 302,
     jack_o_lantern = 303,
     pumpkin_pie = 304,
+    sculk = 305,
+    sculk_sensor = 306,
+    echo_shard = 307,
+    recovery_compass = 308,
+    deepslate = 309,
+    cobbled_deepslate = 310,
+    polished_deepslate = 311,
+    deepslate_bricks = 312,
+    iron_block = 313,
+    cake = 314,
+    melon = 315,
+    melon_slice = 316,
+    glistering_melon = 317,
+    healing_potion = 318,
+    barrel = 319,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -468,6 +483,16 @@ pub const ItemType = enum(u16) {
             .pumpkin => .pumpkin,
             .carved_pumpkin => .carved_pumpkin,
             .jack_o_lantern => .jack_o_lantern,
+            .sculk => .sculk,
+            .sculk_sensor => .sculk_sensor_off,
+            .deepslate => .deepslate,
+            .cobbled_deepslate => .cobbled_deepslate,
+            .polished_deepslate => .polished_deepslate,
+            .deepslate_bricks => .deepslate_bricks,
+            .iron_block => .iron_block,
+            .cake => .cake,
+            .melon => .melon,
+            .barrel => .barrel,
             else => null,
         };
     }
@@ -635,6 +660,16 @@ pub const ItemType = enum(u16) {
             .pumpkin => .pumpkin,
             .carved_pumpkin => .carved_pumpkin,
             .jack_o_lantern => .jack_o_lantern,
+            .sculk => .sculk,
+            .sculk_sensor_off, .sculk_sensor_on => .sculk_sensor,
+            .deepslate => .cobbled_deepslate,
+            .cobbled_deepslate => .cobbled_deepslate,
+            .polished_deepslate => .polished_deepslate,
+            .deepslate_bricks => .deepslate_bricks,
+            .iron_block => .iron_block,
+            .cake => .none,
+            .melon => .melon_slice,
+            .barrel => .barrel,
             .piston_head => .piston,
         };
     }
@@ -717,7 +752,7 @@ pub const ItemType = enum(u16) {
 
     pub fn isCompostable(self: ItemType) bool {
         return switch (self) {
-            .leaves, .hay_bale, .wheat_seeds, .wheat, .bread, .paper, .sugar_cane, .pumpkin, .carved_pumpkin, .pumpkin_pie, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp, .sea_pickle, .raw_salmon, .cooked_salmon, .pufferfish, .tropical_fish => true,
+            .leaves, .hay_bale, .wheat_seeds, .wheat, .bread, .paper, .sugar_cane, .pumpkin, .carved_pumpkin, .pumpkin_pie, .cake, .melon, .melon_slice, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp, .sea_pickle, .raw_salmon, .cooked_salmon, .pufferfish, .tropical_fish => true,
             else => false,
         };
     }
@@ -738,8 +773,8 @@ pub const ItemType = enum(u16) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle => 16,
-            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass => 1,
+            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle, .healing_potion => 16,
+            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake => 1,
             else => 64,
         };
     }
@@ -1047,6 +1082,21 @@ pub const ItemType = enum(u16) {
             .carved_pumpkin => "Carved Pumpkin",
             .jack_o_lantern => "Jack o'Lantern",
             .pumpkin_pie => "Pumpkin Pie",
+            .sculk => "Sculk",
+            .sculk_sensor => "Sculk Sensor",
+            .echo_shard => "Echo Shard",
+            .recovery_compass => "Recovery Compass",
+            .deepslate => "Deepslate",
+            .cobbled_deepslate => "Cobbled Deepslate",
+            .polished_deepslate => "Polished Deepslate",
+            .deepslate_bricks => "Deepslate Bricks",
+            .iron_block => "Block of Iron",
+            .cake => "Cake",
+            .melon => "Melon",
+            .melon_slice => "Melon Slice",
+            .glistering_melon => "Glistering Melon Slice",
+            .healing_potion => "Potion of Healing",
+            .barrel => "Barrel",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1293,6 +1343,21 @@ pub const ItemType = enum(u16) {
             .carved_pumpkin => .{ 0.86, 0.48, 0.12, 0.95 },
             .jack_o_lantern => .{ 0.98, 0.68, 0.18, 0.95 },
             .pumpkin_pie => .{ 0.88, 0.56, 0.24, 0.95 },
+            .sculk => .{ 0.06, 0.18, 0.24, 0.95 },
+            .sculk_sensor => .{ 0.08, 0.48, 0.58, 0.95 },
+            .echo_shard => .{ 0.12, 0.68, 0.78, 0.95 },
+            .recovery_compass => .{ 0.10, 0.58, 0.68, 0.95 },
+            .deepslate => .{ 0.28, 0.28, 0.32, 0.95 },
+            .cobbled_deepslate => .{ 0.32, 0.32, 0.36, 0.95 },
+            .polished_deepslate => .{ 0.36, 0.36, 0.40, 0.95 },
+            .deepslate_bricks => .{ 0.30, 0.30, 0.34, 0.95 },
+            .iron_block => .{ 0.88, 0.88, 0.90, 0.95 },
+            .cake => .{ 0.96, 0.88, 0.84, 0.95 },
+            .melon => .{ 0.46, 0.74, 0.22, 0.95 },
+            .melon_slice => .{ 0.90, 0.28, 0.26, 0.95 },
+            .glistering_melon => .{ 0.96, 0.68, 0.22, 0.95 },
+            .healing_potion => .{ 0.96, 0.22, 0.36, 0.95 },
+            .barrel => .{ 0.58, 0.42, 0.24, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1638,10 +1703,15 @@ pub const Inventory = struct {
             }
         }
 
-        // Recipe 25: 4 Iron Ingots (2x2 filled) -> 1 Iron Door
+        // Recipe 25: 4 Iron Ingots (2x2 filled) -> 1 Iron Door (or 1 Block of Iron when total >= 8)
         if (non_empty == 4) {
             if (g0 == .iron_ingot and g1 == .iron_ingot and g2 == .iron_ingot and g3 == .iron_ingot) {
-                self.craft_output = .{ .item = .iron_door, .count = 1 };
+                const total_iron = @as(u16, self.craft_grid[0].count) + self.craft_grid[1].count + self.craft_grid[2].count + self.craft_grid[3].count;
+                if (total_iron >= 8) {
+                    self.craft_output = .{ .item = .iron_block, .count = 1 };
+                } else {
+                    self.craft_output = .{ .item = .iron_door, .count = 1 };
+                }
                 return;
             }
         }
@@ -2171,6 +2241,139 @@ pub const Inventory = struct {
             }
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 233: Sculk Sensor: 1 Sculk + 1 Redstone Dust/Observer -> 1 Sculk Sensor
+        if (non_empty == 2) {
+            var sck_cnt: u8 = 0;
+            var red_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .sculk) sck_cnt += 1;
+                if (sl.item == .redstone_dust or sl.item == .observer) red_cnt += 1;
+            }
+            if (sck_cnt == 1 and red_cnt == 1) {
+                self.craft_output = .{ .item = .sculk_sensor, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 234: Recovery Compass: 1 Compass + 1..3 Echo Shards -> 1 Recovery Compass
+        if (non_empty >= 2 and non_empty <= 4) {
+            var cmp_cnt: u8 = 0;
+            var ech_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .compass) cmp_cnt += 1;
+                if (sl.item == .echo_shard) ech_cnt += 1;
+            }
+            if (cmp_cnt == 1 and ech_cnt >= 1 and (cmp_cnt + ech_cnt == non_empty)) {
+                self.craft_output = .{ .item = .recovery_compass, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 235 & 236: Polished Deepslate (4 Cobbled Deepslate) & Deepslate Bricks (4 Polished Deepslate)
+        if (non_empty == 4) {
+            if (g0 == .cobbled_deepslate and g1 == .cobbled_deepslate and g2 == .cobbled_deepslate and g3 == .cobbled_deepslate) {
+                self.craft_output = .{ .item = .polished_deepslate, .count = 4 };
+                return;
+            }
+            if (g0 == .polished_deepslate and g1 == .polished_deepslate and g2 == .polished_deepslate and g3 == .polished_deepslate) {
+                self.craft_output = .{ .item = .deepslate_bricks, .count = 4 };
+                return;
+            }
+        }
+
+        // Recipe 237 & 238: Block of Iron (4 slots of Iron Ingots with total >= 8, or 3 Iron Ingots + 1 Iron Bars -> 1 Block of Iron) & Unpack (1 Block of Iron -> 4 Iron Ingots)
+        if (non_empty == 4) {
+            var iron_slots: u8 = 0;
+            var bars_slots: u8 = 0;
+            var total_iron: u16 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .iron_ingot) {
+                    iron_slots += 1;
+                    total_iron += sl.count;
+                } else if (sl.item == .iron_bars) {
+                    bars_slots += 1;
+                }
+            }
+            if ((iron_slots == 4 and total_iron >= 8) or (iron_slots == 3 and bars_slots == 1)) {
+                self.craft_output = .{ .item = .iron_block, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| {
+                if (sl.item == .iron_block) {
+                    self.craft_output = .{ .item = .iron_ingot, .count = 4 };
+                    return;
+                }
+            }
+        }
+
+        // Recipe 239: Cake: 1..2 Wheat + 1 Sugar + 1 Apple/Honey Bottle -> 1 Cake
+        if (non_empty >= 3 and non_empty <= 4) {
+            var wht_cnt: u8 = 0;
+            var sgr_cnt: u8 = 0;
+            var swt_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .wheat) wht_cnt += 1;
+                if (sl.item == .sugar) sgr_cnt += 1;
+                if (sl.item == .apple or sl.item == .honey_bottle) swt_cnt += 1;
+            }
+            if (wht_cnt >= 1 and sgr_cnt == 1 and swt_cnt == 1 and (wht_cnt + sgr_cnt + swt_cnt == non_empty)) {
+                self.craft_output = .{ .item = .cake, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 240: Melon (4 Melon Slices -> 1 Melon Block)
+        if (non_empty == 4) {
+            if (g0 == .melon_slice and g1 == .melon_slice and g2 == .melon_slice and g3 == .melon_slice) {
+                self.craft_output = .{ .item = .melon, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 241: Glistering Melon Slice: 1 Melon Slice + 1 Gold Nugget -> 1 Glistering Melon Slice
+        if (non_empty == 2) {
+            var mln_cnt: u8 = 0;
+            var gld_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .melon_slice) mln_cnt += 1;
+                if (sl.item == .gold_nugget) gld_cnt += 1;
+            }
+            if (mln_cnt == 1 and gld_cnt == 1) {
+                self.craft_output = .{ .item = .glistering_melon, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 242: Potion of Healing: 1 Glistering Melon Slice + 1 Glass/Nether Wart -> 1 Potion of Healing
+        if (non_empty == 2) {
+            var glm_cnt: u8 = 0;
+            var vsl_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .glistering_melon) glm_cnt += 1;
+                if (sl.item == .glass or sl.item == .nether_wart) vsl_cnt += 1;
+            }
+            if (glm_cnt == 1 and vsl_cnt == 1) {
+                self.craft_output = .{ .item = .healing_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 243: Barrel: 3 Wood Planks + 1 Stick -> 1 Barrel (Wait: 3 Wood Planks + 1 Stick is Composter Recipe 91! Let us make Barrel: 2 Wood Planks + 1 Wooden Trapdoor -> 1 Barrel)
+        if (non_empty >= 2 and non_empty <= 3) {
+            var plk_cnt: u8 = 0;
+            var trp_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .wood_planks) plk_cnt += 1;
+                if (sl.item == .wooden_trapdoor) trp_cnt += 1;
+            }
+            if (plk_cnt >= 1 and trp_cnt >= 1 and (plk_cnt + trp_cnt == non_empty)) {
+                self.craft_output = .{ .item = .barrel, .count = 1 };
                 return;
             }
         }
@@ -4950,6 +5153,18 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
     } else if (block == .bookshelf) {
         out[0] = .{ .item = .book, .count = 3 };
         return 1;
+    } else if (block == .deepslate) {
+        out[0] = .{ .item = .cobbled_deepslate, .count = 1 };
+        return 1;
+    } else if (block == .cake) {
+        return 0;
+    } else if (block == .melon) {
+        out[0] = .{ .item = .melon_slice, .count = 4 };
+        return 1;
+    } else if (block == .sculk) {
+        out[0] = .{ .item = .sculk, .count = 1 };
+        out[1] = .{ .item = .echo_shard, .count = 1 };
+        return 2;
     } else if (block == .copper_ore) {
         out[0] = .{ .item = .raw_copper, .count = 2 };
         return 1;
@@ -8655,4 +8870,83 @@ test "copper, lightning rod, spyglass, amethyst, tinted glass, bell, sugar cane,
     try std.testing.expectEqual(drops[0].count, 4);
     try std.testing.expectEqual(getBlockDrops(.tinted_glass, &drops), 1);
     try std.testing.expectEqual(drops[0].item, .tinted_glass);
+}
+
+test "sculk, deepslate, iron block, cake, melon, glistering melon, healing potion, and barrel recipes 233-243" {
+    var inv = Inventory.init();
+
+    // Recipe 233: Sculk Sensor
+    inv.craft_grid[0] = .{ .item = .sculk, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .redstone_dust, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .sculk_sensor);
+
+    // Recipe 234: Recovery Compass
+    inv.craft_grid[0] = .{ .item = .compass, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .echo_shard, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .recovery_compass);
+
+    // Recipe 235 & 236: Polished Deepslate & Deepslate Bricks
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .cobbled_deepslate, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .polished_deepslate);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .polished_deepslate, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .deepslate_bricks);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    // Recipe 237 & 238: 4x2 Iron Ingots <-> 1 Block of Iron
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .iron_ingot, .count = 2 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .iron_block);
+
+    inv.craft_grid[0] = .{ .item = .iron_block, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .iron_ingot);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    // Recipe 239: Cake
+    inv.craft_grid[0] = .{ .item = .wheat, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .sugar, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .apple, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .cake);
+
+    // Recipe 240: 4 Melon Slices -> 1 Melon
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .melon_slice, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .melon);
+
+    // Recipe 241 & 242: Glistering Melon & Healing Potion
+    inv.craft_grid[0] = .{ .item = .melon_slice, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .gold_nugget, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .glistering_melon);
+
+    inv.craft_grid[0] = .{ .item = .glistering_melon, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .healing_potion);
+
+    // Recipe 243: Barrel
+    inv.craft_grid[0] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wooden_trapdoor, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .barrel);
+
+    var drops: [2]BlockDrop = undefined;
+    try std.testing.expectEqual(getBlockDrops(.deepslate, &drops), 1);
+    try std.testing.expectEqual(drops[0].item, .cobbled_deepslate);
+    try std.testing.expectEqual(getBlockDrops(.cake, &drops), 0);
+    try std.testing.expectEqual(getBlockDrops(.melon, &drops), 1);
+    try std.testing.expectEqual(drops[0].item, .melon_slice);
+    try std.testing.expectEqual(drops[0].count, 4);
 }
