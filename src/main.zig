@@ -1995,7 +1995,7 @@ pub fn main() !void {
         // Wolf bites & mob melee attacks: contact damage with per-second cooldown
         wolf_bite_cooldown = combat_mod.tickCooldown(wolf_bite_cooldown, dt);
         if (wolf_bite_cooldown <= 0.0) {
-            const held_gold = (inventory.slots[selected_slot].item == .gold_nugget or inventory.slots[selected_slot].item == .golden_apple or inventory.hasAnyGoldenArmor());
+            const held_gold = (inventory.slots[selected_slot].item == .gold_nugget or inventory.slots[selected_slot].item == .golden_apple or inventory.hasAnyGoldenItem());
             for (mob_manager.mobs.items) |*m| {
                 if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider and m.mob_type != .cave_spider and m.mob_type != .endermite and m.mob_type != .drowned and m.mob_type != .phantom and m.mob_type != .guardian and m.mob_type != .elder_guardian and m.mob_type != .slime) continue;
                 if (m.mob_type == .piglin and (held_gold or m.barter_timer > 0.0 or entity_mod.mob_manager.MobManager.isPiglinRepelled(m.pos, player.pos, held_warped_fungus, &pickBlockWorld) != null)) continue;
@@ -2458,7 +2458,7 @@ pub fn main() !void {
                 const dir = cam.front();
                 mob_hit_cooldown = combat_mod.tickCooldown(mob_hit_cooldown, dt);
                 const held_weapon = inventory.slots[selected_slot].item;
-                const hit_dmg: u8 = combat_mod.calculatePlayerAttackDamageAllTiers(held_weapon == .netherite_sword, held_weapon == .diamond_sword, held_weapon == .iron_sword, held_weapon == .stone_sword, player.isWeakened());
+                const hit_dmg: u8 = combat_mod.calculatePlayerAttackDamageEveryTier(held_weapon == .netherite_sword, held_weapon == .diamond_sword, held_weapon == .iron_sword, held_weapon == .stone_sword, held_weapon == .golden_sword, player.isWeakened());
 
                 var bartered = false;
                 if (right and !right_down and inventory.slots[selected_slot].item == .gold_nugget) {
@@ -4646,7 +4646,7 @@ pub fn main() !void {
                         audio.playAt(.stonecutter_saw, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 30.0);
                         particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.65, 0.65, 0.65 }, 8);
                         std.debug.print("precision shaped 1 cobblestone into smooth stone at ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
-                    } else if (held_slot.item == .wooden_pickaxe or held_slot.item == .iron_pickaxe or held_slot.item == .diamond_pickaxe or held_slot.item == .netherite_pickaxe) {
+                    } else if (held_slot.item == .wooden_pickaxe or held_slot.item == .stone_pickaxe or held_slot.item == .golden_pickaxe or held_slot.item == .iron_pickaxe or held_slot.item == .diamond_pickaxe or held_slot.item == .netherite_pickaxe) {
                         // True the pickaxe chisel head on circular saw guide
                         tool_wear.uses[selected_slot] = 0;
                         audio.playAt(.stonecutter_saw, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 28.0);
@@ -5098,10 +5098,7 @@ pub fn main() !void {
                 } else if (target == .furnace) {
                     // feed held item as input or fuel
                     const held_f = inventory.slots[selected_slot];
-                    const smeltable = switch (held_f.item) {
-                        .raw_pork, .raw_mutton, .raw_cod, .raw_salmon, .kelp, .sand, .iron_ore, .ancient_debris => true,
-                        else => false,
-                    };
+                    const smeltable = smelt_mod.isSmeltable(@intFromEnum(held_f.item));
                     var fed = false;
                     var k_opt = cache_mod.findFurnace(&furnaces, furnace_count, hit_f.x, hit_f.y, hit_f.z);
                     if (k_opt == null and cache_mod.canCreateFurnace(furnace_count, furnaces.len)) {

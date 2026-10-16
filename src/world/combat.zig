@@ -8,6 +8,7 @@ pub const melee_cooldown: f32 = 0.35;
 pub const melee_range: f32 = 4.0;
 pub const sword_damage: u8 = 2;
 pub const stone_sword_damage: u8 = 2;
+pub const golden_sword_damage: u8 = 2;
 pub const diamond_sword_damage: u8 = 3;
 pub const netherite_sword_damage: u8 = 4;
 pub const hand_damage: u8 = 1;
@@ -84,10 +85,15 @@ pub fn weaponDamageTier(is_netherite: bool, is_diamond: bool, is_iron: bool) u8 
 }
 
 pub fn weaponDamageAllTiers(is_netherite: bool, is_diamond: bool, is_iron: bool, is_stone: bool) u8 {
+    return weaponDamageEveryTier(is_netherite, is_diamond, is_iron, is_stone, false);
+}
+
+pub fn weaponDamageEveryTier(is_netherite: bool, is_diamond: bool, is_iron: bool, is_stone: bool, is_golden: bool) u8 {
     if (is_netherite) return netherite_sword_damage;
     if (is_diamond) return diamond_sword_damage;
     if (is_iron) return sword_damage;
     if (is_stone) return stone_sword_damage;
+    if (is_golden) return golden_sword_damage;
     return hand_damage;
 }
 
@@ -100,7 +106,11 @@ pub fn calculatePlayerAttackDamageTier(is_netherite: bool, is_diamond: bool, is_
 }
 
 pub fn calculatePlayerAttackDamageAllTiers(is_netherite: bool, is_diamond: bool, is_iron: bool, is_stone: bool, is_weakened: bool) u8 {
-    const raw = weaponDamageAllTiers(is_netherite, is_diamond, is_iron, is_stone);
+    return calculatePlayerAttackDamageEveryTier(is_netherite, is_diamond, is_iron, is_stone, false, is_weakened);
+}
+
+pub fn calculatePlayerAttackDamageEveryTier(is_netherite: bool, is_diamond: bool, is_iron: bool, is_stone: bool, is_golden: bool, is_weakened: bool) u8 {
+    const raw = weaponDamageEveryTier(is_netherite, is_diamond, is_iron, is_stone, is_golden);
     if (is_weakened) {
         // Weakness reduces attack potency by 2 damage, floor of 1
         return if (raw > 2) raw - 2 else 1;
@@ -299,4 +309,11 @@ test "calculatePlayerAttackDamageAllTiers stone sword damage check" {
     try std.testing.expectEqual(calculatePlayerAttackDamageAllTiers(false, false, false, true, false), 2);
     // Stone sword with weakness deals floor 1 damage
     try std.testing.expectEqual(calculatePlayerAttackDamageAllTiers(false, false, false, true, true), 1);
+}
+
+test "calculatePlayerAttackDamageEveryTier golden sword damage check" {
+    // Golden sword deals 2 damage
+    try std.testing.expectEqual(calculatePlayerAttackDamageEveryTier(false, false, false, false, true, false), 2);
+    // Golden sword with weakness deals floor 1 damage
+    try std.testing.expectEqual(calculatePlayerAttackDamageEveryTier(false, false, false, false, true, true), 1);
 }

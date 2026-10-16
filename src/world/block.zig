@@ -656,28 +656,33 @@ pub const BlockDef = struct {
 ///
 /// Tool ids mirror `ItemType` discriminants without importing inventory
 /// (cross-directory import breaks standalone test targets): 9 = wooden_pickaxe, 27 = iron_pickaxe.
-pub const TOOL_WOODEN_PICKAXE: u8 = 9;
-pub const TOOL_IRON_PICKAXE: u8 = 27;
-pub const TOOL_NETHERITE_PICKAXE: u8 = 73;
-pub const TOOL_DIAMOND_PICKAXE: u8 = 221;
-pub const TOOL_WOODEN_AXE: u8 = 228;
-pub const TOOL_IRON_AXE: u8 = 229;
-pub const TOOL_DIAMOND_AXE: u8 = 230;
-pub const TOOL_NETHERITE_AXE: u8 = 231;
-pub const TOOL_WOODEN_SHOVEL: u8 = 232;
-pub const TOOL_IRON_SHOVEL: u8 = 233;
-pub const TOOL_DIAMOND_SHOVEL: u8 = 234;
-pub const TOOL_NETHERITE_SHOVEL: u8 = 235;
-pub const TOOL_WOODEN_HOE: u8 = 236;
-pub const TOOL_IRON_HOE: u8 = 237;
-pub const TOOL_DIAMOND_HOE: u8 = 238;
-pub const TOOL_NETHERITE_HOE: u8 = 239;
-pub const TOOL_SHEARS: u8 = 240;
-pub const TOOL_STONE_SWORD: u8 = 249;
-pub const TOOL_STONE_PICKAXE: u8 = 250;
-pub const TOOL_STONE_AXE: u8 = 251;
-pub const TOOL_STONE_SHOVEL: u8 = 252;
-pub const TOOL_STONE_HOE: u8 = 253;
+pub const TOOL_WOODEN_PICKAXE: u16 = 9;
+pub const TOOL_IRON_PICKAXE: u16 = 27;
+pub const TOOL_NETHERITE_PICKAXE: u16 = 73;
+pub const TOOL_DIAMOND_PICKAXE: u16 = 221;
+pub const TOOL_WOODEN_AXE: u16 = 228;
+pub const TOOL_IRON_AXE: u16 = 229;
+pub const TOOL_DIAMOND_AXE: u16 = 230;
+pub const TOOL_NETHERITE_AXE: u16 = 231;
+pub const TOOL_WOODEN_SHOVEL: u16 = 232;
+pub const TOOL_IRON_SHOVEL: u16 = 233;
+pub const TOOL_DIAMOND_SHOVEL: u16 = 234;
+pub const TOOL_NETHERITE_SHOVEL: u16 = 235;
+pub const TOOL_WOODEN_HOE: u16 = 236;
+pub const TOOL_IRON_HOE: u16 = 237;
+pub const TOOL_DIAMOND_HOE: u16 = 238;
+pub const TOOL_NETHERITE_HOE: u16 = 239;
+pub const TOOL_SHEARS: u16 = 240;
+pub const TOOL_STONE_SWORD: u16 = 249;
+pub const TOOL_STONE_PICKAXE: u16 = 250;
+pub const TOOL_STONE_AXE: u16 = 251;
+pub const TOOL_STONE_SHOVEL: u16 = 252;
+pub const TOOL_STONE_HOE: u16 = 253;
+pub const TOOL_GOLDEN_SWORD: u16 = 254;
+pub const TOOL_GOLDEN_PICKAXE: u16 = 255;
+pub const TOOL_GOLDEN_AXE: u16 = 256;
+pub const TOOL_GOLDEN_SHOVEL: u16 = 257;
+pub const TOOL_GOLDEN_HOE: u16 = 258;
 
 pub fn hardness(block: BlockId) f32 {
     return switch (block) {
@@ -838,7 +843,7 @@ pub fn isFoliageClass(block: BlockId) bool {
     };
 }
 
-pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
+pub fn toolMultiplier(held_tool_id: u16, block: BlockId) f32 {
     if (held_tool_id == TOOL_SHEARS) {
         if (block == .cobweb) return 15.0;
         if (block == .leaves) return 10.0;
@@ -847,6 +852,10 @@ pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
         return 1.0;
     }
 
+    if (held_tool_id == TOOL_GOLDEN_HOE) {
+        if (isFoliageClass(block)) return 7.0;
+        return 1.6;
+    }
     if (held_tool_id == TOOL_NETHERITE_HOE) {
         if (isFoliageClass(block)) return 6.0;
         return 1.5;
@@ -866,6 +875,10 @@ pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
     if (held_tool_id == TOOL_STONE_HOE) {
         if (isFoliageClass(block)) return 3.5;
         return 1.1;
+    }
+    if (held_tool_id == TOOL_GOLDEN_SHOVEL) {
+        if (isSoilClass(block)) return 7.0;
+        return 1.6;
     }
     if (held_tool_id == TOOL_NETHERITE_SHOVEL) {
         if (isSoilClass(block)) return 6.0;
@@ -887,6 +900,10 @@ pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
         if (isSoilClass(block)) return 3.5;
         return 1.1;
     }
+    if (held_tool_id == TOOL_GOLDEN_AXE) {
+        if (isWoodClass(block)) return 7.0;
+        return 2.2;
+    }
     if (held_tool_id == TOOL_NETHERITE_AXE) {
         if (isWoodClass(block)) return 6.0;
         return 2.0;
@@ -906,6 +923,12 @@ pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
     if (held_tool_id == TOOL_STONE_AXE) {
         if (isWoodClass(block)) return 3.5;
         return 1.3;
+    }
+    if (held_tool_id == TOOL_GOLDEN_PICKAXE) {
+        return switch (block) {
+            .stone, .cobblestone, .coal_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .redstone_block => 7.0,
+            else => 2.0,
+        };
     }
     if (held_tool_id == TOOL_NETHERITE_PICKAXE) {
         return switch (block) {
@@ -941,7 +964,7 @@ pub fn toolMultiplier(held_tool_id: u8, block: BlockId) f32 {
 }
 
 /// Seconds to mine `block` while holding tool with discriminant `held_tool_id`.
-pub fn mineTime(block: BlockId, held_tool_id: u8) f32 {
+pub fn mineTime(block: BlockId, held_tool_id: u16) f32 {
     if (block == .air or block == .water) return 0.0;
     return hardness(block) / toolMultiplier(held_tool_id, block);
 }
@@ -2959,4 +2982,18 @@ test "stone tool multiplier speeds and stone mining efficiency" {
     // Stone pickaxe mines stone faster than wooden pickaxe
     try std.testing.expect(toolMultiplier(TOOL_STONE_PICKAXE, .stone) > toolMultiplier(TOOL_WOODEN_PICKAXE, .stone));
     try std.testing.expect(mineTime(.stone, TOOL_STONE_PICKAXE) < mineTime(.stone, TOOL_WOODEN_PICKAXE));
+}
+
+test "golden tool multiplier speeds and ultra-speed harvesting" {
+    try std.testing.expectEqual(toolMultiplier(TOOL_GOLDEN_PICKAXE, .stone), 7.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_GOLDEN_PICKAXE, .coal_ore), 7.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_GOLDEN_PICKAXE, .dirt), 2.0);
+
+    try std.testing.expectEqual(toolMultiplier(TOOL_GOLDEN_AXE, .wood), 7.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_GOLDEN_SHOVEL, .dirt), 7.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_GOLDEN_HOE, .leaves), 7.0);
+
+    // Golden pickaxe mines stone faster than netherite pickaxe (7.0x vs 6.0x)
+    try std.testing.expect(toolMultiplier(TOOL_GOLDEN_PICKAXE, .stone) > toolMultiplier(TOOL_NETHERITE_PICKAXE, .stone));
+    try std.testing.expect(mineTime(.stone, TOOL_GOLDEN_PICKAXE) < mineTime(.stone, TOOL_NETHERITE_PICKAXE));
 }
