@@ -31,6 +31,9 @@ pub const Diamond: u16 = 217;
 pub const DiamondOre: u16 = 218;
 pub const Emerald: u16 = 273;
 pub const EmeraldOre: u16 = 274;
+pub const RawCopper: u16 = 283;
+pub const CopperIngot: u16 = 284;
+pub const CopperOre: u16 = 285;
 pub const None: u16 = 0;
 
 pub fn smeltResult(input: u16) u16 {
@@ -48,6 +51,7 @@ pub fn smeltResult(input: u16) u16 {
         GoldOre => GoldNugget,
         DiamondOre => Diamond,
         EmeraldOre => Emerald,
+        RawCopper, CopperOre => CopperIngot,
         else => None,
     };
 }
@@ -223,7 +227,7 @@ test "tickSmokerJob high-speed food smoking" {
 pub const blast_furnace_time: f32 = 5.0;
 
 pub fn isOreItem(input: u16) bool {
-    return input == IronOre or input == AncientDebris or input == Sand or input == GoldOre or input == DiamondOre or input == EmeraldOre;
+    return input == IronOre or input == AncientDebris or input == Sand or input == GoldOre or input == DiamondOre or input == EmeraldOre or input == RawCopper or input == CopperOre;
 }
 
 pub fn tickBlastFurnaceJob(t: *f32, fuel: *u8, input: *u16, dt: f32) SmeltTickOutcome {
