@@ -14,6 +14,9 @@ const apiary_mod = @import("world/apiary.zig");
 const copper_mod = @import("world/copper.zig");
 const amethyst_mod = @import("world/amethyst.zig");
 const campfire_cook_mod = @import("world/campfire_cook.zig");
+const sculk_mod = @import("world/sculk.zig");
+const golem_mod = @import("world/golem.zig");
+const cake_mod = @import("world/cake.zig");
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
 const fluid_mod = @import("world/fluid_wash.zig");
@@ -261,6 +264,10 @@ pub fn main() !void {
     var beehive_count: usize = 0;
     var campfire_racks: [campfire_cook_mod.max_campfire_racks]campfire_cook_mod.CampfireRack = undefined;
     var campfire_rack_count: usize = 0;
+    var sculk_sensors: [sculk_mod.max_sensors]sculk_mod.SculkSensor = undefined;
+    var sculk_sensor_count: usize = 0;
+    var cakes: [cake_mod.max_cakes]cake_mod.CakeState = undefined;
+    var cake_count: usize = 0;
     const IgnitedFlame = struct { x: i32, y: i32, z: i32, t: f32 };
     var flames: [32]IgnitedFlame = undefined;
     var flame_count: usize = 0;
@@ -2965,6 +2972,27 @@ pub fn main() !void {
                                     } else {
                                         const is_furnace_place = place_type == .furnace;
                                         if (try manager.editAndRemesh(px, py, pz, place_type)) {
+                                        if (place_type == .carved_pumpkin or place_type == .jack_o_lantern) {
+                                            const mid_b = manager.getBlockWorld(px, py - 1, pz);
+                                            const base_b = manager.getBlockWorld(px, py - 2, pz);
+                                            if (golem_mod.detectTotem(@intFromEnum(place_type), @intFromEnum(mid_b), @intFromEnum(base_b))) |gkind| {
+                                                _ = try manager.editAndRemesh(px, py, pz, .air);
+                                                _ = try manager.editAndRemesh(px, py - 1, pz, .air);
+                                                _ = try manager.editAndRemesh(px, py - 2, pz, .air);
+                                                const drop_roll: u8 = @intCast(@abs(px +% pz) & 0xFF);
+                                                const gcount = golem_mod.golemDropCount(gkind, drop_roll);
+                                                if (gkind == .iron_golem) {
+                                                    _ = inventory.addItem(.iron_ingot, gcount);
+                                                    player.health = @min(20.0, player.health + 6.0);
+                                                    audio.play(.anvil_clang, 0.95);
+                                                } else {
+                                                    _ = inventory.addItem(.snowball, gcount);
+                                                    audio.play(.step_snow, 0.9);
+                                                }
+                                                particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(px)) + 0.5, @as(f32, @floatFromInt(py - 1)) + 0.5, @as(f32, @floatFromInt(pz)) + 0.5 }, 16);
+                                                std.debug.print("summoned {s} totem at ({d},{d},{d})!\n", .{ @tagName(gkind), px, py - 2, pz });
+                                            }
+                                        }
                                         if (place_type == .water) _ = manager.setWaterLevel(px, py, pz, 7);
                                         // Fluid reaction on placement: adjacent water and lava interact
                                         if (place_type == .water or place_type == .lava) {
@@ -4726,6 +4754,45 @@ pub fn main() !void {
                         }
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .cake) {
+                    var ck_opt = cake_mod.findCake(cakes[0..cake_count], cake_count, hit_f.x, hit_f.y, hit_f.z);
+                    if (ck_opt == null and cake_count < cakes.len) {
+                        cakes[cake_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z };
+                        ck_opt = cake_count;
+                        cake_count += 1;
+                    }
+                    if (ck_opt) |cki| {
+                        if (player.hunger < 20.0) {
+                            const res = cake_mod.eatSlice(&cakes[cki]);
+                            if (res.ate) {
+                                player.hunger = @min(20.0, player.hunger + cake_mod.hunger_per_slice);
+                                audio.play(.eat, 0.85);
+                                particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.96, 0.88, 0.84 }, 6);
+                                std.debug.print("ate slice of Cake ({d}/7 remaining, hunger={d:.1})\n", .{ cakes[cki].slices_remaining, player.hunger });
+                            }
+                            if (res.finished) {
+                                _ = try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, .air);
+                                cache_mod.swapRemove(&cakes, &cake_count, cki);
+                            }
+                        }
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .sculk_sensor_off or target == .sculk_sensor_on) {
+                    var ss_opt = sculk_mod.findSensor(sculk_sensors[0..sculk_sensor_count], sculk_sensor_count, hit_f.x, hit_f.y, hit_f.z);
+                    if (ss_opt == null and sculk_sensor_count < sculk_sensors.len) {
+                        sculk_sensors[sculk_sensor_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z };
+                        ss_opt = sculk_sensor_count;
+                        sculk_sensor_count += 1;
+                    }
+                    if (ss_opt) |ssi| {
+                        if (sculk_mod.triggerVibration(&sculk_sensors[ssi], player.pos.x, player.pos.y, player.pos.z, false)) {
+                            _ = try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, .sculk_sensor_on);
+                            audio.playAt(.portal_hum, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.85, 24.0);
+                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.7, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 8);
+                            std.debug.print("sculk sensor detected vibration (signal={d})\n", .{sculk_sensors[ssi].signal_strength});
+                        }
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .bell) {
                     audio.playAt(.anvil_clang, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 48.0);
                     audio.playAt(.glowstone_chime, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 48.0);
@@ -5760,6 +5827,17 @@ pub fn main() !void {
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.8);
                 std.debug.print("ate golden apple (hp={d:.1})\n", .{player.health});
+            } else if (held_eat.item == .healing_potion and player.health < 20.0) {
+                player.health = @min(20.0, player.health + cake_mod.healing_potion_hp);
+                inventory.slots[selected_slot].decrement(1);
+                _ = inventory.addItem(.glass, 1);
+                audio.play(.eat, 0.9);
+                std.debug.print("drank Potion of Healing (hp={d:.1})\n", .{player.health});
+            } else if (held_eat.item == .melon_slice and player.hunger < 20.0) {
+                player.hunger = @min(20.0, player.hunger + cake_mod.melon_slice_hunger);
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.75);
+                std.debug.print("ate Melon Slice (hunger={d:.1})\n", .{player.hunger});
             } else if (held_eat.item == .pumpkin_pie and player.hunger < 20.0) {
                 player.hunger = @min(20.0, player.hunger + 8.0);
                 inventory.slots[selected_slot].decrement(1);
