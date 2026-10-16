@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-16 (Session 364)
+Last updated: 2026-10-16 (Session 365)
 
 ## Project Structure
 
@@ -42,6 +42,9 @@ zigcraft/
 │       ├── copper.zig           # Copper oxidation stages, waxing, axe scraping & spyglass zoom
 │       ├── amethyst.zig         # Budding amethyst crystal growth, chime pitch & bell alarm range
 │       ├── campfire_cook.zig    # Fuel-free campfire roast rack cooking & hay bale smoke signals
+│       ├── sculk.zig            # Sculk sensor acoustic vibration range, wool occlusion & signal decay
+│       ├── golem.zig            # Snow & Iron Golem totem detection, repair & tribute math
+│       ├── cake.zig             # 7-slice placed cake consumption & comparator fullness signal
 │       └── persistence.zig      # Binary chunk serialization
 └── docs/
     ├── STATUS.md                # Real-time state of the project
