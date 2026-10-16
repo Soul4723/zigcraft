@@ -26,6 +26,9 @@ const alchemy_buffs_mod = @import("world/alchemy_buffs.zig");
 const ender_chest_mod = @import("world/ender_chest.zig");
 const beacon_aura_mod = @import("world/beacon_aura.zig");
 const archaeology_mod = @import("world/archaeology.zig");
+const wind_charge_mod = @import("world/wind_charge.zig");
+const mace_combat_mod = @import("world/mace_combat.zig");
+const autocrafter_mod = @import("world/autocrafter.zig");
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
 const fluid_mod = @import("world/fluid_wash.zig");
@@ -2556,8 +2559,16 @@ pub fn main() !void {
                 const dir = cam.front();
                 mob_hit_cooldown = combat_mod.tickCooldown(mob_hit_cooldown, dt);
                 const held_weapon = inventory.slots[selected_slot].item;
-                const base_hit_dmg: u8 = combat_mod.calculatePlayerAttackDamageWithWooden(held_weapon == .netherite_sword, held_weapon == .diamond_sword, held_weapon == .iron_sword, held_weapon == .stone_sword, held_weapon == .golden_sword, held_weapon == .wooden_sword, player.isWeakened());
+                const fall_blocks: f32 = if (!player.on_ground and player.vel_y < -2.0) (-player.vel_y * 0.4) else 0.0;
+                const base_hit_dmg: u8 = if (held_weapon == .mace)
+                    mace_combat_mod.calculateMaceDamage(fall_blocks)
+                else
+                    combat_mod.calculatePlayerAttackDamageWithWooden(held_weapon == .netherite_sword, held_weapon == .diamond_sword, held_weapon == .iron_sword, held_weapon == .stone_sword, held_weapon == .golden_sword, held_weapon == .wooden_sword, player.isWeakened());
                 const hit_dmg: u8 = alchemy_buffs_mod.applyStrengthBonus(base_hit_dmg, buff_timers);
+                if (mace_combat_mod.shouldNegateFallOnSmash(held_weapon == .mace, fall_blocks)) {
+                    player.vel_y = 0.0;
+                    audio.play(.anvil_clang, 1.0);
+                }
 
                 var bartered = false;
                 if (right and !right_down and inventory.slots[selected_slot].item == .gold_nugget) {
@@ -4808,6 +4819,30 @@ pub fn main() !void {
                         }
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .crafter) {
+                    const held_slot = &inventory.slots[selected_slot];
+                    if (autocrafter_mod.autoCraftSingleInput(@intFromEnum(held_slot.item))) |acr| {
+                        held_slot.decrement(1);
+                        const out_item: inventory_mod.ItemType = @enumFromInt(acr.output_tag);
+                        _ = inventory.addItem(out_item, acr.output_count);
+                        audio.play(.craft_item, 0.9);
+                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.85, 0.75, 0.50 }, 8);
+                        std.debug.print("autocrafted {d}x {s} at Crafter ({d},{d},{d})\n", .{ acr.output_count, out_item.name(), hit_f.x, hit_f.y, hit_f.z });
+                    } else {
+                        audio.play(.click_on, 0.7);
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .vault and inventory.slots[selected_slot].item == .trial_key) {
+                    inventory.slots[selected_slot].decrement(1);
+                    const vroll: u8 = @intCast(@abs(hit_f.x +% hit_f.z) & 0xFF);
+                    const vloot = autocrafter_mod.vaultLootForRoll(vroll);
+                    const vitem: inventory_mod.ItemType = @enumFromInt(vloot.output_tag);
+                    _ = inventory.addItem(vitem, vloot.output_count);
+                    audio.play(.glowstone_chime, 1.0);
+                    audio.play(.anvil_clang, 0.8);
+                    particles.spawnFireworkBurst(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 18);
+                    std.debug.print("unlocked Trial Vault with Trial Key: dispensed {d}x {s}!\n", .{ vloot.output_count, vitem.name() });
+                    flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .ender_chest) {
                     const held_slot = &inventory.slots[selected_slot];
                     if (!held_slot.isEmpty()) {
@@ -5975,6 +6010,37 @@ pub fn main() !void {
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.8);
                 std.debug.print("ate golden apple (hp={d:.1})\n", .{player.health});
+            } else if (held_eat.item == .wind_charge) {
+                player.vel_y = wind_charge_mod.calculateSelfBoostVy(player.vel_y, cam.pitch);
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.firework_blast, 0.85);
+                particles.spawnFireworkBurst(.{ player.pos.x, player.pos.y, player.pos.z }, 12);
+                for (mob_manager.mobs.items) |*m| {
+                    if (wind_charge_mod.isWithinBurstRadius(player.pos.x, player.pos.y, player.pos.z, m.pos.x, m.pos.y, m.pos.z)) {
+                        const imp = wind_charge_mod.calculateKnockbackImpulse(player.pos.x, player.pos.z, m.pos.x, m.pos.z);
+                        m.vel.x += imp.vx;
+                        m.vel.y = @max(m.vel.y, imp.vy);
+                        m.vel.z += imp.vz;
+                    }
+                }
+                std.debug.print("detonated Wind Charge burst (vel_y={d:.1})!\n", .{player.vel_y});
+            } else if (held_eat.item == .enchanted_golden_apple) {
+                player.health = 20.0;
+                player.hunger = 20.0;
+                player.fire_resistance_timer = 300.0;
+                buff_timers.strength = 300.0;
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 1.0);
+                audio.play(.glowstone_chime, 0.9);
+                std.debug.print("ate Enchanted Golden Apple (full HP/hunger + 300s Fire Res & Strength)!\n", .{});
+            } else if (held_eat.item == .suspicious_stew) {
+                player.hunger = @min(20.0, player.hunger + 6.0);
+                buff_timers.swiftness = @max(buff_timers.swiftness, 12.0);
+                night_vision_timer = @max(night_vision_timer, 12.0);
+                inventory.slots[selected_slot].decrement(1);
+                _ = inventory.addItem(.bowl, 1);
+                audio.play(.eat, 0.85);
+                std.debug.print("ate Suspicious Stew (+6 hunger, 12s Swiftness & Night Vision)!\n", .{});
             } else if (held_eat.item == .swiftness_potion) {
                 buff_timers.swiftness = alchemy_buffs_mod.buff_duration;
                 inventory.slots[selected_slot].decrement(1);

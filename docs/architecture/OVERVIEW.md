@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-16 (Session 368)
+Last updated: 2026-10-16 (Session 369)
 
 ## Project Structure
 
@@ -54,6 +54,9 @@ zigcraft/
 │       ├── ender_chest.zig      # Global quantum EnderVault deposit & withdrawal mechanics
 │       ├── beacon_aura.zig      # Beacon mineral pyramid verification, Haste & Regeneration aura
 │       ├── archaeology.zig      # Suspicious sand brush relic excavation & Copper Bulb latch
+│       ├── wind_charge.zig      # Wind Charge self-boost rocket jump & radial knockback impulse
+│       ├── mace_combat.zig      # Mace smash attack fall-velocity damage scaling & fall reset
+│       ├── autocrafter.zig      # Crafter batch autocrafting & Trial Vault key loot tables
 │       └── persistence.zig      # Binary chunk serialization
 └── docs/
     ├── STATUS.md                # Real-time state of the project

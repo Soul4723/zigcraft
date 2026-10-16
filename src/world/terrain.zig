@@ -132,6 +132,7 @@ pub const TerrainGenerator = struct {
             if (self.oreHash(wx, wy, wz, 0xC099E4) % 21 == 0) return .copper_ore;
             if (self.oreHash(wx, wy, wz, 0xA3E7) % 47 == 0) return .amethyst_block;
             if (wy == 1 and self.oreHash(wx, wy, wz, 0xDEE9) % 13 == 0) return .deepslate;
+            if (wy == 2 and self.oreHash(wx, wy, wz, 0x70FF) % 17 == 0) return .tuff;
             if (self.oreHash(wx, wy, wz, 0xC0BB1E) % 11 == 0) return .cobblestone;
         }
         if (wy == 4) {

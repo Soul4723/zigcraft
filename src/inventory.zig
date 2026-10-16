@@ -374,6 +374,20 @@ pub const ItemType = enum(u16) {
     suspicious_sand = 368,
     pottery_sherd = 369,
     decorated_pot = 370,
+    breeze_rod = 371,
+    wind_charge = 372,
+    heavy_core = 373,
+    mace = 374,
+    crafter = 375,
+    trial_key = 376,
+    trial_spawner = 377,
+    vault = 378,
+    enchanted_golden_apple = 379,
+    suspicious_stew = 380,
+    tuff = 381,
+    polished_tuff = 382,
+    tuff_bricks = 383,
+    chiseled_tuff = 384,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -568,6 +582,14 @@ pub const ItemType = enum(u16) {
             .copper_grate => .copper_grate,
             .suspicious_sand => .suspicious_sand,
             .decorated_pot => .decorated_pot,
+            .heavy_core => .heavy_core,
+            .crafter => .crafter,
+            .trial_spawner => .trial_spawner,
+            .vault => .vault,
+            .tuff => .tuff,
+            .polished_tuff => .polished_tuff,
+            .tuff_bricks => .tuff_bricks,
+            .chiseled_tuff => .chiseled_tuff,
             else => null,
         };
     }
@@ -770,6 +792,14 @@ pub const ItemType = enum(u16) {
             .copper_grate => .copper_grate,
             .suspicious_sand => .sand,
             .decorated_pot => .decorated_pot,
+            .heavy_core => .heavy_core,
+            .crafter => .crafter,
+            .trial_spawner => .trial_spawner,
+            .vault => .vault,
+            .tuff => .tuff,
+            .polished_tuff => .polished_tuff,
+            .tuff_bricks => .tuff_bricks,
+            .chiseled_tuff => .chiseled_tuff,
             .piston_head => .piston,
         };
     }
@@ -821,6 +851,7 @@ pub const ItemType = enum(u16) {
             .chainmail_leggings => 225,
             .chainmail_boots => 195,
             .brush => 64,
+            .mace => 500,
             .flint_and_steel => 64,
             .wooden_axe => 25,
             .iron_axe => 120,
@@ -879,7 +910,7 @@ pub const ItemType = enum(u16) {
         return switch (self) {
             .none => 0,
             .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion => 16,
-            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush => 1,
+            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew => 1,
             else => 64,
         };
     }
@@ -1253,6 +1284,20 @@ pub const ItemType = enum(u16) {
             .suspicious_sand => "Suspicious Sand",
             .pottery_sherd => "Pottery Sherd",
             .decorated_pot => "Decorated Pot",
+            .breeze_rod => "Breeze Rod",
+            .wind_charge => "Wind Charge",
+            .heavy_core => "Heavy Core",
+            .mace => "Mace",
+            .crafter => "Crafter",
+            .trial_key => "Trial Key",
+            .trial_spawner => "Trial Spawner",
+            .vault => "Vault",
+            .enchanted_golden_apple => "Enchanted Golden Apple",
+            .suspicious_stew => "Suspicious Stew",
+            .tuff => "Tuff",
+            .polished_tuff => "Polished Tuff",
+            .tuff_bricks => "Tuff Bricks",
+            .chiseled_tuff => "Chiseled Tuff",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1565,6 +1610,20 @@ pub const ItemType = enum(u16) {
             .suspicious_sand => .{ 0.88, 0.80, 0.58, 0.95 },
             .pottery_sherd => .{ 0.66, 0.38, 0.28, 0.95 },
             .decorated_pot => .{ 0.64, 0.36, 0.26, 0.95 },
+            .breeze_rod => .{ 0.62, 0.88, 0.96, 0.95 },
+            .wind_charge => .{ 0.78, 0.94, 0.98, 0.95 },
+            .heavy_core => .{ 0.42, 0.44, 0.48, 0.95 },
+            .mace => .{ 0.52, 0.56, 0.64, 0.95 },
+            .crafter => .{ 0.62, 0.52, 0.40, 0.95 },
+            .trial_key => .{ 0.88, 0.56, 0.30, 0.95 },
+            .trial_spawner => .{ 0.34, 0.52, 0.56, 0.95 },
+            .vault => .{ 0.38, 0.56, 0.52, 0.95 },
+            .enchanted_golden_apple => .{ 0.96, 0.72, 0.92, 0.95 },
+            .suspicious_stew => .{ 0.68, 0.78, 0.36, 0.95 },
+            .tuff => .{ 0.44, 0.46, 0.42, 0.95 },
+            .polished_tuff => .{ 0.48, 0.50, 0.46, 0.95 },
+            .tuff_bricks => .{ 0.46, 0.48, 0.44, 0.95 },
+            .chiseled_tuff => .{ 0.50, 0.52, 0.48, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1744,7 +1803,7 @@ pub const Inventory = struct {
                self.hasItem(.golden_pickaxe) or
                self.hasItem(.golden_axe) or
                self.hasItem(.golden_shovel) or
-               self.hasItem(.golden_hoe) or self.hasItem(.golden_carrot);
+               self.hasItem(.golden_hoe) or self.hasItem(.golden_carrot) or self.hasItem(.enchanted_golden_apple);
     }
 
     pub fn hasFullIronSet(self: *const Inventory) bool {
@@ -2455,6 +2514,90 @@ pub const Inventory = struct {
             }
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 279 & 280: Wind Charge (1 Breeze Rod -> 4 Wind Charges) & Mace (1 Heavy Core + 1 Breeze Rod -> 1 Mace)
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| {
+                if (sl.item == .breeze_rod) {
+                    self.craft_output = .{ .item = .wind_charge, .count = 4 };
+                    return;
+                }
+            }
+        }
+        if (non_empty == 2) {
+            var hvc_cnt: u8 = 0;
+            var brz_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .heavy_core) hvc_cnt += 1;
+                if (sl.item == .breeze_rod) brz_cnt += 1;
+            }
+            if (hvc_cnt == 1 and brz_cnt == 1) {
+                self.craft_output = .{ .item = .mace, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 281: Crafter: 1 Crafting Bench + 1 Dropper + 1..2 Redstone Dust/Iron Ingots -> 1 Crafter
+        if (non_empty >= 3 and non_empty <= 4) {
+            var cft_cnt: u8 = 0;
+            var drp_cnt: u8 = 0;
+            var rds_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .crafting_bench) cft_cnt += 1;
+                if (sl.item == .dropper) drp_cnt += 1;
+                if (sl.item == .redstone_dust or sl.item == .iron_ingot) rds_cnt += 1;
+            }
+            if (cft_cnt == 1 and drp_cnt == 1 and rds_cnt >= 1 and (cft_cnt + drp_cnt + rds_cnt == non_empty)) {
+                self.craft_output = .{ .item = .crafter, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 282 & 283: Enchanted Golden Apple (1 Golden Apple + 2..3 Gold Blocks) & Suspicious Stew (1 Mushroom Stew + 1 Glow Berries/Sweet Berries)
+        if (non_empty >= 3 and non_empty <= 4) {
+            var gap_cnt: u8 = 0;
+            var gbk_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .golden_apple) gap_cnt += 1;
+                if (sl.item == .gold_block) gbk_cnt += 1;
+            }
+            if (gap_cnt == 1 and gbk_cnt >= 2 and (gap_cnt + gbk_cnt == non_empty)) {
+                self.craft_output = .{ .item = .enchanted_golden_apple, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 2) {
+            var stw_cnt: u8 = 0;
+            var flw_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .mushroom_stew) stw_cnt += 1;
+                if (sl.item == .glow_berries or sl.item == .sweet_berries or sl.item == .golden_carrot) flw_cnt += 1;
+            }
+            if (stw_cnt == 1 and flw_cnt == 1) {
+                self.craft_output = .{ .item = .suspicious_stew, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipes 284-286: Tuff -> Polished Tuff (4x), Polished Tuff -> Tuff Bricks (4x), Tuff Bricks vertically -> Chiseled Tuff (2x)
+        if (non_empty == 4) {
+            if (g0 == .tuff and g1 == .tuff and g2 == .tuff and g3 == .tuff) {
+                self.craft_output = .{ .item = .polished_tuff, .count = 4 };
+                return;
+            }
+            if (g0 == .polished_tuff and g1 == .polished_tuff and g2 == .polished_tuff and g3 == .polished_tuff) {
+                self.craft_output = .{ .item = .tuff_bricks, .count = 4 };
+                return;
+            }
+        }
+        if (non_empty == 2) {
+            if ((g0 == .tuff_bricks and g2 == .tuff_bricks and g1 == .none and g3 == .none) or
+                (g1 == .tuff_bricks and g3 == .tuff_bricks and g0 == .none and g2 == .none))
+            {
+                self.craft_output = .{ .item = .chiseled_tuff, .count = 2 };
                 return;
             }
         }
@@ -5703,6 +5846,10 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
     } else if (block == .bookshelf) {
         out[0] = .{ .item = .book, .count = 3 };
         return 1;
+    } else if (block == .trial_spawner) {
+        out[0] = .{ .item = .trial_key, .count = 1 };
+        out[1] = .{ .item = .breeze_rod, .count = 2 };
+        return 2;
     } else if (block == .ender_chest) {
         out[0] = .{ .item = .obsidian, .count = 8 };
         return 1;
@@ -9741,4 +9888,56 @@ test "ender chest, chainmail armor, mud bricks, copper bulb/grate/chiseled, brus
     try std.testing.expectEqual(getBlockDrops(.ender_chest, &drops), 1);
     try std.testing.expectEqual(drops[0].item, .obsidian);
     try std.testing.expectEqual(drops[0].count, 8);
+}
+
+test "breeze rod, wind charge, heavy core, mace, crafter, trial vault, enchanted golden apple, suspicious stew, and tuff recipes 279-286" {
+    var inv = Inventory.init();
+
+    // Recipe 279 & 280: Wind Charge & Mace
+    inv.craft_grid[0] = .{ .item = .breeze_rod, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .wind_charge);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    inv.craft_grid[1] = .{ .item = .heavy_core, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .mace);
+    try std.testing.expect(ItemType.mace.isTool());
+    try std.testing.expectEqual(ItemType.mace.maxDurability(), 500);
+
+    // Recipe 281: Crafter
+    inv.craft_grid[0] = .{ .item = .crafting_bench, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .dropper, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .redstone_dust, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .crafter);
+
+    // Recipe 282 & 283: Enchanted Golden Apple & Suspicious Stew
+    inv.craft_grid[0] = .{ .item = .golden_apple, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .gold_block, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .gold_block, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .enchanted_golden_apple);
+
+    inv.craft_grid[0] = .{ .item = .mushroom_stew, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glow_berries, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .suspicious_stew);
+
+    // Recipes 284-286: Tuff masonry
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .tuff, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .polished_tuff);
+
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .polished_tuff, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .tuff_bricks);
+
+    inv.craft_grid[0] = .{ .item = .tuff_bricks, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{ .item = .tuff_bricks, .count = 1 };
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .chiseled_tuff);
 }
