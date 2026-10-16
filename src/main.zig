@@ -9,6 +9,7 @@ const smelt_mod = @import("world/smelting.zig");
 const boom_mod = @import("world/explosives.zig");
 const sapling_mod = @import("world/sapling.zig");
 const farming_mod = @import("world/farming.zig");
+const trading_mod = @import("world/trading.zig");
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
 const fluid_mod = @import("world/fluid_wash.zig");
@@ -250,6 +251,8 @@ pub fn main() !void {
     var wart_count: usize = 0;
     var wheat_crops: [farming_mod.max_crops]farming_mod.WheatCrop = undefined;
     var wheat_crop_count: usize = 0;
+    var trades_completed: u16 = 0;
+    var lectern_page: u8 = 0;
     const IgnitedFlame = struct { x: i32, y: i32, z: i32, t: f32 };
     var flames: [32]IgnitedFlame = undefined;
     var flame_count: usize = 0;
@@ -4694,6 +4697,37 @@ pub fn main() !void {
                         }
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .lectern or (inventory.slots[selected_slot].item == .emerald and (target == .composter or target == .cartography_table or target == .smithing_table or target == .fletching_table or target == .brewing_stand))) {
+                    const held_slot = &inventory.slots[selected_slot];
+                    if (held_slot.item == .emerald) {
+                        const prof: trading_mod.Profession = if (target == .composter)
+                            .farmer
+                        else if (target == .lectern or target == .cartography_table)
+                            .librarian
+                        else if (target == .smithing_table)
+                            .blacksmith
+                        else if (target == .brewing_stand)
+                            .cleric
+                        else
+                            .fletcher;
+                        const tier = trading_mod.xpToTier(trades_completed);
+                        const offer = trading_mod.getOffer(prof, tier);
+                        if (trading_mod.canAfford(held_slot.count, offer)) {
+                            held_slot.decrement(offer.emerald_cost);
+                            const out_item: inventory_mod.ItemType = @enumFromInt(offer.output_tag);
+                            _ = inventory.addItem(out_item, offer.output_count);
+                            trades_completed +%= 1;
+                            audio.playAt(.glowstone_chime, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.95, 28.0);
+                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 10);
+                            std.debug.print("traded {d} emerald(s) with {s} workstation for {d}x {s} (trades={d})\n", .{ offer.emerald_cost, @tagName(prof), offer.output_count, out_item.name(), trades_completed });
+                        }
+                    } else if (target == .lectern) {
+                        lectern_page = (lectern_page + 1) % 16;
+                        audio.playAt(.map_rustle, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.9, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.85, 24.0);
+                        particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 5);
+                        std.debug.print("turned lectern tome to page {d}/15\n", .{lectern_page});
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .stonecutter) {
                     var sc_opt = cache_mod.findStonecutter(&stonecutters, stonecutter_count, hit_f.x, hit_f.y, hit_f.z);
                     if (sc_opt == null and stonecutter_count < stonecutters.len) {
@@ -4906,10 +4940,26 @@ pub fn main() !void {
                         enchantment_table_count += 1;
                     }
 
+                    var bookshelf_power: u8 = 0;
+                    var bdx: i32 = -2;
+                    while (bdx <= 2) : (bdx += 1) {
+                        var bdz: i32 = -2;
+                        while (bdz <= 2) : (bdz += 1) {
+                            if (@abs(bdx) == 2 or @abs(bdz) == 2) {
+                                if (manager.getBlockWorld(hit_f.x + bdx, hit_f.y, hit_f.z + bdz) == .bookshelf) bookshelf_power = @min(15, bookshelf_power + 1);
+                                if (manager.getBlockWorld(hit_f.x + bdx, hit_f.y + 1, hit_f.z + bdz) == .bookshelf) bookshelf_power = @min(15, bookshelf_power + 1);
+                            }
+                        }
+                    }
+
                     const held_slot = &inventory.slots[selected_slot];
                     if (held_slot.item.isTool()) {
-                        // Mystic enchantment honing: restore wear / repair held tool
+                        // Mystic enchantment honing: restore wear / repair held tool + bookshelf power blessing
                         tool_wear.uses[selected_slot] = 0;
+                        if (bookshelf_power > 0) {
+                            player.health = @min(20.0, player.health + @as(f32, @floatFromInt(@min(bookshelf_power, 6))));
+                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.2, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, @as(usize, bookshelf_power) * 2);
+                        }
                         audio.playAt(.glowstone_chime, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 32.0);
                         particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 12);
                         std.debug.print("enchantment table sharpened/repaired {s} at ({d},{d},{d})\n", .{ held_slot.item.name(), hit_f.x, hit_f.y, hit_f.z });

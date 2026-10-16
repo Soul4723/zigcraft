@@ -272,6 +272,13 @@ pub const ItemType = enum(u16) {
     wheat_seeds = 266,
     wheat = 267,
     bread = 268,
+    paper = 269,
+    book = 270,
+    bookshelf = 271,
+    lectern = 272,
+    emerald = 273,
+    emerald_ore = 274,
+    emerald_block = 275,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -408,6 +415,10 @@ pub const ItemType = enum(u16) {
             .diamond_block => .diamond_block,
             .farmland => .farmland,
             .wheat_seeds => .wheat_crop,
+            .bookshelf => .bookshelf,
+            .lectern => .lectern,
+            .emerald_ore => .emerald_ore,
+            .emerald_block => .emerald_block,
             else => null,
         };
     }
@@ -551,6 +562,10 @@ pub const ItemType = enum(u16) {
             .diamond_block => .diamond_block,
             .farmland => .dirt,
             .wheat_crop => .wheat_seeds,
+            .bookshelf => .bookshelf,
+            .lectern => .lectern,
+            .emerald_ore => .emerald_ore,
+            .emerald_block => .emerald_block,
             .piston_head => .piston,
         };
     }
@@ -633,7 +648,7 @@ pub const ItemType = enum(u16) {
 
     pub fn isCompostable(self: ItemType) bool {
         return switch (self) {
-            .leaves, .hay_bale, .wheat_seeds, .wheat, .bread, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp, .sea_pickle, .raw_salmon, .cooked_salmon, .pufferfish, .tropical_fish => true,
+            .leaves, .hay_bale, .wheat_seeds, .wheat, .bread, .paper, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp, .sea_pickle, .raw_salmon, .cooked_salmon, .pufferfish, .tropical_fish => true,
             else => false,
         };
     }
@@ -927,6 +942,13 @@ pub const ItemType = enum(u16) {
             .wheat_seeds => "Wheat Seeds",
             .wheat => "Wheat",
             .bread => "Bread",
+            .paper => "Paper",
+            .book => "Book",
+            .bookshelf => "Bookshelf",
+            .lectern => "Lectern",
+            .emerald => "Emerald",
+            .emerald_ore => "Emerald Ore",
+            .emerald_block => "Block of Emerald",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1137,6 +1159,13 @@ pub const ItemType = enum(u16) {
             .wheat_seeds => .{ 0.48, 0.68, 0.24, 0.95 },
             .wheat => .{ 0.88, 0.76, 0.28, 0.95 },
             .bread => .{ 0.82, 0.58, 0.24, 0.95 },
+            .paper => .{ 0.94, 0.93, 0.88, 0.95 },
+            .book => .{ 0.65, 0.38, 0.22, 0.95 },
+            .bookshelf => .{ 0.68, 0.48, 0.26, 0.95 },
+            .lectern => .{ 0.72, 0.54, 0.30, 0.95 },
+            .emerald => .{ 0.15, 0.85, 0.38, 0.95 },
+            .emerald_ore => .{ 0.35, 0.68, 0.42, 0.95 },
+            .emerald_block => .{ 0.18, 0.90, 0.42, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -2016,6 +2045,76 @@ pub const Inventory = struct {
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
                 return;
+            }
+        }
+
+        // Recipe 210: Paper: 2 Wheat or 2 Kelp horizontally -> 3 Paper
+        if (non_empty == 2) {
+            if (((g0 == .wheat and g1 == .wheat) or (g0 == .kelp and g1 == .kelp)) and g2 == .none and g3 == .none) {
+                self.craft_output = .{ .item = .paper, .count = 3 };
+                return;
+            }
+            if (((g2 == .wheat and g3 == .wheat) or (g2 == .kelp and g3 == .kelp)) and g0 == .none and g1 == .none) {
+                self.craft_output = .{ .item = .paper, .count = 3 };
+                return;
+            }
+        }
+
+        // Recipe 211: Book: 2..3 Paper + 1 Leather -> 1 Book
+        if (non_empty >= 3 and non_empty <= 4) {
+            var paper_cnt: u8 = 0;
+            var leather_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .paper) paper_cnt += 1;
+                if (sl.item == .leather) leather_cnt += 1;
+            }
+            if (paper_cnt >= 2 and leather_cnt == 1 and (paper_cnt + leather_cnt == non_empty)) {
+                self.craft_output = .{ .item = .book, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 212: Bookshelf: 2 Books + 2 Wood Planks (4 items) -> 1 Bookshelf
+        if (non_empty == 4) {
+            var book_cnt: u8 = 0;
+            var plank_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .book) book_cnt += 1;
+                if (sl.item == .wood_planks) plank_cnt += 1;
+            }
+            if (book_cnt == 2 and plank_cnt == 2) {
+                self.craft_output = .{ .item = .bookshelf, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 213: Lectern: 1 Bookshelf + 1..3 Wood Planks -> 1 Lectern
+        if (non_empty >= 2 and non_empty <= 4) {
+            var shelf_cnt: u8 = 0;
+            var plank_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .bookshelf) shelf_cnt += 1;
+                if (sl.item == .wood_planks) plank_cnt += 1;
+            }
+            if (shelf_cnt == 1 and plank_cnt >= 1 and (shelf_cnt + plank_cnt == non_empty)) {
+                self.craft_output = .{ .item = .lectern, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 214 & 215: Block of Emerald (4 Emeralds -> 1 Block of Emerald) & Unpack (1 Block of Emerald -> 4 Emeralds)
+        if (non_empty == 4) {
+            if (g0 == .emerald and g1 == .emerald and g2 == .emerald and g3 == .emerald) {
+                self.craft_output = .{ .item = .emerald_block, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| {
+                if (sl.item == .emerald_block) {
+                    self.craft_output = .{ .item = .emerald, .count = 4 };
+                    return;
+                }
             }
         }
 
@@ -4531,6 +4630,12 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         out[0] = .{ .item = .blackstone, .count = 1 };
         out[1] = .{ .item = .gold_nugget, .count = 2 };
         return 2;
+    } else if (block == .bookshelf) {
+        out[0] = .{ .item = .book, .count = 3 };
+        return 1;
+    } else if (block == .emerald_ore) {
+        out[0] = .{ .item = .emerald, .count = 1 };
+        return 1;
     } else if (block == .diamond_ore) {
         out[0] = .{ .item = .diamond, .count = 1 };
         return 1;
@@ -8040,4 +8145,64 @@ test "farmland, wheat_seeds, wheat, and bread items and recipes 207-209" {
     try std.testing.expectEqual(ItemType.wheat_seeds.toBlockId().?, .wheat_crop);
     try std.testing.expectEqual(ItemType.fromBlockId(.farmland), .dirt);
     try std.testing.expectEqual(ItemType.fromBlockId(.wheat_crop), .wheat_seeds);
+}
+
+test "paper, book, bookshelf, lectern, and emerald items, drops, and recipes 210-215" {
+    var inv = Inventory.init();
+
+    // Recipe 210: 2 Wheat horizontally -> 3 Paper
+    inv.craft_grid[0] = .{ .item = .wheat, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wheat, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .paper);
+    try std.testing.expectEqual(inv.craft_output.count, 3);
+
+    // Recipe 211: 2 Paper + 1 Leather -> 1 Book
+    inv.craft_grid[0] = .{ .item = .paper, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .paper, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .leather, .count = 1 };
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .book);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 212: 2 Books + 2 Wood Planks -> 1 Bookshelf
+    inv.craft_grid[0] = .{ .item = .book, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .book, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .wood_planks, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .bookshelf);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 213: 1 Bookshelf + 1 Wood Planks -> 1 Lectern
+    inv.craft_grid[0] = .{ .item = .bookshelf, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .lectern);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 214 & 215: 4 Emeralds <-> 1 Block of Emerald
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .emerald, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .emerald_block);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    inv.craft_grid[0] = .{ .item = .emerald_block, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .emerald);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    var drops: [2]BlockDrop = undefined;
+    try std.testing.expectEqual(getBlockDrops(.bookshelf, &drops), 1);
+    try std.testing.expectEqual(drops[0].item, .book);
+    try std.testing.expectEqual(drops[0].count, 3);
+    try std.testing.expectEqual(getBlockDrops(.emerald_ore, &drops), 1);
+    try std.testing.expectEqual(drops[0].item, .emerald);
+    try std.testing.expectEqual(drops[0].count, 1);
 }
