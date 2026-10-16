@@ -279,6 +279,13 @@ pub const ItemType = enum(u16) {
     emerald = 273,
     emerald_ore = 274,
     emerald_block = 275,
+    lapis_lazuli = 276,
+    lapis_ore = 277,
+    lapis_block = 278,
+    honeycomb = 279,
+    honey_bottle = 280,
+    beehive = 281,
+    honey_block = 282,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -419,6 +426,10 @@ pub const ItemType = enum(u16) {
             .lectern => .lectern,
             .emerald_ore => .emerald_ore,
             .emerald_block => .emerald_block,
+            .lapis_ore => .lapis_ore,
+            .lapis_block => .lapis_block,
+            .beehive => .beehive,
+            .honey_block => .honey_block,
             else => null,
         };
     }
@@ -566,6 +577,10 @@ pub const ItemType = enum(u16) {
             .lectern => .lectern,
             .emerald_ore => .emerald_ore,
             .emerald_block => .emerald_block,
+            .lapis_ore => .lapis_ore,
+            .lapis_block => .lapis_block,
+            .beehive => .beehive,
+            .honey_block => .honey_block,
             .piston_head => .piston,
         };
     }
@@ -669,7 +684,7 @@ pub const ItemType = enum(u16) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea => 16,
+            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle => 16,
             .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart => 1,
             else => 64,
         };
@@ -949,6 +964,13 @@ pub const ItemType = enum(u16) {
             .emerald => "Emerald",
             .emerald_ore => "Emerald Ore",
             .emerald_block => "Block of Emerald",
+            .lapis_lazuli => "Lapis Lazuli",
+            .lapis_ore => "Lapis Lazuli Ore",
+            .lapis_block => "Block of Lapis Lazuli",
+            .honeycomb => "Honeycomb",
+            .honey_bottle => "Honey Bottle",
+            .beehive => "Beehive",
+            .honey_block => "Honey Block",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1166,6 +1188,13 @@ pub const ItemType = enum(u16) {
             .emerald => .{ 0.15, 0.85, 0.38, 0.95 },
             .emerald_ore => .{ 0.35, 0.68, 0.42, 0.95 },
             .emerald_block => .{ 0.18, 0.90, 0.42, 0.95 },
+            .lapis_lazuli => .{ 0.16, 0.32, 0.85, 0.95 },
+            .lapis_ore => .{ 0.28, 0.42, 0.78, 0.95 },
+            .lapis_block => .{ 0.14, 0.28, 0.88, 0.95 },
+            .honeycomb => .{ 0.96, 0.72, 0.18, 0.95 },
+            .honey_bottle => .{ 0.98, 0.76, 0.20, 0.95 },
+            .beehive => .{ 0.78, 0.62, 0.34, 0.95 },
+            .honey_block => .{ 0.98, 0.74, 0.16, 0.85 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -2044,6 +2073,56 @@ pub const Inventory = struct {
             }
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 216 & 217: Block of Lapis Lazuli (4 Lapis -> 1 Block) & Unpack (1 Block -> 4 Lapis)
+        if (non_empty == 4) {
+            if (g0 == .lapis_lazuli and g1 == .lapis_lazuli and g2 == .lapis_lazuli and g3 == .lapis_lazuli) {
+                self.craft_output = .{ .item = .lapis_block, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| {
+                if (sl.item == .lapis_block) {
+                    self.craft_output = .{ .item = .lapis_lazuli, .count = 4 };
+                    return;
+                }
+            }
+        }
+
+        // Recipe 218: Beehive: 2 Honeycomb + 2 Wood Planks (4 items) -> 1 Beehive
+        if (non_empty == 4) {
+            var comb_cnt: u8 = 0;
+            var plank_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .honeycomb) comb_cnt += 1;
+                if (sl.item == .wood_planks) plank_cnt += 1;
+            }
+            if (comb_cnt == 2 and plank_cnt == 2) {
+                self.craft_output = .{ .item = .beehive, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 219 & 220: Honey Block (4 Honey Bottles -> 1 Honey Block) & Unpack (1 Honey Block + 1..3 Glass -> 4 Honey Bottles)
+        if (non_empty == 4) {
+            if (g0 == .honey_bottle and g1 == .honey_bottle and g2 == .honey_bottle and g3 == .honey_bottle) {
+                self.craft_output = .{ .item = .honey_block, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty >= 2 and non_empty <= 4) {
+            var hb_cnt: u8 = 0;
+            var glass_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .honey_block) hb_cnt += 1;
+                if (sl.item == .glass) glass_cnt += 1;
+            }
+            if (hb_cnt == 1 and glass_cnt >= 1 and (hb_cnt + glass_cnt == non_empty)) {
+                self.craft_output = .{ .item = .honey_bottle, .count = 4 };
                 return;
             }
         }
@@ -4632,6 +4711,9 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         return 2;
     } else if (block == .bookshelf) {
         out[0] = .{ .item = .book, .count = 3 };
+        return 1;
+    } else if (block == .lapis_ore) {
+        out[0] = .{ .item = .lapis_lazuli, .count = 4 };
         return 1;
     } else if (block == .emerald_ore) {
         out[0] = .{ .item = .emerald, .count = 1 };
@@ -8205,4 +8287,50 @@ test "paper, book, bookshelf, lectern, and emerald items, drops, and recipes 210
     try std.testing.expectEqual(getBlockDrops(.emerald_ore, &drops), 1);
     try std.testing.expectEqual(drops[0].item, .emerald);
     try std.testing.expectEqual(drops[0].count, 1);
+}
+
+test "lapis lazuli, beehive, honeycomb, honey bottle, and honey block recipes 216-220" {
+    var inv = Inventory.init();
+
+    // Recipe 216 & 217: 4 Lapis <-> 1 Block of Lapis
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .lapis_lazuli, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .lapis_block);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    inv.craft_grid[0] = .{ .item = .lapis_block, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .lapis_lazuli);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    // Recipe 218: 2 Honeycomb + 2 Wood Planks -> 1 Beehive
+    inv.craft_grid[0] = .{ .item = .honeycomb, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .honeycomb, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .wood_planks, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .beehive);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 219 & 220: 4 Honey Bottles <-> 1 Honey Block
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .honey_bottle, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .honey_block);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    inv.craft_grid[0] = .{ .item = .honey_block, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .honey_bottle);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    var drops: [2]BlockDrop = undefined;
+    try std.testing.expectEqual(getBlockDrops(.lapis_ore, &drops), 1);
+    try std.testing.expectEqual(drops[0].item, .lapis_lazuli);
+    try std.testing.expectEqual(drops[0].count, 4);
 }

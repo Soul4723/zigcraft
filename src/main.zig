@@ -10,6 +10,7 @@ const boom_mod = @import("world/explosives.zig");
 const sapling_mod = @import("world/sapling.zig");
 const farming_mod = @import("world/farming.zig");
 const trading_mod = @import("world/trading.zig");
+const apiary_mod = @import("world/apiary.zig");
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
 const fluid_mod = @import("world/fluid_wash.zig");
@@ -253,6 +254,8 @@ pub fn main() !void {
     var wheat_crop_count: usize = 0;
     var trades_completed: u16 = 0;
     var lectern_page: u8 = 0;
+    var beehives: [apiary_mod.max_hives]apiary_mod.Beehive = undefined;
+    var beehive_count: usize = 0;
     const IgnitedFlame = struct { x: i32, y: i32, z: i32, t: f32 };
     var flames: [32]IgnitedFlame = undefined;
     var flame_count: usize = 0;
@@ -4697,6 +4700,39 @@ pub fn main() !void {
                         }
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .beehive) {
+                    var bh_opt = apiary_mod.findHive(beehives[0..beehive_count], beehive_count, hit_f.x, hit_f.y, hit_f.z);
+                    if (bh_opt == null and beehive_count < beehives.len) {
+                        beehives[beehive_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z, .honey_level = apiary_mod.max_honey_level };
+                        bh_opt = beehive_count;
+                        beehive_count += 1;
+                    }
+                    if (bh_opt) |bi| {
+                        const held_slot = &inventory.slots[selected_slot];
+                        if (held_slot.item == .shears and apiary_mod.isReadyForHarvest(beehives[bi].honey_level)) {
+                            const combs = apiary_mod.harvestHoneycomb(&beehives[bi]);
+                            _ = inventory.addItem(.honeycomb, combs);
+                            if (tool_wear.use(selected_slot, held_slot.item.maxDurability())) {
+                                held_slot.clear();
+                            }
+                            audio.playAt(.shears_snip, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 28.0);
+                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 10);
+                            std.debug.print("sheared {d}x Honeycomb from beehive at ({d},{d},{d})\n", .{ combs, hit_f.x, hit_f.y, hit_f.z });
+                        } else if (held_slot.item == .glass and apiary_mod.harvestHoneyBottle(&beehives[bi])) {
+                            held_slot.decrement(1);
+                            _ = inventory.addItem(.honey_bottle, 1);
+                            audio.playAt(.splash, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.85, 24.0);
+                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 8);
+                            std.debug.print("bottled golden Honey Bottle from beehive at ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                        } else {
+                            beehives[bi].has_flowers_nearby = true;
+                            _ = apiary_mod.tickHive(&beehives[bi], apiary_mod.pollinated_stage_time);
+                            audio.playAt(.place_block, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.7, 20.0);
+                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.9, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 4);
+                            std.debug.print("beehive honey level: {d}/5\n", .{beehives[bi].honey_level});
+                        }
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .lectern or (inventory.slots[selected_slot].item == .emerald and (target == .composter or target == .cartography_table or target == .smithing_table or target == .fletching_table or target == .brewing_stand))) {
                     const held_slot = &inventory.slots[selected_slot];
                     if (held_slot.item == .emerald) {
@@ -4953,7 +4989,14 @@ pub fn main() !void {
                     }
 
                     const held_slot = &inventory.slots[selected_slot];
-                    if (held_slot.item.isTool()) {
+                    if (held_slot.item == .lapis_lazuli) {
+                        held_slot.decrement(1);
+                        for (0..tool_wear.uses.len) |tsi| tool_wear.uses[tsi] = 0;
+                        player.health = @min(20.0, player.health + 4.0 + @as(f32, @floatFromInt(@min(bookshelf_power, 6))));
+                        audio.playAt(.glowstone_chime, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 32.0);
+                        particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 16);
+                        std.debug.print("channeled Lapis Lazuli at enchantment table (bookshelves={d}): all tools restored!\n", .{bookshelf_power});
+                    } else if (held_slot.item.isTool()) {
                         // Mystic enchantment honing: restore wear / repair held tool + bookshelf power blessing
                         tool_wear.uses[selected_slot] = 0;
                         if (bookshelf_power > 0) {
@@ -5624,6 +5667,13 @@ pub fn main() !void {
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.8);
                 std.debug.print("ate golden apple (hp={d:.1})\n", .{player.health});
+            } else if (held_eat.item == .honey_bottle and (player.hunger < 20.0 or player.poison_timer > 0.0)) {
+                player.hunger = @min(20.0, player.hunger + apiary_mod.honey_bottle_hunger);
+                player.poison_timer = 0.0;
+                inventory.slots[selected_slot].decrement(1);
+                _ = inventory.addItem(.glass, 1);
+                audio.play(.eat, 0.85);
+                std.debug.print("drank Honey Bottle: cured poison and restored hunger ({d:.1})\n", .{player.hunger});
             } else if (held_eat.item == .bread and player.hunger < 20.0) {
                 player.hunger = @min(20.0, player.hunger + 5.0);
                 inventory.slots[selected_slot].decrement(1);
