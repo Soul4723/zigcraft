@@ -11,6 +11,9 @@ const sapling_mod = @import("world/sapling.zig");
 const farming_mod = @import("world/farming.zig");
 const trading_mod = @import("world/trading.zig");
 const apiary_mod = @import("world/apiary.zig");
+const copper_mod = @import("world/copper.zig");
+const amethyst_mod = @import("world/amethyst.zig");
+const campfire_cook_mod = @import("world/campfire_cook.zig");
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
 const fluid_mod = @import("world/fluid_wash.zig");
@@ -256,6 +259,8 @@ pub fn main() !void {
     var lectern_page: u8 = 0;
     var beehives: [apiary_mod.max_hives]apiary_mod.Beehive = undefined;
     var beehive_count: usize = 0;
+    var campfire_racks: [campfire_cook_mod.max_campfire_racks]campfire_cook_mod.CampfireRack = undefined;
+    var campfire_rack_count: usize = 0;
     const IgnitedFlame = struct { x: i32, y: i32, z: i32, t: f32 };
     var flames: [32]IgnitedFlame = undefined;
     var flame_count: usize = 0;
@@ -3194,6 +3199,27 @@ pub fn main() !void {
                 }
             }
         }
+        // Campfire roast rack tick: fuel-free 15s culinary cooking and Hay Bale smoke signals
+        {
+            var cri: usize = 0;
+            while (cri < campfire_rack_count) {
+                var cr = &campfire_racks[cri];
+                const cb = manager.getBlockWorld(cr.x, cr.y, cr.z);
+                if (!cb.is_campfire()) {
+                    cache_mod.swapRemove(&campfire_racks, &campfire_rack_count, cri);
+                    continue;
+                }
+                cr.signal_fire = (manager.getBlockWorld(cr.x, cr.y - 1, cr.z) == .hay_bale);
+                if (campfire_cook_mod.tickRack(cr, dt)) |cooked_tag| {
+                    const cooked_item: inventory_mod.ItemType = @enumFromInt(cooked_tag);
+                    _ = inventory.addItem(cooked_item, 1);
+                    audio.playAt(.burn_sizzle, .{ @as(f32, @floatFromInt(cr.x)) + 0.5, @as(f32, @floatFromInt(cr.y)) + 0.5, @as(f32, @floatFromInt(cr.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.85, 24.0);
+                    particles.spawnCampfireSmoke(cr.x, cr.y, cr.z, cb == .soul_campfire, cr.signal_fire, campfire_cook_mod.smokePlumeCount(cr.signal_fire));
+                    std.debug.print("campfire roasted {s} at ({d},{d},{d})\n", .{ cooked_item.name(), cr.x, cr.y, cr.z });
+                }
+                cri += 1;
+            }
+        }
         // Smoker tick: high-speed food smoking (5s per item) and aromatic chimney smoke plume
         {
             var smk_i: usize = 0;
@@ -4700,6 +4726,73 @@ pub fn main() !void {
                         }
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .bell) {
+                    audio.playAt(.anvil_clang, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 48.0);
+                    audio.playAt(.glowstone_chime, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 48.0);
+                    particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 14);
+                    var highlighted: usize = 0;
+                    for (mob_manager.mobs.items) |*m| {
+                        if (amethyst_mod.isWithinBellHighlightRange(hit_f.x, hit_f.y, hit_f.z, m.pos.x, m.pos.y, m.pos.z)) {
+                            m.glow_timer = @max(m.glow_timer, amethyst_mod.bell_glow_duration);
+                            highlighted += 1;
+                        }
+                    }
+                    std.debug.print("rang village Bell at ({d},{d},{d}): highlighted {d} nearby mobs!\n", .{ hit_f.x, hit_f.y, hit_f.z, highlighted });
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .pumpkin and inventory.slots[selected_slot].item == .shears) {
+                    if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, .carved_pumpkin)) {
+                        _ = inventory.addItem(.wheat_seeds, 2);
+                        if (tool_wear.use(selected_slot, inventory.slots[selected_slot].item.maxDurability())) {
+                            inventory.slots[selected_slot].clear();
+                        }
+                        audio.playAt(.shears_snip, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 24.0);
+                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.90, 0.52, 0.14 }, 8);
+                        std.debug.print("carved Pumpkin at ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if ((target == .copper_block or target == .exposed_copper or target == .weathered_copper or target == .oxidized_copper or target == .waxed_copper_block) and (inventory.slots[selected_slot].item == .honeycomb or inventory.slots[selected_slot].item == .wooden_axe or inventory.slots[selected_slot].item == .stone_axe or inventory.slots[selected_slot].item == .golden_axe or inventory.slots[selected_slot].item == .iron_axe or inventory.slots[selected_slot].item == .diamond_axe or inventory.slots[selected_slot].item == .netherite_axe)) {
+                    const held_slot = &inventory.slots[selected_slot];
+                    if (held_slot.item == .honeycomb and target != .waxed_copper_block) {
+                        if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, .waxed_copper_block)) {
+                            held_slot.decrement(1);
+                            audio.playAt(.place_block, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.85, 24.0);
+                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 8);
+                            std.debug.print("waxed copper block at ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                        }
+                    } else if (held_slot.item != .honeycomb and target != .copper_block) {
+                        const scraped_block: block_mod.BlockId = switch (target) {
+                            .waxed_copper_block, .exposed_copper => .copper_block,
+                            .weathered_copper => .exposed_copper,
+                            .oxidized_copper => .weathered_copper,
+                            else => .copper_block,
+                        };
+                        if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, scraped_block)) {
+                            if (tool_wear.use(selected_slot, held_slot.item.maxDurability())) {
+                                held_slot.clear();
+                            }
+                            audio.playAt(.grindstone_scrape, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.85, 24.0);
+                            particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.42, 0.72, 0.58 }, 8);
+                            std.debug.print("scraped copper block to {s} at ({d},{d},{d})\n", .{ @tagName(scraped_block), hit_f.x, hit_f.y, hit_f.z });
+                        }
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if ((target == .campfire or target == .soul_campfire) and campfire_cook_mod.isCampfireCookable(@intFromEnum(inventory.slots[selected_slot].item))) {
+                    var cr_opt = campfire_cook_mod.findRack(campfire_racks[0..campfire_rack_count], campfire_rack_count, hit_f.x, hit_f.y, hit_f.z);
+                    if (cr_opt == null and campfire_rack_count < campfire_racks.len) {
+                        campfire_racks[campfire_rack_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z };
+                        cr_opt = campfire_rack_count;
+                        campfire_rack_count += 1;
+                    }
+                    if (cr_opt) |cri| {
+                        const held_slot = &inventory.slots[selected_slot];
+                        if (campfire_cook_mod.mountItem(&campfire_racks[cri], @intFromEnum(held_slot.item))) {
+                            std.debug.print("mounted {s} on campfire roast rack at ({d},{d},{d})\n", .{ held_slot.item.name(), hit_f.x, hit_f.y, hit_f.z });
+                            held_slot.decrement(1);
+                            audio.playAt(.burn_sizzle, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 20.0);
+                            particles.spawnBurnSparks(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.6, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 6);
+                        }
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .beehive) {
                     var bh_opt = apiary_mod.findHive(beehives[0..beehive_count], beehive_count, hit_f.x, hit_f.y, hit_f.z);
                     if (bh_opt == null and beehive_count < beehives.len) {
@@ -5667,6 +5760,11 @@ pub fn main() !void {
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.8);
                 std.debug.print("ate golden apple (hp={d:.1})\n", .{player.health});
+            } else if (held_eat.item == .pumpkin_pie and player.hunger < 20.0) {
+                player.hunger = @min(20.0, player.hunger + 8.0);
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.85);
+                std.debug.print("ate Pumpkin Pie (hunger={d:.1})\n", .{player.hunger});
             } else if (held_eat.item == .honey_bottle and (player.hunger < 20.0 or player.poison_timer > 0.0)) {
                 player.hunger = @min(20.0, player.hunger + apiary_mod.honey_bottle_hunger);
                 player.poison_timer = 0.0;

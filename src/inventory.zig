@@ -286,6 +286,28 @@ pub const ItemType = enum(u16) {
     honey_bottle = 280,
     beehive = 281,
     honey_block = 282,
+    raw_copper = 283,
+    copper_ingot = 284,
+    copper_ore = 285,
+    copper_block = 286,
+    exposed_copper = 287,
+    weathered_copper = 288,
+    oxidized_copper = 289,
+    waxed_copper_block = 290,
+    lightning_rod = 291,
+    spyglass = 292,
+    amethyst_shard = 293,
+    amethyst_block = 294,
+    budding_amethyst = 295,
+    amethyst_cluster = 296,
+    tinted_glass = 297,
+    bell = 298,
+    sugar_cane = 299,
+    sugar = 300,
+    pumpkin = 301,
+    carved_pumpkin = 302,
+    jack_o_lantern = 303,
+    pumpkin_pie = 304,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -430,6 +452,22 @@ pub const ItemType = enum(u16) {
             .lapis_block => .lapis_block,
             .beehive => .beehive,
             .honey_block => .honey_block,
+            .copper_ore => .copper_ore,
+            .copper_block => .copper_block,
+            .exposed_copper => .exposed_copper,
+            .weathered_copper => .weathered_copper,
+            .oxidized_copper => .oxidized_copper,
+            .waxed_copper_block => .waxed_copper_block,
+            .lightning_rod => .lightning_rod,
+            .amethyst_block => .amethyst_block,
+            .budding_amethyst => .budding_amethyst,
+            .amethyst_cluster => .amethyst_cluster,
+            .tinted_glass => .tinted_glass,
+            .bell => .bell,
+            .sugar_cane => .sugar_cane,
+            .pumpkin => .pumpkin,
+            .carved_pumpkin => .carved_pumpkin,
+            .jack_o_lantern => .jack_o_lantern,
             else => null,
         };
     }
@@ -581,6 +619,22 @@ pub const ItemType = enum(u16) {
             .lapis_block => .lapis_block,
             .beehive => .beehive,
             .honey_block => .honey_block,
+            .copper_ore => .copper_ore,
+            .copper_block => .copper_block,
+            .exposed_copper => .exposed_copper,
+            .weathered_copper => .weathered_copper,
+            .oxidized_copper => .oxidized_copper,
+            .waxed_copper_block => .waxed_copper_block,
+            .lightning_rod => .lightning_rod,
+            .amethyst_block => .amethyst_block,
+            .budding_amethyst => .budding_amethyst,
+            .amethyst_cluster => .amethyst_cluster,
+            .tinted_glass => .tinted_glass,
+            .bell => .bell,
+            .sugar_cane => .sugar_cane,
+            .pumpkin => .pumpkin,
+            .carved_pumpkin => .carved_pumpkin,
+            .jack_o_lantern => .jack_o_lantern,
             .piston_head => .piston,
         };
     }
@@ -588,7 +642,7 @@ pub const ItemType = enum(u16) {
 
     pub fn isArmor(self: ItemType) bool {
         return switch (self) {
-            .netherite_helmet, .turtle_helmet, .netherite_chestplate, .elytra, .netherite_leggings, .netherite_boots, .soul_speed_boots, .dragon_head, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots => true,
+            .netherite_helmet, .turtle_helmet, .netherite_chestplate, .elytra, .netherite_leggings, .netherite_boots, .soul_speed_boots, .dragon_head, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .carved_pumpkin => true,
             else => false,
         };
     }
@@ -663,7 +717,7 @@ pub const ItemType = enum(u16) {
 
     pub fn isCompostable(self: ItemType) bool {
         return switch (self) {
-            .leaves, .hay_bale, .wheat_seeds, .wheat, .bread, .paper, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp, .sea_pickle, .raw_salmon, .cooked_salmon, .pufferfish, .tropical_fish => true,
+            .leaves, .hay_bale, .wheat_seeds, .wheat, .bread, .paper, .sugar_cane, .pumpkin, .carved_pumpkin, .pumpkin_pie, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp, .sea_pickle, .raw_salmon, .cooked_salmon, .pufferfish, .tropical_fish => true,
             else => false,
         };
     }
@@ -685,7 +739,7 @@ pub const ItemType = enum(u16) {
         return switch (self) {
             .none => 0,
             .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle => 16,
-            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart => 1,
+            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass => 1,
             else => 64,
         };
     }
@@ -971,6 +1025,28 @@ pub const ItemType = enum(u16) {
             .honey_bottle => "Honey Bottle",
             .beehive => "Beehive",
             .honey_block => "Honey Block",
+            .raw_copper => "Raw Copper",
+            .copper_ingot => "Copper Ingot",
+            .copper_ore => "Copper Ore",
+            .copper_block => "Block of Copper",
+            .exposed_copper => "Exposed Copper",
+            .weathered_copper => "Weathered Copper",
+            .oxidized_copper => "Oxidized Copper",
+            .waxed_copper_block => "Waxed Block of Copper",
+            .lightning_rod => "Lightning Rod",
+            .spyglass => "Spyglass",
+            .amethyst_shard => "Amethyst Shard",
+            .amethyst_block => "Block of Amethyst",
+            .budding_amethyst => "Budding Amethyst",
+            .amethyst_cluster => "Amethyst Cluster",
+            .tinted_glass => "Tinted Glass",
+            .bell => "Bell",
+            .sugar_cane => "Sugar Cane",
+            .sugar => "Sugar",
+            .pumpkin => "Pumpkin",
+            .carved_pumpkin => "Carved Pumpkin",
+            .jack_o_lantern => "Jack o'Lantern",
+            .pumpkin_pie => "Pumpkin Pie",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1195,6 +1271,28 @@ pub const ItemType = enum(u16) {
             .honey_bottle => .{ 0.98, 0.76, 0.20, 0.95 },
             .beehive => .{ 0.78, 0.62, 0.34, 0.95 },
             .honey_block => .{ 0.98, 0.74, 0.16, 0.85 },
+            .raw_copper => .{ 0.84, 0.48, 0.32, 0.95 },
+            .copper_ingot => .{ 0.88, 0.50, 0.30, 0.95 },
+            .copper_ore => .{ 0.65, 0.48, 0.40, 0.95 },
+            .copper_block => .{ 0.86, 0.48, 0.28, 0.95 },
+            .exposed_copper => .{ 0.68, 0.52, 0.44, 0.95 },
+            .weathered_copper => .{ 0.42, 0.66, 0.54, 0.95 },
+            .oxidized_copper => .{ 0.32, 0.76, 0.64, 0.95 },
+            .waxed_copper_block => .{ 0.90, 0.54, 0.30, 0.95 },
+            .lightning_rod => .{ 0.88, 0.52, 0.32, 0.95 },
+            .spyglass => .{ 0.78, 0.56, 0.28, 0.95 },
+            .amethyst_shard => .{ 0.68, 0.38, 0.88, 0.95 },
+            .amethyst_block => .{ 0.58, 0.30, 0.82, 0.95 },
+            .budding_amethyst => .{ 0.64, 0.34, 0.86, 0.95 },
+            .amethyst_cluster => .{ 0.76, 0.46, 0.95, 0.95 },
+            .tinted_glass => .{ 0.28, 0.20, 0.34, 0.75 },
+            .bell => .{ 0.94, 0.80, 0.22, 0.95 },
+            .sugar_cane => .{ 0.52, 0.82, 0.36, 0.95 },
+            .sugar => .{ 0.96, 0.96, 0.98, 0.95 },
+            .pumpkin => .{ 0.90, 0.52, 0.14, 0.95 },
+            .carved_pumpkin => .{ 0.86, 0.48, 0.12, 0.95 },
+            .jack_o_lantern => .{ 0.98, 0.68, 0.18, 0.95 },
+            .pumpkin_pie => .{ 0.88, 0.56, 0.24, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -2073,6 +2171,146 @@ pub const Inventory = struct {
             }
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 221 & 222: Block of Copper (4 Copper Ingots -> 1 Block) & Unpack (1 Block -> 4 Copper Ingots)
+        if (non_empty == 4) {
+            if (g0 == .copper_ingot and g1 == .copper_ingot and g2 == .copper_ingot and g3 == .copper_ingot) {
+                self.craft_output = .{ .item = .copper_block, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| {
+                if (sl.item == .copper_block or sl.item == .waxed_copper_block) {
+                    self.craft_output = .{ .item = .copper_ingot, .count = 4 };
+                    return;
+                }
+            }
+        }
+
+        // Recipe 223: Waxed Block of Copper: 1 Block of Copper + 1 Honeycomb -> 1 Waxed Block of Copper
+        if (non_empty == 2) {
+            var cop_cnt: u8 = 0;
+            var comb_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .copper_block) cop_cnt += 1;
+                if (sl.item == .honeycomb) comb_cnt += 1;
+            }
+            if (cop_cnt == 1 and comb_cnt == 1) {
+                self.craft_output = .{ .item = .waxed_copper_block, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 224: Lightning Rod: 2 Copper Ingots vertically -> 1 Lightning Rod
+        if (non_empty == 2) {
+            if ((g0 == .copper_ingot and g2 == .copper_ingot and g1 == .none and g3 == .none) or
+                (g1 == .copper_ingot and g3 == .copper_ingot and g0 == .none and g2 == .none))
+            {
+                self.craft_output = .{ .item = .lightning_rod, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 225: Spyglass: 1..2 Copper Ingots + 1 Amethyst Shard -> 1 Spyglass
+        if (non_empty >= 2 and non_empty <= 3) {
+            var cop_cnt: u8 = 0;
+            var ame_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .copper_ingot) cop_cnt += 1;
+                if (sl.item == .amethyst_shard) ame_cnt += 1;
+            }
+            if (cop_cnt >= 1 and ame_cnt == 1 and (cop_cnt + ame_cnt == non_empty)) {
+                self.craft_output = .{ .item = .spyglass, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 226: Block of Amethyst: 4 Amethyst Shards -> 1 Block of Amethyst
+        if (non_empty == 4) {
+            if (g0 == .amethyst_shard and g1 == .amethyst_shard and g2 == .amethyst_shard and g3 == .amethyst_shard) {
+                self.craft_output = .{ .item = .amethyst_block, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 227: Tinted Glass: 2 Amethyst Shards + 1 Glass -> 2 Tinted Glass
+        if (non_empty == 3) {
+            var ame_cnt: u8 = 0;
+            var gls_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .amethyst_shard) ame_cnt += 1;
+                if (sl.item == .glass) gls_cnt += 1;
+            }
+            if (ame_cnt == 2 and gls_cnt == 1) {
+                self.craft_output = .{ .item = .tinted_glass, .count = 2 };
+                return;
+            }
+        }
+
+        // Recipe 228: Bell: 1 Gold Nugget/Block + 1..2 Wood Planks + 1 Stone -> 1 Bell
+        if (non_empty >= 3 and non_empty <= 4) {
+            var gld_cnt: u8 = 0;
+            var plk_cnt: u8 = 0;
+            var stn_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .gold_nugget or sl.item == .gold_block) gld_cnt += 1;
+                if (sl.item == .wood_planks) plk_cnt += 1;
+                if (sl.item == .stone or sl.item == .cobblestone) stn_cnt += 1;
+            }
+            if (gld_cnt == 1 and plk_cnt >= 1 and stn_cnt == 1 and (gld_cnt + plk_cnt + stn_cnt == non_empty)) {
+                self.craft_output = .{ .item = .bell, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 229 & 230: Sugar Cane -> 1 Sugar (1 item) or 2 Sugar Cane horizontally -> 3 Paper
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| {
+                if (sl.item == .sugar_cane) {
+                    self.craft_output = .{ .item = .sugar, .count = 1 };
+                    return;
+                }
+            }
+        }
+        if (non_empty == 2) {
+            if ((g0 == .sugar_cane and g1 == .sugar_cane and g2 == .none and g3 == .none) or
+                (g2 == .sugar_cane and g3 == .sugar_cane and g0 == .none and g1 == .none))
+            {
+                self.craft_output = .{ .item = .paper, .count = 3 };
+                return;
+            }
+        }
+
+        // Recipe 231: Jack o'Lantern: 1 Carved Pumpkin/Pumpkin + 1 Torch -> 1 Jack o'Lantern
+        if (non_empty == 2) {
+            var pmp_cnt: u8 = 0;
+            var trc_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .carved_pumpkin or sl.item == .pumpkin) pmp_cnt += 1;
+                if (sl.item == .torch) trc_cnt += 1;
+            }
+            if (pmp_cnt == 1 and trc_cnt == 1) {
+                self.craft_output = .{ .item = .jack_o_lantern, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 232: Pumpkin Pie: 1 Pumpkin + 1 Sugar + 1 Wheat/Bread -> 1 Pumpkin Pie
+        if (non_empty == 3) {
+            var pmp_cnt: u8 = 0;
+            var sgr_cnt: u8 = 0;
+            var wht_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .pumpkin or sl.item == .carved_pumpkin) pmp_cnt += 1;
+                if (sl.item == .sugar) sgr_cnt += 1;
+                if (sl.item == .wheat or sl.item == .bread) wht_cnt += 1;
+            }
+            if (pmp_cnt == 1 and sgr_cnt == 1 and wht_cnt == 1) {
+                self.craft_output = .{ .item = .pumpkin_pie, .count = 1 };
                 return;
             }
         }
@@ -4711,6 +4949,15 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         return 2;
     } else if (block == .bookshelf) {
         out[0] = .{ .item = .book, .count = 3 };
+        return 1;
+    } else if (block == .copper_ore) {
+        out[0] = .{ .item = .raw_copper, .count = 2 };
+        return 1;
+    } else if (block == .amethyst_cluster) {
+        out[0] = .{ .item = .amethyst_shard, .count = 4 };
+        return 1;
+    } else if (block == .tinted_glass) {
+        out[0] = .{ .item = .tinted_glass, .count = 1 };
         return 1;
     } else if (block == .lapis_ore) {
         out[0] = .{ .item = .lapis_lazuli, .count = 4 };
@@ -8333,4 +8580,79 @@ test "lapis lazuli, beehive, honeycomb, honey bottle, and honey block recipes 21
     try std.testing.expectEqual(getBlockDrops(.lapis_ore, &drops), 1);
     try std.testing.expectEqual(drops[0].item, .lapis_lazuli);
     try std.testing.expectEqual(drops[0].count, 4);
+}
+
+test "copper, lightning rod, spyglass, amethyst, tinted glass, bell, sugar cane, and pumpkin recipes 221-232" {
+    var inv = Inventory.init();
+
+    // Recipe 221: 4 Copper Ingots -> 1 Block of Copper
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .copper_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .copper_block);
+
+    // Recipe 223: 1 Block of Copper + 1 Honeycomb -> 1 Waxed Block of Copper
+    inv.craft_grid[0] = .{ .item = .copper_block, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .honeycomb, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .waxed_copper_block);
+
+    // Recipe 224: 2 Copper Ingots vertically -> 1 Lightning Rod
+    inv.craft_grid[0] = .{ .item = .copper_ingot, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{ .item = .copper_ingot, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .lightning_rod);
+
+    // Recipe 225: 2 Copper Ingots + 1 Amethyst Shard -> 1 Spyglass
+    inv.craft_grid[1] = .{ .item = .amethyst_shard, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .spyglass);
+    try std.testing.expectEqual(ItemType.spyglass.maxStackSize(), 1);
+
+    // Recipe 227: 2 Amethyst Shards + 1 Glass -> 2 Tinted Glass
+    inv.craft_grid[0] = .{ .item = .amethyst_shard, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .amethyst_shard, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .glass, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .tinted_glass);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+
+    // Recipe 228: Bell
+    inv.craft_grid[0] = .{ .item = .gold_nugget, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .stone, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .bell);
+
+    // Recipe 229: 1 Sugar Cane -> 1 Sugar
+    inv.craft_grid[0] = .{ .item = .sugar_cane, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .sugar);
+
+    // Recipe 231: 1 Carved Pumpkin + 1 Torch -> 1 Jack o'Lantern
+    inv.craft_grid[0] = .{ .item = .carved_pumpkin, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .torch, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .jack_o_lantern);
+
+    // Recipe 232: 1 Pumpkin + 1 Sugar + 1 Wheat -> 1 Pumpkin Pie
+    inv.craft_grid[0] = .{ .item = .pumpkin, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .sugar, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .wheat, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .pumpkin_pie);
+
+    var drops: [2]BlockDrop = undefined;
+    try std.testing.expectEqual(getBlockDrops(.copper_ore, &drops), 1);
+    try std.testing.expectEqual(drops[0].item, .raw_copper);
+    try std.testing.expectEqual(drops[0].count, 2);
+    try std.testing.expectEqual(getBlockDrops(.amethyst_cluster, &drops), 1);
+    try std.testing.expectEqual(drops[0].item, .amethyst_shard);
+    try std.testing.expectEqual(drops[0].count, 4);
+    try std.testing.expectEqual(getBlockDrops(.tinted_glass, &drops), 1);
+    try std.testing.expectEqual(drops[0].item, .tinted_glass);
 }

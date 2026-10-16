@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-16 (Session 363)
+Last updated: 2026-10-16 (Session 364)
 
 ## Project Structure
 
@@ -39,6 +39,9 @@ zigcraft/
 │       ├── farming.zig          # Wheat crop growth stages, hydration, bone meal & harvest yield
 │       ├── trading.zig          # Emerald workstation bartering professions, offers & tier XP
 │       ├── apiary.zig           # Beehive pollination, honey harvesting & honey block physics
+│       ├── copper.zig           # Copper oxidation stages, waxing, axe scraping & spyglass zoom
+│       ├── amethyst.zig         # Budding amethyst crystal growth, chime pitch & bell alarm range
+│       ├── campfire_cook.zig    # Fuel-free campfire roast rack cooking & hay bale smoke signals
 │       └── persistence.zig      # Binary chunk serialization
 └── docs/
     ├── STATUS.md                # Real-time state of the project
