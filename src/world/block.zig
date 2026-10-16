@@ -683,6 +683,10 @@ pub const TOOL_GOLDEN_PICKAXE: u16 = 255;
 pub const TOOL_GOLDEN_AXE: u16 = 256;
 pub const TOOL_GOLDEN_SHOVEL: u16 = 257;
 pub const TOOL_GOLDEN_HOE: u16 = 258;
+pub const TOOL_WOODEN_SWORD: u16 = 259;
+pub const TOOL_IRON_SWORD: u16 = 31;
+pub const TOOL_NETHERITE_SWORD: u16 = 74;
+pub const TOOL_DIAMOND_SWORD: u16 = 220;
 
 pub fn hardness(block: BlockId) f32 {
     return switch (block) {
@@ -843,7 +847,16 @@ pub fn isFoliageClass(block: BlockId) bool {
     };
 }
 
+pub fn isSwordTool(held_tool_id: u16) bool {
+    return held_tool_id == TOOL_WOODEN_SWORD or held_tool_id == TOOL_STONE_SWORD or held_tool_id == TOOL_GOLDEN_SWORD or held_tool_id == TOOL_IRON_SWORD or held_tool_id == TOOL_DIAMOND_SWORD or held_tool_id == TOOL_NETHERITE_SWORD;
+}
+
 pub fn toolMultiplier(held_tool_id: u16, block: BlockId) f32 {
+    if (isSwordTool(held_tool_id)) {
+        if (block == .cobweb) return 10.0;
+        if (isFoliageClass(block)) return 1.5;
+        return 1.0;
+    }
     if (held_tool_id == TOOL_SHEARS) {
         if (block == .cobweb) return 15.0;
         if (block == .leaves) return 10.0;
@@ -2996,4 +3009,16 @@ test "golden tool multiplier speeds and ultra-speed harvesting" {
     // Golden pickaxe mines stone faster than netherite pickaxe (7.0x vs 6.0x)
     try std.testing.expect(toolMultiplier(TOOL_GOLDEN_PICKAXE, .stone) > toolMultiplier(TOOL_NETHERITE_PICKAXE, .stone));
     try std.testing.expect(mineTime(.stone, TOOL_GOLDEN_PICKAXE) < mineTime(.stone, TOOL_NETHERITE_PICKAXE));
+}
+
+test "sword tool cobweb and foliage cutting multipliers" {
+    try std.testing.expect(isSwordTool(TOOL_WOODEN_SWORD));
+    try std.testing.expect(isSwordTool(TOOL_STONE_SWORD));
+    try std.testing.expect(isSwordTool(TOOL_GOLDEN_SWORD));
+    try std.testing.expect(isSwordTool(TOOL_IRON_SWORD));
+    try std.testing.expect(isSwordTool(TOOL_DIAMOND_SWORD));
+    try std.testing.expect(isSwordTool(TOOL_NETHERITE_SWORD));
+    try std.testing.expectEqual(toolMultiplier(TOOL_WOODEN_SWORD, .cobweb), 10.0);
+    try std.testing.expectEqual(toolMultiplier(TOOL_WOODEN_SWORD, .leaves), 1.5);
+    try std.testing.expectEqual(toolMultiplier(TOOL_WOODEN_SWORD, .stone), 1.0);
 }

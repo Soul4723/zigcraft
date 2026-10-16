@@ -2026,7 +2026,7 @@ pub fn main() !void {
                         std.debug.print("shield blocked attack from {s}\n", .{@tagName(m.mob_type)});
                     } else {
                         const raw_dmg = if (m.is_champion) hit.damage * 2.5 else if (m.mob_type == .piglin_brute) hit.damage * 2.5 else if (m.mob_type == .blaze or m.mob_type == .emberbeast) hit.damage * 2.0 else if (m.mob_type == .wither_skeleton or m.mob_type == .piglin) hit.damage * 1.5 else hit.damage;
-                        const dmg = combat_mod.applyArmorReductionAllTiers(raw_dmg, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet());
+                        const dmg = combat_mod.applyArmorReductionEveryTier(raw_dmg, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
                         player.health = @max(0.0, player.health - dmg);
                         if (m.mob_type == .wither_skeleton) {
                             player.applyWither();
@@ -2036,7 +2036,7 @@ pub fn main() !void {
                             std.debug.print("poisoned by {s} venom\n", .{@tagName(m.mob_type)});
                                                 } else if (m.mob_type == .enderman) {
                             // Enderman melee strike on player deals 4 damage
-                            const em_dmg = combat_mod.applyArmorReductionAllTiers(4.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet());
+                            const em_dmg = combat_mod.applyArmorReductionEveryTier(4.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
                             player.health = @max(0.0, player.health - em_dmg);
                             audio.play(.hurt, 0.9);
                             std.debug.print("enderman struck player (dmg={d:.1}, hp={d:.1})\n", .{ em_dmg, player.health });
@@ -2045,26 +2045,26 @@ pub fn main() !void {
                             std.debug.print("infected with hunger by zombie bite", .{});
                         } else if (m.mob_type == .drowned) {
                             // Drowned melee attack deals 3 bonus damage (trident strike)
-                            const dr_dmg = combat_mod.applyArmorReductionAllTiers(3.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet());
+                            const dr_dmg = combat_mod.applyArmorReductionEveryTier(3.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
                             player.health = @max(0.0, player.health - dr_dmg);
                             audio.play(.splash, 0.7);
                             std.debug.print("drowned trident strike (dmg={d:.1}, hp={d:.1})\n", .{ dr_dmg, player.health });
                         } else if (m.mob_type == .phantom) {
                             // Phantom swoop strike deals 3 damage with aerial roar
-                            const ph_dmg = combat_mod.applyArmorReductionAllTiers(3.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet());
+                            const ph_dmg = combat_mod.applyArmorReductionEveryTier(3.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
                             player.health = @max(0.0, player.health - ph_dmg);
                             audio.play(.mob_roar, 0.85);
                             std.debug.print("phantom swoop attack struck player (dmg={d:.1}, hp={d:.1})\n", .{ ph_dmg, player.health });
                         } else if (m.mob_type == .guardian) {
                             // Guardian marine beam / thorn prick: 4 damage + splash acoustic
-                            const g_dmg = combat_mod.applyArmorReductionAllTiers(4.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet());
+                            const g_dmg = combat_mod.applyArmorReductionEveryTier(4.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
                             player.health = @max(0.0, player.health - g_dmg);
                             audio.play(.mob_roar, 0.9);
                             audio.play(.splash, 0.8);
                             std.debug.print("guardian laser beam struck player (dmg={d:.1}, hp={d:.1})\n", .{ g_dmg, player.health });
                         } else if (m.mob_type == .elder_guardian) {
                             // Elder Guardian boss laser beam: 6 damage + splash & heavy roar + Mining Fatigue affliction
-                            const eg_dmg = combat_mod.applyArmorReductionAllTiers(6.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet());
+                            const eg_dmg = combat_mod.applyArmorReductionEveryTier(6.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
                             player.health = @max(0.0, player.health - eg_dmg);
                             player.applyMiningFatigue();
                             audio.play(.mob_roar, 1.0);
@@ -2458,7 +2458,7 @@ pub fn main() !void {
                 const dir = cam.front();
                 mob_hit_cooldown = combat_mod.tickCooldown(mob_hit_cooldown, dt);
                 const held_weapon = inventory.slots[selected_slot].item;
-                const hit_dmg: u8 = combat_mod.calculatePlayerAttackDamageEveryTier(held_weapon == .netherite_sword, held_weapon == .diamond_sword, held_weapon == .iron_sword, held_weapon == .stone_sword, held_weapon == .golden_sword, player.isWeakened());
+                const hit_dmg: u8 = combat_mod.calculatePlayerAttackDamageWithWooden(held_weapon == .netherite_sword, held_weapon == .diamond_sword, held_weapon == .iron_sword, held_weapon == .stone_sword, held_weapon == .golden_sword, held_weapon == .wooden_sword, player.isWeakened());
 
                 var bartered = false;
                 if (right and !right_down and inventory.slots[selected_slot].item == .gold_nugget) {
@@ -3506,7 +3506,7 @@ pub fn main() !void {
                             } else {
                                 const has_chestplate = inventory.hasItem(.netherite_chestplate);
                                 const has_full = inventory.hasFullNetheriteSet();
-                                const bullet_dmg = combat_mod.applyArmorReductionAllTiers(4.0, has_chestplate, has_full, inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet());
+                                const bullet_dmg = combat_mod.applyArmorReductionEveryTier(4.0, has_chestplate, has_full, inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
                                 player.health = @max(0.0, player.health - bullet_dmg);
                                 player.applyLevitation();
                                 audio.play(.hurt, 0.8);
@@ -3536,7 +3536,7 @@ pub fn main() !void {
                                 }
                                 std.debug.print("shield blocked skeleton arrow\n", .{});
                             } else {
-                                const arrow_dmg = combat_mod.applyArmorReductionAllTiers(2.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet());
+                                const arrow_dmg = combat_mod.applyArmorReductionEveryTier(2.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
                                 player.health = @max(0.0, player.health - arrow_dmg);
                                 audio.play(.hurt, 0.8);
                                 particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.85, 0.20, 0.20 }, 8);
@@ -3577,7 +3577,7 @@ pub fn main() !void {
                             } else {
                                 const resist = player.fire_resistance_timer > 0.0;
                                 if (!resist) {
-                                    player.health = @max(0.0, player.health - combat_mod.applyArmorReductionAllTiers(proj_mod.fireball_damage, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet()));
+                                    player.health = @max(0.0, player.health - combat_mod.applyArmorReductionEveryTier(proj_mod.fireball_damage, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet()));
                                     audio.play(.hurt, 0.8);
                                     std.debug.print("fireball hit (hp={d:.1})\n", .{player.health});
                                 } else {
@@ -4163,7 +4163,7 @@ pub fn main() !void {
                             if (boom_mod.calculatePlayerBlastImpulse(player.pos.x, player.pos.y, player.pos.z, ex, ey, ez)) |imp| {
                                 const has_chest = inventory.hasItem(.netherite_chestplate);
                                 const has_full = inventory.hasFullNetheriteSet();
-                                const blast_dmg = combat_mod.applyArmorReductionAllTiers(imp.damage, has_chest, has_full, inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet());
+                                const blast_dmg = combat_mod.applyArmorReductionEveryTier(imp.damage, has_chest, has_full, inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
                                 player.health = @max(0.0, player.health - blast_dmg);
                                 player.vel_y = imp.vel_y;
                                 player.pos.x += imp.push_x;

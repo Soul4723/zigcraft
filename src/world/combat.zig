@@ -8,11 +8,14 @@ pub const melee_cooldown: f32 = 0.35;
 pub const melee_range: f32 = 4.0;
 pub const sword_damage: u8 = 2;
 pub const stone_sword_damage: u8 = 2;
+pub const wooden_sword_damage: u8 = 2;
 pub const golden_sword_damage: u8 = 2;
 pub const diamond_sword_damage: u8 = 3;
 pub const netherite_sword_damage: u8 = 4;
 pub const hand_damage: u8 = 1;
 
+pub const leather_armor_absorption: f32 = 0.10; // 10% leather tunic reduction
+pub const leather_full_set_absorption: f32 = 0.28; // 28% leather 4-piece set reduction
 pub const golden_armor_absorption: f32 = 0.15; // 15% golden chestplate reduction
 pub const golden_full_set_absorption: f32 = 0.35; // 35% golden 4-piece set reduction
 pub const iron_armor_absorption: f32 = 0.25; // 25% iron chestplate reduction
@@ -39,6 +42,10 @@ pub fn applyArmorReductionFullTiers(raw_damage: f32, has_netherite_armor: bool, 
 }
 
 pub fn applyArmorReductionAllTiers(raw_damage: f32, has_netherite_armor: bool, has_full_netherite: bool, has_diamond_armor: bool, has_full_diamond: bool, has_iron_armor: bool, has_full_iron: bool, has_golden_armor: bool, has_full_golden: bool) f32 {
+    return applyArmorReductionEveryTier(raw_damage, has_netherite_armor, has_full_netherite, has_diamond_armor, has_full_diamond, has_iron_armor, has_full_iron, has_golden_armor, has_full_golden, false, false);
+}
+
+pub fn applyArmorReductionEveryTier(raw_damage: f32, has_netherite_armor: bool, has_full_netherite: bool, has_diamond_armor: bool, has_full_diamond: bool, has_iron_armor: bool, has_full_iron: bool, has_golden_armor: bool, has_full_golden: bool, has_leather_armor: bool, has_full_leather: bool) f32 {
     if (has_full_netherite) {
         return raw_damage * (1.0 - netherite_full_set_absorption);
     } else if (has_netherite_armor) {
@@ -55,6 +62,10 @@ pub fn applyArmorReductionAllTiers(raw_damage: f32, has_netherite_armor: bool, h
         return raw_damage * (1.0 - golden_full_set_absorption);
     } else if (has_golden_armor) {
         return raw_damage * (1.0 - golden_armor_absorption);
+    } else if (has_full_leather) {
+        return raw_damage * (1.0 - leather_full_set_absorption);
+    } else if (has_leather_armor) {
+        return raw_damage * (1.0 - leather_armor_absorption);
     }
     return raw_damage;
 }
@@ -89,11 +100,16 @@ pub fn weaponDamageAllTiers(is_netherite: bool, is_diamond: bool, is_iron: bool,
 }
 
 pub fn weaponDamageEveryTier(is_netherite: bool, is_diamond: bool, is_iron: bool, is_stone: bool, is_golden: bool) u8 {
+    return weaponDamageWithWooden(is_netherite, is_diamond, is_iron, is_stone, is_golden, false);
+}
+
+pub fn weaponDamageWithWooden(is_netherite: bool, is_diamond: bool, is_iron: bool, is_stone: bool, is_golden: bool, is_wooden: bool) u8 {
     if (is_netherite) return netherite_sword_damage;
     if (is_diamond) return diamond_sword_damage;
     if (is_iron) return sword_damage;
     if (is_stone) return stone_sword_damage;
     if (is_golden) return golden_sword_damage;
+    if (is_wooden) return wooden_sword_damage;
     return hand_damage;
 }
 
@@ -110,7 +126,11 @@ pub fn calculatePlayerAttackDamageAllTiers(is_netherite: bool, is_diamond: bool,
 }
 
 pub fn calculatePlayerAttackDamageEveryTier(is_netherite: bool, is_diamond: bool, is_iron: bool, is_stone: bool, is_golden: bool, is_weakened: bool) u8 {
-    const raw = weaponDamageEveryTier(is_netherite, is_diamond, is_iron, is_stone, is_golden);
+    return calculatePlayerAttackDamageWithWooden(is_netherite, is_diamond, is_iron, is_stone, is_golden, false, is_weakened);
+}
+
+pub fn calculatePlayerAttackDamageWithWooden(is_netherite: bool, is_diamond: bool, is_iron: bool, is_stone: bool, is_golden: bool, is_wooden: bool, is_weakened: bool) u8 {
+    const raw = weaponDamageWithWooden(is_netherite, is_diamond, is_iron, is_stone, is_golden, is_wooden);
     if (is_weakened) {
         // Weakness reduces attack potency by 2 damage, floor of 1
         return if (raw > 2) raw - 2 else 1;
@@ -316,4 +336,11 @@ test "calculatePlayerAttackDamageEveryTier golden sword damage check" {
     try std.testing.expectEqual(calculatePlayerAttackDamageEveryTier(false, false, false, false, true, false), 2);
     // Golden sword with weakness deals floor 1 damage
     try std.testing.expectEqual(calculatePlayerAttackDamageEveryTier(false, false, false, false, true, true), 1);
+}
+
+test "leather armor reduction and wooden sword damage check" {
+    try std.testing.expectApproxEqAbs(applyArmorReductionEveryTier(10.0, false, false, false, false, false, false, false, false, true, false), 9.0, 0.01);
+    try std.testing.expectApproxEqAbs(applyArmorReductionEveryTier(10.0, false, false, false, false, false, false, false, false, true, true), 7.2, 0.01);
+    try std.testing.expectEqual(calculatePlayerAttackDamageWithWooden(false, false, false, false, false, true, false), 2);
+    try std.testing.expectEqual(calculatePlayerAttackDamageWithWooden(false, false, false, false, false, true, true), 1);
 }
