@@ -36,6 +36,10 @@ pub const CopperIngot: u16 = 284;
 pub const CopperOre: u16 = 285;
 pub const Deepslate: u16 = 309;
 pub const CobbledDeepslate: u16 = 310;
+pub const ClayBall: u16 = 325;
+pub const ClayBlock: u16 = 326;
+pub const Terracotta: u16 = 327;
+pub const BrickItem: u16 = 328;
 pub const None: u16 = 0;
 
 pub fn smeltResult(input: u16) u16 {
@@ -55,6 +59,8 @@ pub fn smeltResult(input: u16) u16 {
         EmeraldOre => Emerald,
         RawCopper, CopperOre => CopperIngot,
         CobbledDeepslate => Deepslate,
+        ClayBall => BrickItem,
+        ClayBlock => Terracotta,
         else => None,
     };
 }

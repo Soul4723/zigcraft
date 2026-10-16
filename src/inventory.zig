@@ -323,6 +323,22 @@ pub const ItemType = enum(u16) {
     glistering_melon = 317,
     healing_potion = 318,
     barrel = 319,
+    dripstone_block = 320,
+    pointed_dripstone = 321,
+    moss_block = 322,
+    moss_carpet = 323,
+    glow_berries = 324,
+    clay_ball = 325,
+    clay = 326,
+    terracotta = 327,
+    brick_item = 328,
+    flower_pot = 329,
+    totem_of_undying = 330,
+    carrot = 331,
+    golden_carrot = 332,
+    night_vision_potion = 333,
+    ghast_tear = 334,
+    regeneration_potion = 335,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -493,6 +509,14 @@ pub const ItemType = enum(u16) {
             .cake => .cake,
             .melon => .melon,
             .barrel => .barrel,
+            .dripstone_block => .dripstone_block,
+            .pointed_dripstone => .pointed_dripstone,
+            .moss_block => .moss_block,
+            .moss_carpet => .moss_carpet,
+            .glow_berries => .cave_vines,
+            .clay => .clay,
+            .terracotta => .terracotta,
+            .flower_pot => .flower_pot,
             else => null,
         };
     }
@@ -670,6 +694,15 @@ pub const ItemType = enum(u16) {
             .cake => .none,
             .melon => .melon_slice,
             .barrel => .barrel,
+            .dripstone_block => .dripstone_block,
+            .pointed_dripstone => .pointed_dripstone,
+            .moss_block => .moss_block,
+            .moss_carpet => .moss_carpet,
+            .cave_vines => .glow_berries,
+            .cave_vines_lit => .glow_berries,
+            .clay => .clay_ball,
+            .terracotta => .terracotta,
+            .flower_pot => .flower_pot,
             .piston_head => .piston,
         };
     }
@@ -752,7 +785,7 @@ pub const ItemType = enum(u16) {
 
     pub fn isCompostable(self: ItemType) bool {
         return switch (self) {
-            .leaves, .hay_bale, .wheat_seeds, .wheat, .bread, .paper, .sugar_cane, .pumpkin, .carved_pumpkin, .pumpkin_pie, .cake, .melon, .melon_slice, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp, .sea_pickle, .raw_salmon, .cooked_salmon, .pufferfish, .tropical_fish => true,
+            .leaves, .hay_bale, .wheat_seeds, .wheat, .bread, .paper, .sugar_cane, .pumpkin, .carved_pumpkin, .pumpkin_pie, .cake, .melon, .melon_slice, .moss_block, .moss_carpet, .glow_berries, .carrot, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp, .sea_pickle, .raw_salmon, .cooked_salmon, .pufferfish, .tropical_fish => true,
             else => false,
         };
     }
@@ -773,8 +806,8 @@ pub const ItemType = enum(u16) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle, .healing_potion => 16,
-            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake => 1,
+            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion => 16,
+            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying => 1,
             else => 64,
         };
     }
@@ -1097,6 +1130,22 @@ pub const ItemType = enum(u16) {
             .glistering_melon => "Glistering Melon Slice",
             .healing_potion => "Potion of Healing",
             .barrel => "Barrel",
+            .dripstone_block => "Dripstone Block",
+            .pointed_dripstone => "Pointed Dripstone",
+            .moss_block => "Moss Block",
+            .moss_carpet => "Moss Carpet",
+            .glow_berries => "Glow Berries",
+            .clay_ball => "Clay Ball",
+            .clay => "Clay",
+            .terracotta => "Terracotta",
+            .brick_item => "Brick",
+            .flower_pot => "Flower Pot",
+            .totem_of_undying => "Totem of Undying",
+            .carrot => "Carrot",
+            .golden_carrot => "Golden Carrot",
+            .night_vision_potion => "Potion of Night Vision",
+            .ghast_tear => "Ghast Tear",
+            .regeneration_potion => "Potion of Regeneration",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1358,6 +1407,22 @@ pub const ItemType = enum(u16) {
             .glistering_melon => .{ 0.96, 0.68, 0.22, 0.95 },
             .healing_potion => .{ 0.96, 0.22, 0.36, 0.95 },
             .barrel => .{ 0.58, 0.42, 0.24, 0.95 },
+            .dripstone_block => .{ 0.56, 0.44, 0.38, 0.95 },
+            .pointed_dripstone => .{ 0.62, 0.48, 0.42, 0.95 },
+            .moss_block => .{ 0.32, 0.64, 0.24, 0.95 },
+            .moss_carpet => .{ 0.36, 0.68, 0.28, 0.95 },
+            .glow_berries => .{ 0.98, 0.78, 0.24, 0.95 },
+            .clay_ball => .{ 0.66, 0.70, 0.76, 0.95 },
+            .clay => .{ 0.62, 0.66, 0.72, 0.95 },
+            .terracotta => .{ 0.68, 0.42, 0.32, 0.95 },
+            .brick_item => .{ 0.76, 0.36, 0.28, 0.95 },
+            .flower_pot => .{ 0.64, 0.36, 0.28, 0.95 },
+            .totem_of_undying => .{ 0.96, 0.84, 0.22, 0.95 },
+            .carrot => .{ 0.96, 0.54, 0.14, 0.95 },
+            .golden_carrot => .{ 0.98, 0.82, 0.20, 0.95 },
+            .night_vision_potion => .{ 0.18, 0.28, 0.88, 0.95 },
+            .ghast_tear => .{ 0.90, 0.96, 0.98, 0.95 },
+            .regeneration_potion => .{ 0.94, 0.38, 0.72, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -1530,7 +1595,7 @@ pub const Inventory = struct {
                self.hasItem(.golden_pickaxe) or
                self.hasItem(.golden_axe) or
                self.hasItem(.golden_shovel) or
-               self.hasItem(.golden_hoe);
+               self.hasItem(.golden_hoe) or self.hasItem(.golden_carrot);
     }
 
     pub fn hasFullIronSet(self: *const Inventory) bool {
@@ -2241,6 +2306,108 @@ pub const Inventory = struct {
             }
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 244 & 245: Dripstone Block (4 Pointed Dripstone <-> 1 Dripstone Block)
+        if (non_empty == 4) {
+            if (g0 == .pointed_dripstone and g1 == .pointed_dripstone and g2 == .pointed_dripstone and g3 == .pointed_dripstone) {
+                self.craft_output = .{ .item = .dripstone_block, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| {
+                if (sl.item == .dripstone_block) {
+                    self.craft_output = .{ .item = .pointed_dripstone, .count = 4 };
+                    return;
+                }
+            }
+        }
+
+        // Recipe 246: Moss Carpet: 2 Moss Blocks horizontally -> 3 Moss Carpets
+        if (non_empty == 2) {
+            if ((g0 == .moss_block and g1 == .moss_block and g2 == .none and g3 == .none) or
+                (g2 == .moss_block and g3 == .moss_block and g0 == .none and g1 == .none))
+            {
+                self.craft_output = .{ .item = .moss_carpet, .count = 3 };
+                return;
+            }
+        }
+
+        // Recipe 247, 248 & 249: Clay (4 Clay Balls -> 1 Clay), Bricks (4 Brick items -> 1 Brick block), Flower Pot (3 Brick items -> 1 Flower Pot)
+        if (non_empty == 4) {
+            if (g0 == .clay_ball and g1 == .clay_ball and g2 == .clay_ball and g3 == .clay_ball) {
+                self.craft_output = .{ .item = .clay, .count = 1 };
+                return;
+            }
+            if (g0 == .brick_item and g1 == .brick_item and g2 == .brick_item and g3 == .brick_item) {
+                self.craft_output = .{ .item = .brick, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 3) {
+            var brk_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .brick_item) brk_cnt += 1;
+            }
+            if (brk_cnt == 3) {
+                self.craft_output = .{ .item = .flower_pot, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 250: Totem of Undying: 2 Gold Blocks + 1..2 Emeralds -> 1 Totem of Undying
+        if (non_empty >= 3 and non_empty <= 4) {
+            var gb_cnt: u8 = 0;
+            var em_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .gold_block) gb_cnt += 1;
+                if (sl.item == .emerald) em_cnt += 1;
+            }
+            if (gb_cnt == 2 and em_cnt >= 1 and (gb_cnt + em_cnt == non_empty)) {
+                self.craft_output = .{ .item = .totem_of_undying, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 251 & 252: Golden Carrot (1 Carrot + 1..3 Gold Nuggets) & Potion of Night Vision (1 Golden Carrot + 1 Glass/Wart)
+        if (non_empty >= 2 and non_empty <= 4) {
+            var crt_cnt: u8 = 0;
+            var gld_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .carrot) crt_cnt += 1;
+                if (sl.item == .gold_nugget) gld_cnt += 1;
+            }
+            if (crt_cnt == 1 and gld_cnt >= 1 and (crt_cnt + gld_cnt == non_empty)) {
+                self.craft_output = .{ .item = .golden_carrot, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 2) {
+            var gc_cnt: u8 = 0;
+            var vsl_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .golden_carrot) gc_cnt += 1;
+                if (sl.item == .glass or sl.item == .nether_wart) vsl_cnt += 1;
+            }
+            if (gc_cnt == 1 and vsl_cnt == 1) {
+                self.craft_output = .{ .item = .night_vision_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 253: Potion of Regeneration: 1 Ghast Tear + 1 Glass/Nether Wart -> 1 Potion of Regeneration
+        if (non_empty == 2) {
+            var gt_cnt: u8 = 0;
+            var vsl_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .ghast_tear) gt_cnt += 1;
+                if (sl.item == .glass or sl.item == .nether_wart) vsl_cnt += 1;
+            }
+            if (gt_cnt == 1 and vsl_cnt == 1) {
+                self.craft_output = .{ .item = .regeneration_potion, .count = 1 };
                 return;
             }
         }
@@ -5152,6 +5319,12 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         return 2;
     } else if (block == .bookshelf) {
         out[0] = .{ .item = .book, .count = 3 };
+        return 1;
+    } else if (block == .clay) {
+        out[0] = .{ .item = .clay_ball, .count = 4 };
+        return 1;
+    } else if (block == .cave_vines_lit) {
+        out[0] = .{ .item = .glow_berries, .count = 2 };
         return 1;
     } else if (block == .deepslate) {
         out[0] = .{ .item = .cobbled_deepslate, .count = 1 };
@@ -8948,5 +9121,72 @@ test "sculk, deepslate, iron block, cake, melon, glistering melon, healing potio
     try std.testing.expectEqual(getBlockDrops(.cake, &drops), 0);
     try std.testing.expectEqual(getBlockDrops(.melon, &drops), 1);
     try std.testing.expectEqual(drops[0].item, .melon_slice);
+    try std.testing.expectEqual(drops[0].count, 4);
+}
+
+test "dripstone, moss, clay, terracotta, brick_item, flower_pot, totem, golden_carrot, night_vision, and regeneration recipes 244-253" {
+    var inv = Inventory.init();
+
+    // Recipe 244 & 245: 4 Pointed Dripstone <-> 1 Dripstone Block
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .pointed_dripstone, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .dripstone_block);
+
+    inv.craft_grid[0] = .{ .item = .dripstone_block, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .pointed_dripstone);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    // Recipe 246: 2 Moss Blocks -> 3 Moss Carpets
+    inv.craft_grid[0] = .{ .item = .moss_block, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .moss_block, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .moss_carpet);
+    try std.testing.expectEqual(inv.craft_output.count, 3);
+
+    // Recipe 247, 248, 249: Clay, Brick, Flower Pot
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .clay_ball, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .clay);
+
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .brick_item, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .brick);
+
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .flower_pot);
+
+    // Recipe 250: Totem of Undying
+    inv.craft_grid[0] = .{ .item = .gold_block, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .gold_block, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .emerald, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .totem_of_undying);
+
+    // Recipe 251 & 252: Golden Carrot & Night Vision Potion
+    inv.craft_grid[0] = .{ .item = .carrot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .gold_nugget, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .golden_carrot);
+
+    inv.craft_grid[0] = .{ .item = .golden_carrot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .night_vision_potion);
+
+    // Recipe 253: Regeneration Potion
+    inv.craft_grid[0] = .{ .item = .ghast_tear, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .regeneration_potion);
+
+    var drops: [2]BlockDrop = undefined;
+    try std.testing.expectEqual(getBlockDrops(.clay, &drops), 1);
+    try std.testing.expectEqual(drops[0].item, .clay_ball);
     try std.testing.expectEqual(drops[0].count, 4);
 }
