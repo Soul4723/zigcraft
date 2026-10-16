@@ -40,6 +40,8 @@ pub const ClayBall: u16 = 325;
 pub const ClayBlock: u16 = 326;
 pub const Terracotta: u16 = 327;
 pub const BrickItem: u16 = 328;
+pub const Potato: u16 = 342;
+pub const BakedPotato: u16 = 343;
 pub const None: u16 = 0;
 
 pub fn smeltResult(input: u16) u16 {
@@ -61,6 +63,7 @@ pub fn smeltResult(input: u16) u16 {
         CobbledDeepslate => Deepslate,
         ClayBall => BrickItem,
         ClayBlock => Terracotta,
+        Potato => BakedPotato,
         else => None,
     };
 }
@@ -179,7 +182,7 @@ test "evaluateFurnaceFeed actions" {
 pub const smoker_time: f32 = 5.0;
 
 pub fn isFoodItem(input: u16) bool {
-    return input == RawPork or input == RawMutton or input == ChorusFruit or input == RawCod or input == RawSalmon or input == Kelp;
+    return input == RawPork or input == RawMutton or input == ChorusFruit or input == RawCod or input == RawSalmon or input == Kelp or input == Potato;
 }
 
 pub fn tickSmokerJob(t: *f32, fuel: *u8, input: *u16, dt: f32) SmeltTickOutcome {

@@ -339,6 +339,26 @@ pub const ItemType = enum(u16) {
     night_vision_potion = 333,
     ghast_tear = 334,
     regeneration_potion = 335,
+    ice = 336,
+    packed_ice = 337,
+    blue_ice = 338,
+    powder_snow_bucket = 339,
+    bamboo = 340,
+    scaffolding = 341,
+    potato = 342,
+    baked_potato = 343,
+    poisonous_potato = 344,
+    beetroot = 345,
+    bowl = 346,
+    beetroot_soup = 347,
+    mushroom_stew = 348,
+    rabbit_foot = 349,
+    swiftness_potion = 350,
+    strength_potion = 351,
+    leaping_potion = 352,
+    cocoa_beans = 353,
+    cookie = 354,
+    sweet_berries = 355,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -517,6 +537,13 @@ pub const ItemType = enum(u16) {
             .clay => .clay,
             .terracotta => .terracotta,
             .flower_pot => .flower_pot,
+            .ice => .ice,
+            .packed_ice => .packed_ice,
+            .blue_ice => .blue_ice,
+            .powder_snow_bucket => .powder_snow,
+            .bamboo => .bamboo,
+            .scaffolding => .scaffolding,
+            .sweet_berries => .sweet_berry_bush,
             else => null,
         };
     }
@@ -703,6 +730,13 @@ pub const ItemType = enum(u16) {
             .clay => .clay_ball,
             .terracotta => .terracotta,
             .flower_pot => .flower_pot,
+            .ice => .ice,
+            .packed_ice => .packed_ice,
+            .blue_ice => .blue_ice,
+            .powder_snow => .powder_snow_bucket,
+            .bamboo => .bamboo,
+            .scaffolding => .scaffolding,
+            .sweet_berry_bush => .sweet_berries,
             .piston_head => .piston,
         };
     }
@@ -785,7 +819,7 @@ pub const ItemType = enum(u16) {
 
     pub fn isCompostable(self: ItemType) bool {
         return switch (self) {
-            .leaves, .hay_bale, .wheat_seeds, .wheat, .bread, .paper, .sugar_cane, .pumpkin, .carved_pumpkin, .pumpkin_pie, .cake, .melon, .melon_slice, .moss_block, .moss_carpet, .glow_berries, .carrot, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp, .sea_pickle, .raw_salmon, .cooked_salmon, .pufferfish, .tropical_fish => true,
+            .leaves, .hay_bale, .wheat_seeds, .wheat, .bread, .paper, .sugar_cane, .pumpkin, .carved_pumpkin, .pumpkin_pie, .cake, .melon, .melon_slice, .moss_block, .moss_carpet, .glow_berries, .carrot, .bamboo, .potato, .baked_potato, .beetroot, .cocoa_beans, .cookie, .sweet_berries, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp, .sea_pickle, .raw_salmon, .cooked_salmon, .pufferfish, .tropical_fish => true,
             else => false,
         };
     }
@@ -806,8 +840,8 @@ pub const ItemType = enum(u16) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion => 16,
-            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying => 1,
+            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion => 16,
+            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew => 1,
             else => 64,
         };
     }
@@ -1146,6 +1180,26 @@ pub const ItemType = enum(u16) {
             .night_vision_potion => "Potion of Night Vision",
             .ghast_tear => "Ghast Tear",
             .regeneration_potion => "Potion of Regeneration",
+            .ice => "Ice",
+            .packed_ice => "Packed Ice",
+            .blue_ice => "Blue Ice",
+            .powder_snow_bucket => "Powder Snow Bucket",
+            .bamboo => "Bamboo",
+            .scaffolding => "Scaffolding",
+            .potato => "Potato",
+            .baked_potato => "Baked Potato",
+            .poisonous_potato => "Poisonous Potato",
+            .beetroot => "Beetroot",
+            .bowl => "Bowl",
+            .beetroot_soup => "Beetroot Soup",
+            .mushroom_stew => "Mushroom Stew",
+            .rabbit_foot => "Rabbit's Foot",
+            .swiftness_potion => "Potion of Swiftness",
+            .strength_potion => "Potion of Strength",
+            .leaping_potion => "Potion of Leaping",
+            .cocoa_beans => "Cocoa Beans",
+            .cookie => "Cookie",
+            .sweet_berries => "Sweet Berries",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1423,6 +1477,26 @@ pub const ItemType = enum(u16) {
             .night_vision_potion => .{ 0.18, 0.28, 0.88, 0.95 },
             .ghast_tear => .{ 0.90, 0.96, 0.98, 0.95 },
             .regeneration_potion => .{ 0.94, 0.38, 0.72, 0.95 },
+            .ice => .{ 0.60, 0.82, 0.98, 0.75 },
+            .packed_ice => .{ 0.56, 0.78, 0.96, 0.95 },
+            .blue_ice => .{ 0.36, 0.64, 0.98, 0.95 },
+            .powder_snow_bucket => .{ 0.92, 0.96, 0.98, 0.95 },
+            .bamboo => .{ 0.44, 0.76, 0.24, 0.95 },
+            .scaffolding => .{ 0.82, 0.68, 0.38, 0.95 },
+            .potato => .{ 0.84, 0.68, 0.38, 0.95 },
+            .baked_potato => .{ 0.78, 0.56, 0.26, 0.95 },
+            .poisonous_potato => .{ 0.58, 0.76, 0.32, 0.95 },
+            .beetroot => .{ 0.68, 0.16, 0.24, 0.95 },
+            .bowl => .{ 0.58, 0.42, 0.24, 0.95 },
+            .beetroot_soup => .{ 0.74, 0.18, 0.26, 0.95 },
+            .mushroom_stew => .{ 0.76, 0.52, 0.38, 0.95 },
+            .rabbit_foot => .{ 0.82, 0.68, 0.52, 0.95 },
+            .swiftness_potion => .{ 0.48, 0.82, 0.96, 0.95 },
+            .strength_potion => .{ 0.68, 0.16, 0.18, 0.95 },
+            .leaping_potion => .{ 0.28, 0.92, 0.42, 0.95 },
+            .cocoa_beans => .{ 0.46, 0.26, 0.14, 0.95 },
+            .cookie => .{ 0.82, 0.58, 0.28, 0.95 },
+            .sweet_berries => .{ 0.86, 0.14, 0.22, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -2306,6 +2380,122 @@ pub const Inventory = struct {
             }
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 254 & 255: Packed Ice (4 Ice -> 1 Packed Ice) & Blue Ice (4 Packed Ice -> 1 Blue Ice)
+        if (non_empty == 4) {
+            if (g0 == .ice and g1 == .ice and g2 == .ice and g3 == .ice) {
+                self.craft_output = .{ .item = .packed_ice, .count = 1 };
+                return;
+            }
+            if (g0 == .packed_ice and g1 == .packed_ice and g2 == .packed_ice and g3 == .packed_ice) {
+                self.craft_output = .{ .item = .blue_ice, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 256: Powder Snow Bucket: 1 Snow Block + 1 Water Bucket -> 1 Powder Snow Bucket
+        if (non_empty == 2) {
+            var snw_cnt: u8 = 0;
+            var wtr_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .snow_block) snw_cnt += 1;
+                if (sl.item == .water_bucket) wtr_cnt += 1;
+            }
+            if (snw_cnt == 1 and wtr_cnt == 1) {
+                self.craft_output = .{ .item = .powder_snow_bucket, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 257 & 258: Bamboo -> Stick (2 Bamboo vertically -> 1 Stick) & Scaffolding (2..3 Bamboo + 1 String -> 6 Scaffolding)
+        if (non_empty == 2) {
+            if ((g0 == .bamboo and g2 == .bamboo and g1 == .none and g3 == .none) or
+                (g1 == .bamboo and g3 == .bamboo and g0 == .none and g2 == .none))
+            {
+                self.craft_output = .{ .item = .stick, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty >= 3 and non_empty <= 4) {
+            var bmb_cnt: u8 = 0;
+            var str_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .bamboo) bmb_cnt += 1;
+                if (sl.item == .string) str_cnt += 1;
+            }
+            if (bmb_cnt >= 2 and str_cnt == 1 and (bmb_cnt + str_cnt == non_empty)) {
+                self.craft_output = .{ .item = .scaffolding, .count = 6 };
+                return;
+            }
+        }
+
+        // Recipe 259, 260 & 261: Bowl (2 diagonal Wood Planks -> 4 Bowls), Beetroot Soup (2..3 Beetroot + 1 Bowl), Mushroom Stew (2 Fungus + 1 Bowl)
+        if (non_empty == 2) {
+            if ((g0 == .wood_planks and g3 == .wood_planks and g1 == .none and g2 == .none) or
+                (g1 == .wood_planks and g2 == .wood_planks and g0 == .none and g3 == .none))
+            {
+                self.craft_output = .{ .item = .bowl, .count = 4 };
+                return;
+            }
+        }
+        if (non_empty >= 3 and non_empty <= 4) {
+            var btr_cnt: u8 = 0;
+            var fng_cnt: u8 = 0;
+            var bwl_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .beetroot) btr_cnt += 1;
+                if (sl.item == .crimson_fungus or sl.item == .warped_fungus) fng_cnt += 1;
+                if (sl.item == .bowl) bwl_cnt += 1;
+            }
+            if (btr_cnt >= 2 and bwl_cnt == 1 and (btr_cnt + bwl_cnt == non_empty)) {
+                self.craft_output = .{ .item = .beetroot_soup, .count = 1 };
+                return;
+            }
+            if (fng_cnt >= 2 and bwl_cnt == 1 and (fng_cnt + bwl_cnt == non_empty)) {
+                self.craft_output = .{ .item = .mushroom_stew, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 262, 263 & 264: Swiftness Potion (Sugar + Glass/Wart), Strength Potion (Blaze Powder + Glass/Wart), Leaping Potion (Rabbit Foot + Glass/Wart)
+        if (non_empty == 2) {
+            var sgr_cnt: u8 = 0;
+            var blz_cnt: u8 = 0;
+            var rbt_cnt: u8 = 0;
+            var vsl_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .sugar) sgr_cnt += 1;
+                if (sl.item == .blaze_powder) blz_cnt += 1;
+                if (sl.item == .rabbit_foot) rbt_cnt += 1;
+                if (sl.item == .glass or sl.item == .nether_wart) vsl_cnt += 1;
+            }
+            if (sgr_cnt == 1 and vsl_cnt == 1) {
+                self.craft_output = .{ .item = .swiftness_potion, .count = 1 };
+                return;
+            }
+            if (blz_cnt == 1 and vsl_cnt == 1) {
+                self.craft_output = .{ .item = .strength_potion, .count = 1 };
+                return;
+            }
+            if (rbt_cnt == 1 and vsl_cnt == 1) {
+                self.craft_output = .{ .item = .leaping_potion, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 265: Cookie: 2 Wheat + 1 Cocoa Beans -> 8 Cookies
+        if (non_empty == 3) {
+            var wht_cnt: u8 = 0;
+            var coc_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .wheat) wht_cnt += 1;
+                if (sl.item == .cocoa_beans) coc_cnt += 1;
+            }
+            if (wht_cnt == 2 and coc_cnt == 1) {
+                self.craft_output = .{ .item = .cookie, .count = 8 };
                 return;
             }
         }
@@ -5319,6 +5509,9 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
         return 2;
     } else if (block == .bookshelf) {
         out[0] = .{ .item = .book, .count = 3 };
+        return 1;
+    } else if (block == .sweet_berry_bush) {
+        out[0] = .{ .item = .sweet_berries, .count = 2 };
         return 1;
     } else if (block == .clay) {
         out[0] = .{ .item = .clay_ball, .count = 4 };
@@ -9189,4 +9382,83 @@ test "dripstone, moss, clay, terracotta, brick_item, flower_pot, totem, golden_c
     try std.testing.expectEqual(getBlockDrops(.clay, &drops), 1);
     try std.testing.expectEqual(drops[0].item, .clay_ball);
     try std.testing.expectEqual(drops[0].count, 4);
+}
+
+test "ice, powder snow, bamboo, scaffolding, soups, buff potions, cookies, and sweet berries recipes 254-265" {
+    var inv = Inventory.init();
+
+    // Recipe 254 & 255: Packed Ice & Blue Ice
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .ice, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .packed_ice);
+
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .packed_ice, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .blue_ice);
+
+    // Recipe 256: Powder Snow Bucket
+    inv.craft_grid[0] = .{ .item = .snow_block, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .water_bucket, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .powder_snow_bucket);
+
+    // Recipe 257 & 258: Bamboo -> Stick & Scaffolding
+    inv.craft_grid[0] = .{ .item = .bamboo, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{ .item = .bamboo, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .stick);
+
+    inv.craft_grid[1] = .{ .item = .string, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .scaffolding);
+    try std.testing.expectEqual(inv.craft_output.count, 6);
+
+    // Recipe 259, 260, 261: Bowl, Beetroot Soup, Mushroom Stew
+    inv.craft_grid[0] = .{ .item = .wood_planks, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{ .item = .wood_planks, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .bowl);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+    inv.craft_grid[3] = .{};
+
+    inv.craft_grid[0] = .{ .item = .beetroot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .beetroot, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .bowl, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .beetroot_soup);
+
+    inv.craft_grid[0] = .{ .item = .crimson_fungus, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .warped_fungus, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .mushroom_stew);
+
+    // Recipe 262, 263, 264: Swiftness, Strength, Leaping Potions
+    inv.craft_grid[0] = .{ .item = .sugar, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .swiftness_potion);
+
+    inv.craft_grid[0] = .{ .item = .blaze_powder, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .strength_potion);
+
+    inv.craft_grid[0] = .{ .item = .rabbit_foot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .leaping_potion);
+
+    // Recipe 265: Cookie
+    inv.craft_grid[0] = .{ .item = .wheat, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .wheat, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .cocoa_beans, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .cookie);
+    try std.testing.expectEqual(inv.craft_output.count, 8);
 }
