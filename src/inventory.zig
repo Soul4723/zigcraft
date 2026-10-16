@@ -388,6 +388,21 @@ pub const ItemType = enum(u16) {
     polished_tuff = 382,
     tuff_bricks = 383,
     chiseled_tuff = 384,
+    calibrated_sculk_sensor = 385,
+    ochre_froglight = 386,
+    verdant_froglight = 387,
+    pearlescent_froglight = 388,
+    mangrove_roots = 389,
+    muddy_mangrove_roots = 390,
+    mangrove_propagule = 391,
+    mangrove_log = 392,
+    mangrove_planks = 393,
+    goat_horn = 394,
+    armor_trim_template = 395,
+    torchflower_seeds = 396,
+    torchflower = 397,
+    pitcher_pod = 398,
+    pitcher_plant = 399,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -590,6 +605,19 @@ pub const ItemType = enum(u16) {
             .polished_tuff => .polished_tuff,
             .tuff_bricks => .tuff_bricks,
             .chiseled_tuff => .chiseled_tuff,
+            .calibrated_sculk_sensor => .calibrated_sculk_sensor,
+            .ochre_froglight => .ochre_froglight,
+            .verdant_froglight => .verdant_froglight,
+            .pearlescent_froglight => .pearlescent_froglight,
+            .mangrove_roots => .mangrove_roots,
+            .muddy_mangrove_roots => .muddy_mangrove_roots,
+            .mangrove_propagule => .mangrove_propagule,
+            .mangrove_log => .mangrove_log,
+            .mangrove_planks => .mangrove_planks,
+            .torchflower_seeds => .torchflower_crop,
+            .torchflower => .torchflower,
+            .pitcher_pod => .pitcher_plant,
+            .pitcher_plant => .pitcher_plant,
             else => null,
         };
     }
@@ -800,6 +828,18 @@ pub const ItemType = enum(u16) {
             .polished_tuff => .polished_tuff,
             .tuff_bricks => .tuff_bricks,
             .chiseled_tuff => .chiseled_tuff,
+            .calibrated_sculk_sensor => .calibrated_sculk_sensor,
+            .ochre_froglight => .ochre_froglight,
+            .verdant_froglight => .verdant_froglight,
+            .pearlescent_froglight => .pearlescent_froglight,
+            .mangrove_roots => .mangrove_roots,
+            .muddy_mangrove_roots => .muddy_mangrove_roots,
+            .mangrove_propagule => .mangrove_propagule,
+            .mangrove_log => .mangrove_log,
+            .mangrove_planks => .mangrove_planks,
+            .torchflower_crop => .torchflower_seeds,
+            .torchflower => .torchflower,
+            .pitcher_plant => .pitcher_plant,
             .piston_head => .piston,
         };
     }
@@ -910,7 +950,7 @@ pub const ItemType = enum(u16) {
         return switch (self) {
             .none => 0,
             .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion => 16,
-            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew => 1,
+            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn => 1,
             else => 64,
         };
     }
@@ -1298,6 +1338,21 @@ pub const ItemType = enum(u16) {
             .polished_tuff => "Polished Tuff",
             .tuff_bricks => "Tuff Bricks",
             .chiseled_tuff => "Chiseled Tuff",
+            .calibrated_sculk_sensor => "Calibrated Sculk Sensor",
+            .ochre_froglight => "Ochre Froglight",
+            .verdant_froglight => "Verdant Froglight",
+            .pearlescent_froglight => "Pearlescent Froglight",
+            .mangrove_roots => "Mangrove Roots",
+            .muddy_mangrove_roots => "Muddy Mangrove Roots",
+            .mangrove_propagule => "Mangrove Propagule",
+            .mangrove_log => "Mangrove Log",
+            .mangrove_planks => "Mangrove Planks",
+            .goat_horn => "Goat Horn",
+            .armor_trim_template => "Armor Trim Smithing Template",
+            .torchflower_seeds => "Torchflower Seeds",
+            .torchflower => "Torchflower",
+            .pitcher_pod => "Pitcher Pod",
+            .pitcher_plant => "Pitcher Plant",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1624,6 +1679,21 @@ pub const ItemType = enum(u16) {
             .polished_tuff => .{ 0.48, 0.50, 0.46, 0.95 },
             .tuff_bricks => .{ 0.46, 0.48, 0.44, 0.95 },
             .chiseled_tuff => .{ 0.50, 0.52, 0.48, 0.95 },
+            .calibrated_sculk_sensor => .{ 0.56, 0.28, 0.88, 0.95 },
+            .ochre_froglight => .{ 0.96, 0.82, 0.44, 0.95 },
+            .verdant_froglight => .{ 0.48, 0.88, 0.56, 0.95 },
+            .pearlescent_froglight => .{ 0.88, 0.62, 0.96, 0.95 },
+            .mangrove_roots => .{ 0.46, 0.32, 0.22, 0.95 },
+            .muddy_mangrove_roots => .{ 0.36, 0.26, 0.18, 0.95 },
+            .mangrove_propagule => .{ 0.42, 0.72, 0.28, 0.95 },
+            .mangrove_log => .{ 0.52, 0.30, 0.24, 0.95 },
+            .mangrove_planks => .{ 0.64, 0.32, 0.26, 0.95 },
+            .goat_horn => .{ 0.88, 0.86, 0.80, 0.95 },
+            .armor_trim_template => .{ 0.34, 0.68, 0.82, 0.95 },
+            .torchflower_seeds => .{ 0.78, 0.54, 0.22, 0.95 },
+            .torchflower => .{ 0.98, 0.62, 0.14, 0.95 },
+            .pitcher_pod => .{ 0.36, 0.52, 0.74, 0.95 },
+            .pitcher_plant => .{ 0.38, 0.46, 0.84, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -2514,6 +2584,42 @@ pub const Inventory = struct {
             }
             if (cart_c == 1 and hop_c == 1) {
                 self.craft_output = .{ .item = .hopper_minecart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 287: Calibrated Sculk Sensor: 1 Sculk Sensor + 1..3 Amethyst Shards -> 1 Calibrated Sculk Sensor
+        if (non_empty >= 2 and non_empty <= 4) {
+            var ssn_cnt: u8 = 0;
+            var ame_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .sculk_sensor) ssn_cnt += 1;
+                if (sl.item == .amethyst_shard) ame_cnt += 1;
+            }
+            if (ssn_cnt == 1 and ame_cnt >= 1 and (ssn_cnt + ame_cnt == non_empty)) {
+                self.craft_output = .{ .item = .calibrated_sculk_sensor, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipes 288-290: Mangrove Planks (1 Mangrove Log -> 4 Planks), Muddy Mangrove Roots (Mangrove Roots + Mud), Armor Trim (Template + Mineral)
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| {
+                if (sl.item == .mangrove_log) {
+                    self.craft_output = .{ .item = .mangrove_planks, .count = 4 };
+                    return;
+                }
+            }
+        }
+        if (non_empty == 2) {
+            var rts_cnt: u8 = 0;
+            var mud_cnt: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .mangrove_roots) rts_cnt += 1;
+                if (sl.item == .mud) mud_cnt += 1;
+            }
+            if (rts_cnt == 1 and mud_cnt == 1) {
+                self.craft_output = .{ .item = .muddy_mangrove_roots, .count = 1 };
                 return;
             }
         }
@@ -9940,4 +10046,27 @@ test "breeze rod, wind charge, heavy core, mace, crafter, trial vault, enchanted
     inv.craft_grid[3] = .{};
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .chiseled_tuff);
+}
+
+test "calibrated sculk sensor, mangrove, and goat horn recipes 287-290" {
+    var inv = Inventory.init();
+
+    // Recipe 287: Calibrated Sculk Sensor
+    inv.craft_grid[0] = .{ .item = .sculk_sensor, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .amethyst_shard, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .calibrated_sculk_sensor);
+
+    // Recipe 288: Mangrove Planks
+    inv.craft_grid[0] = .{ .item = .mangrove_log, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .mangrove_planks);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    // Recipe 289: Muddy Mangrove Roots
+    inv.craft_grid[0] = .{ .item = .mangrove_roots, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .mud, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .muddy_mangrove_roots);
 }
