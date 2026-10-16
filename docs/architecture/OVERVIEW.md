@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-16 (Session 366)
+Last updated: 2026-10-16 (Session 367)
 
 ## Project Structure
 
@@ -48,6 +48,9 @@ zigcraft/
 │       ├── dripstone.zig        # Stalactite impact damage, stalagmite fall multiplier & cauldron drip
 │       ├── lush_caves.zig       # Moss conversion, glow berry vines & night vision ambient boost
 │       ├── totem.zig            # Totem of Undying fatal-damage resurrection & regeneration potion
+│       ├── ice_physics.zig      # Ice/Packed Ice/Blue Ice speed multipliers & powder snow frostbite
+│       ├── scaffolding.zig      # Scaffolding tower top placement & sweet berry bush prickle damage
+│       ├── alchemy_buffs.zig    # Swiftness, Strength & Leaping potion timers and combat/speed buffs
 │       └── persistence.zig      # Binary chunk serialization
 └── docs/
     ├── STATUS.md                # Real-time state of the project

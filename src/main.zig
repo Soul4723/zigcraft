@@ -20,6 +20,9 @@ const cake_mod = @import("world/cake.zig");
 const dripstone_mod = @import("world/dripstone.zig");
 const lush_caves_mod = @import("world/lush_caves.zig");
 const totem_mod = @import("world/totem.zig");
+const ice_physics_mod = @import("world/ice_physics.zig");
+const scaffolding_mod = @import("world/scaffolding.zig");
+const alchemy_buffs_mod = @import("world/alchemy_buffs.zig");
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
 const fluid_mod = @import("world/fluid_wash.zig");
@@ -272,6 +275,8 @@ pub fn main() !void {
     var cakes: [cake_mod.max_cakes]cake_mod.CakeState = undefined;
     var cake_count: usize = 0;
     var night_vision_timer: f32 = 0.0;
+    var freeze_timer: f32 = 0.0;
+    var buff_timers = alchemy_buffs_mod.BuffTimers{};
     const IgnitedFlame = struct { x: i32, y: i32, z: i32, t: f32 };
     var flames: [32]IgnitedFlame = undefined;
     var flame_count: usize = 0;
@@ -497,6 +502,7 @@ pub fn main() !void {
         player.tickPhysicsCustom(&pickSolid, &pickLadder, &pickFluid, &pickHay, &pickSlime, norm_wish.x * walk_speed * dt, norm_wish.z * walk_speed * dt, jump, dt);
         player.tickVitals(dt);
         night_vision_timer = lush_caves_mod.tickNightVision(night_vision_timer, dt);
+        alchemy_buffs_mod.tickBuffs(&buff_timers, dt);
         if (player.health <= 0.0) {
             const totem_act = totem_mod.evaluateFatalDamage(player.health, inventory.hasItem(.totem_of_undying), player.fire_resistance_timer);
             if (totem_act.triggered) {
@@ -605,6 +611,18 @@ pub fn main() !void {
             const pz_i: i32 = @intFromFloat(@floor(player.pos.z));
             if (hazard_mod.checkCactusContact(&pickBlockWorld, px_i, py_i, pz_i)) {
                 player.health = hazard_mod.applyDamageClamped(player.health, hazard_mod.contact_rate, dt);
+            }
+            const in_powder_snow = (manager.getBlockWorld(px_i, py_i, pz_i) == .powder_snow or manager.getBlockWorld(px_i, py_i + 1, pz_i) == .powder_snow);
+            const has_leather_prot = inventory.hasItem(.leather_boots) or inventory.hasFullLeatherSet();
+            freeze_timer = ice_physics_mod.tickFreezeTimer(freeze_timer, in_powder_snow, has_leather_prot, dt);
+            const freeze_dmg = ice_physics_mod.calculateFreezeDamage(freeze_timer, has_leather_prot, dt);
+            if (freeze_dmg > 0.0) {
+                player.health = @max(0.0, player.health - freeze_dmg);
+            }
+            if (manager.getBlockWorld(px_i, py_i, pz_i) == .sweet_berry_bush) {
+                const has_legs = inventory.hasItem(.leather_leggings) or inventory.hasItem(.iron_leggings) or inventory.hasItem(.diamond_leggings) or inventory.hasItem(.netherite_leggings);
+                const bush_dmg = scaffolding_mod.calculateBerryBushDamage(norm_wish.x != 0 or norm_wish.z != 0, has_legs, dt);
+                if (bush_dmg > 0.0) player.health = @max(0.0, player.health - bush_dmg);
             }
 
             // Campfire / magma / lava contact burn hazard (negated by fire resistance immunity)
@@ -2529,7 +2547,8 @@ pub fn main() !void {
                 const dir = cam.front();
                 mob_hit_cooldown = combat_mod.tickCooldown(mob_hit_cooldown, dt);
                 const held_weapon = inventory.slots[selected_slot].item;
-                const hit_dmg: u8 = combat_mod.calculatePlayerAttackDamageWithWooden(held_weapon == .netherite_sword, held_weapon == .diamond_sword, held_weapon == .iron_sword, held_weapon == .stone_sword, held_weapon == .golden_sword, held_weapon == .wooden_sword, player.isWeakened());
+                const base_hit_dmg: u8 = combat_mod.calculatePlayerAttackDamageWithWooden(held_weapon == .netherite_sword, held_weapon == .diamond_sword, held_weapon == .iron_sword, held_weapon == .stone_sword, held_weapon == .golden_sword, held_weapon == .wooden_sword, player.isWeakened());
+                const hit_dmg: u8 = alchemy_buffs_mod.applyStrengthBonus(base_hit_dmg, buff_timers);
 
                 var bartered = false;
                 if (right and !right_down and inventory.slots[selected_slot].item == .gold_nugget) {
@@ -4780,6 +4799,25 @@ pub fn main() !void {
                         }
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .sweet_berry_bush) {
+                    _ = inventory.addItem(.sweet_berries, 2);
+                    audio.play(.step_grass, 0.85);
+                    particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.86, 0.14, 0.22 }, 6);
+                    std.debug.print("harvested 2x Sweet Berries at ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .scaffolding and inventory.slots[selected_slot].item == .scaffolding) {
+                    var occ: u8 = 1;
+                    while (occ < 16 and manager.getBlockWorld(hit_f.x, hit_f.y + @as(i32, occ), hit_f.z) == .scaffolding) : (occ += 1) {}
+                    if (scaffolding_mod.findTopPlacementY(hit_f.y, 15, occ)) |top_y| {
+                        if (manager.getBlockWorld(hit_f.x, top_y, hit_f.z) == .air) {
+                            if (try manager.editAndRemesh(hit_f.x, top_y, hit_f.z, .scaffolding)) {
+                                inventory.slots[selected_slot].decrement(1);
+                                audio.play(.step_wood, 0.85);
+                                std.debug.print("extended scaffolding tower to y={d} at ({d},{d})\n", .{ top_y, hit_f.x, hit_f.z });
+                            }
+                        }
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .cave_vines_lit) {
                     if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, .cave_vines)) {
                         _ = inventory.addItem(.glow_berries, 2);
@@ -5881,6 +5919,43 @@ pub fn main() !void {
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.8);
                 std.debug.print("ate golden apple (hp={d:.1})\n", .{player.health});
+            } else if (held_eat.item == .swiftness_potion) {
+                buff_timers.swiftness = alchemy_buffs_mod.buff_duration;
+                inventory.slots[selected_slot].decrement(1);
+                _ = inventory.addItem(.glass, 1);
+                audio.play(.eat, 0.85);
+                std.debug.print("drank Potion of Swiftness (180s)\n", .{});
+            } else if (held_eat.item == .strength_potion) {
+                buff_timers.strength = alchemy_buffs_mod.buff_duration;
+                inventory.slots[selected_slot].decrement(1);
+                _ = inventory.addItem(.glass, 1);
+                audio.play(.eat, 0.85);
+                std.debug.print("drank Potion of Strength (180s)\n", .{});
+            } else if (held_eat.item == .leaping_potion) {
+                buff_timers.leaping = alchemy_buffs_mod.buff_duration;
+                inventory.slots[selected_slot].decrement(1);
+                _ = inventory.addItem(.glass, 1);
+                audio.play(.eat, 0.85);
+                std.debug.print("drank Potion of Leaping (180s)\n", .{});
+            } else if ((held_eat.item == .beetroot_soup or held_eat.item == .mushroom_stew) and player.hunger < 20.0) {
+                player.hunger = @min(20.0, player.hunger + 6.0);
+                inventory.slots[selected_slot].decrement(1);
+                _ = inventory.addItem(.bowl, 1);
+                audio.play(.eat, 0.85);
+                std.debug.print("ate warm soup/stew (hunger={d:.1})\n", .{player.hunger});
+            } else if (held_eat.item == .baked_potato and player.hunger < 20.0) {
+                player.hunger = @min(20.0, player.hunger + 5.0);
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.8);
+                std.debug.print("ate Baked Potato (hunger={d:.1})\n", .{player.hunger});
+            } else if ((held_eat.item == .potato or held_eat.item == .beetroot) and player.hunger < 20.0) {
+                player.hunger = @min(20.0, player.hunger + 1.0);
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.7);
+            } else if ((held_eat.item == .cookie or held_eat.item == .sweet_berries) and player.hunger < 20.0) {
+                player.hunger = @min(20.0, player.hunger + 2.0);
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.75);
             } else if (held_eat.item == .regeneration_potion and (player.health < 20.0 or player.poison_timer > 0.0 or player.wither_timer > 0.0)) {
                 player.health = totem_mod.applyRegenerationPotion(player.health, 20.0);
                 player.poison_timer = 0.0;
