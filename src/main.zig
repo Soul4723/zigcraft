@@ -23,6 +23,9 @@ const totem_mod = @import("world/totem.zig");
 const ice_physics_mod = @import("world/ice_physics.zig");
 const scaffolding_mod = @import("world/scaffolding.zig");
 const alchemy_buffs_mod = @import("world/alchemy_buffs.zig");
+const ender_chest_mod = @import("world/ender_chest.zig");
+const beacon_aura_mod = @import("world/beacon_aura.zig");
+const archaeology_mod = @import("world/archaeology.zig");
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
 const fluid_mod = @import("world/fluid_wash.zig");
@@ -277,6 +280,8 @@ pub fn main() !void {
     var night_vision_timer: f32 = 0.0;
     var freeze_timer: f32 = 0.0;
     var buff_timers = alchemy_buffs_mod.BuffTimers{};
+    var ender_vault = ender_chest_mod.EnderVault{};
+    var beacon_supercharge_timer: f32 = 0.0;
     const IgnitedFlame = struct { x: i32, y: i32, z: i32, t: f32 };
     var flames: [32]IgnitedFlame = undefined;
     var flame_count: usize = 0;
@@ -503,6 +508,10 @@ pub fn main() !void {
         player.tickVitals(dt);
         night_vision_timer = lush_caves_mod.tickNightVision(night_vision_timer, dt);
         alchemy_buffs_mod.tickBuffs(&buff_timers, dt);
+        beacon_supercharge_timer = @max(0.0, beacon_supercharge_timer - dt);
+        if (beacon_supercharge_timer > 0.0) {
+            player.health = beacon_aura_mod.tickBeaconRegen(player.health, 20.0, 1, dt);
+        }
         if (player.health <= 0.0) {
             const totem_act = totem_mod.evaluateFatalDamage(player.health, inventory.hasItem(.totem_of_undying), player.fire_resistance_timer);
             if (totem_act.triggered) {
@@ -4797,6 +4806,53 @@ pub fn main() !void {
                             }
                             audio.playAt(.click_off, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
                         }
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .ender_chest) {
+                    const held_slot = &inventory.slots[selected_slot];
+                    if (!held_slot.isEmpty()) {
+                        const dep = ender_chest_mod.depositItem(&ender_vault, @intFromEnum(held_slot.item), held_slot.count, held_slot.item.maxStackSize());
+                        if (dep > 0) {
+                            std.debug.print("deposited {d}x {s} into global Ender Chest vault\n", .{ dep, held_slot.item.name() });
+                            held_slot.decrement(dep);
+                        }
+                    } else if (ender_chest_mod.withdrawLast(&ender_vault)) |wslot| {
+                        const witem: inventory_mod.ItemType = @enumFromInt(wslot.item_tag);
+                        _ = inventory.addItem(witem, wslot.count);
+                        std.debug.print("withdrew {d}x {s} from global Ender Chest vault\n", .{ wslot.count, witem.name() });
+                    }
+                    audio.playAt(.portal_hum, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.85, 24.0);
+                    particles.spawnPortalParticles(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 12);
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .beacon) {
+                    const base_b = manager.getBlockWorld(hit_f.x, hit_f.y - 1, hit_f.z);
+                    const has_base = beacon_aura_mod.isBeaconBaseBlock(@intFromEnum(base_b));
+                    const held_slot = &inventory.slots[selected_slot];
+                    if (has_base and (held_slot.item == .iron_ingot or held_slot.item == .gold_nugget or held_slot.item == .emerald or held_slot.item == .diamond or held_slot.item == .netherite_ingot)) {
+                        held_slot.decrement(1);
+                        beacon_supercharge_timer = beacon_aura_mod.supercharge_duration;
+                        audio.play(.end_portal_open, 0.85);
+                        audio.play(.glowstone_chime, 1.0);
+                        particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 20);
+                        std.debug.print("activated Beacon pyramid aura (300s Haste & Regeneration)!\n", .{});
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .copper_bulb_off or target == .copper_bulb_on) {
+                    const next_lit = archaeology_mod.toggleCopperBulb(target == .copper_bulb_on);
+                    _ = try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, if (next_lit) .copper_bulb_on else .copper_bulb_off);
+                    audio.play(if (next_lit) .click_on else .click_off, 0.85);
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .suspicious_sand and inventory.slots[selected_slot].item == .brush) {
+                    if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, .sand)) {
+                        const relic_roll: u8 = @intCast(@abs(hit_f.x +% hit_f.z) & 0xFF);
+                        const relic_item: inventory_mod.ItemType = @enumFromInt(archaeology_mod.relicForRoll(relic_roll));
+                        _ = inventory.addItem(relic_item, 1);
+                        if (tool_wear.use(selected_slot, inventory.slots[selected_slot].item.maxDurability())) {
+                            inventory.slots[selected_slot].clear();
+                        }
+                        audio.play(.step_sand, 0.9);
+                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.88, 0.80, 0.58 }, 10);
+                        std.debug.print("excavated {s} from Suspicious Sand at ({d},{d},{d})\n", .{ relic_item.name(), hit_f.x, hit_f.y, hit_f.z });
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .sweet_berry_bush) {
