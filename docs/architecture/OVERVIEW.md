@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-16 (Session 367)
+Last updated: 2026-10-16 (Session 368)
 
 ## Project Structure
 
@@ -51,6 +51,9 @@ zigcraft/
 │       ├── ice_physics.zig      # Ice/Packed Ice/Blue Ice speed multipliers & powder snow frostbite
 │       ├── scaffolding.zig      # Scaffolding tower top placement & sweet berry bush prickle damage
 │       ├── alchemy_buffs.zig    # Swiftness, Strength & Leaping potion timers and combat/speed buffs
+│       ├── ender_chest.zig      # Global quantum EnderVault deposit & withdrawal mechanics
+│       ├── beacon_aura.zig      # Beacon mineral pyramid verification, Haste & Regeneration aura
+│       ├── archaeology.zig      # Suspicious sand brush relic excavation & Copper Bulb latch
 │       └── persistence.zig      # Binary chunk serialization
 └── docs/
     ├── STATUS.md                # Real-time state of the project
