@@ -17,6 +17,9 @@ const campfire_cook_mod = @import("world/campfire_cook.zig");
 const sculk_mod = @import("world/sculk.zig");
 const golem_mod = @import("world/golem.zig");
 const cake_mod = @import("world/cake.zig");
+const dripstone_mod = @import("world/dripstone.zig");
+const lush_caves_mod = @import("world/lush_caves.zig");
+const totem_mod = @import("world/totem.zig");
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
 const fluid_mod = @import("world/fluid_wash.zig");
@@ -268,6 +271,7 @@ pub fn main() !void {
     var sculk_sensor_count: usize = 0;
     var cakes: [cake_mod.max_cakes]cake_mod.CakeState = undefined;
     var cake_count: usize = 0;
+    var night_vision_timer: f32 = 0.0;
     const IgnitedFlame = struct { x: i32, y: i32, z: i32, t: f32 };
     var flames: [32]IgnitedFlame = undefined;
     var flame_count: usize = 0;
@@ -492,6 +496,28 @@ pub fn main() !void {
 
         player.tickPhysicsCustom(&pickSolid, &pickLadder, &pickFluid, &pickHay, &pickSlime, norm_wish.x * walk_speed * dt, norm_wish.z * walk_speed * dt, jump, dt);
         player.tickVitals(dt);
+        night_vision_timer = lush_caves_mod.tickNightVision(night_vision_timer, dt);
+        if (player.health <= 0.0) {
+            const totem_act = totem_mod.evaluateFatalDamage(player.health, inventory.hasItem(.totem_of_undying), player.fire_resistance_timer);
+            if (totem_act.triggered) {
+                for (&inventory.slots) |*tsl| {
+                    if (tsl.item == .totem_of_undying) {
+                        tsl.decrement(1);
+                        break;
+                    }
+                }
+                player.health = totem_act.new_hp;
+                player.hunger = totem_act.new_hunger;
+                player.fire_resistance_timer = totem_act.fire_res_timer;
+                player.poison_timer = 0.0;
+                player.wither_timer = 0.0;
+                player.weakness_timer = 0.0;
+                audio.play(.glowstone_chime, 1.0);
+                audio.play(.end_portal_open, 0.8);
+                particles.spawnFireworkBurst(.{ player.pos.x, player.pos.y + 1.0, player.pos.z }, 24);
+                std.debug.print("Totem of Undying cheated death! (hp={d:.1}, fire_res={d:.0}s)\n", .{ player.health, player.fire_resistance_timer });
+            }
+        }
         if (player.pos.y < -30.0) {
             // Fell out of world: damage through vitals path
             player.health = @max(0.0, player.health - 20.0 * dt);
@@ -3388,7 +3414,7 @@ pub fn main() !void {
                             particles.spawnBlockDebris(f.x, f.y, f.z, .{ 0.8, 0.7, 0.5 }, 4);
                         },
                         .land, .none => {
-                            const dmg: u8 = if (f.block_type == .anvil) falling_mod.calculateAnvilImpactDamage(f.dist) else falling_mod.calculateImpactDamage(f.dist);
+                            const dmg: u8 = if (f.block_type == .anvil) falling_mod.calculateAnvilImpactDamage(f.dist) else if (f.block_type == .pointed_dripstone) dripstone_mod.calculateStalactiteImpactDamage(@intCast(@min(f.dist, 255))) else falling_mod.calculateImpactDamage(f.dist);
                             if (f.block_type == .anvil and f.dist > 0) {
                                 audio.playAt(.anvil_clang, .{ @as(f32, @floatFromInt(f.x)) + 0.5, @as(f32, @floatFromInt(f.y)) + 0.5, @as(f32, @floatFromInt(f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 40.0);
                                 particles.spawnBlockDebris(f.x, f.y, f.z, .{ 0.5, 0.5, 0.55 }, 8);
@@ -4754,6 +4780,34 @@ pub fn main() !void {
                         }
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .cave_vines_lit) {
+                    if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, .cave_vines)) {
+                        _ = inventory.addItem(.glow_berries, 2);
+                        audio.play(.step_grass, 0.85);
+                        particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 8);
+                        std.debug.print("harvested 2x Glow Berries from cave vines at ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if ((target == .cave_vines or target == .moss_block) and inventory.slots[selected_slot].item == .bone_meal) {
+                    inventory.slots[selected_slot].decrement(1);
+                    if (target == .cave_vines) {
+                        _ = try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, .cave_vines_lit);
+                    } else {
+                        var mdx: i32 = -1;
+                        while (mdx <= 1) : (mdx += 1) {
+                            var mdz: i32 = -1;
+                            while (mdz <= 1) : (mdz += 1) {
+                                const nb = manager.getBlockWorld(hit_f.x + mdx, hit_f.y, hit_f.z + mdz);
+                                const ab = manager.getBlockWorld(hit_f.x + mdx, hit_f.y + 1, hit_f.z + mdz);
+                                if (lush_caves_mod.canConvertToMoss(nb == .stone or nb == .dirt or nb == .grass, ab == .air)) {
+                                    _ = try manager.editAndRemesh(hit_f.x + mdx, hit_f.y, hit_f.z + mdz, .moss_block);
+                                }
+                            }
+                        }
+                    }
+                    audio.play(.composter_fill, 0.85);
+                    particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 10);
+                    flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .cake) {
                     var ck_opt = cake_mod.findCake(cakes[0..cake_count], cake_count, hit_f.x, hit_f.y, hit_f.z);
                     if (ck_opt == null and cake_count < cakes.len) {
@@ -5827,6 +5881,35 @@ pub fn main() !void {
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.8);
                 std.debug.print("ate golden apple (hp={d:.1})\n", .{player.health});
+            } else if (held_eat.item == .regeneration_potion and (player.health < 20.0 or player.poison_timer > 0.0 or player.wither_timer > 0.0)) {
+                player.health = totem_mod.applyRegenerationPotion(player.health, 20.0);
+                player.poison_timer = 0.0;
+                player.wither_timer = 0.0;
+                inventory.slots[selected_slot].decrement(1);
+                _ = inventory.addItem(.glass, 1);
+                audio.play(.eat, 0.9);
+                std.debug.print("drank Potion of Regeneration (hp={d:.1})\n", .{player.health});
+            } else if (held_eat.item == .night_vision_potion) {
+                night_vision_timer = lush_caves_mod.night_vision_duration;
+                inventory.slots[selected_slot].decrement(1);
+                _ = inventory.addItem(.glass, 1);
+                audio.play(.eat, 0.85);
+                std.debug.print("drank Potion of Night Vision (180s)\n", .{});
+            } else if (held_eat.item == .golden_carrot and player.hunger < 20.0) {
+                player.hunger = @min(20.0, player.hunger + lush_caves_mod.golden_carrot_hunger);
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.85);
+                std.debug.print("ate Golden Carrot (hunger={d:.1})\n", .{player.hunger});
+            } else if (held_eat.item == .carrot and player.hunger < 20.0) {
+                player.hunger = @min(20.0, player.hunger + lush_caves_mod.carrot_hunger);
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.75);
+                std.debug.print("ate Carrot (hunger={d:.1})\n", .{player.hunger});
+            } else if (held_eat.item == .glow_berries and player.hunger < 20.0) {
+                player.hunger = @min(20.0, player.hunger + lush_caves_mod.glow_berry_hunger);
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.75);
+                std.debug.print("ate Glow Berries (hunger={d:.1})\n", .{player.hunger});
             } else if (held_eat.item == .healing_potion and player.health < 20.0) {
                 player.health = @min(20.0, player.health + cake_mod.healing_potion_hp);
                 inventory.slots[selected_slot].decrement(1);
