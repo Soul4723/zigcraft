@@ -29,6 +29,9 @@ const archaeology_mod = @import("world/archaeology.zig");
 const wind_charge_mod = @import("world/wind_charge.zig");
 const mace_combat_mod = @import("world/mace_combat.zig");
 const autocrafter_mod = @import("world/autocrafter.zig");
+const calibrated_sculk_mod = @import("world/calibrated_sculk.zig");
+const frog_mod = @import("world/frog.zig");
+const goat_horn_mod = @import("world/goat_horn.zig");
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
 const fluid_mod = @import("world/fluid_wash.zig");
@@ -285,6 +288,7 @@ pub fn main() !void {
     var buff_timers = alchemy_buffs_mod.BuffTimers{};
     var ender_vault = ender_chest_mod.EnderVault{};
     var beacon_supercharge_timer: f32 = 0.0;
+    var goat_horn_cooldown: f32 = 0.0;
     const IgnitedFlame = struct { x: i32, y: i32, z: i32, t: f32 };
     var flames: [32]IgnitedFlame = undefined;
     var flame_count: usize = 0;
@@ -511,6 +515,7 @@ pub fn main() !void {
         player.tickVitals(dt);
         night_vision_timer = lush_caves_mod.tickNightVision(night_vision_timer, dt);
         alchemy_buffs_mod.tickBuffs(&buff_timers, dt);
+        goat_horn_cooldown = goat_horn_mod.tickHornCooldown(goat_horn_cooldown, dt);
         beacon_supercharge_timer = @max(0.0, beacon_supercharge_timer - dt);
         if (beacon_supercharge_timer > 0.0) {
             player.health = beacon_aura_mod.tickBeaconRegen(player.health, 20.0, 1, dt);
@@ -4819,6 +4824,11 @@ pub fn main() !void {
                         }
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .calibrated_sculk_sensor) {
+                    audio.playAt(.portal_hum, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 32.0);
+                    particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 12);
+                    std.debug.print("calibrated sculk sensor filtered resonance at ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                    flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .crafter) {
                     const held_slot = &inventory.slots[selected_slot];
                     if (autocrafter_mod.autoCraftSingleInput(@intFromEnum(held_slot.item))) |acr| {
@@ -6010,6 +6020,12 @@ pub fn main() !void {
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.8);
                 std.debug.print("ate golden apple (hp={d:.1})\n", .{player.health});
+            } else if (held_eat.item == .goat_horn and goat_horn_mod.canBlowHorn(goat_horn_cooldown)) {
+                goat_horn_cooldown = goat_horn_mod.horn_cooldown_duration;
+                audio.play(.end_portal_open, 0.95);
+                audio.play(.glowstone_chime, 1.0);
+                particles.spawnFireworkBurst(.{ player.pos.x, player.pos.y + 1.2, player.pos.z }, 20);
+                std.debug.print("sounded triumphant Goat Horn across 64m!\n", .{});
             } else if (held_eat.item == .wind_charge) {
                 player.vel_y = wind_charge_mod.calculateSelfBoostVy(player.vel_y, cam.pitch);
                 inventory.slots[selected_slot].decrement(1);
