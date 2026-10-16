@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-07 (Session 112)
+Last updated: 2026-10-16 (Session 363)
 
 ## Project Structure
 
@@ -36,6 +36,9 @@ zigcraft/
 │       ├── terrain.zig          # fBm heightmap terrain & cave generation
 │       ├── fluid_wash.zig       # Water wash rules and staged nearby flow ticks
 │       ├── redstone.zig         # Wire BFS logic, delay stages, power propagation
+│       ├── farming.zig          # Wheat crop growth stages, hydration, bone meal & harvest yield
+│       ├── trading.zig          # Emerald workstation bartering professions, offers & tier XP
+│       ├── apiary.zig           # Beehive pollination, honey harvesting & honey block physics
 │       └── persistence.zig      # Binary chunk serialization
 └── docs/
     ├── STATUS.md                # Real-time state of the project
