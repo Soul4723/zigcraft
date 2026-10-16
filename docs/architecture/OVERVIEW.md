@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-16 (Session 365)
+Last updated: 2026-10-16 (Session 366)
 
 ## Project Structure
 
@@ -45,6 +45,9 @@ zigcraft/
 │       ├── sculk.zig            # Sculk sensor acoustic vibration range, wool occlusion & signal decay
 │       ├── golem.zig            # Snow & Iron Golem totem detection, repair & tribute math
 │       ├── cake.zig             # 7-slice placed cake consumption & comparator fullness signal
+│       ├── dripstone.zig        # Stalactite impact damage, stalagmite fall multiplier & cauldron drip
+│       ├── lush_caves.zig       # Moss conversion, glow berry vines & night vision ambient boost
+│       ├── totem.zig            # Totem of Undying fatal-damage resurrection & regeneration potion
 │       └── persistence.zig      # Binary chunk serialization
 └── docs/
     ├── STATUS.md                # Real-time state of the project
