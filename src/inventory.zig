@@ -478,6 +478,13 @@ pub const ItemType = enum(u16) {
     milk_bucket = 472,
     bottle_o_enchanting = 473,
     sweeping_edge_book = 474,
+    arrow_of_slowness = 475,
+    item_frame = 476,
+    glow_item_frame = 477,
+    painting = 478,
+    feather_falling_book = 479,
+    stained_glass = 480,
+    potion_of_slowness = 481,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -1064,9 +1071,9 @@ pub const ItemType = enum(u16) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged, .splash_water_bottle, .splash_harming_potion, .water_bottle, .harming_potion => 16,
-            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .frost_walker_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn, .wolf_armor, .bundle, .ghast_harness, .bucket_of_axolotl, .banner, .banner_pattern_stencil, .copper_golem_statue, .music_disc_5, .music_disc_relic, .music_disc_precipice, .music_disc_creator, .enchanted_book, .mending_book, .swift_sneak_book, .sweeping_edge_book, .milk_bucket, .raid_omen_banner, .evoker_fang_totem, .saddle, .empty_locator_map, .filled_explorer_map, .leather_horse_armor, .iron_horse_armor, .golden_horse_armor, .diamond_horse_armor => 1,
-            .wither_rose, .glazed_terracotta, .light_weighted_pressure_plate, .heavy_weighted_pressure_plate, .glass_pane => 64,
+            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged, .potion_of_slowness, .splash_water_bottle, .splash_harming_potion, .water_bottle, .harming_potion => 16,
+            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .frost_walker_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn, .wolf_armor, .bundle, .ghast_harness, .bucket_of_axolotl, .banner, .banner_pattern_stencil, .copper_golem_statue, .music_disc_5, .music_disc_relic, .music_disc_precipice, .music_disc_creator, .enchanted_book, .mending_book, .swift_sneak_book, .sweeping_edge_book, .feather_falling_book, .milk_bucket, .raid_omen_banner, .evoker_fang_totem, .saddle, .empty_locator_map, .filled_explorer_map, .leather_horse_armor, .iron_horse_armor, .golden_horse_armor, .diamond_horse_armor, .item_frame, .glow_item_frame, .painting => 1,
+            .wither_rose, .glazed_terracotta, .light_weighted_pressure_plate, .heavy_weighted_pressure_plate, .glass_pane, .stained_glass, .arrow_of_slowness => 64,
             .potion_of_turtle_master => 16,
             else => 64,
         };
@@ -1545,6 +1552,13 @@ pub const ItemType = enum(u16) {
             .milk_bucket => "Milk Bucket",
             .bottle_o_enchanting => "Bottle o' Enchanting",
             .sweeping_edge_book => "Sweeping Edge Book",
+            .arrow_of_slowness => "Arrow of Slowness",
+            .item_frame => "Item Frame",
+            .glow_item_frame => "Glow Item Frame",
+            .painting => "Painting",
+            .feather_falling_book => "Feather Falling Book",
+            .stained_glass => "Stained Glass",
+            .potion_of_slowness => "Potion of Slowness",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1961,6 +1975,13 @@ pub const ItemType = enum(u16) {
             .milk_bucket => .{ 0.90, 0.92, 0.95, 0.95 },
             .bottle_o_enchanting => .{ 0.25, 0.72, 0.92, 0.85 },
             .sweeping_edge_book => .{ 0.68, 0.34, 0.76, 0.95 },
+            .arrow_of_slowness => .{ 0.48, 0.66, 0.40, 0.95 },
+            .item_frame => .{ 0.74, 0.56, 0.32, 0.95 },
+            .glow_item_frame => .{ 0.94, 0.78, 0.38, 0.95 },
+            .painting => .{ 0.60, 0.34, 0.28, 0.95 },
+            .feather_falling_book => .{ 0.74, 0.46, 0.88, 0.95 },
+            .stained_glass => .{ 0.42, 0.62, 0.78, 0.65 },
+            .potion_of_slowness => .{ 0.48, 0.60, 0.38, 0.90 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -2069,6 +2090,46 @@ pub const ItemStack = struct {
         }
     }
 };
+
+fn wave9CraftingRecipe(grid: [4]ItemStack) ?ItemStack {
+    var non_empty: usize = 0;
+    var has_arrow = false;
+    var has_slowness = false;
+    var has_leather = false;
+    var has_stick = false;
+    var has_paper = false;
+    var has_glowstone = false;
+    var has_frame = false;
+    var has_wool = false;
+    var has_book = false;
+    var has_slow_falling = false;
+    var has_glass = false;
+    var has_lapis = false;
+    for (grid) |slot| {
+        if (slot.isEmpty()) continue;
+        non_empty += 1;
+        has_arrow = has_arrow or slot.item == .arrow;
+        has_slowness = has_slowness or slot.item == .potion_of_slowness;
+        has_leather = has_leather or slot.item == .leather;
+        has_stick = has_stick or slot.item == .stick;
+        has_paper = has_paper or slot.item == .paper;
+        has_glowstone = has_glowstone or slot.item == .glowstone;
+        has_frame = has_frame or slot.item == .item_frame;
+        has_wool = has_wool or slot.item == .wool;
+        has_book = has_book or slot.item == .book;
+        has_slow_falling = has_slow_falling or slot.item == .slow_falling_potion;
+        has_glass = has_glass or slot.item == .glass;
+        has_lapis = has_lapis or slot.item == .lapis_lazuli;
+    }
+    if (non_empty != 2) return null;
+    if (has_arrow and has_slowness) return .{ .item = .arrow_of_slowness, .count = 1 };
+    if (has_leather and has_stick) return .{ .item = .item_frame, .count = 1 };
+    if (has_frame and has_glowstone) return .{ .item = .glow_item_frame, .count = 1 };
+    if (has_wool and has_paper) return .{ .item = .painting, .count = 1 };
+    if (has_book and has_slow_falling) return .{ .item = .feather_falling_book, .count = 1 };
+    if (has_glass and has_lapis) return .{ .item = .stained_glass, .count = 1 };
+    return null;
+}
 
 pub const Inventory = struct {
     pub const HOTBAR_SIZE = 6;
@@ -6103,6 +6164,10 @@ pub const Inventory = struct {
         // metal ingredients make their weighted plate variant.
         if (non_empty == 4 and g0 == .terracotta and g1 == .terracotta and g2 == .terracotta and g3 == .terracotta) {
             self.craft_output = .{ .item = .glazed_terracotta, .count = 1 };
+            return;
+        }
+        if (wave9CraftingRecipe(self.craft_grid)) |output| {
+            self.craft_output = output;
             return;
         }
         self.craft_output.clear();
@@ -11091,4 +11156,44 @@ test "Wave 8 item metadata and enchanted book recipes preserve BlockId capacity"
     inv.craft_grid = .{ .{ .item = .enchanted_book, .count = 1 }, .{ .item = .diamond, .count = 1 }, .{}, .{} };
     inv.updateCrafting();
     try std.testing.expectEqual(ItemType.sweeping_edge_book, inv.craft_output.item);
+}
+
+test "Wave 9 item metadata and 2x2 recipes preserve BlockId capacity" {
+    try std.testing.expectEqual(@as(u16, 475), @intFromEnum(ItemType.arrow_of_slowness));
+    try std.testing.expectEqual(@as(u16, 480), @intFromEnum(ItemType.stained_glass));
+    try std.testing.expectEqual(@as(u8, 255), @intFromEnum(BlockId.leaf_litter));
+    try std.testing.expectEqual(@as(u8, 64), ItemType.arrow_of_slowness.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 1), ItemType.item_frame.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 1), ItemType.glow_item_frame.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 1), ItemType.painting.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 1), ItemType.feather_falling_book.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 64), ItemType.stained_glass.maxStackSize());
+    try std.testing.expectEqualStrings("Arrow of Slowness", ItemType.arrow_of_slowness.name());
+    try std.testing.expectEqualStrings("Glow Item Frame", ItemType.glow_item_frame.name());
+    try std.testing.expect(ItemType.stained_glass.getColor()[3] < 1.0);
+
+    var inv = Inventory.init();
+    inv.craft_grid = .{ .{ .item = .arrow, .count = 1 }, .{ .item = .potion_of_slowness, .count = 1 }, .{}, .{} };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.arrow_of_slowness, inv.craft_output.item);
+
+    inv.craft_grid = .{ .{ .item = .leather, .count = 1 }, .{ .item = .stick, .count = 1 }, .{}, .{} };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.item_frame, inv.craft_output.item);
+
+    inv.craft_grid = .{ .{ .item = .item_frame, .count = 1 }, .{ .item = .glowstone, .count = 1 }, .{}, .{} };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.glow_item_frame, inv.craft_output.item);
+
+    inv.craft_grid = .{ .{ .item = .wool, .count = 1 }, .{ .item = .paper, .count = 1 }, .{}, .{} };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.painting, inv.craft_output.item);
+
+    inv.craft_grid = .{ .{ .item = .book, .count = 1 }, .{ .item = .slow_falling_potion, .count = 1 }, .{}, .{} };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.feather_falling_book, inv.craft_output.item);
+
+    inv.craft_grid = .{ .{ .item = .glass, .count = 1 }, .{ .item = .lapis_lazuli, .count = 1 }, .{}, .{} };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.stained_glass, inv.craft_output.item);
 }

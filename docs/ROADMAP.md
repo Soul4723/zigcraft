@@ -404,3 +404,16 @@ Rough priority order. Completed milestones marked **[x]**.
 358. [x] **Survival Metabolism** — Hunger, saturation, exhaustion, regeneration, starvation, and sprint thresholds (`src/world/hunger_metabolism.zig`).
 359. [x] **Experience Orbs** — Level curves, orb tiers/clumping, and death-drop cap (`src/world/experience_orbs.zig`).
 360. [x] **Melee Sweep & Critical Combat** — Attack cooldown scaling, critical hits, sweeping cleave, and sprint knockback (`src/world/melee_sweep_crit.zig`).
+
+## Wave 9 Integration (Milestones 361–370)
+
+361. [x] **Skeleton Variants** — Powder-snow Skeleton conversion, Stray Slowness Arrows, and Wither Skeleton doorway/weapon rules (`src/world/skeleton_variants.zig`).
+362. [x] **Zombie Conversions** — Husk → Zombie → Drowned submersion, Husk sunlight/hunger rules, and Drowned equipment/door behavior (`src/world/zombie_conversions.zig`).
+363. [x] **Arachnid Mechanics** — Daylight hostility threshold, wall climbing, Cave Spider gap fit, jockey state, and Hard-mode buffs (`src/world/spider_arachnids.zig`).
+364. [x] **Mountain Goat Mechanics** — Screaming variant, horn drops, jump/fall rules, and milking (`src/world/mountain_goat.zig`).
+365. [x] **Hoglin & Zoglin** — Tusk launch, Nether repulsion, and Overworld zombification (`src/world/hoglin_zoglin.zig`).
+366. [x] **Ranged Enchantments** — Bow Power/Punch/Flame/Infinity and Crossbow Quick Charge/Multishot/Piercing rules (`src/world/ranged_enchantments.zig`).
+367. [x] **Item Frames & Paintings** — Frame rotation/comparator output, map display, glow behavior, and painting canvas fit (`src/world/item_frames_paintings.zig`).
+368. [x] **Armor Toughness & EPF** — Toughness mitigation, protection EPF cap, and fire/blast modifiers (`src/world/armor_toughness_epf.zig`).
+369. [x] **Hopper Item Sorter** — Hopper transfer cadence/locking, ImpulseSV filter math, and Dropper/Dispenser behavior (`src/world/hopper_item_sorter.zig`).
+370. [x] **Beacon Pyramid** — Four pyramid tiers, power selection, stained-glass tinting, and beam transparency (`src/world/beacon_pyramid.zig`).

@@ -41,7 +41,8 @@ pub fn tickZombieUnderwaterConversion(state: *ZombieSubmersionState, head_in_wat
 
     state.head_submerged_timer += dt;
     state.is_shaking = state.head_submerged_timer >= conversion_shake_seconds;
-    if (state.head_submerged_timer < conversion_shake_seconds + conversion_finish_seconds) {
+    const conversion_threshold = conversion_shake_seconds + conversion_finish_seconds;
+    if (state.head_submerged_timer + 0.0001 < conversion_threshold) {
         return .{ .new_variant = state.variant };
     }
 

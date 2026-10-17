@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-17 (Session 377)
+Last updated: 2026-10-17 (Session 379)
 
 ## Project Structure
 
@@ -167,3 +167,20 @@ Wave 8 adds ItemTypes 470–474 for Swift Sneak and Sweeping Edge books,
 Reinforced Deepslate, Milk Bucket, and Bottle o' Enchanting. Inventory
 metadata includes display names, colors, and stack limits. The 2x2 grid adds
 two representative book recipes. `BlockId` remains unchanged at 255.
+
+### Wave 9 domain modules
+
+Milestones 361–370 add `skeleton_variants.zig`, `zombie_conversions.zig`,
+`spider_arachnids.zig`, `mountain_goat.zig`, `hoglin_zoglin.zig`,
+`ranged_enchantments.zig`, `item_frames_paintings.zig`,
+`armor_toughness_epf.zig`, `hopper_item_sorter.zig`, and
+`beacon_pyramid.zig`. Each has a standalone test target. `main.zig` keeps
+representative state for conversion, hoglin, frame, and hopper rules and
+advances or queries all ten domains through the frame loop. These hooks provide
+integration points; persistent entities, blocks, and container mutation remain
+with the existing world systems.
+
+Wave 9 adds ItemTypes 475–480 for Slowness Arrows, Item Frames, Glow Item
+Frames, Paintings, Feather Falling Books, and Stained Glass; ItemType 481 is
+the Slowness Potion ingredient used by the arrow recipe. Names, colors, and
+stack limits are defined, along with six 2x2 recipes. `BlockId` remains 255.

@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-17 (Session 378)
+Last updated: 2026-10-17 (Session 379)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 4920 passing unit tests across 251 build/test steps
@@ -56,7 +56,13 @@ Last updated: 2026-10-17 (Session 378)
 - All ten modules have standalone build/test targets and are imported in `main.zig`, which advances representative state and queries each module's domain rules in the frame loop.
 - ItemTypes 470–474 add Swift Sneak Book, Reinforced Deepslate, Milk Bucket, Bottle o' Enchanting, and Sweeping Edge Book with names, colors, and stack limits. Two 2x2 book recipes are covered by inventory tests; `BlockId` remains unchanged at 255.
 
+## Wave 9 Integration
+- Milestones 361–370 are integrated on `main`: Skeleton Variants, Zombie Conversions, Arachnids, Mountain Goats, Hoglins/Zoglins, Ranged Enchantments, Item Frames/Paintings, Armor Toughness/EPF, Hopper Item Sorters, and Beacon Pyramids.
+- All ten modules have standalone test targets and representative frame-loop hooks in `main.zig`; transient state is advanced where applicable, while entity/world mutation remains owned by the consuming systems.
+- ItemTypes 475–480 cover Slowness Arrows, Item Frames, Glow Item Frames, Paintings, Feather Falling Books, and Stained Glass. ItemType 481 adds the Slowness Potion ingredient for the arrow recipe. Metadata and six 2x2 crafting recipes are tested; `BlockId` remains unchanged at 255.
+- Zombie underwater conversion uses a small floating-point tolerance at the 45-second threshold to avoid missing a conversion due to accumulated `f32` rounding.
+
 ## Active State
-- Main branch stable (Phase 8: Milestones 43-360)
-- All tests passing (5098/5098 tests across 271 build/test steps)
+- Main branch stable (Phase 8: Milestones 43-370)
+- All tests passing (5265/5265 tests across 291 build/test steps)
 - Remote and local branches pruned clean
