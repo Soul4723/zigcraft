@@ -443,6 +443,14 @@ pub const ItemType = enum(u16) {
     copper_golem_statue = 437,
     firefly_bush = 438,
     leaf_litter = 439,
+    enchanted_book = 440,
+    mending_book = 441,
+    raid_omen_banner = 442,
+    evoker_fang_totem = 443,
+    turtle_egg = 444,
+    seagrass = 445,
+    potion_of_turtle_master = 446,
+    sweet_berry_fox_treat = 447,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -1007,7 +1015,7 @@ pub const ItemType = enum(u16) {
 
     pub fn isCompostable(self: ItemType) bool {
         return switch (self) {
-            .leaves, .hay_bale, .wheat_seeds, .wheat, .bread, .paper, .sugar_cane, .pumpkin, .carved_pumpkin, .pumpkin_pie, .cake, .melon, .melon_slice, .moss_block, .moss_carpet, .glow_berries, .carrot, .bamboo, .potato, .baked_potato, .beetroot, .cocoa_beans, .cookie, .sweet_berries, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp, .sea_pickle, .raw_salmon, .cooked_salmon, .pufferfish, .tropical_fish, .cherry_leaves, .pink_petals, .open_eyeblossom => true,
+            .leaves, .hay_bale, .wheat_seeds, .wheat, .bread, .paper, .sugar_cane, .pumpkin, .carved_pumpkin, .pumpkin_pie, .cake, .melon, .melon_slice, .moss_block, .moss_carpet, .glow_berries, .carrot, .bamboo, .potato, .baked_potato, .beetroot, .cocoa_beans, .cookie, .sweet_berries, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp, .sea_pickle, .seagrass, .raw_salmon, .cooked_salmon, .pufferfish, .tropical_fish, .cherry_leaves, .pink_petals, .open_eyeblossom => true,
             else => false,
         };
     }
@@ -1029,7 +1037,8 @@ pub const ItemType = enum(u16) {
         return switch (self) {
             .none => 0,
             .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged => 16,
-            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn, .wolf_armor, .bundle, .ghast_harness, .bucket_of_axolotl, .banner, .banner_pattern_stencil, .copper_golem_statue, .music_disc_5, .music_disc_relic, .music_disc_precipice, .music_disc_creator => 1,
+            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn, .wolf_armor, .bundle, .ghast_harness, .bucket_of_axolotl, .banner, .banner_pattern_stencil, .copper_golem_statue, .music_disc_5, .music_disc_relic, .music_disc_precipice, .music_disc_creator, .enchanted_book, .mending_book, .raid_omen_banner, .evoker_fang_totem => 1,
+            .potion_of_turtle_master => 16,
             else => 64,
         };
     }
@@ -1472,6 +1481,14 @@ pub const ItemType = enum(u16) {
             .copper_golem_statue => "Copper Golem Statue",
             .firefly_bush => "Firefly Bush",
             .leaf_litter => "Leaf Litter",
+            .enchanted_book => "Enchanted Book",
+            .mending_book => "Mending Book",
+            .raid_omen_banner => "Raid Omen Banner",
+            .evoker_fang_totem => "Evoker Fang Totem",
+            .turtle_egg => "Turtle Egg",
+            .seagrass => "Seagrass",
+            .potion_of_turtle_master => "Potion of the Turtle Master",
+            .sweet_berry_fox_treat => "Sweet Berry Fox Treat",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1853,6 +1870,14 @@ pub const ItemType = enum(u16) {
             .copper_golem_statue => .{ 0.78, 0.48, 0.30, 0.95 },
             .firefly_bush => .{ 0.35, 0.72, 0.35, 0.95 },
             .leaf_litter => .{ 0.72, 0.42, 0.20, 0.95 },
+            .enchanted_book => .{ 0.65, 0.25, 0.78, 0.95 },
+            .mending_book => .{ 0.25, 0.78, 0.55, 0.95 },
+            .raid_omen_banner => .{ 0.52, 0.18, 0.18, 0.95 },
+            .evoker_fang_totem => .{ 0.82, 0.76, 0.46, 0.95 },
+            .turtle_egg => .{ 0.58, 0.64, 0.34, 0.95 },
+            .seagrass => .{ 0.18, 0.58, 0.38, 0.95 },
+            .potion_of_turtle_master => .{ 0.25, 0.62, 0.48, 0.95 },
+            .sweet_berry_fox_treat => .{ 0.82, 0.22, 0.28, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -5860,6 +5885,55 @@ pub const Inventory = struct {
                 (g0 == .coal and g2 == .sand) or (g1 == .coal and g3 == .sand))
             {
                 self.craft_output = .{ .item = .glass, .count = 2 };
+                return;
+            }
+        }
+
+        // Wave 4 recipe 305: Book + Lapis Lazuli -> Enchanted Book.
+        if (non_empty == 2) {
+            var has_book = false;
+            var has_lapis = false;
+            for (self.craft_grid) |slot| {
+                has_book = has_book or slot.item == .book;
+                has_lapis = has_lapis or slot.item == .lapis_lazuli;
+            }
+            if (has_book and has_lapis) {
+                self.craft_output = .{ .item = .enchanted_book, .count = 1 };
+                return;
+            }
+        }
+
+        // Wave 4 recipe 306: Enchanted Book + Emerald -> Mending Book.
+        if (non_empty == 2) {
+            var has_enchanted = false;
+            var has_emerald = false;
+            for (self.craft_grid) |slot| {
+                has_enchanted = has_enchanted or slot.item == .enchanted_book;
+                has_emerald = has_emerald or slot.item == .emerald;
+            }
+            if (has_enchanted and has_emerald) {
+                self.craft_output = .{ .item = .mending_book, .count = 1 };
+                return;
+            }
+        }
+
+        // Wave 4 recipe 307: Turtle Egg + Seagrass + Potion + Turtle Helmet -> Fox Treat.
+        if (non_empty == 4) {
+            var eggs: u8 = 0;
+            var grass: u8 = 0;
+            var potions: u8 = 0;
+            var helmets: u8 = 0;
+            for (self.craft_grid) |slot| {
+                switch (slot.item) {
+                    .turtle_egg => eggs += 1,
+                    .seagrass => grass += 1,
+                    .potion_of_turtle_master => potions += 1,
+                    .turtle_helmet => helmets += 1,
+                    else => {},
+                }
+            }
+            if (eggs == 1 and grass == 1 and potions == 1 and helmets == 1) {
+                self.craft_output = .{ .item = .sweet_berry_fox_treat, .count = 2 };
                 return;
             }
         }
@@ -10730,4 +10804,28 @@ test "Wave 3 representative items roundtrip, properties and recipes" {
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .banner);
     try std.testing.expectEqual(inv.craft_output.count, 1);
+}
+
+test "Wave 4 representative item metadata and 2x2 recipes" {
+    try std.testing.expectEqual(@as(u16, 447), @intFromEnum(ItemType.sweet_berry_fox_treat));
+    try std.testing.expectEqualStrings("Mending Book", ItemType.mending_book.name());
+    try std.testing.expectEqualStrings("Turtle Egg", ItemType.turtle_egg.name());
+    try std.testing.expectEqual(@as(u8, 1), ItemType.enchanted_book.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 16), ItemType.potion_of_turtle_master.maxStackSize());
+    try std.testing.expect(ItemType.seagrass.isCompostable());
+    try std.testing.expect(ItemType.sweet_berry_fox_treat.getColor()[0] > ItemType.sweet_berry_fox_treat.getColor()[1]);
+
+    var inv = Inventory.init();
+    inv.craft_grid = .{ .{ .item = .book, .count = 1 }, .{ .item = .lapis_lazuli, .count = 1 }, .{}, .{} };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.enchanted_book, inv.craft_output.item);
+
+    inv.craft_grid = .{ .{ .item = .enchanted_book, .count = 1 }, .{ .item = .emerald, .count = 1 }, .{}, .{} };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.mending_book, inv.craft_output.item);
+
+    inv.craft_grid = .{ .{ .item = .turtle_egg, .count = 1 }, .{ .item = .seagrass, .count = 1 }, .{ .item = .potion_of_turtle_master, .count = 1 }, .{ .item = .turtle_helmet, .count = 1 } };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.sweet_berry_fox_treat, inv.craft_output.item);
+    try std.testing.expectEqual(@as(u8, 2), inv.craft_output.count);
 }

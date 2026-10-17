@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-16 (Session 369)
+Last updated: 2026-10-17 (Session 374)
 
 ## Project Structure
 
@@ -91,3 +91,18 @@ persisted fluid metadata and remain an unfinished roadmap milestone.
 ### Wave 3 domain modules
 
 Milestones 305–314 are implemented as standalone stateful mechanics under `src/world/` (`happy_ghast.zig`, `warden_deep_dark.zig`, `strider_mount.zig`, `axolotl.zig`, `banner_heraldry.zig`, `anvil_smithing.zig`, `copper_golem.zig`, `ambient_foliage.zig`, `ender_stasis.zig`, and `minecart_logistics.zig`). `main.zig` owns one active domain state per system and advances the tick-capable systems in the main frame loop; pure interaction/crafting helpers remain in their domain modules and are exercised by standalone tests.
+
+### Wave 4 domain modules
+
+Milestones 315–322 add `enchanting_grindstone.zig`, `village_raid.zig`,
+`redstone_workstations.zig`, `shulker_end_city.zig`,
+`elytra_aerodynamics.zig`, `sea_turtle.zig`, `taiga_fox.zig`, and
+`conduit_frame.zig`. Domain rules and state remain in these focused modules.
+`main.zig` owns and advances representative flight, raid, composter,
+levitation, turtle-growth, and fox state; deterministic interaction helpers
+remain directly callable from their modules. Each module has a standalone
+test target.
+
+Wave 4 adds representative `ItemType` values 440–447 in `inventory.zig`;
+the existing `BlockId` registry is unchanged. Three 2x2 recipes cover
+enchanted books, a Mending book, and a fox treat.

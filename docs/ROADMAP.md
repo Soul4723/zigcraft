@@ -343,3 +343,14 @@ Rough priority order. Completed milestones marked **[x]**.
 312. [x] **Ambient Foliage** — Firefly Bush night swarms, four-stage Leaf Litter rustling/burning, Wildflowers, and Cactus Flower (`src/world/ambient_foliage.zig`).
 313. [x] **Ender Stasis** — Bubble-column pearl chambers, trapdoor teleport triggers, Endermite rolls, and Chorus Fruit warps (`src/world/ender_stasis.zig`).
 314. [x] **Minecart Logistics** — Fast Hopper Minecart suction, Detector Rail comparator readout, Furnace Minecart traction, and instant TNT Minecart detonation (`src/world/minecart_logistics.zig`).
+
+## Wave 4 Integration (Milestones 315–322)
+
+315. [x] **Enchanting & Grindstone** — Bookshelf power ring, lapis tier costs, enchantment math, Mending/Unbreaking/Fortune/Silk Touch, and Grindstone XP refunds (`src/world/enchanting_grindstone.zig`).
+316. [x] **Village Raids** — Omen-triggered waves, Ravager shield stun/roar, Evoker fang lines, and Hero discounts (`src/world/village_raid.zig`).
+317. [x] **Redstone Workstations** — Composter pipeline/hopper automation, dispenser beehive automation, and Lectern comparator signal (`src/world/redstone_workstations.zig`).
+318. [x] **Shulkers & End Cities** — Shell armor, axis-stepping bullets, Levitation, Shulker Box portable inventory, and duplication (`src/world/shulker_end_city.zig`).
+319. [x] **Elytra Aerodynamics** — Pitch/lift flight, rocket boost, kinetic impact damage, and durability (`src/world/elytra_aerodynamics.zig`).
+320. [x] **Sea Turtles** — Home-beach imprint, egg clutch/trampling/hatching, and baby scute growth (`src/world/sea_turtle.zig`).
+321. [x] **Taiga Foxes** — Red/snow variants, mouth items, pounce, berry-bush immunity, and survival behaviors (`src/world/taiga_fox.zig`).
+322. [x] **Conduit Frame** — 16–42 block frame activation, 32–96m aura, and hostile aquatic zaps (`src/world/conduit_frame.zig`).

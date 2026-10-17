@@ -54,6 +54,14 @@ const copper_golem_mod = @import("world/copper_golem.zig");
 const ambient_foliage_mod = @import("world/ambient_foliage.zig");
 const ender_stasis_mod = @import("world/ender_stasis.zig");
 const minecart_logistics_mod = @import("world/minecart_logistics.zig");
+const enchanting_grindstone_mod = @import("world/enchanting_grindstone.zig");
+const village_raid_mod = @import("world/village_raid.zig");
+const redstone_workstations_mod = @import("world/redstone_workstations.zig");
+const shulker_end_city_mod = @import("world/shulker_end_city.zig");
+const elytra_aerodynamics_mod = @import("world/elytra_aerodynamics.zig");
+const sea_turtle_mod = @import("world/sea_turtle.zig");
+const taiga_fox_mod = @import("world/taiga_fox.zig");
+const conduit_frame_mod = @import("world/conduit_frame.zig");
 
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
@@ -347,6 +355,14 @@ pub fn main() !void {
     var active_hopper_minecart = minecart_logistics_mod.HopperMinecart.init();
     var active_furnace_minecart = minecart_logistics_mod.FurnaceMinecartEngine.init(.x);
     var active_tnt_minecart = minecart_logistics_mod.TntMinecartFuse.init();
+    // Wave 4 domain states keep the new mechanics available to the live frame loop.
+    var active_elytra = elytra_aerodynamics_mod.ElytraFlightState.init();
+    var active_turtle = sea_turtle_mod.SeaTurtleState.init(.{ 0, 64, 0 }, true);
+    var active_fox = taiga_fox_mod.FoxState.init(.red_taiga, .{ 0.0, 64.0, 0.0 });
+    var active_composter = redstone_workstations_mod.ComposterState{};
+    var active_levitation = shulker_end_city_mod.Levitation{};
+    var conduit_zap_timer: f32 = 0.0;
+    var active_raid = village_raid_mod.triggerRaid(.normal, 0);
     const IgnitedFlame = struct { x: i32, y: i32, z: i32, t: f32 };
     var flames: [32]IgnitedFlame = undefined;
     var flame_count: usize = 0;
@@ -602,6 +618,14 @@ pub fn main() !void {
         _ = active_hopper_minecart.suctionTick(&empty_minecart_sources, dt);
         active_furnace_minecart.tick(dt);
         _ = active_tnt_minecart.tick(dt);
+        active_elytra.tick(dt);
+        _ = sea_turtle_mod.tickBabyTurtleGrowth(&active_turtle, dt, false);
+        active_fox.tick(dt, false, false, false);
+        _ = active_composter.tick(dt);
+        active_levitation.tick(dt);
+        active_raid.tick(dt);
+        _ = conduit_frame_mod.tickConduitHostileZap(active_raid.active, 0.0, false, &conduit_zap_timer, dt);
+        _ = enchanting_grindstone_mod.computeEnchantSlotOffers(0);
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);
         }

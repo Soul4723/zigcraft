@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-17 (Session 373)
+Last updated: 2026-10-17 (Session 374)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 4005 passing unit tests across 159 test steps
@@ -31,7 +31,12 @@ Last updated: 2026-10-17 (Session 373)
 - Representative Wave 3 blocks occupy BlockIds 251–255; corresponding ItemTypes 430–439 include block roundtrips, names/colors, stack properties, and 2x2 recipes.
 - Each new world module has a standalone build test target and is ticked or queried from the main game loop through its domain state hook.
 
+## Wave 4 Integration
+- Milestones 315–322 are integrated on `main`: Enchanting/Grindstone, Village Raids, Redstone Workstations, Shulkers/End Cities, Elytra Aerodynamics, Sea Turtles, Taiga Foxes, and Conduit Frame.
+- The eight modules have standalone test targets. Main owns and advances the applicable mechanic states through its frame loop; deterministic rules remain in their domain modules.
+- ItemTypes 440–447 provide representative enchanted book, raid, turtle, potion, and fox-treat items with names, colors, stack rules, and three 2x2 recipes. `BlockId` remains unchanged.
+
 ## Active State
-- Main branch stable (Phase 8: Milestones 43-314)
-- All tests passing (4235/4235 tests across 179 build/test steps)
+- Main branch stable (Phase 8: Milestones 43-322)
+- All tests passing (4415/4415 tests across 195 build/test steps)
 - Remote and local branches pruned clean
