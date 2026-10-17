@@ -152,3 +152,18 @@ armor, and Frost Walker Boots. Inventory metadata includes names, colors,
 stack limits, and armor durability/classification where relevant. The 2x2
 grid creates locator maps, duplicates explorer maps, and crafts glass panes;
 `BlockId` stays unchanged at 255.
+
+### Wave 8 domain modules
+
+Milestones 351–360 add `woodland_mansion.zig`, `ocean_monument.zig`,
+`ancient_city.zig`, `temple_traps.zig`, `stronghold_triangulation.zig`,
+`mushroom_island.zig`, `weather_lightning.zig`, `hunger_metabolism.zig`,
+`experience_orbs.zig`, and `melee_sweep_crit.zig`. Each module has a
+standalone test target. `main.zig` owns representative transient states and
+ticks or queries domain rules through the frame loop; persistent world and
+entity mutation stays with the systems that consume those results.
+
+Wave 8 adds ItemTypes 470–474 for Swift Sneak and Sweeping Edge books,
+Reinforced Deepslate, Milk Bucket, and Bottle o' Enchanting. Inventory
+metadata includes display names, colors, and stack limits. The 2x2 grid adds
+two representative book recipes. `BlockId` remains unchanged at 255.

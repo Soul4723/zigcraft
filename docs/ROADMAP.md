@@ -391,3 +391,16 @@ Rough priority order. Completed milestones marked **[x]**.
 348. [x] **Cartography Maps** — Five zoom tiers, glass-pane locking, banner waypoints, and explorer-map edge cursors (`src/world/cartography_maps.zig`).
 349. [x] **Processing Workstations** — Stonecutter yield, blast-furnace/smoker cycles, fuel durations, and retained smelting XP (`src/world/processing_workstations.zig`).
 350. [x] **Boots & Armor Stands** — Thirteen armor-stand poses, equipment swaps, Frost Walker ice, and Soul Speed (`src/world/boots_and_armor_stands.zig`).
+
+## Wave 8 Integration (Milestones 351–360)
+
+351. [x] **Woodland Mansion Illagers** — Evoker/Vex mechanics, Wololo sheep conversion, and Vindicator Johnny targeting (`src/world/woodland_mansion.zig`).
+352. [x] **Ocean Monument Guardians** — Guardian laser charging, spike thorns, and sponge placement (`src/world/ocean_monument.zig`).
+353. [x] **Ancient City Deep Dark** — Wool-muted vibrations, Swift Sneak, basement puzzle, and reinforced deepslate properties (`src/world/ancient_city.zig`).
+354. [x] **Desert Pyramid & Jungle Temple Traps** — TNT pit, lever puzzle, and tripwire dispenser rules (`src/world/temple_traps.zig`).
+355. [x] **Stronghold Triangulation** — Eye of Ender flight/shatter rules, throw-ray intersection, portal frames, and infested-stone cascade (`src/world/stronghold_triangulation.zig`).
+356. [x] **Mushroom Fields** — Red/brown Mooshroom interactions and hostile-spawn immunity (`src/world/mushroom_island.zig`).
+357. [x] **Weather & Lightning** — Rain/thunder sleep, lightning-rod diversion, precipitation, fire extinguishing, and snow accumulation (`src/world/weather_lightning.zig`).
+358. [x] **Survival Metabolism** — Hunger, saturation, exhaustion, regeneration, starvation, and sprint thresholds (`src/world/hunger_metabolism.zig`).
+359. [x] **Experience Orbs** — Level curves, orb tiers/clumping, and death-drop cap (`src/world/experience_orbs.zig`).
+360. [x] **Melee Sweep & Critical Combat** — Attack cooldown scaling, critical hits, sweeping cleave, and sprint knockback (`src/world/melee_sweep_crit.zig`).

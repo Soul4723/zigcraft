@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-17 (Session 377)
+Last updated: 2026-10-17 (Session 378)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 4920 passing unit tests across 251 build/test steps
@@ -51,7 +51,12 @@ Last updated: 2026-10-17 (Session 377)
 - All ten world modules have standalone test targets and are imported by `main.zig`; representative transient state is ticked and deterministic mechanics are queried through the frame loop.
 - ItemTypes 462–469 add locator/explorer maps, glass panes, four horse armor types, and Frost Walker Boots with names, colors, and stack limits. The 2x2 crafting grid supports locator-map creation, explorer-map duplication, and glass panes. `BlockId` remains unchanged at 255.
 
+## Wave 8 Integration
+- Milestones 351–360 are integrated on `main`: Woodland Mansion Illagers, Ocean Monument Guardians, Ancient City, Temple Traps, Stronghold Triangulation, Mushroom Fields, Weather/Lightning, Hunger Metabolism, Experience Orbs, and Melee Sweep/Critical Combat.
+- All ten modules have standalone build/test targets and are imported in `main.zig`, which advances representative state and queries each module's domain rules in the frame loop.
+- ItemTypes 470–474 add Swift Sneak Book, Reinforced Deepslate, Milk Bucket, Bottle o' Enchanting, and Sweeping Edge Book with names, colors, and stack limits. Two 2x2 book recipes are covered by inventory tests; `BlockId` remains unchanged at 255.
+
 ## Active State
-- Main branch stable (Phase 8: Milestones 43-350)
-- All tests passing (4920/4920 tests across 251 build/test steps)
+- Main branch stable (Phase 8: Milestones 43-360)
+- All tests passing (5098/5098 tests across 271 build/test steps)
 - Remote and local branches pruned clean
