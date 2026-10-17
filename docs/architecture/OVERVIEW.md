@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-17 (Session 374)
+Last updated: 2026-10-17 (Session 375)
 
 ## Project Structure
 
@@ -106,3 +106,15 @@ test target.
 Wave 4 adds representative `ItemType` values 440–447 in `inventory.zig`;
 the existing `BlockId` registry is unchanged. Three 2x2 recipes cover
 enchanted books, a Mending book, and a fox treat.
+
+### Wave 5 domain modules
+
+Milestones 323–330 add `enderman_ai.zig`, `piglin_bastion.zig`,
+`charged_creeper.zig`, `swamp_witch.zig`, `blaze_fortress.zig`,
+`ghast_deflection.zig`, `slime_mitosis.zig`, and `phantom_insomnia.zig`.
+`main.zig` owns representative Enderman, Piglin barter, Creeper, Blaze, and
+Phantom state and advances them in the frame loop; stateless interaction
+rules from the Witch, Ghast, and Slime modules are queried there. `inventory.zig`
+adds ItemTypes 448–455 for mob-head trophies and bottle/potion items without
+changing `BlockId`. Gunpowder recipes produce splash water and harming potions.
+Each module has a standalone test target.

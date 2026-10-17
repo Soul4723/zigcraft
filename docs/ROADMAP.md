@@ -354,3 +354,14 @@ Rough priority order. Completed milestones marked **[x]**.
 320. [x] **Sea Turtles** — Home-beach imprint, egg clutch/trampling/hatching, and baby scute growth (`src/world/sea_turtle.zig`).
 321. [x] **Taiga Foxes** — Red/snow variants, mouth items, pounce, berry-bush immunity, and survival behaviors (`src/world/taiga_fox.zig`).
 322. [x] **Conduit Frame** — 16–42 block frame activation, 32–96m aura, and hostile aquatic zaps (`src/world/conduit_frame.zig`).
+
+## Wave 5 Integration (Milestones 323–330)
+
+323. [x] **Enderman AI** — Eye-contact provocation, carved-pumpkin immunity, projectile dodge teleportation, hydrophobia, and block carrying (`src/world/enderman_ai.zig`).
+324. [x] **Piglin Bastion** — Gold armor pacification, guarded-block provocation, six-second bartering, and brute aggression (`src/world/piglin_bastion.zig`).
+325. [x] **Charged Creepers** — 1.5-second fuse, flint-and-steel ignition, cat avoidance, lightning charging, and mob-head trophy drops (`src/world/charged_creeper.zig`).
+326. [x] **Swamp Witch** — Splash-potion combat, self-healing/fire-resistance drinking, magic resistance, and swamp-hut black cats (`src/world/swamp_witch.zig`).
+327. [x] **Blaze Fortress** — Three-fireball volleys, hover ascent, snowball weakness, and brewing-stand blaze-powder fuel (`src/world/blaze_fortress.zig`).
+328. [x] **Ghast Deflection** — Return-to-sender fireballs, cobblestone blast immunity, 64m sight, and reflected lethal damage (`src/world/ghast_deflection.zig`).
+329. [x] **Slime Mitosis** — Slime/magma-cube splitting, swamp moon spawning, slime-chunk seed hashing, and magma-cube defenses (`src/world/slime_mitosis.zig`).
+330. [x] **Phantom Insomnia** — Three-night spawning, swoop/climb behavior, cat repulsion, sunlight burning, and Slow Falling potion rules (`src/world/phantom_insomnia.zig`).

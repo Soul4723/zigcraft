@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-17 (Session 374)
+Last updated: 2026-10-17 (Session 375)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 4005 passing unit tests across 159 test steps
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 4577 passing unit tests across 211 test steps
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -36,7 +36,12 @@ Last updated: 2026-10-17 (Session 374)
 - The eight modules have standalone test targets. Main owns and advances the applicable mechanic states through its frame loop; deterministic rules remain in their domain modules.
 - ItemTypes 440–447 provide representative enchanted book, raid, turtle, potion, and fox-treat items with names, colors, stack rules, and three 2x2 recipes. `BlockId` remains unchanged.
 
+## Wave 5 Integration
+- Milestones 323–330 are integrated on `main`: Enderman AI, Piglin Bastion, Charged Creeper, Swamp Witch, Blaze Fortress, Ghast Deflection, Slime Mitosis, and Phantom Insomnia.
+- All eight modules have standalone build/test targets; `main.zig` imports and advances representative states or queries domain rules.
+- ItemTypes 448–455 add four mob-head trophies and water/harming bottle variants with names, colors, stack rules, and two 2x2 splash-potion recipes. `BlockId` remains unchanged.
+
 ## Active State
-- Main branch stable (Phase 8: Milestones 43-322)
-- All tests passing (4415/4415 tests across 195 build/test steps)
+- Main branch stable (Phase 8: Milestones 43-330)
+- All tests passing (4577/4577 tests across 211 build/test steps)
 - Remote and local branches pruned clean

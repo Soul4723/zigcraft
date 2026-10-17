@@ -62,6 +62,14 @@ const elytra_aerodynamics_mod = @import("world/elytra_aerodynamics.zig");
 const sea_turtle_mod = @import("world/sea_turtle.zig");
 const taiga_fox_mod = @import("world/taiga_fox.zig");
 const conduit_frame_mod = @import("world/conduit_frame.zig");
+const enderman_ai_mod = @import("world/enderman_ai.zig");
+const piglin_bastion_mod = @import("world/piglin_bastion.zig");
+const charged_creeper_mod = @import("world/charged_creeper.zig");
+const swamp_witch_mod = @import("world/swamp_witch.zig");
+const blaze_fortress_mod = @import("world/blaze_fortress.zig");
+const ghast_deflection_mod = @import("world/ghast_deflection.zig");
+const slime_mitosis_mod = @import("world/slime_mitosis.zig");
+const phantom_insomnia_mod = @import("world/phantom_insomnia.zig");
 
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
@@ -363,6 +371,14 @@ pub fn main() !void {
     var active_levitation = shulker_end_city_mod.Levitation{};
     var conduit_zap_timer: f32 = 0.0;
     var active_raid = village_raid_mod.triggerRaid(.normal, 0);
+    // Wave 5 representative domain state, advanced by the frame loop.
+    var active_enderman = enderman_ai_mod.EndermanState{};
+    var active_piglin_barter = piglin_bastion_mod.PiglinBarterState.init(false);
+    var active_creeper = charged_creeper_mod.CreeperState{};
+    var active_blaze_attack = blaze_fortress_mod.BlazeAttackState{};
+    var active_blaze_brewing = blaze_fortress_mod.BrewingStandFuelState{};
+    var phantom_insomnia = phantom_insomnia_mod.InsomniaTracker{};
+    var active_phantom = phantom_insomnia_mod.PhantomFlightState{};
     const IgnitedFlame = struct { x: i32, y: i32, z: i32, t: f32 };
     var flames: [32]IgnitedFlame = undefined;
     var flame_count: usize = 0;
@@ -625,6 +641,18 @@ pub fn main() !void {
         active_levitation.tick(dt);
         active_raid.tick(dt);
         _ = conduit_frame_mod.tickConduitHostileZap(active_raid.active, 0.0, false, &conduit_zap_timer, dt);
+        active_enderman.tick(dt);
+        _ = enderman_ai_mod.isDryShelter(player.in_water, false, false);
+        _ = piglin_bastion_mod.isPiglinPacifiedByPlayer(true, false, false);
+        _ = active_piglin_barter.tick(@intFromFloat(@max(0.0, dt * 20.0)));
+        _ = charged_creeper_mod.tickCreeperFuse(&active_creeper, 0.0, false, false, dt);
+        _ = swamp_witch_mod.applyWitchMagicResistance(0.0);
+        _ = active_blaze_attack.tick(dt);
+        _ = active_blaze_brewing.tick(dt);
+        _ = ghast_deflection_mod.canGhastSeeTarget(0.0, true);
+        _ = slime_mitosis_mod.swampMoonPhaseSpawnChance(0, 0, 64);
+        phantom_insomnia.tick(dt);
+        active_phantom.climb(dt);
         _ = enchanting_grindstone_mod.computeEnchantSlotOffers(0);
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);

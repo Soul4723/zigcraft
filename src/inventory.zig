@@ -451,6 +451,14 @@ pub const ItemType = enum(u16) {
     seagrass = 445,
     potion_of_turtle_master = 446,
     sweet_berry_fox_treat = 447,
+    zombie_head = 448,
+    skeleton_skull = 449,
+    creeper_head = 450,
+    piglin_head = 451,
+    splash_water_bottle = 452,
+    splash_harming_potion = 453,
+    water_bottle = 454,
+    harming_potion = 455,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -1036,7 +1044,7 @@ pub const ItemType = enum(u16) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged => 16,
+            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged, .splash_water_bottle, .splash_harming_potion, .water_bottle, .harming_potion => 16,
             .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn, .wolf_armor, .bundle, .ghast_harness, .bucket_of_axolotl, .banner, .banner_pattern_stencil, .copper_golem_statue, .music_disc_5, .music_disc_relic, .music_disc_precipice, .music_disc_creator, .enchanted_book, .mending_book, .raid_omen_banner, .evoker_fang_totem => 1,
             .potion_of_turtle_master => 16,
             else => 64,
@@ -1489,6 +1497,14 @@ pub const ItemType = enum(u16) {
             .seagrass => "Seagrass",
             .potion_of_turtle_master => "Potion of the Turtle Master",
             .sweet_berry_fox_treat => "Sweet Berry Fox Treat",
+            .zombie_head => "Zombie Head",
+            .skeleton_skull => "Skeleton Skull",
+            .creeper_head => "Creeper Head",
+            .piglin_head => "Piglin Head",
+            .splash_water_bottle => "Splash Water Bottle",
+            .splash_harming_potion => "Splash Potion of Harming",
+            .water_bottle => "Water Bottle",
+            .harming_potion => "Potion of Harming",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1878,6 +1894,14 @@ pub const ItemType = enum(u16) {
             .seagrass => .{ 0.18, 0.58, 0.38, 0.95 },
             .potion_of_turtle_master => .{ 0.25, 0.62, 0.48, 0.95 },
             .sweet_berry_fox_treat => .{ 0.82, 0.22, 0.28, 0.95 },
+            .zombie_head => .{ 0.28, 0.48, 0.24, 0.95 },
+            .skeleton_skull => .{ 0.82, 0.78, 0.67, 0.95 },
+            .creeper_head => .{ 0.20, 0.54, 0.25, 0.95 },
+            .piglin_head => .{ 0.65, 0.38, 0.28, 0.95 },
+            .splash_water_bottle => .{ 0.28, 0.62, 0.94, 0.85 },
+            .splash_harming_potion => .{ 0.58, 0.16, 0.30, 0.85 },
+            .water_bottle => .{ 0.28, 0.62, 0.94, 0.85 },
+            .harming_potion => .{ 0.58, 0.16, 0.30, 0.85 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -5934,6 +5958,26 @@ pub const Inventory = struct {
             }
             if (eggs == 1 and grass == 1 and potions == 1 and helmets == 1) {
                 self.craft_output = .{ .item = .sweet_berry_fox_treat, .count = 2 };
+                return;
+            }
+        }
+
+        // Wave 5: gunpowder turns a water bottle or harming potion into its splash form.
+        if (non_empty == 2) {
+            var has_gunpowder = false;
+            var has_water_bottle = false;
+            var has_harming = false;
+            for (self.craft_grid) |slot| {
+                has_gunpowder = has_gunpowder or slot.item == .gunpowder;
+                has_water_bottle = has_water_bottle or slot.item == .water_bottle;
+                has_harming = has_harming or slot.item == .harming_potion;
+            }
+            if (has_gunpowder and has_water_bottle) {
+                self.craft_output = .{ .item = .splash_water_bottle, .count = 1 };
+                return;
+            }
+            if (has_gunpowder and has_harming) {
+                self.craft_output = .{ .item = .splash_harming_potion, .count = 1 };
                 return;
             }
         }
@@ -10828,4 +10872,22 @@ test "Wave 4 representative item metadata and 2x2 recipes" {
     inv.updateCrafting();
     try std.testing.expectEqual(ItemType.sweet_berry_fox_treat, inv.craft_output.item);
     try std.testing.expectEqual(@as(u8, 2), inv.craft_output.count);
+}
+
+test "Wave 5 trophy and splash potion item metadata and recipes" {
+    try std.testing.expectEqual(@as(u16, 448), @intFromEnum(ItemType.zombie_head));
+    try std.testing.expectEqual(@as(u16, 453), @intFromEnum(ItemType.splash_harming_potion));
+    try std.testing.expectEqualStrings("Skeleton Skull", ItemType.skeleton_skull.name());
+    try std.testing.expectEqual(@as(u8, 64), ItemType.creeper_head.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 16), ItemType.splash_water_bottle.maxStackSize());
+    try std.testing.expect(ItemType.piglin_head.getColor()[0] > ItemType.piglin_head.getColor()[1]);
+
+    var inv = Inventory.init();
+    inv.craft_grid = .{ .{ .item = .water_bottle, .count = 1 }, .{ .item = .gunpowder, .count = 1 }, .{}, .{} };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.splash_water_bottle, inv.craft_output.item);
+
+    inv.craft_grid = .{ .{ .item = .harming_potion, .count = 1 }, .{ .item = .gunpowder, .count = 1 }, .{}, .{} };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.splash_harming_potion, inv.craft_output.item);
 }
