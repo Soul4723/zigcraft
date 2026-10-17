@@ -87,3 +87,7 @@ from spreading again during the same tick. Downward flow takes priority;
 lateral flow accepts air over either ground or a ledge. Occupied cells remain
 unchanged. This remains a source-copy model: finite levels and drainage require
 persisted fluid metadata and remain an unfinished roadmap milestone.
+
+### Wave 3 domain modules
+
+Milestones 305–314 are implemented as standalone stateful mechanics under `src/world/` (`happy_ghast.zig`, `warden_deep_dark.zig`, `strider_mount.zig`, `axolotl.zig`, `banner_heraldry.zig`, `anvil_smithing.zig`, `copper_golem.zig`, `ambient_foliage.zig`, `ender_stasis.zig`, and `minecart_logistics.zig`). `main.zig` owns one active domain state per system and advances the tick-capable systems in the main frame loop; pure interaction/crafting helpers remain in their domain modules and are exercised by standalone tests.

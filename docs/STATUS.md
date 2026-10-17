@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-17 (Session 372)
+Last updated: 2026-10-17 (Session 373)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 4005 passing unit tests across 159 test steps
@@ -26,7 +26,12 @@ Last updated: 2026-10-17 (Session 372)
 - 24-slot inventory, hotbar HUD, 2x2 crafting grid, chest storage containers, tool mining speed & durability system
 - HUD toast warning queue for system notifications (cap overflows, redstone burnout)
 
+## Wave 3 Integration
+- Milestones 305–314 are integrated on `main`: Happy Ghast, Warden Deep Dark, Strider, Axolotl, Banner Heraldry, Anvil/Smithing, Copper Golem, Ambient Foliage, Ender Stasis, and Minecart Logistics.
+- Representative Wave 3 blocks occupy BlockIds 251–255; corresponding ItemTypes 430–439 include block roundtrips, names/colors, stack properties, and 2x2 recipes.
+- Each new world module has a standalone build test target and is ticked or queried from the main game loop through its domain state hook.
+
 ## Active State
-- Main branch stable (Phase 8: Milestones 43-304)
-- All tests passing (4005/4005 tests across 159 build/test steps)
+- Main branch stable (Phase 8: Milestones 43-314)
+- All tests passing (4235/4235 tests across 179 build/test steps)
 - Remote and local branches pruned clean
