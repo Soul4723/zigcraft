@@ -431,3 +431,17 @@ Rough priority order. Completed milestones marked **[x]**.
 378. [x] **Nether Biomes & Basalt Generator** — Nether Wastes/Soul Sand Valley/Crimson & Warped Forests/Basalt Deltas biomes, huge fungi growth, nylium spread, blue ice basalt generation, and soul fire (`src/world/nether_biomes.zig`).
 379. [x] **Firework Pyrotechnics** — Firework stars, burst shapes, dye tinting, flight durations 1–3, kinetic/aoe blast damage, elytra boost safety, and crossbow loaded rocket mechanics (`src/world/firework_pyrotechnics.zig`).
 380. [x] **Cauldron Fluid Mechanics** — Empty/water/lava/powder snow states, 0–3 fluid levels, redstone comparator output 0–3, dripstone stalactite filling, rain/snow weather accumulation, and leather/banner washing (`src/world/cauldron_fluids.zig`).
+
+
+## Wave 11 Integration (Milestones 381–390)
+
+381. [x] **Bastion Remnants** — Four canonical structure variants (Bridge, Hoglin Stables, Housing Units, Treasure Room), Piglin Brute aggression/unbribability, and Gilded Blackstone fortune drops (`src/world/bastion_remnant.zig`).
+382. [x] **Ruined Portals** — Nether portal frame ruin generation, crying obsidian unignitability, netherrack fire base, and enchanted gold loot tables (`src/world/ruined_portal.zig`).
+383. [x] **Pillager Outpost** — Watchtower 72×54×72 spawn bounding box, Captain ominous bottle drops, and caged iron golem / allay mechanics (`src/world/pillager_outpost.zig`).
+384. [x] **Ocean Ruins & Sniffer Eggs** — Cold stone brick & warm sandstone ruins, suspicious sand/gravel archaeology brush excavation, sniffer egg hatching, and drowned trident guards (`src/world/ocean_ruins.zig`).
+385. [x] **Trail Ruins & Archaeology** — Buried terracotta settlements, suspicious gravel physics, four armor trims (Wayfinder, Raiser, Shaper, Host), and Music Disc Relic (`src/world/trail_ruins.zig`).
+386. [x] **Netherite Metallurgy & Ancient Debris** — Subterranean triangular Y-distribution, bed/TNT blast resistance mining, netherite ingot refining (4 scrap + 4 gold), and lava buoyancy (`src/world/netherite_metallurgy.zig`).
+387. [x] **Coral Reef Ecosystem** — Five coral species (tube, brain, bubble, fire, horn), four forms, desiccation bleaching timer, and silk touch harvest (`src/world/coral_reef.zig`).
+388. [x] **Ice Spikes Biome** — Rare Snowy Plains variant, packed ice spires, four ice slipperiness tiers (regular, packed, blue, frosted), and boat highway physics (`src/world/ice_spikes_biome.zig`).
+389. [x] **Swamp Marsh & Frog Ecology** — Lily pad placement/boat collision, slime-to-tadpole growth, frogspawn hatching, and swamp temperature/water tinting (`src/world/swamp_marsh.zig`).
+390. [x] **Book & Quill & Lectern Mechanics** — Writable book signing generations (original, copy of original, tattered), 100-page limit, and lectern redstone comparator output math (`src/world/book_quill_lectern.zig`).

@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-17 (Session 380)
+Last updated: 2026-10-17 (Session 381)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 5440 passing unit tests across 311 build/test steps
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 5615 passing unit tests across 331 build/test steps
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -67,7 +67,12 @@ Last updated: 2026-10-17 (Session 380)
 - All ten modules have standalone build/test targets and representative frame-loop hooks in `main.zig`; domain rules and transient state are queried or advanced each tick without altering block/entity ownership boundaries.
 - ItemTypes 482–489 cover Red Sandstone, Concrete Powder, Concrete, Buried Treasure Map, Heart of the Sea (relocated to 486 with 64-stack limit), Firework Star, Acacia Planks, and Dark Oak Planks. Metadata, colors, stack sizes, and seven 2x2 recipes are covered by unit tests; `BlockId` remains unchanged at 255.
 
+## Wave 11 Integration
+- Milestones 381–390 are integrated on `main`: Bastion Remnants, Ruined Portals, Pillager Outpost, Ocean Ruins & Sniffer Eggs, Trail Ruins & Archaeology, Netherite Metallurgy & Ancient Debris, Coral Reef Ecosystem, Ice Spikes Biome, Swamp Marsh & Frog Ecology, and Book & Quill & Lectern Mechanics.
+- All ten world modules have standalone test targets in `build.zig` and representative frame-loop hooks in `main.zig`, where domain mechanics and state queries are advanced each frame without perturbing entity/world boundaries.
+- ItemTypes 490–500 cover Music Disc Pigstep, Netherite Upgrade Template, Sniffer Egg, Suspicious Gravel, Coral Block, Dead Coral Block, Lily Pad, Frogspawn, Bucket of Tadpole, Book and Quill, and Written Book. Metadata, colors, stack limits (stack 1 for discs, tadpole buckets, and book & quill; stack 16 for written books; stack 64 for others), and six 2x2 recipes are covered by unit tests; `BlockId` remains unchanged at 255.
+
 ## Active State
-- Main branch stable (Phase 8: Milestones 43-380)
-- All tests passing (5440/5440 tests across 311 build/test steps)
+- Main branch stable (Phase 8: Milestones 43-390)
+- All tests passing (5615/5615 tests across 331 build/test steps)
 - Remote and local branches pruned clean

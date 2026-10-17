@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-17 (Session 380)
+Last updated: 2026-10-17 (Session 381)
 
 ## Project Structure
 
@@ -202,3 +202,24 @@ Buried Treasure Map, Heart of the Sea (64-stack), Firework Star, Acacia
 Planks, and Dark Oak Planks. Inventory metadata defines names, colors, stack
 limits, and seven 2x2 recipes (masonry, concrete hydration, star pyrotechnics,
 treasure maps, and wood plank varieties). `BlockId` remains unchanged at 255.
+
+
+### Wave 11 domain modules
+
+Milestones 381–390 add `bastion_remnant.zig`, `ruined_portal.zig`,
+`pillager_outpost.zig`, `ocean_ruins.zig`, `trail_ruins.zig`,
+`netherite_metallurgy.zig`, `coral_reef.zig`, `ice_spikes_biome.zig`,
+`swamp_marsh.zig`, and `book_quill_lectern.zig`. Each has a standalone test
+target in `build.zig`. `main.zig` imports all ten modules, advances
+representative state (such as lectern comparator signal and structure/biome
+geometry checks), and queries structure bounds, archaeology excavation,
+metallurgy, and fluid/slipperiness physics through the frame loop.
+
+Wave 11 adds ItemTypes 490–500 for Music Disc Pigstep, Netherite Upgrade
+Template, Sniffer Egg, Suspicious Gravel, Coral Block, Dead Coral Block,
+Lily Pad, Frogspawn, Bucket of Tadpole, Book and Quill, and Written Book.
+Inventory metadata defines names, colors, stack limits (stack 1 for discs,
+tadpole buckets, and book & quill; stack 16 for written books; stack 64 for
+others), and six 2x2 recipes (upgrade template duplication, book & quill,
+written book signing, lily pads, coral blocks, and bucket of tadpoles).
+`BlockId` remains unchanged at 255.
