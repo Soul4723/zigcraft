@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-17 (Session 382)
+Last updated: 2026-10-17 (Session 383)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 6055 passing unit tests across 351 build/test steps
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 6210 passing unit tests across 371 build/test steps
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -78,6 +78,12 @@ Last updated: 2026-10-17 (Session 382)
 - ItemTypes 501–510 cover Bone Block, Calcite, Smooth Basalt, Rooted Dirt, Hanging Roots, Big Dripleaf, Spore Blossom, Awkward Potion, Potion of Invisibility, and Clock. Metadata and six 2x2 recipes are covered; `BlockId` remains unchanged at 255.
 
 ## Active State
-- Main branch stable (Phase 8: Milestones 43-400)
-- All tests passing (6055/6055 tests across 351 build/test steps)
+- Main branch stable (Phase 8: Milestones 43-410)
+- All tests passing (6210/6210 tests across 371 build/test steps)
 - Remote and local branches pruned clean
+
+
+## Wave 13 Integration
+- Milestones 401–410 are integrated on `main`: Flower Forest & Plains, Mountain Peaks & Ores, Old-Growth Taiga, Birch Forest, Dispenser & Dropper Automation, Rail Network Switching, End Crystal Mechanics, Boat Watercraft, Lead & Leash Mechanics, and Bed Sleep Mechanics.
+- All ten Wave 13 world modules have standalone test targets in `build.zig`, imports and lightweight representative frame-loop hooks in `main.zig`.
+- ItemTypes 511–521 add flowers, terrain/wood materials, chest boat, bamboo raft, and bed with names, RGBA colors, stack limits, and six 2x2 recipes. `BlockId` remains unchanged at 255.

@@ -458,3 +458,17 @@ Rough priority order. Completed milestones marked **[x]**.
 398. [x] **Navigation Timepieces** — Lodestone/recovery compass binding and dimension-aware clock phases (`src/world/navigation_timepieces.zig`).
 399. [x] **Villager Professions** — Fourteen professions, XP trade tiers, profession locks, and twice-daily restocks (`src/world/villager_professions.zig`).
 400. [x] **Wandering Trader** — Spawn cadence, invisibility/milk behavior, despawn safeguards, llamas, and exotic trades (`src/world/wandering_trader.zig`).
+
+
+## Wave 13 Integration (Milestones 401–410)
+
+401. [x] **Flower Forest & Plains** — Sunflower orientation, tall-flower duplication, dye yields, and flower gradients (`src/world/flower_forest_plains.zig`).
+402. [x] **Mountain Peaks & Ores** — Calcite strips, emerald altitude distribution, snow lines, and high-altitude ore rules (`src/world/mountain_peaks_ores.zig`).
+403. [x] **Old-Growth Taiga** — Mega spruce/pine growth, podzol conversion, mossy boulders, and fern duplication (`src/world/old_growth_taiga.zig`).
+404. [x] **Birch Forest** — Tall birch trunks, canopy rules, fallen logs, and wood family behavior (`src/world/birch_forest.zig`).
+405. [x] **Dispenser & Dropper Automation** — Actuation matrix, container handling, bucket scooping, and TNT priming (`src/world/dispenser_dropper_automation.zig`).
+406. [x] **Rail Network Switching** — T-junction switching, powered rail propagation, slopes, and detector signals (`src/world/rail_network_switching.zig`).
+407. [x] **End Crystal Mechanics** — Crafting, placement, blast damage/shielding, and piston relocation (`src/world/end_crystal_mechanics.zig`).
+408. [x] **Boat Watercraft** — Chest boats, passenger seating, hitboxes, fall negation, and bubble-column motion (`src/world/boat_watercraft.zig`).
+409. [x] **Lead & Leash Mechanics** — Lead crafting, elastic tension, snapping, fence knots, and boat towing (`src/world/lead_leash_mechanics.zig`).
+410. [x] **Bed Sleep Mechanics** — Colored beds, sleep windows, monster checks, respawn explosions, and bounce behavior (`src/world/bed_sleep_mechanics.zig`).

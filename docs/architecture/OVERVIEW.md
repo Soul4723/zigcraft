@@ -238,3 +238,18 @@ world, alchemy, navigation, trading, and structure rules each frame.
 Wave 12 adds ItemTypes 501–510 for fossil/geode/lush-cave materials, potion
 variants, and clocks. Inventory metadata includes names, RGBA colors, stack
 limits, and six 2x2 recipes. `BlockId` remains unchanged at 255.
+
+
+### Wave 13 domain modules
+
+Milestones 401–410 add `flower_forest_plains.zig`, `mountain_peaks_ores.zig`,
+`old_growth_taiga.zig`, `birch_forest.zig`, `dispenser_dropper_automation.zig`,
+`rail_network_switching.zig`, `end_crystal_mechanics.zig`, `boat_watercraft.zig`,
+`lead_leash_mechanics.zig`, and `bed_sleep_mechanics.zig`. Each is independently
+tested and imported by `main.zig`, which queries representative deterministic
+rules each frame while existing world/entity systems retain mutation ownership.
+
+Wave 13 adds ItemTypes 511–521 for flowers, podzol/mossy cobblestone, birch and
+spruce planks, chest boat, bamboo raft, and bed. Metadata includes names, RGBA
+colors, and stack limits; six 2x2 recipes extend the crafting grid. `BlockId`
+remains capped at 255.

@@ -140,6 +140,16 @@ const scaffolding_bamboo_mod = @import("world/scaffolding_bamboo.zig");
 const navigation_timepieces_mod = @import("world/navigation_timepieces.zig");
 const villager_professions_mod = @import("world/villager_professions.zig");
 const wandering_trader_mod = @import("world/wandering_trader.zig");
+const flower_forest_plains_mod = @import("world/flower_forest_plains.zig");
+const mountain_peaks_ores_mod = @import("world/mountain_peaks_ores.zig");
+const old_growth_taiga_mod = @import("world/old_growth_taiga.zig");
+const birch_forest_mod = @import("world/birch_forest.zig");
+const dispenser_dropper_automation_mod = @import("world/dispenser_dropper_automation.zig");
+const rail_network_switching_mod = @import("world/rail_network_switching.zig");
+const end_crystal_mechanics_mod = @import("world/end_crystal_mechanics.zig");
+const boat_watercraft_mod = @import("world/boat_watercraft.zig");
+const lead_leash_mechanics_mod = @import("world/lead_leash_mechanics.zig");
+const bed_sleep_mechanics_mod = @import("world/bed_sleep_mechanics.zig");
 
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
@@ -900,6 +910,22 @@ pub fn main() !void {
         _ = villager_professions_mod.canRerollTrades(0);
         _ = wandering_trader_mod.calculateSpawnChance(1);
         _ = wandering_trader_mod.shouldDrinkInvisibilityPotion(true, false);
+        // Wave 13 representative frame-loop hooks keep domain mechanics queryable while
+        // world/entity ownership remains in the existing systems.
+        _ = flower_forest_plains_mod.flowerForNoiseValue(0.5);
+        _ = flower_forest_plains_mod.flowerGradientNoise(0, 0);
+        _ = mountain_peaks_ores_mod.MountainEmeraldDistribution.emeraldOreWeightForAltitude(true, 128);
+        _ = mountain_peaks_ores_mod.AltitudeSnowAndFreezeLine.isAboveSnowLine(0.5, 160);
+        _ = old_growth_taiga_mod.canGrowMega2x2Spruce([4]bool{ true, true, true, true }, 20);
+        _ = old_growth_taiga_mod.shouldConvertSoilToPodzol(2.0, true);
+        var birch_buffer: [8]birch_forest_mod.BirchTrunkBlock = undefined;
+        _ = birch_forest_mod.generateBirchTrunk(8, &birch_buffer);
+        _ = dispenser_dropper_automation_mod.dispenser_activation_delay_ticks;
+        _ = rail_network_switching_mod.poweredRailSignalRange(0);
+        _ = end_crystal_mechanics_mod.craftEndCrystal(7, 1, 1);
+        _ = boat_watercraft_mod.craftChestBoat(1, 1);
+        _ = lead_leash_mechanics_mod.computeLeashPullForce(7.0);
+        _ = bed_sleep_mechanics_mod.canSleepAtTime(13000, false, false);
         _ = enchanting_grindstone_mod.computeEnchantSlotOffers(0);
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);
