@@ -433,6 +433,16 @@ pub const ItemType = enum(u16) {
     music_disc_relic = 427,
     music_disc_precipice = 428,
     music_disc_creator = 429,
+    dried_ghast = 430,
+    ghast_harness = 431,
+    sculk_catalyst = 432,
+    sculk_shrieker = 433,
+    bucket_of_axolotl = 434,
+    banner = 435,
+    banner_pattern_stencil = 436,
+    copper_golem_statue = 437,
+    firefly_bush = 438,
+    leaf_litter = 439,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -662,6 +672,11 @@ pub const ItemType = enum(u16) {
             .copper_door => .copper_door_closed,
             .copper_trapdoor => .copper_trapdoor_closed,
             .ominous_vault => .ominous_vault,
+            .dried_ghast => .dried_ghast,
+            .sculk_catalyst => .sculk_catalyst,
+            .sculk_shrieker => .sculk_shrieker,
+            .firefly_bush => .firefly_bush,
+            .leaf_litter => .leaf_litter,
             else => null,
         };
     }
@@ -899,6 +914,11 @@ pub const ItemType = enum(u16) {
             .copper_trapdoor_closed, .copper_trapdoor_open => .copper_trapdoor,
             .ominous_vault => .ominous_vault,
             .piston_head => .piston,
+            .dried_ghast => .dried_ghast,
+            .sculk_catalyst => .sculk_catalyst,
+            .sculk_shrieker => .sculk_shrieker,
+            .firefly_bush => .firefly_bush,
+            .leaf_litter => .leaf_litter,
         };
     }
 
@@ -1009,7 +1029,7 @@ pub const ItemType = enum(u16) {
         return switch (self) {
             .none => 0,
             .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged => 16,
-            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn, .wolf_armor, .bundle, .music_disc_5, .music_disc_relic, .music_disc_precipice, .music_disc_creator => 1,
+            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn, .wolf_armor, .bundle, .ghast_harness, .bucket_of_axolotl, .banner, .banner_pattern_stencil, .copper_golem_statue, .music_disc_5, .music_disc_relic, .music_disc_precipice, .music_disc_creator => 1,
             else => 64,
         };
     }
@@ -1442,6 +1462,16 @@ pub const ItemType = enum(u16) {
             .music_disc_relic => "Music Disc (Relic)",
             .music_disc_precipice => "Music Disc (Precipice)",
             .music_disc_creator => "Music Disc (Creator)",
+            .dried_ghast => "Dried Ghast",
+            .ghast_harness => "Ghast Harness",
+            .sculk_catalyst => "Sculk Catalyst",
+            .sculk_shrieker => "Sculk Shrieker",
+            .bucket_of_axolotl => "Bucket of Axolotl",
+            .banner => "Banner",
+            .banner_pattern_stencil => "Banner Pattern Stencil",
+            .copper_golem_statue => "Copper Golem Statue",
+            .firefly_bush => "Firefly Bush",
+            .leaf_litter => "Leaf Litter",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1813,6 +1843,16 @@ pub const ItemType = enum(u16) {
             .music_disc_relic => .{ 0.35, 0.55, 0.70, 0.95 },
             .music_disc_precipice => .{ 0.20, 0.75, 0.80, 0.95 },
             .music_disc_creator => .{ 0.85, 0.60, 0.25, 0.95 },
+            .dried_ghast => .{ 0.76, 0.72, 0.68, 0.95 },
+            .ghast_harness => .{ 0.92, 0.86, 0.72, 0.95 },
+            .sculk_catalyst => .{ 0.12, 0.28, 0.34, 0.95 },
+            .sculk_shrieker => .{ 0.08, 0.20, 0.25, 0.95 },
+            .bucket_of_axolotl => .{ 0.95, 0.48, 0.62, 0.95 },
+            .banner => .{ 0.88, 0.82, 0.70, 0.95 },
+            .banner_pattern_stencil => .{ 0.82, 0.78, 0.68, 0.95 },
+            .copper_golem_statue => .{ 0.78, 0.48, 0.30, 0.95 },
+            .firefly_bush => .{ 0.35, 0.72, 0.35, 0.95 },
+            .leaf_litter => .{ 0.72, 0.42, 0.20, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -2932,6 +2972,56 @@ pub const Inventory = struct {
                 self.craft_output = .{ .item = .copper_trapdoor, .count = 2 };
                 return;
             }
+        }
+
+        // Wave 3 utility recipes: dried ghast, ghast harness, copper golem statue, and banner.
+        if (non_empty == 2 and ((g0 == .bone and g1 == .bone) or (g2 == .bone and g3 == .bone))) {
+            self.craft_output = .{ .item = .dried_ghast, .count = 1 };
+            return;
+        }
+        if (non_empty == 4) {
+            var leather_count: u8 = 0;
+            var glass_count: u8 = 0;
+            var wool_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .leather) leather_count += 1;
+                if (sl.item == .glass) glass_count += 1;
+                if (sl.item == .wool) wool_count += 1;
+            }
+            if (leather_count == 2 and glass_count == 1 and wool_count == 1) {
+                self.craft_output = .{ .item = .ghast_harness, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 2) {
+            var copper_count: u8 = 0;
+            var pumpkin_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .copper_ingot) copper_count += 1;
+                if (sl.item == .carved_pumpkin) pumpkin_count += 1;
+            }
+            if (copper_count == 1 and pumpkin_count == 1) {
+                self.craft_output = .{ .item = .copper_golem_statue, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 4) {
+            var wool_count: u8 = 0;
+            var stick_count: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .wool) wool_count += 1;
+                if (sl.item == .stick) stick_count += 1;
+            }
+            if (wool_count == 3 and stick_count == 1) {
+                self.craft_output = .{ .item = .banner, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| if (sl.item == .sculk and sl.count >= 1) {
+                self.craft_output = .{ .item = .sculk_catalyst, .count = 1 };
+                return;
+            };
         }
 
         // Recipe 304: Music Disc 5: 4 (or 2) Disc Fragments (5) -> 1 Music Disc 5
@@ -10609,5 +10699,35 @@ test "Milestones 299-304 items, block roundtrips, and recipes 297-304" {
     for (&inv.craft_grid) |*sl| sl.* = .{ .item = .disc_fragment_5, .count = 1 };
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .music_disc_5);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+}
+
+
+test "Wave 3 representative items roundtrip, properties and recipes" {
+    try std.testing.expectEqual(ItemType.fromBlockId(.dried_ghast), .dried_ghast);
+    try std.testing.expectEqual(ItemType.dried_ghast.toBlockId().?, .dried_ghast);
+    try std.testing.expectEqual(ItemType.fromBlockId(.sculk_catalyst), .sculk_catalyst);
+    try std.testing.expectEqual(ItemType.fromBlockId(.sculk_shrieker), .sculk_shrieker);
+    try std.testing.expectEqual(ItemType.fromBlockId(.firefly_bush), .firefly_bush);
+    try std.testing.expectEqual(ItemType.fromBlockId(.leaf_litter), .leaf_litter);
+    try std.testing.expectEqualStrings(ItemType.ghast_harness.name(), "Ghast Harness");
+    try std.testing.expectEqualStrings(ItemType.bucket_of_axolotl.name(), "Bucket of Axolotl");
+    try std.testing.expectEqualStrings(ItemType.banner_pattern_stencil.name(), "Banner Pattern Stencil");
+    try std.testing.expectEqualStrings(ItemType.copper_golem_statue.name(), "Copper Golem Statue");
+    try std.testing.expectEqual(ItemType.banner.maxStackSize(), 1);
+    try std.testing.expect(ItemType.firefly_bush.getColor()[1] > ItemType.firefly_bush.getColor()[0]);
+
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .bone, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .bone, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .dried_ghast);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    inv.craft_grid = .{ .{ .item = .wool, .count = 1 }, .{ .item = .wool, .count = 1 }, .{ .item = .wool, .count = 1 }, .{ .item = .stick, .count = 1 } };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .banner);
     try std.testing.expectEqual(inv.craft_output.count, 1);
 }

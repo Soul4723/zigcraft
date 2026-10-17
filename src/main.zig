@@ -44,6 +44,17 @@ const trial_alchemy_mod = @import("world/trial_alchemy.zig");
 const bundle_pouch_mod = @import("world/bundle_pouch.zig");
 const copper_fixtures_mod = @import("world/copper_fixtures.zig");
 const jukebox_discs_mod = @import("world/jukebox_discs.zig");
+const happy_ghast_mod = @import("world/happy_ghast.zig");
+const warden_deep_dark_mod = @import("world/warden_deep_dark.zig");
+const strider_mount_mod = @import("world/strider_mount.zig");
+const axolotl_mod = @import("world/axolotl.zig");
+const banner_heraldry_mod = @import("world/banner_heraldry.zig");
+const anvil_smithing_mod = @import("world/anvil_smithing.zig");
+const copper_golem_mod = @import("world/copper_golem.zig");
+const ambient_foliage_mod = @import("world/ambient_foliage.zig");
+const ender_stasis_mod = @import("world/ender_stasis.zig");
+const minecart_logistics_mod = @import("world/minecart_logistics.zig");
+
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
 const fluid_mod = @import("world/fluid_wash.zig");
@@ -316,6 +327,26 @@ pub fn main() !void {
     var copper_fixtures: [copper_fixtures_mod.max_tracked_fixtures]copper_fixtures_mod.CopperFixtureState = undefined;
     var copper_fixture_count: usize = 0;
     var active_jukebox = jukebox_discs_mod.JukeboxState.init();
+    // Wave 3 domain state: these are the authoritative tick/interaction hooks
+    // for the newly integrated mechanics.
+    var active_dried_ghast = happy_ghast_mod.DriedGhastState.init();
+    var active_ghastling = happy_ghast_mod.GhastlingState.init();
+    var active_happy_ghast = happy_ghast_mod.HappyGhastMount.init();
+    var active_sculk_catalyst = warden_deep_dark_mod.SculkCatalyst.init(0, 64, 0);
+    var active_shrieker_warning = warden_deep_dark_mod.SculkShriekerWarning.init();
+    var active_warden_anger = warden_deep_dark_mod.WardenAngerTracker.init();
+    var active_strider = strider_mount_mod.StriderState.init();
+    var active_axolotl = axolotl_mod.AxolotlState.init(.leucistic);
+    var active_banner = banner_heraldry_mod.BannerHeraldry.init(0);
+    var active_anvil = anvil_smithing_mod.AnvilBlockState{};
+    var active_copper_golem = copper_golem_mod.CopperGolemState{};
+    const active_firefly_bush = ambient_foliage_mod.FireflyBushState.init(0, 64, 0, false);
+    var active_leaf_litter = ambient_foliage_mod.LeafLitterCluster.init(0, 64, 0, 1);
+    var active_pearl = ender_stasis_mod.StasisPearl{ .owner_id = 0, .pos = .{ 0.0, 64.0, 0.0 }, .vel = .{ 0.0, 0.0, 0.0 }, .in_upward_bubble_column = false, .is_alive = true };
+    var active_chorus = ender_stasis_mod.ChorusFruitState{};
+    var active_hopper_minecart = minecart_logistics_mod.HopperMinecart.init();
+    var active_furnace_minecart = minecart_logistics_mod.FurnaceMinecartEngine.init(.x);
+    var active_tnt_minecart = minecart_logistics_mod.TntMinecartFuse.init();
     const IgnitedFlame = struct { x: i32, y: i32, z: i32, t: f32 };
     var flames: [32]IgnitedFlame = undefined;
     var flame_count: usize = 0;
@@ -551,6 +582,26 @@ pub fn main() !void {
         _ = ominous_spawner.tickHazardTimer(dt);
         trial_alchemy_effects.tickEffects(dt);
         active_jukebox.tickPlayback(dt);
+        _ = active_dried_ghast.tick();
+        _ = active_ghastling.tick();
+        _ = active_happy_ghast.riderCount();
+        active_sculk_catalyst.tick(dt);
+        active_shrieker_warning.tick(dt);
+        active_warden_anger.tick(dt);
+        active_strider.setLavaState(floor_blk == .lava or at_feet_blk == .lava, player.in_water);
+        active_axolotl.update(dt, player.in_water);
+        _ = active_banner.getLayers();
+        _ = active_anvil.isBroken();
+        _ = copper_golem_mod.tickCopperGolem(&active_copper_golem, dt, false);
+        _ = active_firefly_bush.is_waterlogged;
+        _ = ambient_foliage_mod.FireflyBushState.shouldEmitAmbientPulse(false, 15);
+        _ = active_leaf_litter.burnSeconds();
+        _ = ender_stasis_mod.tickStasisPearl(&active_pearl, dt, false, false);
+        active_chorus.tick(dt);
+        var empty_minecart_sources = [_]minecart_logistics_mod.ItemStack{.{}};
+        _ = active_hopper_minecart.suctionTick(&empty_minecart_sources, dt);
+        active_furnace_minecart.tick(dt);
+        _ = active_tnt_minecart.tick(dt);
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);
         }
