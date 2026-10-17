@@ -38,6 +38,12 @@ const hanging_sign_mod = @import("world/hanging_sign.zig");
 const camel_mod = @import("world/camel.zig");
 const decorated_pot_mod = @import("world/decorated_pot.zig");
 const pale_garden_mod = @import("world/pale_garden.zig");
+const armadillo_wolf_armor_mod = @import("world/armadillo_wolf_armor.zig");
+const ominous_trial_mod = @import("world/ominous_trial.zig");
+const trial_alchemy_mod = @import("world/trial_alchemy.zig");
+const bundle_pouch_mod = @import("world/bundle_pouch.zig");
+const copper_fixtures_mod = @import("world/copper_fixtures.zig");
+const jukebox_discs_mod = @import("world/jukebox_discs.zig");
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
 const fluid_mod = @import("world/fluid_wash.zig");
@@ -301,6 +307,15 @@ pub fn main() !void {
     var active_hanging_sign = hanging_sign_mod.HangingSignText.init();
     var creaking_heart = pale_garden_mod.CreakingHeartState.init(.{ 0, 64, 0 }, true);
     var active_petals_cluster = cherry_grove_mod.PinkPetalsCluster.init(0, 64, 0, 1, .north);
+    var active_armadillo = armadillo_wolf_armor_mod.Armadillo.init();
+    var active_wolf_armor = armadillo_wolf_armor_mod.WolfArmor.init();
+    var ominous_spawner = ominous_trial_mod.OminousTrialSpawner.init(0.0, 64.0, 0.0, false);
+    var ominous_vault_state = ominous_trial_mod.OminousVault.init(0, 64, 0);
+    var trial_alchemy_effects = trial_alchemy_mod.TrialPotionEffects.init();
+    var player_bundle = bundle_pouch_mod.BundlePouch{};
+    var copper_fixtures: [copper_fixtures_mod.max_tracked_fixtures]copper_fixtures_mod.CopperFixtureState = undefined;
+    var copper_fixture_count: usize = 0;
+    var active_jukebox = jukebox_discs_mod.JukeboxState.init();
     const IgnitedFlame = struct { x: i32, y: i32, z: i32, t: f32 };
     var flames: [32]IgnitedFlame = undefined;
     var flame_count: usize = 0;
@@ -532,6 +547,13 @@ pub fn main() !void {
         active_decorated_pot.updateAnimation(dt);
         active_decorated_pot.tick();
         creaking_heart.tick(1);
+        active_armadillo.tick(dt, false);
+        _ = ominous_spawner.tickHazardTimer(dt);
+        trial_alchemy_effects.tickEffects(dt);
+        active_jukebox.tickPlayback(dt);
+        for (copper_fixtures[0..copper_fixture_count]) |*cf| {
+            _ = cf.tickOxidation(dt);
+        }
         beacon_supercharge_timer = @max(0.0, beacon_supercharge_timer - dt);
         if (beacon_supercharge_timer > 0.0) {
             player.health = beacon_aura_mod.tickBeaconRegen(player.health, 20.0, 1, dt);
@@ -4678,6 +4700,45 @@ pub fn main() !void {
                         std.debug.print("lit redstone ore ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .copper_door_closed or target == .copper_door_open) {
+                    const toggled: block_mod.BlockId = if (target == .copper_door_closed) .copper_door_open else .copper_door_closed;
+                    if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, toggled)) {
+                        if (copper_fixture_count < copper_fixtures.len) {
+                            copper_fixtures[copper_fixture_count] = copper_fixtures_mod.CopperFixtureState.initAt(.copper_door, .unoxidized, hit_f.x, hit_f.y, hit_f.z);
+                            copper_fixture_count += 1;
+                        }
+                        audio.play(.click_on, 0.9);
+                        std.debug.print("toggled copper door to {s} ({d},{d},{d})\n", .{ @tagName(toggled), hit_f.x, hit_f.y, hit_f.z });
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .copper_trapdoor_closed or target == .copper_trapdoor_open) {
+                    const toggled: block_mod.BlockId = if (target == .copper_trapdoor_closed) .copper_trapdoor_open else .copper_trapdoor_closed;
+                    if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, toggled)) {
+                        if (copper_fixture_count < copper_fixtures.len) {
+                            copper_fixtures[copper_fixture_count] = copper_fixtures_mod.CopperFixtureState.initAt(.copper_trapdoor, .unoxidized, hit_f.x, hit_f.y, hit_f.z);
+                            copper_fixture_count += 1;
+                        }
+                        audio.play(.click_on, 0.9);
+                        std.debug.print("toggled copper trapdoor to {s} ({d},{d},{d})\n", .{ @tagName(toggled), hit_f.x, hit_f.y, hit_f.z });
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .ominous_vault) {
+                    const held_slot = &inventory.slots[selected_slot];
+                    if (held_slot.item == .ominous_trial_key) {
+                        held_slot.decrement(1);
+                        const oroll: u8 = @intCast(@abs(hit_f.x *% 17 +% hit_f.z *% 31) & 0xFF);
+                        const oloot = ominous_vault_state.tryUnlock(ominous_trial_mod.OminousTrialKeyTag, oroll) catch ominous_trial_mod.ominousVaultLootForRoll(oroll);
+                        const oloot_item: inventory_mod.ItemType = @enumFromInt(oloot.output_tag);
+                        _ = inventory.addItem(oloot_item, oloot.output_count);
+                        audio.play(.glowstone_chime, 1.0);
+                        audio.play(.end_portal_open, 0.85);
+                        particles.spawnFireworkBurst(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 24);
+                        std.debug.print("unlocked Ominous Vault with Ominous Trial Key: dispensed {d}x {s}!\n", .{ oloot.output_count, oloot_item.name() });
+                    } else {
+                        audio.play(.click_off, 0.7);
+                        std.debug.print("Ominous Vault locked: requires an Ominous Trial Key\n", .{});
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (interact_mod.toggleWoodenDoor(target)) |toggled| {
                     if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, toggled)) {
                         audio.play(.place_block, 0.9);
@@ -5482,14 +5543,14 @@ pub fn main() !void {
                         } else {
                             // Check if player holds a music disc
                             const held_slot = &inventory.slots[selected_slot];
-                            if (held_slot.item == .music_disc_13 or held_slot.item == .music_disc_cat) {
+                            if (held_slot.item == .music_disc_13 or held_slot.item == .music_disc_cat or held_slot.item == .music_disc_5 or held_slot.item == .music_disc_relic or held_slot.item == .music_disc_precipice or held_slot.item == .music_disc_creator) {
                                 const disc = held_slot.item;
                                 held_slot.count -= 1;
                                 if (held_slot.count == 0) held_slot.clear();
 
                                 jb.playing_disc = disc;
                                 jb.play_timer = 3.0;
-                                const track_sound: audio_mod.synth.SoundType = if (disc == .music_disc_13) .record_13 else .record_cat;
+                                const track_sound: audio_mod.synth.SoundType = if (disc == .music_disc_13) .record_13 else if (disc == .music_disc_cat) .record_cat else .glowstone_chime;
                                 audio.playAt(track_sound, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 48.0);
                                 particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 8);
                                 std.debug.print("jukebox now playing {s} at ({d},{d},{d})\n", .{ disc.name(), hit_f.x, hit_f.y, hit_f.z });
@@ -6112,6 +6173,61 @@ pub fn main() !void {
                 audio.play(.burn_sizzle, 0.7);
                 particles.spawnPortalVortex(target_pos, 2.0, 16, 0.0);
                 std.debug.print("deployed Lingering Weakness Potion cloud!\n", .{});
+            } else if (held_eat.item == .bundle) {
+                if (player_bundle.total_weight > 0) {
+                    if (player_bundle.extract()) |ext| {
+                        const out_item: inventory_mod.ItemType = @enumFromInt(ext.item_id);
+                        _ = inventory.addItem(out_item, ext.count);
+                        audio.play(.click_off, 0.85);
+                        std.debug.print("extracted {d}x {s} from Bundle (occupancy={d}/64)\n", .{ ext.count, out_item.name(), player_bundle.total_weight });
+                    }
+                } else {
+                    audio.play(.click_on, 0.7);
+                    std.debug.print("Bundle is empty (0/64 weight)\n", .{});
+                }
+            } else if (held_eat.item == .ominous_bottle) {
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.9);
+                audio.play(.glowstone_chime, 1.0);
+                particles.spawnGlowstoneShimmer(.{ player.pos.x, player.pos.y + 1.2, player.pos.z }, 16);
+                _ = ominous_spawner.upgradeToOminous();
+                std.debug.print("drank Ominous Bottle: Bad Omen active!\n", .{});
+            } else if (held_eat.item == .potion_of_infested) {
+                trial_alchemy_effects.apply(.infested);
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.splash, 0.9);
+                particles.spawnGlowstoneShimmer(.{ player.pos.x, player.pos.y + 1.0, player.pos.z }, 10);
+                std.debug.print("drank Potion of Infested (180s: silverfish burst on hurt)!\n", .{});
+            } else if (held_eat.item == .potion_of_oozing) {
+                trial_alchemy_effects.apply(.oozing);
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.splash, 0.9);
+                particles.spawnGlowstoneShimmer(.{ player.pos.x, player.pos.y + 1.0, player.pos.z }, 10);
+                std.debug.print("drank Potion of Oozing (180s: 2 slimes on death)!\n", .{});
+            } else if (held_eat.item == .potion_of_weaving) {
+                trial_alchemy_effects.apply(.weaving);
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.splash, 0.9);
+                particles.spawnGlowstoneShimmer(.{ player.pos.x, player.pos.y + 1.0, player.pos.z }, 10);
+                std.debug.print("drank Potion of Weaving (180s: cobweb agility & death web proc)!\n", .{});
+            } else if (held_eat.item == .potion_of_wind_charged) {
+                trial_alchemy_effects.apply(.wind_charged);
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.splash, 0.9);
+                particles.spawnFireworkBurst(.{ player.pos.x, player.pos.y + 1.0, player.pos.z }, 10);
+                std.debug.print("drank Potion of Wind Charged (180s: wind burst impulse on death)!\n", .{});
+            } else if (held_eat.item == .brush) {
+                const bres = armadillo_wolf_armor_mod.brushArmadillo(64);
+                if (bres.scutes_dropped > 0) {
+                    _ = inventory.addItem(.armadillo_scute, bres.scutes_dropped);
+                    audio.play(.anvil_clang, 0.6);
+                    particles.spawnGlowstoneShimmer(.{ player.pos.x, player.pos.y + 0.5, player.pos.z }, 8);
+                    std.debug.print("brushed Armadillo: dropped {d}x Armadillo Scute!\n", .{bres.scutes_dropped});
+                }
+            } else if (held_eat.item == .wolf_armor) {
+                _ = armadillo_wolf_armor_mod.repairWolfArmor(&active_wolf_armor);
+                audio.play(.anvil_clang, 0.7);
+                std.debug.print("inspected Wolf Armor (durability={d}/{d}, crack_stage={s})\n", .{ active_wolf_armor.durability, armadillo_wolf_armor_mod.wolf_armor_max_durability, @tagName(active_wolf_armor.currentCrackStage()) });
             } else if (held_eat.item == .golden_apple) {
                 player.eatGolden();
                 inventory.slots[selected_slot].decrement(1);

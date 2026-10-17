@@ -416,6 +416,23 @@ pub const ItemType = enum(u16) {
     resin_bricks = 410,
     resin_clump = 411,
     resin_brick = 412,
+    armadillo_scute = 413,
+    wolf_armor = 414,
+    ominous_bottle = 415,
+    ominous_trial_key = 416,
+    ominous_vault = 417,
+    potion_of_infested = 418,
+    potion_of_oozing = 419,
+    potion_of_weaving = 420,
+    potion_of_wind_charged = 421,
+    bundle = 422,
+    copper_door = 423,
+    copper_trapdoor = 424,
+    disc_fragment_5 = 425,
+    music_disc_5 = 426,
+    music_disc_relic = 427,
+    music_disc_precipice = 428,
+    music_disc_creator = 429,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -642,6 +659,9 @@ pub const ItemType = enum(u16) {
             .pale_oak_log => .pale_oak_log,
             .open_eyeblossom => .open_eyeblossom,
             .resin_bricks => .resin_bricks,
+            .copper_door => .copper_door_closed,
+            .copper_trapdoor => .copper_trapdoor_closed,
+            .ominous_vault => .ominous_vault,
             else => null,
         };
     }
@@ -875,6 +895,9 @@ pub const ItemType = enum(u16) {
             .pale_oak_log => .pale_oak_log,
             .open_eyeblossom => .open_eyeblossom,
             .resin_bricks => .resin_bricks,
+            .copper_door_closed, .copper_door_open => .copper_door,
+            .copper_trapdoor_closed, .copper_trapdoor_open => .copper_trapdoor,
+            .ominous_vault => .ominous_vault,
             .piston_head => .piston,
         };
     }
@@ -956,6 +979,7 @@ pub const ItemType = enum(u16) {
             .shield => 336,
             .crossbow => 465,
             .fishing_rod => 64,
+            .wolf_armor => 64,
             else => 0,
         };
     }
@@ -984,8 +1008,8 @@ pub const ItemType = enum(u16) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion => 16,
-            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn => 1,
+            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged => 16,
+            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn, .wolf_armor, .bundle, .music_disc_5, .music_disc_relic, .music_disc_precipice, .music_disc_creator => 1,
             else => 64,
         };
     }
@@ -1401,6 +1425,23 @@ pub const ItemType = enum(u16) {
             .resin_bricks => "Resin Bricks",
             .resin_clump => "Resin Clump",
             .resin_brick => "Resin Brick",
+            .armadillo_scute => "Armadillo Scute",
+            .wolf_armor => "Wolf Armor",
+            .ominous_bottle => "Ominous Bottle",
+            .ominous_trial_key => "Ominous Trial Key",
+            .ominous_vault => "Ominous Vault",
+            .potion_of_infested => "Potion of Infested",
+            .potion_of_oozing => "Potion of Oozing",
+            .potion_of_weaving => "Potion of Weaving",
+            .potion_of_wind_charged => "Potion of Wind Charged",
+            .bundle => "Bundle",
+            .copper_door => "Copper Door",
+            .copper_trapdoor => "Copper Trapdoor",
+            .disc_fragment_5 => "Disc Fragment (5)",
+            .music_disc_5 => "Music Disc (5)",
+            .music_disc_relic => "Music Disc (Relic)",
+            .music_disc_precipice => "Music Disc (Precipice)",
+            .music_disc_creator => "Music Disc (Creator)",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1755,6 +1796,23 @@ pub const ItemType = enum(u16) {
             .resin_bricks => .{ 0.86, 0.42, 0.20, 0.95 },
             .resin_clump => .{ 0.92, 0.48, 0.16, 0.95 },
             .resin_brick => .{ 0.82, 0.38, 0.18, 0.95 },
+            .armadillo_scute => .{ 0.72, 0.50, 0.40, 0.95 },
+            .wolf_armor => .{ 0.68, 0.46, 0.36, 0.95 },
+            .ominous_bottle => .{ 0.20, 0.70, 0.85, 0.95 },
+            .ominous_trial_key => .{ 0.25, 0.80, 0.90, 0.95 },
+            .ominous_vault => .{ 0.30, 0.75, 0.85, 0.95 },
+            .potion_of_infested => .{ 0.55, 0.60, 0.55, 0.90 },
+            .potion_of_oozing => .{ 0.40, 0.80, 0.30, 0.90 },
+            .potion_of_weaving => .{ 0.80, 0.80, 0.75, 0.90 },
+            .potion_of_wind_charged => .{ 0.75, 0.90, 0.95, 0.90 },
+            .bundle => .{ 0.65, 0.42, 0.28, 0.95 },
+            .copper_door => .{ 0.85, 0.52, 0.32, 0.95 },
+            .copper_trapdoor => .{ 0.85, 0.52, 0.32, 0.95 },
+            .disc_fragment_5 => .{ 0.25, 0.60, 0.65, 0.95 },
+            .music_disc_5 => .{ 0.20, 0.55, 0.60, 0.95 },
+            .music_disc_relic => .{ 0.35, 0.55, 0.70, 0.95 },
+            .music_disc_precipice => .{ 0.20, 0.75, 0.80, 0.95 },
+            .music_disc_creator => .{ 0.85, 0.60, 0.25, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -2747,6 +2805,153 @@ pub const Inventory = struct {
             }
             if (pol_c == 2 and rsbk_c == 1) {
                 self.craft_output = .{ .item = .creaking_heart, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 297: Wolf Armor: 4 (or 2) Armadillo Scutes -> 1 Wolf Armor
+        if (non_empty == 4) {
+            var sct_c: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .armadillo_scute) sct_c += 1;
+            }
+            if (sct_c == 4) {
+                self.craft_output = .{ .item = .wolf_armor, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 2) {
+            var sct_c: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .armadillo_scute) sct_c += 1;
+            }
+            if (sct_c == 2) {
+                self.craft_output = .{ .item = .wolf_armor, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 298: Ominous Trial Key: 1 Trial Key + 1 Ominous Bottle -> 1 Ominous Trial Key
+        if (non_empty == 2) {
+            var tk_c: u8 = 0;
+            var ob_c: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .trial_key) tk_c += 1;
+                if (sl.item == .ominous_bottle) ob_c += 1;
+            }
+            if (tk_c == 1 and ob_c == 1) {
+                self.craft_output = .{ .item = .ominous_trial_key, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 299: Ominous Vault: 1 Vault + 1 Ominous Bottle -> 1 Ominous Vault
+        if (non_empty == 2) {
+            var vt_c: u8 = 0;
+            var ob_c: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .vault) vt_c += 1;
+                if (sl.item == .ominous_bottle) ob_c += 1;
+            }
+            if (vt_c == 1 and ob_c == 1) {
+                self.craft_output = .{ .item = .ominous_vault, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 300: Trial Alchemy: Reagent + Glass/Nether Wart -> Potion
+        if (non_empty == 2) {
+            var vsl_c: u8 = 0;
+            var reagent: ?ItemType = null;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .glass or sl.item == .nether_wart) vsl_c += 1
+                else if (reagent == null) reagent = sl.item;
+            }
+            if (vsl_c == 1 and reagent != null) {
+                switch (reagent.?) {
+                    .wind_charge, .breeze_rod => {
+                        self.craft_output = .{ .item = .potion_of_wind_charged, .count = 1 };
+                        return;
+                    },
+                    .slimeball, .slime_block => {
+                        self.craft_output = .{ .item = .potion_of_oozing, .count = 1 };
+                        return;
+                    },
+                    .cobweb, .string => {
+                        self.craft_output = .{ .item = .potion_of_weaving, .count = 1 };
+                        return;
+                    },
+                    .stone, .cobblestone, .iron_ingot => {
+                        self.craft_output = .{ .item = .potion_of_infested, .count = 1 };
+                        return;
+                    },
+                    else => {},
+                }
+            }
+        }
+
+        // Recipe 301: Bundle: 1 String + 1 Leather -> 1 Bundle
+        if (non_empty == 2) {
+            var str_c: u8 = 0;
+            var lth_c: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .string) str_c += 1;
+                if (sl.item == .leather) lth_c += 1;
+            }
+            if (str_c == 1 and lth_c == 1) {
+                self.craft_output = .{ .item = .bundle, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 302: Copper Door: 3 Copper Ingots -> 1 Copper Door
+        if (non_empty == 3) {
+            var cpi_c: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .copper_ingot) cpi_c += 1;
+            }
+            if (cpi_c == 3) {
+                self.craft_output = .{ .item = .copper_door, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 303: Copper Trapdoor: 1 Copper Door -> 2 Copper Trapdoors or 2 Copper Ingots horizontally
+        if (non_empty == 1) {
+            for (self.craft_grid) |sl| {
+                if (sl.item == .copper_door and sl.count >= 1) {
+                    self.craft_output = .{ .item = .copper_trapdoor, .count = 2 };
+                    return;
+                }
+            }
+        }
+        if (non_empty == 2) {
+            if ((g0 == .copper_ingot and g1 == .copper_ingot and g2 == .none and g3 == .none) or
+                (g2 == .copper_ingot and g3 == .copper_ingot and g0 == .none and g1 == .none))
+            {
+                self.craft_output = .{ .item = .copper_trapdoor, .count = 2 };
+                return;
+            }
+        }
+
+        // Recipe 304: Music Disc 5: 4 (or 2) Disc Fragments (5) -> 1 Music Disc 5
+        if (non_empty == 4) {
+            var df_c: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .disc_fragment_5) df_c += 1;
+            }
+            if (df_c == 4) {
+                self.craft_output = .{ .item = .music_disc_5, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 2) {
+            var df_c: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .disc_fragment_5) df_c += 1;
+            }
+            if (df_c == 2) {
+                self.craft_output = .{ .item = .music_disc_5, .count = 1 };
                 return;
             }
         }
@@ -10286,5 +10491,123 @@ test "milestones 293-298 item roundtrips, properties, and recipes" {
     inv.craft_grid[3] = .{};
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .creaking_heart);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+}
+
+test "Milestones 299-304 items, block roundtrips, and recipes 297-304" {
+    // 1. Block to item roundtrips
+    try std.testing.expectEqual(ItemType.copper_door.toBlockId().?, .copper_door_closed);
+    try std.testing.expectEqual(ItemType.fromBlockId(.copper_door_closed), .copper_door);
+    try std.testing.expectEqual(ItemType.fromBlockId(.copper_door_open), .copper_door);
+
+    try std.testing.expectEqual(ItemType.copper_trapdoor.toBlockId().?, .copper_trapdoor_closed);
+    try std.testing.expectEqual(ItemType.fromBlockId(.copper_trapdoor_closed), .copper_trapdoor);
+    try std.testing.expectEqual(ItemType.fromBlockId(.copper_trapdoor_open), .copper_trapdoor);
+
+    try std.testing.expectEqual(ItemType.ominous_vault.toBlockId().?, .ominous_vault);
+    try std.testing.expectEqual(ItemType.fromBlockId(.ominous_vault), .ominous_vault);
+
+    // 2. Durabilities, stack sizes, and tool classification
+    try std.testing.expectEqual(ItemType.wolf_armor.maxDurability(), 64);
+    try std.testing.expect(ItemType.wolf_armor.isTool());
+    try std.testing.expectEqual(ItemType.wolf_armor.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.bundle.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.music_disc_5.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.music_disc_relic.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.music_disc_precipice.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.music_disc_creator.maxStackSize(), 1);
+    try std.testing.expectEqual(ItemType.ominous_bottle.maxStackSize(), 16);
+    try std.testing.expectEqual(ItemType.potion_of_wind_charged.maxStackSize(), 16);
+    try std.testing.expectEqual(ItemType.armadillo_scute.maxStackSize(), 64);
+    try std.testing.expectEqual(ItemType.disc_fragment_5.maxStackSize(), 64);
+
+    // 3. Names
+    try std.testing.expectEqualStrings(ItemType.armadillo_scute.name(), "Armadillo Scute");
+    try std.testing.expectEqualStrings(ItemType.wolf_armor.name(), "Wolf Armor");
+    try std.testing.expectEqualStrings(ItemType.ominous_bottle.name(), "Ominous Bottle");
+    try std.testing.expectEqualStrings(ItemType.ominous_trial_key.name(), "Ominous Trial Key");
+    try std.testing.expectEqualStrings(ItemType.ominous_vault.name(), "Ominous Vault");
+    try std.testing.expectEqualStrings(ItemType.potion_of_infested.name(), "Potion of Infested");
+    try std.testing.expectEqualStrings(ItemType.potion_of_oozing.name(), "Potion of Oozing");
+    try std.testing.expectEqualStrings(ItemType.potion_of_weaving.name(), "Potion of Weaving");
+    try std.testing.expectEqualStrings(ItemType.potion_of_wind_charged.name(), "Potion of Wind Charged");
+    try std.testing.expectEqualStrings(ItemType.bundle.name(), "Bundle");
+    try std.testing.expectEqualStrings(ItemType.copper_door.name(), "Copper Door");
+    try std.testing.expectEqualStrings(ItemType.copper_trapdoor.name(), "Copper Trapdoor");
+    try std.testing.expectEqualStrings(ItemType.disc_fragment_5.name(), "Disc Fragment (5)");
+    try std.testing.expectEqualStrings(ItemType.music_disc_5.name(), "Music Disc (5)");
+
+    var inv = Inventory.init();
+
+    // Recipe 297: Wolf Armor (4 Armadillo Scutes)
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .armadillo_scute, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .wolf_armor);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 298: Ominous Trial Key (1 Trial Key + 1 Ominous Bottle)
+    inv.craft_grid[0] = .{ .item = .trial_key, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .ominous_bottle, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .ominous_trial_key);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 299: Ominous Vault (1 Vault + 1 Ominous Bottle)
+    inv.craft_grid[0] = .{ .item = .vault, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .ominous_bottle, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .ominous_vault);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 300: Trial Alchemy (Wind Charge + Glass -> Potion of Wind Charged)
+    inv.craft_grid[0] = .{ .item = .wind_charge, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .potion_of_wind_charged);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 300: Trial Alchemy (Slimeball + Glass -> Potion of Oozing)
+    inv.craft_grid[0] = .{ .item = .slimeball, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .glass, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .potion_of_oozing);
+
+    // Recipe 301: Bundle (1 String + 1 Leather)
+    inv.craft_grid[0] = .{ .item = .string, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .leather, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .bundle);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 302: Copper Door (3 Copper Ingots)
+    inv.craft_grid[0] = .{ .item = .copper_ingot, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .copper_ingot, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .copper_ingot, .count = 1 };
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .copper_door);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 303: Copper Trapdoor (1 Copper Door)
+    inv.craft_grid[0] = .{ .item = .copper_door, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .copper_trapdoor);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+
+    // Recipe 304: Music Disc 5 (4 Disc Fragments)
+    for (&inv.craft_grid) |*sl| sl.* = .{ .item = .disc_fragment_5, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .music_disc_5);
     try std.testing.expectEqual(inv.craft_output.count, 1);
 }
