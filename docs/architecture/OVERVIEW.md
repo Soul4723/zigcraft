@@ -223,3 +223,18 @@ tadpole buckets, and book & quill; stack 16 for written books; stack 64 for
 others), and six 2x2 recipes (upgrade template duplication, book & quill,
 written book signing, lily pads, coral blocks, and bucket of tadpoles).
 `BlockId` remains unchanged at 255.
+
+
+### Wave 12 domain modules
+
+Milestones 391–400 add `outer_end_islands.zig`, `subterranean_fossils.zig`,
+`amethyst_geode_budding.zig`, `azalea_lush_ecology.zig`,
+`brewing_stand_alchemy.zig`, `fletching_tipped_arrows.zig`,
+`scaffolding_bamboo.zig`, `navigation_timepieces.zig`,
+`villager_professions.zig`, and `wandering_trader.zig`. Each module has a
+standalone test target. `main.zig` imports all ten and queries representative
+world, alchemy, navigation, trading, and structure rules each frame.
+
+Wave 12 adds ItemTypes 501–510 for fossil/geode/lush-cave materials, potion
+variants, and clocks. Inventory metadata includes names, RGBA colors, stack
+limits, and six 2x2 recipes. `BlockId` remains unchanged at 255.

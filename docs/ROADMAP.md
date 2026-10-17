@@ -445,3 +445,16 @@ Rough priority order. Completed milestones marked **[x]**.
 388. [x] **Ice Spikes Biome** — Rare Snowy Plains variant, packed ice spires, four ice slipperiness tiers (regular, packed, blue, frosted), and boat highway physics (`src/world/ice_spikes_biome.zig`).
 389. [x] **Swamp Marsh & Frog Ecology** — Lily pad placement/boat collision, slime-to-tadpole growth, frogspawn hatching, and swamp temperature/water tinting (`src/world/swamp_marsh.zig`).
 390. [x] **Book & Quill & Lectern Mechanics** — Writable book signing generations (original, copy of original, tattered), 100-page limit, and lectern redstone comparator output math (`src/world/book_quill_lectern.zig`).
+
+## Wave 12 Integration (Milestones 391–400)
+
+391. [x] **Outer End Islands** — Chorus flower aging/harvest, gateway ring geometry, and outer-island gateway travel rules (`src/world/outer_end_islands.zig`).
+392. [x] **Subterranean Fossils** — Fossil anatomy placement, deepslate/diamond substitution, and bone-block conversion (`src/world/subterranean_fossils.zig`).
+393. [x] **Amethyst Geode Budding** — Geode shell layers, budding growth, piston behavior, and Fortune shard yields (`src/world/amethyst_geode_budding.zig`).
+394. [x] **Azalea Lush Ecology** — Lush-cave indicators, rooted dirt, moss spread, azalea ecology, and big dripleaf tilt (`src/world/azalea_lush_ecology.zig`).
+395. [x] **Brewing Stand Alchemy** — Blaze-fuel charges, potion distillation/modifiers, and lingering alchemy (`src/world/brewing_stand_alchemy.zig`).
+396. [x] **Fletching & Tipped Arrows** — Tipped/spectral arrow crafting, duration scaling, glowing effects, and fletcher trades (`src/world/fletching_tipped_arrows.zig`).
+397. [x] **Scaffolding & Bamboo** — Cantilever support, cascade drops, elevator motion, and bamboo growth/woodworking (`src/world/scaffolding_bamboo.zig`).
+398. [x] **Navigation Timepieces** — Lodestone/recovery compass binding and dimension-aware clock phases (`src/world/navigation_timepieces.zig`).
+399. [x] **Villager Professions** — Fourteen professions, XP trade tiers, profession locks, and twice-daily restocks (`src/world/villager_professions.zig`).
+400. [x] **Wandering Trader** — Spawn cadence, invisibility/milk behavior, despawn safeguards, llamas, and exotic trades (`src/world/wandering_trader.zig`).

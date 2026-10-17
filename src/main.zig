@@ -130,6 +130,16 @@ const coral_reef_mod = @import("world/coral_reef.zig");
 const ice_spikes_biome_mod = @import("world/ice_spikes_biome.zig");
 const swamp_marsh_mod = @import("world/swamp_marsh.zig");
 const book_quill_lectern_mod = @import("world/book_quill_lectern.zig");
+const outer_end_islands_mod = @import("world/outer_end_islands.zig");
+const subterranean_fossils_mod = @import("world/subterranean_fossils.zig");
+const amethyst_geode_budding_mod = @import("world/amethyst_geode_budding.zig");
+const azalea_lush_ecology_mod = @import("world/azalea_lush_ecology.zig");
+const brewing_stand_alchemy_mod = @import("world/brewing_stand_alchemy.zig");
+const fletching_tipped_arrows_mod = @import("world/fletching_tipped_arrows.zig");
+const scaffolding_bamboo_mod = @import("world/scaffolding_bamboo.zig");
+const navigation_timepieces_mod = @import("world/navigation_timepieces.zig");
+const villager_professions_mod = @import("world/villager_professions.zig");
+const wandering_trader_mod = @import("world/wandering_trader.zig");
 
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
@@ -869,6 +879,27 @@ pub fn main() !void {
         _ = swamp_marsh_mod.LilyPadPlacement.allowsWalkingOverWater();
         _ = book_quill_lectern_mod.BookAndQuillRecipe.canCraft(1, 1, 1);
         _ = book_quill_lectern_mod.lecternComparatorSignal(true, 1, 1);
+        // Wave 12 representative frame-loop hooks: domain modules own deterministic rules;
+        // the main loop only advances/queries lightweight state each frame.
+        _ = outer_end_islands_mod.harvestChorusFlower(2, true);
+        _ = outer_end_islands_mod.computeGatewayTeleportTarget(false, 0);
+        _ = subterranean_fossils_mod.sampleFossilBlockAtCoord(0, 0, -20, 0);
+        _ = subterranean_fossils_mod.craftBoneBlockFromMeal(9);
+        _ = amethyst_geode_budding_mod.geodeLayerForNormalizedRadius(0.5);
+        _ = amethyst_geode_budding_mod.progressGrowthOnFace(null, true);
+        _ = azalea_lush_ecology_mod.indicatesLushCaveBelow();
+        _ = azalea_lush_ecology_mod.applyBoneMealToRootedDirt(true);
+        _ = brewing_stand_alchemy_mod.brewPotion(brewing_stand_alchemy_mod.createWaterBottle(), .nether_wart);
+        _ = fletching_tipped_arrows_mod.craftTippedArrows(8, 1);
+        _ = fletching_tipped_arrows_mod.craftSpectralArrows(2, 1);
+        _ = scaffolding_bamboo_mod.craftScaffolding(6, 1);
+        _ = scaffolding_bamboo_mod.computeCascadeDropCount(8, 2);
+        _ = navigation_timepieces_mod.getClockPhaseInDimension(.overworld, 6000);
+        _ = navigation_timepieces_mod.calculateClockDialAngle(.overworld, 6000, world_time);
+        _ = villager_professions_mod.tierForXp(70);
+        _ = villager_professions_mod.canRerollTrades(0);
+        _ = wandering_trader_mod.calculateSpawnChance(1);
+        _ = wandering_trader_mod.shouldDrinkInvisibilityPotion(true, false);
         _ = enchanting_grindstone_mod.computeEnchantSlotOffers(0);
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);

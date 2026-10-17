@@ -503,6 +503,16 @@ pub const ItemType = enum(u16) {
     bucket_of_tadpole = 498,
     book_and_quill = 499,
     written_book = 500,
+    bone_block = 501,
+    calcite = 502,
+    smooth_basalt = 503,
+    rooted_dirt = 504,
+    hanging_roots = 505,
+    big_dripleaf = 506,
+    spore_blossom = 507,
+    awkward_potion = 508,
+    invisibility_potion = 509,
+    clock = 510,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -1089,7 +1099,7 @@ pub const ItemType = enum(u16) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged, .potion_of_slowness, .splash_water_bottle, .splash_harming_potion, .water_bottle, .harming_potion, .written_book => 16,
+            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged, .potion_of_slowness, .splash_water_bottle, .splash_harming_potion, .water_bottle, .harming_potion, .written_book, .awkward_potion, .invisibility_potion => 16,
             .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .frost_walker_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn, .wolf_armor, .bundle, .ghast_harness, .bucket_of_axolotl, .banner, .banner_pattern_stencil, .copper_golem_statue, .music_disc_5, .music_disc_relic, .music_disc_precipice, .music_disc_creator, .enchanted_book, .mending_book, .swift_sneak_book, .sweeping_edge_book, .feather_falling_book, .milk_bucket, .raid_omen_banner, .evoker_fang_totem, .saddle, .empty_locator_map, .filled_explorer_map, .leather_horse_armor, .iron_horse_armor, .golden_horse_armor, .diamond_horse_armor, .item_frame, .glow_item_frame, .painting, .buried_treasure_map, .music_disc_pigstep, .bucket_of_tadpole, .book_and_quill => 1,
             .wither_rose, .glazed_terracotta, .light_weighted_pressure_plate, .heavy_weighted_pressure_plate, .glass_pane, .stained_glass, .arrow_of_slowness => 64,
             .potion_of_turtle_master => 16,
@@ -1595,6 +1605,16 @@ pub const ItemType = enum(u16) {
             .bucket_of_tadpole => "Bucket of Tadpole",
             .book_and_quill => "Book and Quill",
             .written_book => "Written Book",
+            .bone_block => "Bone Block",
+            .calcite => "Calcite",
+            .smooth_basalt => "Smooth Basalt",
+            .rooted_dirt => "Rooted Dirt",
+            .hanging_roots => "Hanging Roots",
+            .big_dripleaf => "Big Dripleaf",
+            .spore_blossom => "Spore Blossom",
+            .awkward_potion => "Awkward Potion",
+            .invisibility_potion => "Potion of Invisibility",
+            .clock => "Clock",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -2036,6 +2056,16 @@ pub const ItemType = enum(u16) {
             .bucket_of_tadpole => .{ 0.35, 0.55, 0.65, 1.0 },
             .book_and_quill => .{ 0.45, 0.30, 0.20, 1.0 },
             .written_book => .{ 0.35, 0.18, 0.45, 1.0 },
+            .bone_block => .{ 0.82, 0.78, 0.68, 1.0 },
+            .calcite => .{ 0.88, 0.86, 0.82, 1.0 },
+            .smooth_basalt => .{ 0.25, 0.25, 0.28, 1.0 },
+            .rooted_dirt => .{ 0.42, 0.27, 0.16, 1.0 },
+            .hanging_roots => .{ 0.38, 0.24, 0.12, 1.0 },
+            .big_dripleaf => .{ 0.22, 0.62, 0.28, 1.0 },
+            .spore_blossom => .{ 0.78, 0.38, 0.62, 1.0 },
+            .awkward_potion => .{ 0.68, 0.28, 0.82, 0.9 },
+            .invisibility_potion => .{ 0.42, 0.52, 0.78, 0.9 },
+            .clock => .{ 0.92, 0.72, 0.18, 1.0 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -2271,6 +2301,47 @@ fn wave11CraftingRecipe(grid: [4]ItemStack) ?ItemStack {
     if (has_leaves and has_seagrass) return .{ .item = .lily_pad, .count = 1 };
     if (has_sea_pickle and has_kelp) return .{ .item = .coral_block, .count = 1 };
     if (has_water_bucket and has_slimeball) return .{ .item = .bucket_of_tadpole, .count = 1 };
+    return null;
+}
+
+
+fn wave12CraftingRecipe(grid: [4]ItemStack) ?ItemStack {
+    var non_empty: usize = 0;
+    var has_bone_meal = false;
+    var has_bone = false;
+    var has_dirt = false;
+    var has_hanging_roots = false;
+    var has_water_bottle = false;
+    var has_nether_wart = false;
+    var has_night_vision = false;
+    var has_fermented_eye = false;
+    var has_gold_block = false;
+    var has_redstone = false;
+    var has_moss = false;
+    var has_lily_pad = false;
+    for (grid) |slot| {
+        if (slot.isEmpty()) continue;
+        non_empty += 1;
+        has_bone_meal = has_bone_meal or slot.item == .bone_meal;
+        has_bone = has_bone or slot.item == .bone;
+        has_dirt = has_dirt or slot.item == .dirt;
+        has_hanging_roots = has_hanging_roots or slot.item == .hanging_roots;
+        has_water_bottle = has_water_bottle or slot.item == .water_bottle;
+        has_nether_wart = has_nether_wart or slot.item == .nether_wart;
+        has_night_vision = has_night_vision or slot.item == .night_vision_potion;
+        has_fermented_eye = has_fermented_eye or slot.item == .fermented_spider_eye;
+        has_gold_block = has_gold_block or slot.item == .gold_block;
+        has_redstone = has_redstone or slot.item == .redstone_dust;
+        has_moss = has_moss or slot.item == .moss_block;
+        has_lily_pad = has_lily_pad or slot.item == .lily_pad;
+    }
+    if (non_empty != 2) return null;
+    if (has_bone_meal and has_bone) return .{ .item = .bone_block, .count = 1 };
+    if (has_dirt and has_hanging_roots) return .{ .item = .rooted_dirt, .count = 1 };
+    if (has_water_bottle and has_nether_wart) return .{ .item = .awkward_potion, .count = 1 };
+    if (has_night_vision and has_fermented_eye) return .{ .item = .invisibility_potion, .count = 1 };
+    if (has_gold_block and has_redstone) return .{ .item = .clock, .count = 1 };
+    if (has_moss and has_lily_pad) return .{ .item = .big_dripleaf, .count = 2 };
     return null;
 }
 
@@ -6318,6 +6389,10 @@ pub const Inventory = struct {
             return;
         }
         if (wave11CraftingRecipe(self.craft_grid)) |output| {
+            self.craft_output = output;
+            return;
+        }
+        if (wave12CraftingRecipe(self.craft_grid)) |output| {
             self.craft_output = output;
             return;
         }
@@ -11478,4 +11553,30 @@ test "Wave 11 item metadata and 2x2 recipes preserve BlockId capacity" {
     inv.updateCrafting();
     try std.testing.expectEqual(ItemType.bucket_of_tadpole, inv.craft_output.item);
     try std.testing.expectEqual(@as(u8, 1), inv.craft_output.count);
+}
+
+
+test "Wave 12 item metadata and 2x2 recipes preserve BlockId capacity" {
+    try std.testing.expectEqual(@as(u16, 501), @intFromEnum(ItemType.bone_block));
+    try std.testing.expectEqual(@as(u16, 510), @intFromEnum(ItemType.clock));
+    try std.testing.expectEqual(@as(u8, 16), ItemType.awkward_potion.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 16), ItemType.invisibility_potion.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 64), ItemType.bone_block.maxStackSize());
+    try std.testing.expectEqualStrings("Potion of Invisibility", ItemType.invisibility_potion.name());
+    try std.testing.expectEqual(@as(u8, 255), @intFromEnum(BlockId.leaf_litter));
+    var inv = Inventory.init();
+    const recipes = [_]struct { a: ItemType, b: ItemType, out: ItemType, count: u8 }{
+        .{ .a = .bone_meal, .b = .bone, .out = .bone_block, .count = 1 },
+        .{ .a = .dirt, .b = .hanging_roots, .out = .rooted_dirt, .count = 1 },
+        .{ .a = .water_bottle, .b = .nether_wart, .out = .awkward_potion, .count = 1 },
+        .{ .a = .night_vision_potion, .b = .fermented_spider_eye, .out = .invisibility_potion, .count = 1 },
+        .{ .a = .gold_block, .b = .redstone_dust, .out = .clock, .count = 1 },
+        .{ .a = .moss_block, .b = .lily_pad, .out = .big_dripleaf, .count = 2 },
+    };
+    for (recipes) |recipe| {
+        inv.craft_grid = .{ .{ .item = recipe.a, .count = 1 }, .{ .item = recipe.b, .count = 1 }, .{}, .{} };
+        inv.updateCrafting();
+        try std.testing.expectEqual(recipe.out, inv.craft_output.item);
+        try std.testing.expectEqual(recipe.count, inv.craft_output.count);
+    }
 }
