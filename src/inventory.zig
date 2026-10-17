@@ -465,6 +465,14 @@ pub const ItemType = enum(u16) {
     saddle = 459,
     light_weighted_pressure_plate = 460,
     heavy_weighted_pressure_plate = 461,
+    empty_locator_map = 462,
+    filled_explorer_map = 463,
+    glass_pane = 464,
+    leather_horse_armor = 465,
+    iron_horse_armor = 466,
+    golden_horse_armor = 467,
+    diamond_horse_armor = 468,
+    frost_walker_boots = 469,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -947,7 +955,7 @@ pub const ItemType = enum(u16) {
 
     pub fn isArmor(self: ItemType) bool {
         return switch (self) {
-            .netherite_helmet, .turtle_helmet, .netherite_chestplate, .elytra, .netherite_leggings, .netherite_boots, .soul_speed_boots, .dragon_head, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .carved_pumpkin, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots => true,
+            .netherite_helmet, .turtle_helmet, .netherite_chestplate, .elytra, .netherite_leggings, .netherite_boots, .soul_speed_boots, .frost_walker_boots, .dragon_head, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .carved_pumpkin, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots => true,
             else => false,
         };
     }
@@ -967,6 +975,7 @@ pub const ItemType = enum(u16) {
             .iron_chestplate => 240,
             .iron_leggings => 225,
             .iron_boots => 195,
+            .frost_walker_boots => 195,
             .golden_helmet => 77,
             .golden_chestplate => 112,
             .golden_leggings => 105,
@@ -1051,8 +1060,8 @@ pub const ItemType = enum(u16) {
         return switch (self) {
             .none => 0,
             .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged, .splash_water_bottle, .splash_harming_potion, .water_bottle, .harming_potion => 16,
-            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn, .wolf_armor, .bundle, .ghast_harness, .bucket_of_axolotl, .banner, .banner_pattern_stencil, .copper_golem_statue, .music_disc_5, .music_disc_relic, .music_disc_precipice, .music_disc_creator, .enchanted_book, .mending_book, .raid_omen_banner, .evoker_fang_totem, .saddle => 1,
-            .wither_rose, .glazed_terracotta, .light_weighted_pressure_plate, .heavy_weighted_pressure_plate => 64,
+            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .frost_walker_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn, .wolf_armor, .bundle, .ghast_harness, .bucket_of_axolotl, .banner, .banner_pattern_stencil, .copper_golem_statue, .music_disc_5, .music_disc_relic, .music_disc_precipice, .music_disc_creator, .enchanted_book, .mending_book, .raid_omen_banner, .evoker_fang_totem, .saddle, .empty_locator_map, .filled_explorer_map, .leather_horse_armor, .iron_horse_armor, .golden_horse_armor, .diamond_horse_armor => 1,
+            .wither_rose, .glazed_terracotta, .light_weighted_pressure_plate, .heavy_weighted_pressure_plate, .glass_pane => 64,
             .potion_of_turtle_master => 16,
             else => 64,
         };
@@ -1518,6 +1527,14 @@ pub const ItemType = enum(u16) {
             .saddle => "Saddle",
             .light_weighted_pressure_plate => "Light Weighted Pressure Plate",
             .heavy_weighted_pressure_plate => "Heavy Weighted Pressure Plate",
+            .empty_locator_map => "Empty Locator Map",
+            .filled_explorer_map => "Explorer Map",
+            .glass_pane => "Glass Pane",
+            .leather_horse_armor => "Leather Horse Armor",
+            .iron_horse_armor => "Iron Horse Armor",
+            .golden_horse_armor => "Golden Horse Armor",
+            .diamond_horse_armor => "Diamond Horse Armor",
+            .frost_walker_boots => "Frost Walker Boots",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1921,6 +1938,14 @@ pub const ItemType = enum(u16) {
             .saddle => .{ 0.53, 0.25, 0.12, 0.95 },
             .light_weighted_pressure_plate => .{ 0.92, 0.75, 0.24, 0.95 },
             .heavy_weighted_pressure_plate => .{ 0.72, 0.72, 0.74, 0.95 },
+            .empty_locator_map => .{ 0.78, 0.70, 0.48, 0.95 },
+            .filled_explorer_map => .{ 0.28, 0.62, 0.35, 0.95 },
+            .glass_pane => .{ 0.82, 0.94, 0.98, 0.65 },
+            .leather_horse_armor => .{ 0.48, 0.27, 0.16, 0.95 },
+            .iron_horse_armor => .{ 0.72, 0.74, 0.76, 0.95 },
+            .golden_horse_armor => .{ 0.96, 0.78, 0.20, 0.95 },
+            .diamond_horse_armor => .{ 0.18, 0.78, 0.82, 0.95 },
+            .frost_walker_boots => .{ 0.35, 0.78, 0.92, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -2213,6 +2238,30 @@ pub const Inventory = struct {
                 self.craft_output = .{ .item = .heavy_weighted_pressure_plate, .count = 1 };
                 return;
             }
+            var has_paper = false;
+            var has_compass = false;
+            var has_empty_map = false;
+            var has_explorer_map = false;
+            for (self.craft_grid) |slot| {
+                has_paper = has_paper or slot.item == .paper;
+                has_compass = has_compass or slot.item == .compass;
+                has_empty_map = has_empty_map or slot.item == .empty_locator_map;
+                has_explorer_map = has_explorer_map or slot.item == .filled_explorer_map;
+            }
+            if (has_paper and has_compass) {
+                self.craft_output = .{ .item = .empty_locator_map, .count = 1 };
+                return;
+            }
+            if (has_empty_map and has_explorer_map) {
+                self.craft_output = .{ .item = .filled_explorer_map, .count = 2 };
+                return;
+            }
+        }
+
+        // Recipe: four glass blocks in a 2x2 square -> four glass panes.
+        if (non_empty == 4 and g0 == .glass and g1 == .glass and g2 == .glass and g3 == .glass) {
+            self.craft_output = .{ .item = .glass_pane, .count = 4 };
+            return;
         }
 
         // Recipe 1: 1 Wood Log -> 4 Wood Planks (any single slot)
@@ -10963,4 +11012,32 @@ test "Wave 6 item metadata and 2x2 recipes preserve BlockId capacity" {
     inv.craft_grid = .{ .{}, .{}, .{ .item = .iron_ingot, .count = 1 }, .{ .item = .iron_ingot, .count = 1 } };
     inv.updateCrafting();
     try std.testing.expectEqual(ItemType.heavy_weighted_pressure_plate, inv.craft_output.item);
+}
+
+test "Wave 7 item metadata and map and glass pane recipes preserve BlockId capacity" {
+    try std.testing.expectEqual(@as(u16, 462), @intFromEnum(ItemType.empty_locator_map));
+    try std.testing.expectEqual(@as(u16, 469), @intFromEnum(ItemType.frost_walker_boots));
+    try std.testing.expectEqual(@as(u8, 1), ItemType.empty_locator_map.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 1), ItemType.diamond_horse_armor.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 64), ItemType.glass_pane.maxStackSize());
+    try std.testing.expect(ItemType.frost_walker_boots.isArmor());
+    try std.testing.expectEqual(@as(u16, 195), ItemType.frost_walker_boots.maxDurability());
+    try std.testing.expectEqualStrings("Explorer Map", ItemType.filled_explorer_map.name());
+    try std.testing.expect(ItemType.glass_pane.getColor()[3] < 1.0);
+    try std.testing.expectEqual(@as(u8, 255), @intFromEnum(BlockId.leaf_litter));
+
+    var inv = Inventory.init();
+    inv.craft_grid = .{ .{ .item = .paper, .count = 1 }, .{ .item = .compass, .count = 1 }, .{}, .{} };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.empty_locator_map, inv.craft_output.item);
+
+    inv.craft_grid = .{ .{ .item = .empty_locator_map, .count = 1 }, .{ .item = .filled_explorer_map, .count = 1 }, .{}, .{} };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.filled_explorer_map, inv.craft_output.item);
+    try std.testing.expectEqual(@as(u8, 2), inv.craft_output.count);
+
+    inv.craft_grid = .{ .{ .item = .glass, .count = 1 }, .{ .item = .glass, .count = 1 }, .{ .item = .glass, .count = 1 }, .{ .item = .glass, .count = 1 } };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.glass_pane, inv.craft_output.item);
+    try std.testing.expectEqual(@as(u8, 4), inv.craft_output.count);
 }

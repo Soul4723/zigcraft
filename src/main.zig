@@ -80,6 +80,16 @@ const trident_enchantments_mod = @import("world/trident_enchantments.zig");
 const dimensional_anchors_mod = @import("world/dimensional_anchors.zig");
 const precision_redstone_sensors_mod = @import("world/precision_redstone_sensors.zig");
 const snow_golem_ai_mod = @import("world/snow_golem_ai.zig");
+const allay_collector_mod = @import("world/allay_collector.zig");
+const note_block_instruments_mod = @import("world/note_block_instruments.zig");
+const equine_genetics_mod = @import("world/equine_genetics.zig");
+const companion_pets_mod = @import("world/companion_pets.zig");
+const panda_genetics_mod = @import("world/panda_genetics.zig");
+const dolphin_navigation_mod = @import("world/dolphin_navigation.zig");
+const bee_pollination_mod = @import("world/bee_pollination.zig");
+const cartography_maps_mod = @import("world/cartography_maps.zig");
+const processing_workstations_mod = @import("world/processing_workstations.zig");
+const boots_and_armor_stands_mod = @import("world/boots_and_armor_stands.zig");
 
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
@@ -403,6 +413,11 @@ pub fn main() !void {
         .loyalty_level = 1, .is_returning = false,
         .fell_into_void_below_y_minus_64 = false,
     };
+    // Wave 7 representative domain states; entity spawning/world mutation remains caller-owned.
+    var active_allay = allay_collector_mod.AllayCollectorState.init();
+    var active_dolphin = dolphin_navigation_mod.DolphinState{};
+    var active_bee = bee_pollination_mod.BeePollinatorState{};
+    const active_map = cartography_maps_mod.CartographyMapState{ .center_x = 0, .center_z = 0 };
     const IgnitedFlame = struct { x: i32, y: i32, z: i32, t: f32 };
     var flames: [32]IgnitedFlame = undefined;
     var flame_count: usize = 0;
@@ -701,6 +716,18 @@ pub fn main() !void {
         _ = dimensional_anchors_mod.computeDimensionalLinkCoords(0, 64, 0, true);
         _ = precision_redstone_sensors_mod.computeTargetBlockBullseyeSignal(0.5, 0.5, false);
         _ = snow_golem_ai_mod.canThrowSnowball(active_snow_golem, .{ 0.0, 64.0, 0.0 });
+        active_allay.tick(dt);
+        allay_collector_mod.tickAllayRegeneration(&active_allay, dt);
+        _ = note_block_instruments_mod.resolveNoteBlockInstrument(.stone, null);
+        _ = note_block_instruments_mod.computeNotePitchMultiplier(12);
+        _ = equine_genetics_mod.computeHorseJumpHeight(1.0, 0.5);
+        _ = companion_pets_mod.detectParrotHostileMimicry(20.0);
+        _ = panda_genetics_mod.canBreedPandasWithBamboo(true, 1);
+        _ = dolphin_navigation_mod.tickDolphinBreathAndMoisture(&active_dolphin, player.in_water, false, false, dt);
+        _ = bee_pollination_mod.tickFlowerPollination(&active_bee, false, dt);
+        _ = cartography_maps_mod.computeExplorerMapPlayerCursor(active_map, @intFromFloat(player.pos.x), @intFromFloat(player.pos.z));
+        _ = processing_workstations_mod.stonecutterYield(.stairs);
+        _ = boots_and_armor_stands_mod.frostWalkerRadius(1);
         _ = enchanting_grindstone_mod.computeEnchantSlotOffers(0);
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);
