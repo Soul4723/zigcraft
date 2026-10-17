@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-17 (Session 375)
+Last updated: 2026-10-17 (Session 376)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 4577 passing unit tests across 211 test steps
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 4757 passing unit tests across 231 build/test steps
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -41,7 +41,12 @@ Last updated: 2026-10-17 (Session 375)
 - All eight modules have standalone build/test targets; `main.zig` imports and advances representative states or queries domain rules.
 - ItemTypes 448–455 add four mob-head trophies and water/harming bottle variants with names, colors, stack rules, and two 2x2 splash-potion recipes. `BlockId` remains unchanged.
 
+## Wave 6 Integration
+- Milestones 331–340 are integrated on `main`: Wither Boss, Ender Dragon Fight, Villager Curing, Piston Adhesion, Fishing Treasure, Shield/Thorns Combat, Trident Enchantments, Dimensional Anchors, Precision Redstone Sensors, and Snow Golem AI.
+- All ten world modules have standalone build/test targets and are imported into `main.zig`, where stateful timers and representative domain/interaction hooks are advanced or queried.
+- ItemTypes 456–461 add Wither Rose, Glazed Terracotta, Name Tag, Saddle, and Light/Heavy Weighted Pressure Plates with metadata and 2x2 recipes for glazed terracotta and weighted plates. `BlockId` remains unchanged at 255.
+
 ## Active State
-- Main branch stable (Phase 8: Milestones 43-330)
-- All tests passing (4577/4577 tests across 211 build/test steps)
+- Main branch stable (Phase 8: Milestones 43-340)
+- All tests passing (4757/4757 tests across 231 build/test steps)
 - Remote and local branches pruned clean

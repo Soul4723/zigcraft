@@ -365,3 +365,16 @@ Rough priority order. Completed milestones marked **[x]**.
 328. [x] **Ghast Deflection** — Return-to-sender fireballs, cobblestone blast immunity, 64m sight, and reflected lethal damage (`src/world/ghast_deflection.zig`).
 329. [x] **Slime Mitosis** — Slime/magma-cube splitting, swamp moon spawning, slime-chunk seed hashing, and magma-cube defenses (`src/world/slime_mitosis.zig`).
 330. [x] **Phantom Insomnia** — Three-night spawning, swoop/climb behavior, cat repulsion, sunlight burning, and Slow Falling potion rules (`src/world/phantom_insomnia.zig`).
+
+## Wave 6 Integration (Milestones 331–340)
+
+331. [x] **Wither Boss** — Soul Sand T-summoning, invulnerable spawn charge and blast, Wither skulls, armor phase, and Nether Star reward (`src/world/wither_boss.zig`).
+332. [x] **Ender Dragon Fight** — Crystal healing beams, fountain perch and breath clouds, respawn ritual, and End Gateway ring (`src/world/ender_dragon_fight.zig`).
+333. [x] **Villager Curing** — Weakness/Golden Apple conversion, iron-bar and bed acceleration, cure gossip discounts, and panic golem rules (`src/world/villager_curing.zig`).
+334. [x] **Piston Adhesion** — Slime/honey non-mutual adhesion, push limits, entity motion, and non-stick blocks (`src/world/piston_adhesion.zig`).
+335. [x] **Fishing Treasure** — Lure wait math, weather/sky modifiers, open-water validation, and Luck of the Sea probabilities (`src/world/fishing_treasure.zig`).
+336. [x] **Shield & Thorns Combat** — Shield arc/warmup, axe disable, projectile deflection, durability, and Thorns retaliation (`src/world/shield_thorns_combat.zig`).
+337. [x] **Trident Enchantments** — Loyalty return, Channeling strikes, Impaling bonus, and enchantment compatibility (`src/world/trident_enchantments.zig`).
+338. [x] **Dimensional Anchors** — Variable portal frames, 8:1 coordinate links, Respawn Anchor charges, and wrong-dimension explosions (`src/world/dimensional_anchors.zig`).
+339. [x] **Precision Redstone Sensors** — Target Block accuracy, solar/lunar Daylight Detector, Observer pulse timing, and weighted plates (`src/world/precision_redstone_sensors.zig`).
+340. [x] **Snow Golem AI** — Snowball targeting/cooldown, pumpkin shearing, snow trails, and warm-biome melting (`src/world/snow_golem_ai.zig`).

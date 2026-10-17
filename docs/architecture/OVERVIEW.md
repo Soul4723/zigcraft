@@ -118,3 +118,20 @@ rules from the Witch, Ghast, and Slime modules are queried there. `inventory.zig
 adds ItemTypes 448–455 for mob-head trophies and bottle/potion items without
 changing `BlockId`. Gunpowder recipes produce splash water and harming potions.
 Each module has a standalone test target.
+
+### Wave 6 domain modules
+
+Milestones 331–340 add `wither_boss.zig`, `ender_dragon_fight.zig`,
+`villager_curing.zig`, `piston_adhesion.zig`, `fishing_treasure.zig`,
+`shield_thorns_combat.zig`, `trident_enchantments.zig`,
+`dimensional_anchors.zig`, `precision_redstone_sensors.zig`, and
+`snow_golem_ai.zig`. `main.zig` owns representative Wither, Dragon Breath,
+villager cure, shield, anchor, Observer, snow golem, and Loyalty trident
+states, advances tick-capable states, and queries the stateless mechanic
+helpers. Each module has its own `build.zig` test target.
+
+Wave 6 adds ItemTypes 456–461 for Wither Rose, Glazed Terracotta, Name Tag,
+Saddle, and weighted pressure plates; `BlockId` remains at 255. Inventory
+metadata covers names, colors, and stack limits. The 2x2 grid adds glazed
+terracotta and light/heavy weighted plate recipes; Wither Rose, Name Tag, and
+Saddle remain drop/loot-style items.
