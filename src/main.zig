@@ -150,6 +150,16 @@ const end_crystal_mechanics_mod = @import("world/end_crystal_mechanics.zig");
 const boat_watercraft_mod = @import("world/boat_watercraft.zig");
 const lead_leash_mechanics_mod = @import("world/lead_leash_mechanics.zig");
 const bed_sleep_mechanics_mod = @import("world/bed_sleep_mechanics.zig");
+const igneous_stone_masonry_mod = @import("world/igneous_stone_masonry.zig");
+const glazed_terracotta_mosaic_mod = @import("world/glazed_terracotta_mosaic.zig");
+const lighting_fixtures_mod = @import("world/lighting_fixtures.zig");
+const wooden_signs_mod = @import("world/wooden_signs.zig");
+const fences_gates_walls_mod = @import("world/fences_gates_walls.zig");
+const doors_trapdoors_crawl_mod = @import("world/doors_trapdoors_crawl.zig");
+const sculk_growth_harvest_mod = @import("world/sculk_growth_harvest.zig");
+const anvil_repair_mechanics_mod = @import("world/anvil_repair_mechanics.zig");
+const loom_shield_banners_mod = @import("world/loom_shield_banners.zig");
+const tnt_demolition_physics_mod = @import("world/tnt_demolition_physics.zig");
 
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
@@ -926,6 +936,17 @@ pub fn main() !void {
         _ = boat_watercraft_mod.craftChestBoat(1, 1);
         _ = lead_leash_mechanics_mod.computeLeashPullForce(7.0);
         _ = bed_sleep_mechanics_mod.canSleepAtTime(13000, false, false);
+        // Wave 14 representative frame-loop hooks keep new domain rules queryable.
+        _ = igneous_stone_masonry_mod.craftDioriteFromQuartz(1, 1);
+        _ = glazed_terracotta_mosaic_mod.canSmeltUncoloredTerracotta();
+        _ = lighting_fixtures_mod.LightFixtureKind.lantern;
+        _ = wooden_signs_mod.canWaterlogSign();
+        _ = fences_gates_walls_mod.getEffectiveHurdleHeight(false);
+        _ = doors_trapdoors_crawl_mod.triggersCrawlPosture(true, true);
+        _ = sculk_growth_harvest_mod.xpDroppedWithoutSilkTouch(.sculk);
+        _ = anvil_repair_mechanics_mod.priorWorkPenaltyLevels(1);
+        _ = loom_shield_banners_mod.SixLayerSurvivalLimit.max_loom_layers;
+        _ = tnt_demolition_physics_mod.chainReactionFuseTicks(1);
         _ = enchanting_grindstone_mod.computeEnchantSlotOffers(0);
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);

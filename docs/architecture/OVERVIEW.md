@@ -253,3 +253,17 @@ Wave 13 adds ItemTypes 511–521 for flowers, podzol/mossy cobblestone, birch an
 spruce planks, chest boat, bamboo raft, and bed. Metadata includes names, RGBA
 colors, and stack limits; six 2x2 recipes extend the crafting grid. `BlockId`
 remains capped at 255.
+
+
+### Wave 14 domain modules
+
+Milestones 411–420 add `igneous_stone_masonry.zig`, `glazed_terracotta_mosaic.zig`,
+`lighting_fixtures.zig`, `wooden_signs.zig`, `fences_gates_walls.zig`,
+`doors_trapdoors_crawl.zig`, `sculk_growth_harvest.zig`, `anvil_repair_mechanics.zig`,
+`loom_shield_banners.zig`, and `tnt_demolition_physics.zig`. Each has a standalone
+test target and is imported by `main.zig`, which queries representative deterministic
+rules through the frame loop while existing world/entity ownership remains unchanged.
+
+Wave 14 adds ItemTypes 522–532 for igneous masonry, sign and lighting materials,
+fence/wall components, and sculk veins. Inventory metadata defines names, colors,
+stack limits, and six 2x2 recipes. `BlockId` remains capped at 255.

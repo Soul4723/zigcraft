@@ -523,6 +523,17 @@ pub const ItemType = enum(u16) {
     chest_boat = 519,
     bamboo_raft = 520,
     bed = 521,
+    granite = 522,
+    diorite = 523,
+    andesite = 524,
+    polished_granite = 525,
+    polished_diorite = 526,
+    polished_andesite = 527,
+    wooden_sign = 528,
+    glow_ink_sac = 529,
+    fence_gate = 530,
+    cobblestone_wall = 531,
+    sculk_vein = 532,
     clock = 510,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
@@ -1110,9 +1121,9 @@ pub const ItemType = enum(u16) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged, .potion_of_slowness, .splash_water_bottle, .splash_harming_potion, .water_bottle, .harming_potion, .written_book, .awkward_potion, .invisibility_potion => 16,
+            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged, .potion_of_slowness, .splash_water_bottle, .splash_harming_potion, .water_bottle, .harming_potion, .written_book, .wooden_sign, .awkward_potion, .invisibility_potion => 16,
             .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .frost_walker_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn, .wolf_armor, .bundle, .ghast_harness, .bucket_of_axolotl, .banner, .banner_pattern_stencil, .copper_golem_statue, .music_disc_5, .music_disc_relic, .music_disc_precipice, .music_disc_creator, .enchanted_book, .mending_book, .swift_sneak_book, .sweeping_edge_book, .feather_falling_book, .milk_bucket, .raid_omen_banner, .evoker_fang_totem, .saddle, .empty_locator_map, .filled_explorer_map, .leather_horse_armor, .iron_horse_armor, .golden_horse_armor, .diamond_horse_armor, .item_frame, .glow_item_frame, .painting, .buried_treasure_map, .music_disc_pigstep, .bucket_of_tadpole, .book_and_quill, .chest_boat, .bamboo_raft, .bed => 1,
-            .wither_rose, .glazed_terracotta, .light_weighted_pressure_plate, .heavy_weighted_pressure_plate, .glass_pane, .stained_glass, .arrow_of_slowness => 64,
+            .wither_rose, .granite, .diorite, .andesite, .polished_granite, .polished_diorite, .polished_andesite, .glow_ink_sac, .fence_gate, .cobblestone_wall, .sculk_vein, .glazed_terracotta, .light_weighted_pressure_plate, .heavy_weighted_pressure_plate, .glass_pane, .stained_glass, .arrow_of_slowness => 64,
             .potion_of_turtle_master => 16,
             else => 64,
         };
@@ -1637,6 +1648,17 @@ pub const ItemType = enum(u16) {
             .chest_boat => "Chest Boat",
             .bamboo_raft => "Bamboo Raft",
             .bed => "Bed",
+            .granite => "Granite",
+            .diorite => "Diorite",
+            .andesite => "Andesite",
+            .polished_granite => "Polished Granite",
+            .polished_diorite => "Polished Diorite",
+            .polished_andesite => "Polished Andesite",
+            .wooden_sign => "Wooden Sign",
+            .glow_ink_sac => "Glow Ink Sac",
+            .fence_gate => "Fence Gate",
+            .cobblestone_wall => "Cobblestone Wall",
+            .sculk_vein => "Sculk Vein",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -2163,6 +2185,17 @@ pub const ItemType = enum(u16) {
             .chest_boat => .{ 0.48, 0.30, 0.16, 0.98 },
             .bamboo_raft => .{ 0.68, 0.78, 0.28, 0.98 },
             .bed => .{ 0.82, 0.20, 0.22, 0.98 },
+            .granite => .{ 0.55, 0.36, 0.28, 0.98 },
+            .diorite => .{ 0.72, 0.70, 0.68, 0.98 },
+            .andesite => .{ 0.48, 0.49, 0.50, 0.98 },
+            .polished_granite => .{ 0.64, 0.42, 0.32, 0.98 },
+            .polished_diorite => .{ 0.84, 0.82, 0.80, 0.98 },
+            .polished_andesite => .{ 0.58, 0.59, 0.60, 0.98 },
+            .wooden_sign => .{ 0.70, 0.48, 0.24, 0.98 },
+            .glow_ink_sac => .{ 0.10, 0.90, 0.85, 0.98 },
+            .fence_gate => .{ 0.58, 0.36, 0.16, 0.98 },
+            .cobblestone_wall => .{ 0.45, 0.45, 0.47, 0.98 },
+            .sculk_vein => .{ 0.08, 0.38, 0.42, 0.98 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -2394,6 +2427,24 @@ fn wave13CraftingRecipe(grid: [4]ItemStack) ?ItemStack {
     if (flags[6] and flags[7]) return .{ .item = .bed, .count = 1 };
     if (flags[8] and flags[9]) return .{ .item = .sunflower, .count = 2 };
     if (flags[10] and flags[11]) return .{ .item = .podzol, .count = 1 };
+    return null;
+}
+
+fn wave14CraftingRecipe(grid: [4]ItemStack) ?ItemStack {
+    var non_empty: usize = 0; var flags = [_]bool{false} ** 12;
+    for (grid) |slot| { if (slot.isEmpty()) continue; non_empty += 1;
+        flags[0] = flags[0] or slot.item == .cobblestone; flags[1] = flags[1] or slot.item == .nether_quartz;
+        flags[2] = flags[2] or slot.item == .diorite; flags[3] = flags[3] or slot.item == .cobblestone;
+        flags[4] = flags[4] or slot.item == .granite; flags[5] = flags[5] or slot.item == .stonecutter;
+        flags[6] = flags[6] or slot.item == .oak_fence; flags[7] = flags[7] or slot.item == .stick;
+        flags[8] = flags[8] or slot.item == .sculk; flags[9] = flags[9] or slot.item == .echo_shard; }
+    if (non_empty != 2) return null;
+    if (flags[0] and flags[1]) return .{ .item = .diorite, .count = 2 };
+    if (flags[2] and flags[1]) return .{ .item = .granite, .count = 1 };
+    if (flags[2] and flags[3]) return .{ .item = .andesite, .count = 2 };
+    if (flags[4] and flags[5]) return .{ .item = .polished_granite, .count = 1 };
+    if (flags[6] and flags[7]) return .{ .item = .fence_gate, .count = 1 };
+    if (flags[8] and flags[9]) return .{ .item = .sculk_vein, .count = 4 };
     return null;
 }
 
@@ -6449,6 +6500,10 @@ pub const Inventory = struct {
             return;
         }
         if (wave13CraftingRecipe(self.craft_grid)) |output| {
+            self.craft_output = output;
+            return;
+        }
+        if (wave14CraftingRecipe(self.craft_grid)) |output| {
             self.craft_output = output;
             return;
         }
@@ -11651,4 +11706,25 @@ test "Wave 13 item metadata and 2x2 recipes preserve BlockId capacity" {
     var inv = Inventory.init();
     const recipes = [_]struct { a: ItemType, b: ItemType, out: ItemType, count: u8 }{ .{ .a = .cobblestone, .b = .moss_block, .out = .mossy_cobblestone, .count = 1 }, .{ .a = .boat, .b = .chest, .out = .chest_boat, .count = 1 }, .{ .a = .bamboo_mosaic, .b = .bamboo, .out = .bamboo_raft, .count = 1 }, .{ .a = .wool, .b = .wood_planks, .out = .bed, .count = 1 }, .{ .a = .sunflower, .b = .bone_meal, .out = .sunflower, .count = 2 }, .{ .a = .dirt, .b = .leaf_litter, .out = .podzol, .count = 1 } };
     for (recipes) |recipe_item| { inv.craft_grid = .{ .{ .item = recipe_item.a, .count = 1 }, .{ .item = recipe_item.b, .count = 1 }, .{}, .{} }; inv.updateCrafting(); try std.testing.expectEqual(recipe_item.out, inv.craft_output.item); try std.testing.expectEqual(recipe_item.count, inv.craft_output.count); }
+}
+
+
+test "Wave 14 item metadata and 2x2 recipes preserve BlockId capacity" {
+    try std.testing.expectEqual(@as(u16, 522), @intFromEnum(ItemType.granite));
+    try std.testing.expectEqual(@as(u16, 532), @intFromEnum(ItemType.sculk_vein));
+    try std.testing.expectEqual(@as(u8, 16), ItemType.wooden_sign.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 64), ItemType.granite.maxStackSize());
+    try std.testing.expectEqualStrings("Granite", ItemType.granite.name());
+    try std.testing.expectEqualStrings("Wooden Sign", ItemType.wooden_sign.name());
+    try std.testing.expectEqual(@as(u8, 255), @intFromEnum(BlockId.leaf_litter));
+    var inv = Inventory.init();
+    const recipes = [_]struct { a: ItemType, b: ItemType, out: ItemType, count: u8 }{
+        .{ .a = .cobblestone, .b = .nether_quartz, .out = .diorite, .count = 2 },
+        .{ .a = .diorite, .b = .nether_quartz, .out = .granite, .count = 1 },
+        .{ .a = .diorite, .b = .cobblestone, .out = .andesite, .count = 2 },
+        .{ .a = .granite, .b = .stonecutter, .out = .polished_granite, .count = 1 },
+        .{ .a = .oak_fence, .b = .stick, .out = .fence_gate, .count = 1 },
+        .{ .a = .sculk, .b = .echo_shard, .out = .sculk_vein, .count = 4 },
+    };
+    for (recipes) |recipe| { inv.craft_grid = .{ .{ .item = recipe.a, .count = 1 }, .{ .item = recipe.b, .count = 1 }, .{}, .{} }; inv.updateCrafting(); try std.testing.expectEqual(recipe.out, inv.craft_output.item); try std.testing.expectEqual(recipe.count, inv.craft_output.count); }
 }

@@ -472,3 +472,17 @@ Rough priority order. Completed milestones marked **[x]**.
 408. [x] **Boat Watercraft** — Chest boats, passenger seating, hitboxes, fall negation, and bubble-column motion (`src/world/boat_watercraft.zig`).
 409. [x] **Lead & Leash Mechanics** — Lead crafting, elastic tension, snapping, fence knots, and boat towing (`src/world/lead_leash_mechanics.zig`).
 410. [x] **Bed Sleep Mechanics** — Colored beds, sleep windows, monster checks, respawn explosions, and bounce behavior (`src/world/bed_sleep_mechanics.zig`).
+
+
+## Wave 14 Integration (Milestones 411–420)
+
+411. [x] **Igneous Stone Masonry** — Granite, diorite, andesite synthesis, polished variants, and stonecutter yields (`src/world/igneous_stone_masonry.zig`).
+412. [x] **Glazed Terracotta Mosaic** — Rotated 2×2 symmetry, facing placement, and piston non-adhesion (`src/world/glazed_terracotta_mosaic.zig`).
+413. [x] **Lighting Fixtures** — Lanterns, soul lanterns, chains, end rods, and light-level rules (`src/world/lighting_fixtures.zig`).
+414. [x] **Wooden Signs** — Twelve wood species, sixteen-angle rotation, dual-sided text, glow ink, and waxing (`src/world/wooden_signs.zig`).
+415. [x] **Fences, Gates & Walls** — Collision heights, connections, wall posts, and Nether fence gaps (`src/world/fences_gates_walls.zig`).
+416. [x] **Doors, Trapdoors & Crawl** — Trapdoor crawl triggers, ladder bridges, and zombie door breaking (`src/world/doors_trapdoors_crawl.zig`).
+417. [x] **Sculk Growth & Harvest** — Hoe harvesting, catalyst charge, XP storage, and bloom rules (`src/world/sculk_growth_harvest.zig`).
+418. [x] **Anvil Repair Mechanics** — Prior-work penalties, 39-level cap, and unit repairs (`src/world/anvil_repair_mechanics.zig`).
+419. [x] **Loom & Shield Banners** — Reusable stencils, six-layer cloning, and shield heraldry (`src/world/loom_shield_banners.zig`).
+420. [x] **TNT Demolition Physics** — Crafting, 80-tick/chain fuses, underwater dampening, and drops (`src/world/tnt_demolition_physics.zig`).
