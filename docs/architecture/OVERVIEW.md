@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-17 (Session 375)
+Last updated: 2026-10-17 (Session 377)
 
 ## Project Structure
 
@@ -135,3 +135,20 @@ Saddle, and weighted pressure plates; `BlockId` remains at 255. Inventory
 metadata covers names, colors, and stack limits. The 2x2 grid adds glazed
 terracotta and light/heavy weighted plate recipes; Wither Rose, Name Tag, and
 Saddle remain drop/loot-style items.
+
+### Wave 7 domain modules
+
+Milestones 341–350 add `allay_collector.zig`, `note_block_instruments.zig`,
+`equine_genetics.zig`, `companion_pets.zig`, `panda_genetics.zig`,
+`dolphin_navigation.zig`, `bee_pollination.zig`, `cartography_maps.zig`,
+`processing_workstations.zig`, and `boots_and_armor_stands.zig`. The modules
+own focused deterministic rules and standalone tests. `main.zig` imports them,
+advances representative Allay, Dolphin, and Bee state, and queries the pure
+interaction helpers from the frame loop; entity/world mutation remains owned
+by the game systems that will connect those interactions.
+
+Wave 7 adds ItemTypes 462–469 for locator/explorer maps, glass panes, horse
+armor, and Frost Walker Boots. Inventory metadata includes names, colors,
+stack limits, and armor durability/classification where relevant. The 2x2
+grid creates locator maps, duplicates explorer maps, and crafts glass panes;
+`BlockId` stays unchanged at 255.

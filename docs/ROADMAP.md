@@ -378,3 +378,16 @@ Rough priority order. Completed milestones marked **[x]**.
 338. [x] **Dimensional Anchors** — Variable portal frames, 8:1 coordinate links, Respawn Anchor charges, and wrong-dimension explosions (`src/world/dimensional_anchors.zig`).
 339. [x] **Precision Redstone Sensors** — Target Block accuracy, solar/lunar Daylight Detector, Observer pulse timing, and weighted plates (`src/world/precision_redstone_sensors.zig`).
 340. [x] **Snow Golem AI** — Snowball targeting/cooldown, pumpkin shearing, snow trails, and warm-biome melting (`src/world/snow_golem_ai.zig`).
+
+## Wave 7 Integration (Milestones 341–350)
+
+341. [x] **Allay Collector** — Item-filter matching, 32-block dropped-item collection, note-block delivery tether, owner immunity, and regeneration (`src/world/allay_collector.zig`).
+342. [x] **Note Block Instruments** — Under-block instrument resolution, 25-step pitch table, mob-head sound override, and air-above muffle rule (`src/world/note_block_instruments.zig`).
+343. [x] **Equine Genetics** — Horse coat/stat breeding, taming, jump charge, saddlebags, and skeleton-horse trap rules (`src/world/equine_genetics.zig`).
+344. [x] **Companion Pets** — Parrot perching/mimicry and poison, cat bed gifts, and biome-sensitive wolf coats (`src/world/companion_pets.zig`).
+345. [x] **Panda Genetics** — Two-allele personality expression, baby sneeze drops, and bamboo breeding (`src/world/panda_genetics.zig`).
+346. [x] **Dolphin Navigation** — Raw-fish structure waypointing, swim-speed synergy, air/moisture survival, and item play (`src/world/dolphin_navigation.zig`).
+347. [x] **Bee Pollination** — Nectar flight, crop fertilization, calm harvest, and post-sting countdown (`src/world/bee_pollination.zig`).
+348. [x] **Cartography Maps** — Five zoom tiers, glass-pane locking, banner waypoints, and explorer-map edge cursors (`src/world/cartography_maps.zig`).
+349. [x] **Processing Workstations** — Stonecutter yield, blast-furnace/smoker cycles, fuel durations, and retained smelting XP (`src/world/processing_workstations.zig`).
+350. [x] **Boots & Armor Stands** — Thirteen armor-stand poses, equipment swaps, Frost Walker ice, and Soul Speed (`src/world/boots_and_armor_stands.zig`).

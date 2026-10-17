@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-17 (Session 376)
+Last updated: 2026-10-17 (Session 377)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 4757 passing unit tests across 231 build/test steps
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 4920 passing unit tests across 251 build/test steps
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -46,7 +46,12 @@ Last updated: 2026-10-17 (Session 376)
 - All ten world modules have standalone build/test targets and are imported into `main.zig`, where stateful timers and representative domain/interaction hooks are advanced or queried.
 - ItemTypes 456–461 add Wither Rose, Glazed Terracotta, Name Tag, Saddle, and Light/Heavy Weighted Pressure Plates with metadata and 2x2 recipes for glazed terracotta and weighted plates. `BlockId` remains unchanged at 255.
 
+## Wave 7 Integration
+- Milestones 341–350 are integrated on `main`: Allay Collector, Note Block Instruments, Equine Genetics, Companion Pets, Panda Genetics, Dolphin Navigation, Bee Pollination, Cartography Maps, Processing Workstations, and Boots/Armor Stands.
+- All ten world modules have standalone test targets and are imported by `main.zig`; representative transient state is ticked and deterministic mechanics are queried through the frame loop.
+- ItemTypes 462–469 add locator/explorer maps, glass panes, four horse armor types, and Frost Walker Boots with names, colors, and stack limits. The 2x2 crafting grid supports locator-map creation, explorer-map duplication, and glass panes. `BlockId` remains unchanged at 255.
+
 ## Active State
-- Main branch stable (Phase 8: Milestones 43-340)
-- All tests passing (4757/4757 tests across 231 build/test steps)
+- Main branch stable (Phase 8: Milestones 43-350)
+- All tests passing (4920/4920 tests across 251 build/test steps)
 - Remote and local branches pruned clean
