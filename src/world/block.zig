@@ -243,9 +243,20 @@ pub const BlockId = enum(u8) {
     torchflower_crop = 232,
     torchflower = 233,
     pitcher_plant = 234,
+    cherry_log = 235,
+    cherry_leaves = 236,
+    cherry_planks = 237,
+    pink_petals = 238,
+    chiseled_bookshelf = 239,
+    hanging_sign = 240,
+    bamboo_mosaic = 241,
+    creaking_heart = 242,
+    pale_oak_log = 243,
+    open_eyeblossom = 244,
+    resin_bricks = 245,
 
     pub fn is_solid(self: BlockId) bool {
-        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .wooden_trapdoor_open and self != .iron_trapdoor_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .end_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand and self != .lantern and self != .soul_lantern and self != .chain and self != .iron_bars and self != .tripwire_hook_off and self != .tripwire_hook_on and self != .cobweb and self != .end_crystal and self != .end_rod and self != .chorus_plant and self != .chorus_flower and self != .dragon_head and self != .end_gateway and self != .conduit and self != .kelp and self != .sea_pickle and self != .rail and self != .powered_rail and self != .detector_rail and self != .activator_rail and self != .redstone_comparator_off and self != .redstone_comparator_on and self != .tripwire and self != .wheat_crop and self != .lightning_rod and self != .amethyst_cluster and self != .sugar_cane and self != .moss_carpet and self != .cave_vines and self != .cave_vines_lit and self != .flower_pot and self != .powder_snow and self != .bamboo and self != .scaffolding and self != .sweet_berry_bush and self != .torchflower_crop and self != .torchflower and self != .pitcher_plant;
+        return self != .air and self != .water and self != .lava and self != .ladder and self != .torch and self != .wooden_door_open and self != .iron_door_open and self != .wooden_trapdoor_open and self != .iron_trapdoor_open and self != .pressure_plate_up and self != .pressure_plate_down and self != .redstone_wire_off and self != .redstone_wire_on and self != .lever_off and self != .lever_on and self != .repeater_off and self != .repeater_on and self != .redstone_torch_off and self != .redstone_torch_on and self != .campfire and self != .nether_portal and self != .end_portal and self != .nether_wart and self != .soul_torch and self != .soul_campfire and self != .wither_skull_block and self != .weeping_vines and self != .twisting_vines and self != .crimson_fungus and self != .warped_fungus and self != .brewing_stand and self != .lantern and self != .soul_lantern and self != .chain and self != .iron_bars and self != .tripwire_hook_off and self != .tripwire_hook_on and self != .cobweb and self != .end_crystal and self != .end_rod and self != .chorus_plant and self != .chorus_flower and self != .dragon_head and self != .end_gateway and self != .conduit and self != .kelp and self != .sea_pickle and self != .rail and self != .powered_rail and self != .detector_rail and self != .activator_rail and self != .redstone_comparator_off and self != .redstone_comparator_on and self != .tripwire and self != .wheat_crop and self != .lightning_rod and self != .amethyst_cluster and self != .sugar_cane and self != .moss_carpet and self != .cave_vines and self != .cave_vines_lit and self != .flower_pot and self != .powder_snow and self != .bamboo and self != .scaffolding and self != .sweet_berry_bush and self != .torchflower_crop and self != .torchflower and self != .pitcher_plant and self != .pink_petals and self != .hanging_sign and self != .open_eyeblossom;
     }
 
     pub fn is_sponge(self: BlockId) bool {
@@ -313,7 +324,7 @@ pub const BlockId = enum(u8) {
     }
 
     pub fn is_transparent(self: BlockId) bool {
-        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .end_portal or self == .nether_brick_fence or self == .oak_fence or self == .armor_stand or self == .enchantment_table or self == .anvil or self == .grindstone or self == .composter or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block or self == .beacon or self == .weeping_vines or self == .twisting_vines or self == .crimson_fungus or self == .warped_fungus or self == .brewing_stand or self == .stonecutter or self == .lantern or self == .soul_lantern or self == .chain or self == .iron_bars or self == .tripwire_hook_off or self == .tripwire_hook_on or self == .cobweb or self == .end_portal_frame or self == .end_portal_frame_filled or self == .end_crystal or self == .dragon_egg or self == .end_rod or self == .chorus_plant or self == .chorus_flower or self == .shulker_box or self == .dragon_head or self == .end_gateway or self == .conduit or self == .kelp or self == .sea_pickle or self == .rail or self == .powered_rail or self == .detector_rail or self == .activator_rail or self == .redstone_comparator_off or self == .redstone_comparator_on or self == .slime_block or self == .piston_head or self == .wooden_trapdoor_closed or self == .wooden_trapdoor_open or self == .iron_trapdoor_closed or self == .iron_trapdoor_open or self == .tripwire or self == .wheat_crop or self == .lectern or self == .honey_block or self == .lightning_rod or self == .amethyst_cluster or self == .tinted_glass or self == .bell or self == .sugar_cane or self == .sculk_sensor_off or self == .sculk_sensor_on or self == .cake or self == .pointed_dripstone or self == .moss_carpet or self == .cave_vines or self == .cave_vines_lit or self == .flower_pot or self == .ice or self == .powder_snow or self == .bamboo or self == .scaffolding or self == .sweet_berry_bush or self == .ender_chest or self == .copper_grate or self == .decorated_pot or self == .heavy_core or self == .trial_spawner or self == .vault or self == .calibrated_sculk_sensor or self == .mangrove_roots or self == .mangrove_propagule or self == .torchflower_crop or self == .torchflower or self == .pitcher_plant;
+        return self == .air or self == .water or self == .lava or self == .glass or self == .ladder or self == .torch or self == .wooden_door_closed or self == .wooden_door_open or self == .iron_door_closed or self == .iron_door_open or self == .pressure_plate_up or self == .pressure_plate_down or self == .redstone_wire_off or self == .redstone_wire_on or self == .lever_off or self == .lever_on or self == .repeater_off or self == .repeater_on or self == .redstone_torch_off or self == .redstone_torch_on or self == .nether_portal or self == .end_portal or self == .nether_brick_fence or self == .oak_fence or self == .armor_stand or self == .enchantment_table or self == .anvil or self == .grindstone or self == .composter or self == .nether_wart or self == .soul_torch or self == .soul_campfire or self == .spawner_cage or self == .wither_skull_block or self == .beacon or self == .weeping_vines or self == .twisting_vines or self == .crimson_fungus or self == .warped_fungus or self == .brewing_stand or self == .stonecutter or self == .lantern or self == .soul_lantern or self == .chain or self == .iron_bars or self == .tripwire_hook_off or self == .tripwire_hook_on or self == .cobweb or self == .end_portal_frame or self == .end_portal_frame_filled or self == .end_crystal or self == .dragon_egg or self == .end_rod or self == .chorus_plant or self == .chorus_flower or self == .shulker_box or self == .dragon_head or self == .end_gateway or self == .conduit or self == .kelp or self == .sea_pickle or self == .rail or self == .powered_rail or self == .detector_rail or self == .activator_rail or self == .redstone_comparator_off or self == .redstone_comparator_on or self == .slime_block or self == .piston_head or self == .wooden_trapdoor_closed or self == .wooden_trapdoor_open or self == .iron_trapdoor_closed or self == .iron_trapdoor_open or self == .tripwire or self == .wheat_crop or self == .lectern or self == .honey_block or self == .lightning_rod or self == .amethyst_cluster or self == .tinted_glass or self == .bell or self == .sugar_cane or self == .sculk_sensor_off or self == .sculk_sensor_on or self == .cake or self == .pointed_dripstone or self == .moss_carpet or self == .cave_vines or self == .cave_vines_lit or self == .flower_pot or self == .ice or self == .powder_snow or self == .bamboo or self == .scaffolding or self == .sweet_berry_bush or self == .ender_chest or self == .copper_grate or self == .decorated_pot or self == .heavy_core or self == .trial_spawner or self == .vault or self == .calibrated_sculk_sensor or self == .mangrove_roots or self == .mangrove_propagule or self == .torchflower_crop or self == .torchflower or self == .pitcher_plant or self == .cherry_leaves or self == .pink_petals or self == .hanging_sign or self == .open_eyeblossom;
     }
 
     /// 0.0 = lit by sun only. 1.0 = full glow even at midnight.
@@ -379,6 +390,8 @@ pub const BlockId = enum(u8) {
             .calibrated_sculk_sensor => 0.85,
             .ochre_froglight, .verdant_froglight, .pearlescent_froglight => 1.0,
             .torchflower => 0.40,
+            .creaking_heart => 0.60,
+            .open_eyeblossom => 0.20,
             .detector_rail => 0.5,
             .activator_rail => 0.55,
             else => 0.0,
@@ -387,7 +400,7 @@ pub const BlockId = enum(u8) {
 
     pub fn isFlammable(self: BlockId) bool {
         return switch (self) {
-            .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest, .note_block, .jukebox, .oak_fence, .armor_stand, .smithing_table, .cartography_table, .fletching_table, .composter, .loom, .wooden_door_closed, .wooden_door_open, .wooden_trapdoor_closed, .wooden_trapdoor_open, .pressure_plate_up, .pressure_plate_down, .weeping_vines, .twisting_vines, .target_block, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight, .dried_kelp_block, .wheat_crop, .bookshelf, .lectern, .beehive, .sugar_cane, .barrel, .moss_block, .moss_carpet, .cave_vines, .cave_vines_lit, .bamboo, .scaffolding, .sweet_berry_bush => true,
+            .wood, .leaves, .wood_planks, .crafting_table, .wool, .chest, .note_block, .jukebox, .oak_fence, .armor_stand, .smithing_table, .cartography_table, .fletching_table, .composter, .loom, .wooden_door_closed, .wooden_door_open, .wooden_trapdoor_closed, .wooden_trapdoor_open, .pressure_plate_up, .pressure_plate_down, .weeping_vines, .twisting_vines, .target_block, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight, .dried_kelp_block, .wheat_crop, .bookshelf, .lectern, .beehive, .sugar_cane, .barrel, .moss_block, .moss_carpet, .cave_vines, .cave_vines_lit, .bamboo, .scaffolding, .sweet_berry_bush, .cherry_log, .cherry_leaves, .cherry_planks, .pink_petals, .chiseled_bookshelf, .hanging_sign, .bamboo_mosaic, .pale_oak_log, .open_eyeblossom => true,
             else => false,
         };
     }
@@ -743,6 +756,26 @@ pub const BlockId = enum(u8) {
             .mangrove_planks => .{ .x = 2, .y = 2 }, // Rich crimson-brown mangrove timber
             .torchflower_crop, .torchflower => .{ .x = 6, .y = 1 }, // Radiant orange-yellow torchflower
             .pitcher_plant => .{ .x = 7, .y = 1 }, // Towering indigo pitcher plant
+            .cherry_log => switch (face_idx) {
+                0, 1 => .{ .x = 2, .y = 1 },
+                else => .{ .x = 1, .y = 1 },
+            },
+            .cherry_leaves => .{ .x = 3, .y = 1 },
+            .cherry_planks => .{ .x = 2, .y = 2 },
+            .pink_petals => .{ .x = 6, .y = 1 },
+            .chiseled_bookshelf => .{ .x = 3, .y = 4 },
+            .hanging_sign => .{ .x = 2, .y = 2 },
+            .bamboo_mosaic => .{ .x = 2, .y = 2 },
+            .creaking_heart => switch (face_idx) {
+                0, 1 => .{ .x = 2, .y = 1 },
+                else => .{ .x = 7, .y = 6 },
+            },
+            .pale_oak_log => switch (face_idx) {
+                0, 1 => .{ .x = 2, .y = 1 },
+                else => .{ .x = 1, .y = 1 },
+            },
+            .open_eyeblossom => .{ .x = 6, .y = 1 },
+            .resin_bricks => .{ .x = 4, .y = 4 },
             .gold_ore => .{ .x = 3, .y = 2 }, // Stone matrix with rich golden ore nuggets
             .gold_block => .{ .x = 4, .y = 7 }, // Polished gilded auric gold ingot block
             .redstone_block => .{ .x = 3, .y = 7 }, // Radiant crystalline ruby-red block
@@ -1011,6 +1044,12 @@ pub fn hardness(block: BlockId) f32 {
         .ochre_froglight, .verdant_froglight, .pearlescent_froglight => 0.3,
         .mangrove_roots, .muddy_mangrove_roots, .mangrove_log, .mangrove_planks => 2.0,
         .mangrove_propagule, .torchflower_crop, .torchflower, .pitcher_plant => 0.0,
+        .cherry_log, .cherry_planks, .bamboo_mosaic, .pale_oak_log => 2.0,
+        .cherry_leaves => 0.2,
+        .pink_petals, .open_eyeblossom => 0.0,
+        .chiseled_bookshelf, .hanging_sign => 1.5,
+        .creaking_heart => 5.0,
+        .resin_bricks => 1.5,
         .bookshelf => 1.5,
         .lectern => 2.5,
         .gold_ore, .gold_block => 3.0,
@@ -1093,7 +1132,7 @@ pub const ToolTier = enum(u8) {
 
 pub fn requiredTier(block: BlockId) ToolTier {
     return switch (block) {
-        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .bell, .deepslate, .cobbled_deepslate, .polished_deepslate, .deepslate_bricks, .iron_block, .dripstone_block, .pointed_dripstone, .terracotta, .blue_ice, .ender_chest, .mud_bricks, .copper_bulb_off, .copper_bulb_on, .chiseled_copper, .copper_grate, .heavy_core, .crafter, .trial_spawner, .vault, .tuff, .polished_tuff, .tuff_bricks, .chiseled_tuff, .calibrated_sculk_sensor, .ochre_froglight, .verdant_froglight, .pearlescent_froglight => .wooden,
+        .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .iron_door_closed, .iron_door_open, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .bell, .deepslate, .cobbled_deepslate, .polished_deepslate, .deepslate_bricks, .iron_block, .dripstone_block, .pointed_dripstone, .terracotta, .blue_ice, .ender_chest, .mud_bricks, .copper_bulb_off, .copper_bulb_on, .chiseled_copper, .copper_grate, .heavy_core, .crafter, .trial_spawner, .vault, .tuff, .polished_tuff, .tuff_bricks, .chiseled_tuff, .calibrated_sculk_sensor, .ochre_froglight, .verdant_froglight, .pearlescent_froglight, .resin_bricks, .creaking_heart => .wooden,
         else => .hand,
     };
 }
@@ -1105,7 +1144,7 @@ pub fn isWoodClass(block: BlockId) bool {
         .wood, .wood_planks, .crafting_table, .chest, .wooden_door_closed, .wooden_door_open,
         .wooden_trapdoor_closed, .wooden_trapdoor_open, .oak_fence, .note_block, .jukebox,
         .smithing_table, .cartography_table, .fletching_table, .loom, .composter, .daylight_detector,
-        .daylight_detector_inverted, .bookshelf, .lectern, .beehive, .barrel, .bamboo, .scaffolding, .mangrove_roots, .muddy_mangrove_roots, .mangrove_propagule, .mangrove_log, .mangrove_planks => true,
+        .daylight_detector_inverted, .bookshelf, .lectern, .beehive, .barrel, .bamboo, .scaffolding, .mangrove_roots, .muddy_mangrove_roots, .mangrove_propagule, .mangrove_log, .mangrove_planks, .cherry_log, .cherry_planks, .chiseled_bookshelf, .hanging_sign, .bamboo_mosaic, .creaking_heart, .pale_oak_log => true,
         else => false,
     };
 }
@@ -1229,19 +1268,19 @@ pub fn toolMultiplier(held_tool_id: u16, block: BlockId) f32 {
     }
     if (held_tool_id == TOOL_NETHERITE_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .obsidian, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .bell, .deepslate, .cobbled_deepslate, .polished_deepslate, .deepslate_bricks, .iron_block, .dripstone_block, .pointed_dripstone, .terracotta, .blue_ice, .ender_chest, .mud_bricks, .copper_bulb_off, .copper_bulb_on, .chiseled_copper, .copper_grate, .heavy_core, .crafter, .trial_spawner, .vault, .tuff, .polished_tuff, .tuff_bricks, .chiseled_tuff, .calibrated_sculk_sensor, .ochre_froglight, .verdant_froglight, .pearlescent_froglight => 6.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .obsidian, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .bell, .deepslate, .cobbled_deepslate, .polished_deepslate, .deepslate_bricks, .iron_block, .dripstone_block, .pointed_dripstone, .terracotta, .blue_ice, .ender_chest, .mud_bricks, .copper_bulb_off, .copper_bulb_on, .chiseled_copper, .copper_grate, .heavy_core, .crafter, .trial_spawner, .vault, .tuff, .polished_tuff, .tuff_bricks, .chiseled_tuff, .calibrated_sculk_sensor, .ochre_froglight, .verdant_froglight, .pearlescent_froglight, .resin_bricks, .creaking_heart => 6.0,
             else => 3.0,
         };
     }
     if (held_tool_id == TOOL_DIAMOND_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .obsidian, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .bell, .deepslate, .cobbled_deepslate, .polished_deepslate, .deepslate_bricks, .iron_block, .dripstone_block, .pointed_dripstone, .terracotta, .blue_ice, .ender_chest, .mud_bricks, .copper_bulb_off, .copper_bulb_on, .chiseled_copper, .copper_grate, .heavy_core, .crafter, .trial_spawner, .vault, .tuff, .polished_tuff, .tuff_bricks, .chiseled_tuff, .calibrated_sculk_sensor, .ochre_froglight, .verdant_froglight, .pearlescent_froglight => 5.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .obsidian, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .bell, .deepslate, .cobbled_deepslate, .polished_deepslate, .deepslate_bricks, .iron_block, .dripstone_block, .pointed_dripstone, .terracotta, .blue_ice, .ender_chest, .mud_bricks, .copper_bulb_off, .copper_bulb_on, .chiseled_copper, .copper_grate, .heavy_core, .crafter, .trial_spawner, .vault, .tuff, .polished_tuff, .tuff_bricks, .chiseled_tuff, .calibrated_sculk_sensor, .ochre_froglight, .verdant_froglight, .pearlescent_froglight, .resin_bricks, .creaking_heart => 5.0,
             else => 2.5,
         };
     }
     if (held_tool_id == TOOL_IRON_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .obsidian, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .bell, .deepslate, .cobbled_deepslate, .polished_deepslate, .deepslate_bricks, .iron_block, .dripstone_block, .pointed_dripstone, .terracotta, .blue_ice, .ender_chest, .mud_bricks, .copper_bulb_off, .copper_bulb_on, .chiseled_copper, .copper_grate, .heavy_core, .crafter, .trial_spawner, .vault, .tuff, .polished_tuff, .tuff_bricks, .chiseled_tuff, .calibrated_sculk_sensor, .ochre_froglight, .verdant_froglight, .pearlescent_froglight => 4.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .obsidian, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .bell, .deepslate, .cobbled_deepslate, .polished_deepslate, .deepslate_bricks, .iron_block, .dripstone_block, .pointed_dripstone, .terracotta, .blue_ice, .ender_chest, .mud_bricks, .copper_bulb_off, .copper_bulb_on, .chiseled_copper, .copper_grate, .heavy_core, .crafter, .trial_spawner, .vault, .tuff, .polished_tuff, .tuff_bricks, .chiseled_tuff, .calibrated_sculk_sensor, .ochre_froglight, .verdant_froglight, .pearlescent_froglight, .resin_bricks, .creaking_heart => 4.0,
             else => 2.0,
         };
     }
@@ -1253,7 +1292,7 @@ pub fn toolMultiplier(held_tool_id: u16, block: BlockId) f32 {
     }
     if (held_tool_id == TOOL_WOODEN_PICKAXE) {
         return switch (block) {
-            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .bell, .deepslate, .cobbled_deepslate, .polished_deepslate, .deepslate_bricks, .iron_block, .dripstone_block, .pointed_dripstone, .terracotta, .blue_ice, .ender_chest, .mud_bricks, .copper_bulb_off, .copper_bulb_on, .chiseled_copper, .copper_grate, .heavy_core, .crafter, .trial_spawner, .vault, .tuff, .polished_tuff, .tuff_bricks, .chiseled_tuff, .calibrated_sculk_sensor, .ochre_froglight, .verdant_froglight, .pearlescent_froglight => 3.0,
+            .stone, .cobblestone, .coal_ore, .iron_ore, .sandstone, .brick, .furnace, .nether_quartz_ore, .quartz_block, .quartz_pillar, .chiseled_quartz_block, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .purpur_block, .purpur_pillar, .shulker_box, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .bell, .deepslate, .cobbled_deepslate, .polished_deepslate, .deepslate_bricks, .iron_block, .dripstone_block, .pointed_dripstone, .terracotta, .blue_ice, .ender_chest, .mud_bricks, .copper_bulb_off, .copper_bulb_on, .chiseled_copper, .copper_grate, .heavy_core, .crafter, .trial_spawner, .vault, .tuff, .polished_tuff, .tuff_bricks, .chiseled_tuff, .calibrated_sculk_sensor, .ochre_froglight, .verdant_froglight, .pearlescent_froglight, .resin_bricks, .creaking_heart => 3.0,
             else => 1.5,
         };
     }
@@ -1491,6 +1530,17 @@ pub const block_defs = std.EnumArray(BlockId, BlockDef).init(.{
     .torchflower_crop = .{ .name = "torchflower_crop", .solid = false, .transparent = true, .fluid = false },
     .torchflower = .{ .name = "torchflower", .solid = false, .transparent = true, .fluid = false },
     .pitcher_plant = .{ .name = "pitcher_plant", .solid = false, .transparent = true, .fluid = false },
+    .cherry_log = .{ .name = "cherry_log", .solid = true, .transparent = false, .fluid = false },
+    .cherry_leaves = .{ .name = "cherry_leaves", .solid = true, .transparent = true, .fluid = false },
+    .cherry_planks = .{ .name = "cherry_planks", .solid = true, .transparent = false, .fluid = false },
+    .pink_petals = .{ .name = "pink_petals", .solid = false, .transparent = true, .fluid = false },
+    .chiseled_bookshelf = .{ .name = "chiseled_bookshelf", .solid = true, .transparent = false, .fluid = false },
+    .hanging_sign = .{ .name = "hanging_sign", .solid = false, .transparent = true, .fluid = false },
+    .bamboo_mosaic = .{ .name = "bamboo_mosaic", .solid = true, .transparent = false, .fluid = false },
+    .creaking_heart = .{ .name = "creaking_heart", .solid = true, .transparent = false, .fluid = false },
+    .pale_oak_log = .{ .name = "pale_oak_log", .solid = true, .transparent = false, .fluid = false },
+    .open_eyeblossom = .{ .name = "open_eyeblossom", .solid = false, .transparent = true, .fluid = false },
+    .resin_bricks = .{ .name = "resin_bricks", .solid = true, .transparent = false, .fluid = false },
     .gold_ore = .{ .name = "gold_ore", .solid = true, .transparent = false, .fluid = false },
     .gold_block = .{ .name = "gold_block", .solid = true, .transparent = false, .fluid = false },
     .redstone_block = .{ .name = "redstone_block", .solid = true, .transparent = false, .fluid = false },
@@ -1942,11 +1992,11 @@ pub fn footstepType(block: BlockId) FootstepType {
         .grass, .weeping_vines, .twisting_vines, .hay_bale, .crimson_fungus, .warped_fungus, .shroomlight => .grass,
         .stone, .obsidian, .cobblestone, .coal_ore, .iron_ore, .glass, .sandstone, .brick, .nether_brick, .nether_brick_fence, .chiseled_nether_brick, .ancient_debris, .respawn_anchor, .crying_obsidian, .lodestone, .basalt, .blackstone, .gilded_blackstone, .dispenser, .dropper, .hopper, .brewing_stand, .cauldron, .enchantment_table, .anvil, .grindstone, .smoker, .blast_furnace, .stonecutter, .lantern, .soul_lantern, .chain, .iron_bars, .end_stone, .end_portal_frame, .end_portal_frame_filled, .dragon_egg, .dragon_head, .end_gateway, .purpur_block, .purpur_pillar, .shulker_box, .prismarine, .prismarine_bricks, .dark_prismarine, .sea_lantern, .conduit => .stone,
         .sponge, .wet_sponge, .slime_block => .grass,
-        .piston, .sticky_piston, .piston_head, .observer_off, .observer_on, .iron_trapdoor_closed, .iron_trapdoor_open, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .tinted_glass, .bell, .deepslate, .cobbled_deepslate, .polished_deepslate, .deepslate_bricks, .iron_block, .dripstone_block, .pointed_dripstone, .terracotta, .flower_pot, .ice, .packed_ice, .blue_ice, .ender_chest, .mud_bricks, .copper_bulb_off, .copper_bulb_on, .chiseled_copper, .copper_grate, .decorated_pot, .heavy_core, .crafter, .trial_spawner, .vault, .tuff, .polished_tuff, .tuff_bricks, .chiseled_tuff, .calibrated_sculk_sensor, .ochre_froglight, .verdant_froglight, .pearlescent_froglight => .stone,
+        .piston, .sticky_piston, .piston_head, .observer_off, .observer_on, .iron_trapdoor_closed, .iron_trapdoor_open, .redstone_block, .redstone_ore, .lit_redstone_ore, .gold_ore, .gold_block, .diamond_ore, .diamond_block, .emerald_ore, .emerald_block, .lapis_ore, .lapis_block, .copper_ore, .copper_block, .exposed_copper, .weathered_copper, .oxidized_copper, .waxed_copper_block, .lightning_rod, .amethyst_block, .budding_amethyst, .amethyst_cluster, .tinted_glass, .bell, .deepslate, .cobbled_deepslate, .polished_deepslate, .deepslate_bricks, .iron_block, .dripstone_block, .pointed_dripstone, .terracotta, .flower_pot, .ice, .packed_ice, .blue_ice, .ender_chest, .mud_bricks, .copper_bulb_off, .copper_bulb_on, .chiseled_copper, .copper_grate, .decorated_pot, .heavy_core, .crafter, .trial_spawner, .vault, .tuff, .polished_tuff, .tuff_bricks, .chiseled_tuff, .calibrated_sculk_sensor, .ochre_froglight, .verdant_froglight, .pearlescent_froglight, .resin_bricks => .stone,
         .kelp, .dried_kelp_block, .sea_pickle => .grass,
         .rail, .powered_rail, .detector_rail, .activator_rail, .redstone_comparator_off, .redstone_comparator_on => .stone,
         .end_rod, .chorus_plant, .chorus_flower => .wood,
-        .wood, .target_block, .wooden_trapdoor_closed, .wooden_trapdoor_open, .tripwire, .daylight_detector, .daylight_detector_inverted, .note_block, .jukebox, .oak_fence, .armor_stand, .smithing_table, .cartography_table, .fletching_table, .composter, .loom, .tripwire_hook_off, .tripwire_hook_on => .wood,
+        .wood, .target_block, .wooden_trapdoor_closed, .wooden_trapdoor_open, .tripwire, .daylight_detector, .daylight_detector_inverted, .note_block, .jukebox, .oak_fence, .armor_stand, .smithing_table, .cartography_table, .fletching_table, .composter, .loom, .tripwire_hook_off, .tripwire_hook_on, .cherry_log, .cherry_planks, .chiseled_bookshelf, .hanging_sign, .bamboo_mosaic, .creaking_heart, .pale_oak_log => .wood,
         .dirt => .dirt,
         .sand, .suspicious_sand => .sand,
         .snow, .powder_snow => .snow,
@@ -3506,4 +3556,25 @@ test "calibrated sculk sensor, froglight, mangrove, and torchflower block proper
     try std.testing.expect(isWoodClass(.mangrove_planks));
     try std.testing.expect(!BlockId.torchflower.is_solid());
     try std.testing.expectEqual(BlockId.torchflower.emissive(), 0.40);
+}
+
+test "cherry, chiseled bookshelf, hanging sign, bamboo mosaic, creaking heart, pale oak, and resin blocks" {
+    try std.testing.expect(BlockId.cherry_log.is_solid());
+    try std.testing.expect(BlockId.cherry_leaves.is_transparent());
+    try std.testing.expect(BlockId.cherry_planks.is_solid());
+    try std.testing.expect(!BlockId.pink_petals.is_solid());
+    try std.testing.expect(BlockId.pink_petals.is_transparent());
+    try std.testing.expect(BlockId.chiseled_bookshelf.is_solid());
+    try std.testing.expect(!BlockId.hanging_sign.is_solid());
+    try std.testing.expect(BlockId.bamboo_mosaic.is_solid());
+    try std.testing.expect(BlockId.creaking_heart.is_solid());
+    try std.testing.expectEqual(BlockId.creaking_heart.emissive(), 0.60);
+    try std.testing.expect(BlockId.pale_oak_log.is_solid());
+    try std.testing.expect(!BlockId.open_eyeblossom.is_solid());
+    try std.testing.expectEqual(BlockId.open_eyeblossom.emissive(), 0.20);
+    try std.testing.expect(BlockId.resin_bricks.is_solid());
+    try std.testing.expect(isWoodClass(.cherry_planks));
+    try std.testing.expect(isWoodClass(.pale_oak_log));
+    try std.testing.expectEqual(FootstepType.stone, footstepType(.resin_bricks));
+    try std.testing.expectEqual(FootstepType.wood, footstepType(.cherry_log));
 }

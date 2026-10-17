@@ -32,6 +32,12 @@ const autocrafter_mod = @import("world/autocrafter.zig");
 const calibrated_sculk_mod = @import("world/calibrated_sculk.zig");
 const frog_mod = @import("world/frog.zig");
 const goat_horn_mod = @import("world/goat_horn.zig");
+const cherry_grove_mod = @import("world/cherry_grove.zig");
+const chiseled_bookshelf_mod = @import("world/chiseled_bookshelf.zig");
+const hanging_sign_mod = @import("world/hanging_sign.zig");
+const camel_mod = @import("world/camel.zig");
+const decorated_pot_mod = @import("world/decorated_pot.zig");
+const pale_garden_mod = @import("world/pale_garden.zig");
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
 const fluid_mod = @import("world/fluid_wash.zig");
@@ -289,6 +295,12 @@ pub fn main() !void {
     var ender_vault = ender_chest_mod.EnderVault{};
     var beacon_supercharge_timer: f32 = 0.0;
     var goat_horn_cooldown: f32 = 0.0;
+    var camel_mount = camel_mod.CamelState.init();
+    var active_decorated_pot = decorated_pot_mod.DecoratedPot.init();
+    var active_chiseled_bookshelf = chiseled_bookshelf_mod.ChiseledBookshelf.init(0, 64, 0, .north);
+    var active_hanging_sign = hanging_sign_mod.HangingSignText.init();
+    var creaking_heart = pale_garden_mod.CreakingHeartState.init(.{ 0, 64, 0 }, true);
+    var active_petals_cluster = cherry_grove_mod.PinkPetalsCluster.init(0, 64, 0, 1, .north);
     const IgnitedFlame = struct { x: i32, y: i32, z: i32, t: f32 };
     var flames: [32]IgnitedFlame = undefined;
     var flame_count: usize = 0;
@@ -516,6 +528,10 @@ pub fn main() !void {
         night_vision_timer = lush_caves_mod.tickNightVision(night_vision_timer, dt);
         alchemy_buffs_mod.tickBuffs(&buff_timers, dt);
         goat_horn_cooldown = goat_horn_mod.tickHornCooldown(goat_horn_cooldown, dt);
+        camel_mount.update(dt);
+        active_decorated_pot.updateAnimation(dt);
+        active_decorated_pot.tick();
+        creaking_heart.tick(1);
         beacon_supercharge_timer = @max(0.0, beacon_supercharge_timer - dt);
         if (beacon_supercharge_timer > 0.0) {
             player.health = beacon_aura_mod.tickBeaconRegen(player.health, 20.0, 1, dt);
@@ -4829,6 +4845,87 @@ pub fn main() !void {
                     particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 12);
                     std.debug.print("calibrated sculk sensor filtered resonance at ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
                     flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .chiseled_bookshelf) {
+                    const held_slot = &inventory.slots[selected_slot];
+                    const held_is_book = chiseled_bookshelf_mod.isBookItem(@intFromEnum(held_slot.item));
+                    const slot_idx: u3 = @intCast(@min(5, @as(usize, @intCast(@abs(hit_f.x +% hit_f.y +% hit_f.z))) % 6));
+                    const res = active_chiseled_bookshelf.interactSlot(slot_idx, held_is_book, @intFromEnum(held_slot.item));
+                    if (res.action == .inserted) {
+                        held_slot.decrement(1);
+                        audio.play(.click_on, 0.85);
+                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.72, 0.54, 0.36 }, 6);
+                        std.debug.print("inserted book into Chiseled Bookshelf slot {d} (signal={d})\n", .{ slot_idx, active_chiseled_bookshelf.comparatorSignal() });
+                    } else if (res.action == .retrieved and res.item_id != 0) {
+                        const out_item: inventory_mod.ItemType = @enumFromInt(res.item_id);
+                        _ = inventory.addItem(out_item, 1);
+                        audio.play(.click_off, 0.85);
+                        std.debug.print("retrieved {s} from Chiseled Bookshelf slot {d}\n", .{ out_item.name(), slot_idx });
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .hanging_sign) {
+                    const held_slot = &inventory.slots[selected_slot];
+                    if (held_slot.item == .honeycomb and !active_hanging_sign.is_waxed) {
+                        held_slot.decrement(1);
+                        _ = active_hanging_sign.applyHoneycomb();
+                        audio.play(.glowstone_chime, 0.9);
+                        particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 10);
+                        std.debug.print("waxed Hanging Sign with Honeycomb (editing locked)\n", .{});
+                    } else if (held_slot.item == .glow_berries and !active_hanging_sign.is_waxed) {
+                        _ = active_hanging_sign.applyGlowInkSac(.front);
+                        audio.play(.click_on, 0.8);
+                        particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 8);
+                        std.debug.print("illuminated Hanging Sign with glowing luminescence\n", .{});
+                    } else {
+                        audio.play(.click_on, 0.7);
+                        std.debug.print("interacted with Hanging Sign: [Front: {s}]\n", .{ active_hanging_sign.getLine(.front, 0) });
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .creaking_heart) {
+                    audio.playAt(.portal_hum, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.95, 32.0);
+                    particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.88, 0.46, 0.22 }, 10);
+                    std.debug.print("Creaking Heart pulsing resonance (active={any}, puppet_linked={any})\n", .{ creaking_heart.is_active, creaking_heart.linked_creaking_id != null });
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .pink_petals) {
+                    const held_slot = &inventory.slots[selected_slot];
+                    if (held_slot.item == .bone_meal) {
+                        held_slot.decrement(1);
+                        const bres = cherry_grove_mod.applyBoneMealToPetals(&active_petals_cluster);
+                        if (bres.dropped_petals > 0) {
+                            _ = inventory.addItem(.pink_petals, bres.dropped_petals);
+                        }
+                        audio.play(.click_on, 0.8);
+                        particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.3, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 12);
+                        std.debug.print("fertilized Pink Petals with Bone Meal (cluster count={d})\n", .{ active_petals_cluster.count });
+                    } else if (held_slot.item == .pink_petals) {
+                        if (cherry_grove_mod.addPetalToCluster(&active_petals_cluster)) {
+                            held_slot.decrement(1);
+                            audio.play(.click_on, 0.7);
+                            std.debug.print("added Pink Petal to cluster (count={d})\n", .{ active_petals_cluster.count });
+                        }
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .decorated_pot) {
+                    const held_slot = &inventory.slots[selected_slot];
+                    if (!held_slot.isEmpty()) {
+                        const accepted = active_decorated_pot.insertItem(@intFromEnum(held_slot.item), 1, held_slot.item.maxStackSize());
+                        if (accepted > 0) {
+                            held_slot.decrement(accepted);
+                            audio.play(.anvil_clang, 0.6);
+                            particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.85, 0.45, 0.25 }, 6);
+                            std.debug.print("stored 1x {s} in Decorated Pot (count={d}, fullness signal={d})\n", .{ held_slot.item.name(), active_decorated_pot.count, active_decorated_pot.comparatorSignal() });
+                        } else {
+                            audio.play(.click_off, 0.7);
+                        }
+                    } else {
+                        const withdrawn = active_decorated_pot.withdraw(1);
+                        if (withdrawn.count > 0) {
+                            const out_item: inventory_mod.ItemType = @enumFromInt(withdrawn.item_id);
+                            _ = inventory.addItem(out_item, withdrawn.count);
+                            audio.play(.click_off, 0.85);
+                            std.debug.print("withdrew {d}x {s} from Decorated Pot\n", .{ withdrawn.count, out_item.name() });
+                        }
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .crafter) {
                     const held_slot = &inventory.slots[selected_slot];
                     if (autocrafter_mod.autoCraftSingleInput(@intFromEnum(held_slot.item))) |acr| {
@@ -6026,6 +6123,17 @@ pub fn main() !void {
                 audio.play(.glowstone_chime, 1.0);
                 particles.spawnFireworkBurst(.{ player.pos.x, player.pos.y + 1.2, player.pos.z }, 20);
                 std.debug.print("sounded triumphant Goat Horn across 64m!\n", .{});
+            } else if (held_eat.item == .cactus) {
+                if (camel_mount.feedCactus()) {
+                    inventory.slots[selected_slot].decrement(1);
+                    audio.play(.eat, 0.7);
+                    particles.spawnGlowstoneShimmer(.{ player.pos.x, player.pos.y + 1.5, player.pos.z }, 8);
+                    std.debug.print("fed Cactus to Camel (health={d:.1}/{d:.1}, in_love={any})\n", .{ camel_mount.health, camel_mod.camel_max_health, camel_mount.in_love });
+                }
+            } else if (held_eat.item == .lead) {
+                _ = camel_mount.togglePosture();
+                audio.play(.click_on, 0.8);
+                std.debug.print("toggled Camel posture: {s}\n", .{@tagName(camel_mount.posture)});
             } else if (held_eat.item == .wind_charge) {
                 player.vel_y = wind_charge_mod.calculateSelfBoostVy(player.vel_y, cam.pitch);
                 inventory.slots[selected_slot].decrement(1);

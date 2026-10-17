@@ -403,6 +403,19 @@ pub const ItemType = enum(u16) {
     torchflower = 397,
     pitcher_pod = 398,
     pitcher_plant = 399,
+    cherry_log = 400,
+    cherry_leaves = 401,
+    cherry_planks = 402,
+    pink_petals = 403,
+    chiseled_bookshelf = 404,
+    hanging_sign = 405,
+    bamboo_mosaic = 406,
+    creaking_heart = 407,
+    pale_oak_log = 408,
+    open_eyeblossom = 409,
+    resin_bricks = 410,
+    resin_clump = 411,
+    resin_brick = 412,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -618,6 +631,17 @@ pub const ItemType = enum(u16) {
             .torchflower => .torchflower,
             .pitcher_pod => .pitcher_plant,
             .pitcher_plant => .pitcher_plant,
+            .cherry_log => .cherry_log,
+            .cherry_leaves => .cherry_leaves,
+            .cherry_planks => .cherry_planks,
+            .pink_petals => .pink_petals,
+            .chiseled_bookshelf => .chiseled_bookshelf,
+            .hanging_sign => .hanging_sign,
+            .bamboo_mosaic => .bamboo_mosaic,
+            .creaking_heart => .creaking_heart,
+            .pale_oak_log => .pale_oak_log,
+            .open_eyeblossom => .open_eyeblossom,
+            .resin_bricks => .resin_bricks,
             else => null,
         };
     }
@@ -840,6 +864,17 @@ pub const ItemType = enum(u16) {
             .torchflower_crop => .torchflower_seeds,
             .torchflower => .torchflower,
             .pitcher_plant => .pitcher_plant,
+            .cherry_log => .cherry_log,
+            .cherry_leaves => .cherry_leaves,
+            .cherry_planks => .cherry_planks,
+            .pink_petals => .pink_petals,
+            .chiseled_bookshelf => .chiseled_bookshelf,
+            .hanging_sign => .hanging_sign,
+            .bamboo_mosaic => .bamboo_mosaic,
+            .creaking_heart => .creaking_heart,
+            .pale_oak_log => .pale_oak_log,
+            .open_eyeblossom => .open_eyeblossom,
+            .resin_bricks => .resin_bricks,
             .piston_head => .piston,
         };
     }
@@ -928,7 +963,7 @@ pub const ItemType = enum(u16) {
 
     pub fn isCompostable(self: ItemType) bool {
         return switch (self) {
-            .leaves, .hay_bale, .wheat_seeds, .wheat, .bread, .paper, .sugar_cane, .pumpkin, .carved_pumpkin, .pumpkin_pie, .cake, .melon, .melon_slice, .moss_block, .moss_carpet, .glow_berries, .carrot, .bamboo, .potato, .baked_potato, .beetroot, .cocoa_beans, .cookie, .sweet_berries, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp, .sea_pickle, .raw_salmon, .cooked_salmon, .pufferfish, .tropical_fish => true,
+            .leaves, .hay_bale, .wheat_seeds, .wheat, .bread, .paper, .sugar_cane, .pumpkin, .carved_pumpkin, .pumpkin_pie, .cake, .melon, .melon_slice, .moss_block, .moss_carpet, .glow_berries, .carrot, .bamboo, .potato, .baked_potato, .beetroot, .cocoa_beans, .cookie, .sweet_berries, .crimson_fungus, .warped_fungus, .weeping_vines, .twisting_vines, .nether_wart, .cactus, .raw_pork, .raw_mutton, .rotten_flesh, .raw_cod, .cooked_cod, .kelp, .dried_kelp, .sea_pickle, .raw_salmon, .cooked_salmon, .pufferfish, .tropical_fish, .cherry_leaves, .pink_petals, .open_eyeblossom => true,
             else => false,
         };
     }
@@ -1353,6 +1388,19 @@ pub const ItemType = enum(u16) {
             .torchflower => "Torchflower",
             .pitcher_pod => "Pitcher Pod",
             .pitcher_plant => "Pitcher Plant",
+            .cherry_log => "Cherry Log",
+            .cherry_leaves => "Cherry Leaves",
+            .cherry_planks => "Cherry Planks",
+            .pink_petals => "Pink Petals",
+            .chiseled_bookshelf => "Chiseled Bookshelf",
+            .hanging_sign => "Hanging Sign",
+            .bamboo_mosaic => "Bamboo Mosaic",
+            .creaking_heart => "Creaking Heart",
+            .pale_oak_log => "Pale Oak Log",
+            .open_eyeblossom => "Open Eyeblossom",
+            .resin_bricks => "Resin Bricks",
+            .resin_clump => "Resin Clump",
+            .resin_brick => "Resin Brick",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1694,6 +1742,19 @@ pub const ItemType = enum(u16) {
             .torchflower => .{ 0.98, 0.62, 0.14, 0.95 },
             .pitcher_pod => .{ 0.36, 0.52, 0.74, 0.95 },
             .pitcher_plant => .{ 0.38, 0.46, 0.84, 0.95 },
+            .cherry_log => .{ 0.44, 0.28, 0.32, 0.95 },
+            .cherry_leaves => .{ 0.96, 0.68, 0.82, 0.95 },
+            .cherry_planks => .{ 0.92, 0.70, 0.74, 0.95 },
+            .pink_petals => .{ 0.98, 0.65, 0.80, 0.95 },
+            .chiseled_bookshelf => .{ 0.72, 0.54, 0.36, 0.95 },
+            .hanging_sign => .{ 0.78, 0.60, 0.42, 0.95 },
+            .bamboo_mosaic => .{ 0.82, 0.76, 0.38, 0.95 },
+            .creaking_heart => .{ 0.88, 0.46, 0.22, 0.95 },
+            .pale_oak_log => .{ 0.86, 0.86, 0.84, 0.95 },
+            .open_eyeblossom => .{ 0.94, 0.50, 0.18, 0.95 },
+            .resin_bricks => .{ 0.86, 0.42, 0.20, 0.95 },
+            .resin_clump => .{ 0.92, 0.48, 0.16, 0.95 },
+            .resin_brick => .{ 0.82, 0.38, 0.18, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -2609,6 +2670,84 @@ pub const Inventory = struct {
                     self.craft_output = .{ .item = .mangrove_planks, .count = 4 };
                     return;
                 }
+                if (sl.item == .cherry_log) {
+                    self.craft_output = .{ .item = .cherry_planks, .count = 4 };
+                    return;
+                }
+            }
+        }
+
+        // Recipe 292: Chiseled Bookshelf: 2 Planks + 1 Book -> 1 Chiseled Bookshelf
+        if (non_empty == 3) {
+            var plk_c: u8 = 0;
+            var bk_c: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .wood_planks or sl.item == .mangrove_planks or sl.item == .cherry_planks) plk_c += 1;
+                if (sl.item == .book) bk_c += 1;
+            }
+            if (plk_c == 2 and bk_c == 1) {
+                self.craft_output = .{ .item = .chiseled_bookshelf, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 293: Hanging Sign: 2 Chains + 1 Planks/Log -> 2 Hanging Signs
+        if (non_empty == 3) {
+            var chn_c: u8 = 0;
+            var wd_c: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .chain) chn_c += 1;
+                if (sl.item == .wood_planks or sl.item == .cherry_planks or sl.item == .mangrove_planks or sl.item == .wood or sl.item == .cherry_log or sl.item == .mangrove_log or sl.item == .pale_oak_log) wd_c += 1;
+            }
+            if (chn_c == 2 and wd_c == 1) {
+                self.craft_output = .{ .item = .hanging_sign, .count = 2 };
+                return;
+            }
+        }
+
+        // Recipe 294: Bamboo Mosaic: 4 Bamboo (or 2 horizontal Bamboo) -> 1 Bamboo Mosaic
+        if (non_empty == 4) {
+            var bmb_c: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .bamboo) bmb_c += 1;
+            }
+            if (bmb_c == 4) {
+                self.craft_output = .{ .item = .bamboo_mosaic, .count = 1 };
+                return;
+            }
+        }
+        if (non_empty == 2) {
+            if ((g0 == .bamboo and g1 == .bamboo and g2 == .none and g3 == .none) or
+                (g2 == .bamboo and g3 == .bamboo and g0 == .none and g1 == .none))
+            {
+                self.craft_output = .{ .item = .bamboo_mosaic, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 295: Resin Bricks: 4 Resin Brick items -> 1 Resin Bricks block
+        if (non_empty == 4) {
+            var rsb_c: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .resin_brick or sl.item == .resin_clump) rsb_c += 1;
+            }
+            if (rsb_c == 4) {
+                self.craft_output = .{ .item = .resin_bricks, .count = 1 };
+                return;
+            }
+        }
+
+        // Recipe 296: Creaking Heart: 2 Pale Oak Logs + 1 Resin Bricks -> 1 Creaking Heart
+        if (non_empty == 3) {
+            var pol_c: u8 = 0;
+            var rsbk_c: u8 = 0;
+            for (self.craft_grid) |sl| {
+                if (sl.item == .pale_oak_log) pol_c += 1;
+                if (sl.item == .resin_bricks) rsbk_c += 1;
+            }
+            if (pol_c == 2 and rsbk_c == 1) {
+                self.craft_output = .{ .item = .creaking_heart, .count = 1 };
+                return;
             }
         }
         if (non_empty == 2) {
@@ -10069,4 +10208,83 @@ test "calibrated sculk sensor, mangrove, and goat horn recipes 287-290" {
     inv.craft_grid[1] = .{ .item = .mud, .count = 1 };
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .muddy_mangrove_roots);
+}
+
+test "milestones 293-298 item roundtrips, properties, and recipes" {
+    var inv = Inventory.init();
+
+    // Roundtrips
+    try std.testing.expectEqual(ItemType.cherry_log.toBlockId().?, .cherry_log);
+    try std.testing.expectEqual(ItemType.fromBlockId(.cherry_log), .cherry_log);
+    try std.testing.expectEqual(ItemType.chiseled_bookshelf.toBlockId().?, .chiseled_bookshelf);
+    try std.testing.expectEqual(ItemType.fromBlockId(.chiseled_bookshelf), .chiseled_bookshelf);
+    try std.testing.expectEqual(ItemType.hanging_sign.toBlockId().?, .hanging_sign);
+    try std.testing.expectEqual(ItemType.fromBlockId(.hanging_sign), .hanging_sign);
+    try std.testing.expectEqual(ItemType.bamboo_mosaic.toBlockId().?, .bamboo_mosaic);
+    try std.testing.expectEqual(ItemType.fromBlockId(.bamboo_mosaic), .bamboo_mosaic);
+    try std.testing.expectEqual(ItemType.creaking_heart.toBlockId().?, .creaking_heart);
+    try std.testing.expectEqual(ItemType.fromBlockId(.creaking_heart), .creaking_heart);
+    try std.testing.expectEqual(ItemType.pale_oak_log.toBlockId().?, .pale_oak_log);
+    try std.testing.expectEqual(ItemType.fromBlockId(.pale_oak_log), .pale_oak_log);
+    try std.testing.expectEqual(ItemType.resin_bricks.toBlockId().?, .resin_bricks);
+    try std.testing.expectEqual(ItemType.fromBlockId(.resin_bricks), .resin_bricks);
+
+    // Compostable checks
+    try std.testing.expect(ItemType.cherry_leaves.isCompostable());
+    try std.testing.expect(ItemType.pink_petals.isCompostable());
+    try std.testing.expect(ItemType.open_eyeblossom.isCompostable());
+
+    // Recipe 291: Cherry Planks
+    inv.craft_grid[0] = .{ .item = .cherry_log, .count = 1 };
+    inv.craft_grid[1] = .{};
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .cherry_planks);
+    try std.testing.expectEqual(inv.craft_output.count, 4);
+
+    // Recipe 292: Chiseled Bookshelf
+    inv.craft_grid[0] = .{ .item = .cherry_planks, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .book, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .cherry_planks, .count = 1 };
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .chiseled_bookshelf);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 293: Hanging Sign
+    inv.craft_grid[0] = .{ .item = .chain, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .chain, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .cherry_planks, .count = 1 };
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .hanging_sign);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+
+    // Recipe 294: Bamboo Mosaic
+    inv.craft_grid[0] = .{ .item = .bamboo, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .bamboo, .count = 1 };
+    inv.craft_grid[2] = .{};
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .bamboo_mosaic);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 295: Resin Bricks
+    inv.craft_grid[0] = .{ .item = .resin_brick, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .resin_brick, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .resin_brick, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .resin_brick, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .resin_bricks);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
+
+    // Recipe 296: Creaking Heart
+    inv.craft_grid[0] = .{ .item = .pale_oak_log, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .resin_bricks, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .pale_oak_log, .count = 1 };
+    inv.craft_grid[3] = .{};
+    inv.updateCrafting();
+    try std.testing.expectEqual(inv.craft_output.item, .creaking_heart);
+    try std.testing.expectEqual(inv.craft_output.count, 1);
 }
