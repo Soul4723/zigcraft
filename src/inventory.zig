@@ -459,6 +459,12 @@ pub const ItemType = enum(u16) {
     splash_harming_potion = 453,
     water_bottle = 454,
     harming_potion = 455,
+    wither_rose = 456,
+    glazed_terracotta = 457,
+    name_tag = 458,
+    saddle = 459,
+    light_weighted_pressure_plate = 460,
+    heavy_weighted_pressure_plate = 461,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -1045,7 +1051,8 @@ pub const ItemType = enum(u16) {
         return switch (self) {
             .none => 0,
             .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged, .splash_water_bottle, .splash_harming_potion, .water_bottle, .harming_potion => 16,
-            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn, .wolf_armor, .bundle, .ghast_harness, .bucket_of_axolotl, .banner, .banner_pattern_stencil, .copper_golem_statue, .music_disc_5, .music_disc_relic, .music_disc_precipice, .music_disc_creator, .enchanted_book, .mending_book, .raid_omen_banner, .evoker_fang_totem => 1,
+            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn, .wolf_armor, .bundle, .ghast_harness, .bucket_of_axolotl, .banner, .banner_pattern_stencil, .copper_golem_statue, .music_disc_5, .music_disc_relic, .music_disc_precipice, .music_disc_creator, .enchanted_book, .mending_book, .raid_omen_banner, .evoker_fang_totem, .saddle => 1,
+            .wither_rose, .glazed_terracotta, .light_weighted_pressure_plate, .heavy_weighted_pressure_plate => 64,
             .potion_of_turtle_master => 16,
             else => 64,
         };
@@ -1505,6 +1512,12 @@ pub const ItemType = enum(u16) {
             .splash_harming_potion => "Splash Potion of Harming",
             .water_bottle => "Water Bottle",
             .harming_potion => "Potion of Harming",
+            .wither_rose => "Wither Rose",
+            .glazed_terracotta => "Glazed Terracotta",
+            .name_tag => "Name Tag",
+            .saddle => "Saddle",
+            .light_weighted_pressure_plate => "Light Weighted Pressure Plate",
+            .heavy_weighted_pressure_plate => "Heavy Weighted Pressure Plate",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1902,6 +1915,12 @@ pub const ItemType = enum(u16) {
             .splash_harming_potion => .{ 0.58, 0.16, 0.30, 0.85 },
             .water_bottle => .{ 0.28, 0.62, 0.94, 0.85 },
             .harming_potion => .{ 0.58, 0.16, 0.30, 0.85 },
+            .wither_rose => .{ 0.16, 0.08, 0.18, 0.95 },
+            .glazed_terracotta => .{ 0.73, 0.37, 0.28, 0.95 },
+            .name_tag => .{ 0.79, 0.66, 0.38, 0.95 },
+            .saddle => .{ 0.53, 0.25, 0.12, 0.95 },
+            .light_weighted_pressure_plate => .{ 0.92, 0.75, 0.24, 0.95 },
+            .heavy_weighted_pressure_plate => .{ 0.72, 0.72, 0.74, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -2172,6 +2191,28 @@ pub const Inventory = struct {
         var non_empty: usize = 0;
         for (self.craft_grid) |s| {
             if (!s.isEmpty()) non_empty += 1;
+        }
+
+        // Wave 6 weighted plates must precede the existing generic weapon recipes.
+        if (non_empty == 2) {
+            var gold_nugget_count: usize = 0;
+            var iron_ingot_count: usize = 0;
+            for (self.craft_grid) |slot| {
+                if (slot.item == .gold_nugget) gold_nugget_count += 1;
+                if (slot.item == .iron_ingot) iron_ingot_count += 1;
+            }
+            const horizontal_pair = (g0 == .gold_nugget and g1 == .gold_nugget and g2 == .none and g3 == .none) or
+                (g2 == .gold_nugget and g3 == .gold_nugget and g0 == .none and g1 == .none);
+            const iron_horizontal_pair = (g0 == .iron_ingot and g1 == .iron_ingot and g2 == .none and g3 == .none) or
+                (g2 == .iron_ingot and g3 == .iron_ingot and g0 == .none and g1 == .none);
+            if (gold_nugget_count == 2 and horizontal_pair) {
+                self.craft_output = .{ .item = .light_weighted_pressure_plate, .count = 1 };
+                return;
+            }
+            if (iron_ingot_count == 2 and iron_horizontal_pair) {
+                self.craft_output = .{ .item = .heavy_weighted_pressure_plate, .count = 1 };
+                return;
+            }
         }
 
         // Recipe 1: 1 Wood Log -> 4 Wood Planks (any single slot)
@@ -5982,6 +6023,12 @@ pub const Inventory = struct {
             }
         }
 
+        // Wave 6 recipes: four Terracotta make Glazed Terracotta; two matching
+        // metal ingredients make their weighted plate variant.
+        if (non_empty == 4 and g0 == .terracotta and g1 == .terracotta and g2 == .terracotta and g3 == .terracotta) {
+            self.craft_output = .{ .item = .glazed_terracotta, .count = 1 };
+            return;
+        }
         self.craft_output.clear();
     }
 
@@ -10890,4 +10937,30 @@ test "Wave 5 trophy and splash potion item metadata and recipes" {
     inv.craft_grid = .{ .{ .item = .harming_potion, .count = 1 }, .{ .item = .gunpowder, .count = 1 }, .{}, .{} };
     inv.updateCrafting();
     try std.testing.expectEqual(ItemType.splash_harming_potion, inv.craft_output.item);
+}
+
+test "Wave 6 item metadata and 2x2 recipes preserve BlockId capacity" {
+    try std.testing.expectEqual(@as(u16, 456), @intFromEnum(ItemType.wither_rose));
+    try std.testing.expectEqual(@as(u16, 461), @intFromEnum(ItemType.heavy_weighted_pressure_plate));
+    try std.testing.expectEqual(@as(u8, 64), ItemType.wither_rose.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 64), ItemType.name_tag.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 1), ItemType.saddle.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 64), ItemType.glazed_terracotta.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 255), @intFromEnum(BlockId.leaf_litter));
+    try std.testing.expectEqualStrings("Wither Rose", ItemType.wither_rose.name());
+    try std.testing.expectEqualStrings("Name Tag", ItemType.name_tag.name());
+    try std.testing.expect(ItemType.wither_rose.getColor()[0] < 0.2);
+
+    var inv = Inventory.init();
+    inv.craft_grid = .{ .{ .item = .terracotta, .count = 1 }, .{ .item = .terracotta, .count = 1 }, .{ .item = .terracotta, .count = 1 }, .{ .item = .terracotta, .count = 1 } };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.glazed_terracotta, inv.craft_output.item);
+
+    inv.craft_grid = .{ .{ .item = .gold_nugget, .count = 1 }, .{ .item = .gold_nugget, .count = 1 }, .{}, .{} };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.light_weighted_pressure_plate, inv.craft_output.item);
+
+    inv.craft_grid = .{ .{}, .{}, .{ .item = .iron_ingot, .count = 1 }, .{ .item = .iron_ingot, .count = 1 } };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.heavy_weighted_pressure_plate, inv.craft_output.item);
 }

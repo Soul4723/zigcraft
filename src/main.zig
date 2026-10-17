@@ -70,6 +70,16 @@ const blaze_fortress_mod = @import("world/blaze_fortress.zig");
 const ghast_deflection_mod = @import("world/ghast_deflection.zig");
 const slime_mitosis_mod = @import("world/slime_mitosis.zig");
 const phantom_insomnia_mod = @import("world/phantom_insomnia.zig");
+const wither_boss_mod = @import("world/wither_boss.zig");
+const ender_dragon_fight_mod = @import("world/ender_dragon_fight.zig");
+const villager_curing_mod = @import("world/villager_curing.zig");
+const piston_adhesion_mod = @import("world/piston_adhesion.zig");
+const fishing_treasure_mod = @import("world/fishing_treasure.zig");
+const shield_thorns_combat_mod = @import("world/shield_thorns_combat.zig");
+const trident_enchantments_mod = @import("world/trident_enchantments.zig");
+const dimensional_anchors_mod = @import("world/dimensional_anchors.zig");
+const precision_redstone_sensors_mod = @import("world/precision_redstone_sensors.zig");
+const snow_golem_ai_mod = @import("world/snow_golem_ai.zig");
 
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
@@ -379,6 +389,20 @@ pub fn main() !void {
     var active_blaze_brewing = blaze_fortress_mod.BrewingStandFuelState{};
     var phantom_insomnia = phantom_insomnia_mod.InsomniaTracker{};
     var active_phantom = phantom_insomnia_mod.PhantomFlightState{};
+    // Wave 6 domain states expose the tick and interaction entry points to the frame loop.
+    var active_wither = wither_boss_mod.WitherBoss{};
+    var active_dragon_breath = ender_dragon_fight_mod.DragonBreathCloud{ .pos = .{ 0.0, 64.0, 0.0 } };
+    var active_villager_cure = villager_curing_mod.ZombieVillagerCureState{};
+    var active_shield = shield_thorns_combat_mod.ShieldBlockState{};
+    var active_respawn_anchor = dimensional_anchors_mod.RespawnAnchorState{};
+    var active_observer = precision_redstone_sensors_mod.ObserverPulseGenerator{};
+    var active_snow_golem = snow_golem_ai_mod.SnowGolemState{};
+    var wither_spawn_tick_accumulator: f32 = 0.0;
+    var active_loyalty_trident = trident_enchantments_mod.LoyaltyTridentState{
+        .pos = .{ 0.0, 64.0, 0.0 }, .owner_pos = .{ 0.0, 64.0, 0.0 },
+        .loyalty_level = 1, .is_returning = false,
+        .fell_into_void_below_y_minus_64 = false,
+    };
     const IgnitedFlame = struct { x: i32, y: i32, z: i32, t: f32 };
     var flames: [32]IgnitedFlame = undefined;
     var flame_count: usize = 0;
@@ -653,6 +677,30 @@ pub fn main() !void {
         _ = slime_mitosis_mod.swampMoonPhaseSpawnChance(0, 0, 64);
         phantom_insomnia.tick(dt);
         active_phantom.climb(dt);
+        // A Wither only advances after a summon interaction has started it.
+        if (active_wither.spawn_ticks > 0 and active_wither.phase == .spawning_invulnerable) {
+            wither_spawn_tick_accumulator += dt;
+            while (wither_spawn_tick_accumulator >= 0.05) {
+                wither_spawn_tick_accumulator -= 0.05;
+                _ = active_wither.advanceSpawnTick();
+            }
+        }
+        active_dragon_breath.tick(dt);
+        if (active_villager_cure.is_converting) active_villager_cure.cure_timer = @max(0.0, active_villager_cure.cure_timer - dt);
+        shield_thorns_combat_mod.tickShieldBlockState(&active_shield, dt);
+        _ = trident_enchantments_mod.stepLoyaltyReturnFlight(&active_loyalty_trident, dt);
+        _ = wither_boss_mod.canSummonWitherBoss(false, false, false, 0, false);
+        _ = active_respawn_anchor.comparatorSignal();
+        _ = active_observer.tick(0, dt);
+        _ = snow_golem_ai_mod.advanceSnowGolemAttackCooldown(&active_snow_golem, dt);
+        _ = ender_dragon_fight_mod.tickDragonCrystalBeamHealing(200.0, 200.0, 33.0, dt);
+        _ = villager_curing_mod.canPanicSpawnVillageIronGolem(0, false, false, false);
+        _ = piston_adhesion_mod.evaluatePushClusterLimit(0, false);
+        _ = fishing_treasure_mod.computeFishingCategoryProbabilities(0, false);
+        _ = trident_enchantments_mod.computeImpalingDamageBonus(0, false, false);
+        _ = dimensional_anchors_mod.computeDimensionalLinkCoords(0, 64, 0, true);
+        _ = precision_redstone_sensors_mod.computeTargetBlockBullseyeSignal(0.5, 0.5, false);
+        _ = snow_golem_ai_mod.canThrowSnowball(active_snow_golem, .{ 0.0, 64.0, 0.0 });
         _ = enchanting_grindstone_mod.computeEnchantSlotOffers(0);
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);
