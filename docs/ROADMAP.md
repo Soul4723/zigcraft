@@ -417,3 +417,17 @@ Rough priority order. Completed milestones marked **[x]**.
 368. [x] **Armor Toughness & EPF** — Toughness mitigation, protection EPF cap, and fire/blast modifiers (`src/world/armor_toughness_epf.zig`).
 369. [x] **Hopper Item Sorter** — Hopper transfer cadence/locking, ImpulseSV filter math, and Dropper/Dispenser behavior (`src/world/hopper_item_sorter.zig`).
 370. [x] **Beacon Pyramid** — Four pyramid tiers, power selection, stained-glass tinting, and beam transparency (`src/world/beacon_pyramid.zig`).
+
+
+## Wave 10 Integration (Milestones 371–380)
+
+371. [x] **Badlands Mesa** — Terracotta band strata color selection, bonus gold ore distribution, surface abandoned mineshafts, and red sand crafts (`src/world/badlands_mesa.zig`).
+372. [x] **Concrete & Masonry** — 16 concrete dye colors, concrete powder crafting from sand/gravel/dye, water hydration rules, and pickaxe requirements (`src/world/concrete_masonry.zig`).
+373. [x] **Snowy Plains & Igloo Laboratory** — Polar bear cub protection aggression, igloo laboratory basement brewing/chest loot, zombie villager curing cells, and 8-tier snow layer stacking (`src/world/igloo_snowy_plains.zig`).
+374. [x] **Jungle Canopy Ecology** — 2x2 mega jungle tree 31-block growth clearance, cocoa pod 3-stage growth and bone meal, ocelot trust mechanics, and downward vine propagation (`src/world/jungle_canopy.zig`).
+375. [x] **Savanna & Acacia Mechanics** — Arid rain suppression, lightning fire rules, diagonal/forked acacia tree generation, wood family recipes, coarse dirt hoe tilling, termite mounds, and ostriches (`src/world/savanna_acacia.zig`).
+376. [x] **Dark Forest Canopy** — 2x2 dark oak tree growth clearance, giant red/brown mushroom generation with stem/cap drops, and daytime hostile mob canopy shade light threshold (`src/world/dark_forest_canopy.zig`).
+377. [x] **Shipwreck & Buried Treasure** — Supply/map/treasure chest loot tables, 3-axis shipwreck generation, buried treasure coordinates, guaranteed Heart of the Sea, and conduit crafting (`src/world/shipwreck_treasure.zig`).
+378. [x] **Nether Biomes & Basalt Generator** — Nether Wastes/Soul Sand Valley/Crimson & Warped Forests/Basalt Deltas biomes, huge fungi growth, nylium spread, blue ice basalt generation, and soul fire (`src/world/nether_biomes.zig`).
+379. [x] **Firework Pyrotechnics** — Firework stars, burst shapes, dye tinting, flight durations 1–3, kinetic/aoe blast damage, elytra boost safety, and crossbow loaded rocket mechanics (`src/world/firework_pyrotechnics.zig`).
+380. [x] **Cauldron Fluid Mechanics** — Empty/water/lava/powder snow states, 0–3 fluid levels, redstone comparator output 0–3, dripstone stalactite filling, rain/snow weather accumulation, and leather/banner washing (`src/world/cauldron_fluids.zig`).

@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-17 (Session 379)
+Last updated: 2026-10-17 (Session 380)
 
 ## Project Structure
 
@@ -184,3 +184,21 @@ Wave 9 adds ItemTypes 475–480 for Slowness Arrows, Item Frames, Glow Item
 Frames, Paintings, Feather Falling Books, and Stained Glass; ItemType 481 is
 the Slowness Potion ingredient used by the arrow recipe. Names, colors, and
 stack limits are defined, along with six 2x2 recipes. `BlockId` remains 255.
+
+
+### Wave 10 domain modules
+
+Milestones 371–380 add `badlands_mesa.zig`, `concrete_masonry.zig`,
+`igloo_snowy_plains.zig`, `jungle_canopy.zig`, `savanna_acacia.zig`,
+`dark_forest_canopy.zig`, `shipwreck_treasure.zig`, `nether_biomes.zig`,
+`firework_pyrotechnics.zig`, and `cauldron_fluids.zig`. Each has a standalone
+test target in `build.zig`. `main.zig` imports all ten modules, advances
+representative state (such as cauldron fill/comparator state), and queries
+biome generation, pyrotechnic damage, and fluid mechanics through the frame
+loop.
+
+Wave 10 adds ItemTypes 482–489 for Red Sandstone, Concrete Powder, Concrete,
+Buried Treasure Map, Heart of the Sea (64-stack), Firework Star, Acacia
+Planks, and Dark Oak Planks. Inventory metadata defines names, colors, stack
+limits, and seven 2x2 recipes (masonry, concrete hydration, star pyrotechnics,
+treasure maps, and wood plank varieties). `BlockId` remains unchanged at 255.

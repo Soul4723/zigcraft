@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-17 (Session 379)
+Last updated: 2026-10-17 (Session 380)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 4920 passing unit tests across 251 build/test steps
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 5440 passing unit tests across 311 build/test steps
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -62,7 +62,12 @@ Last updated: 2026-10-17 (Session 379)
 - ItemTypes 475–480 cover Slowness Arrows, Item Frames, Glow Item Frames, Paintings, Feather Falling Books, and Stained Glass. ItemType 481 adds the Slowness Potion ingredient for the arrow recipe. Metadata and six 2x2 crafting recipes are tested; `BlockId` remains unchanged at 255.
 - Zombie underwater conversion uses a small floating-point tolerance at the 45-second threshold to avoid missing a conversion due to accumulated `f32` rounding.
 
+## Wave 10 Integration
+- Milestones 371–380 are integrated on `main`: Badlands Mesa, Concrete & Masonry, Snowy Plains & Igloo Laboratory, Jungle Canopy Ecology, Savanna & Acacia Mechanics, Dark Forest Canopy, Shipwreck & Buried Treasure, Nether Biomes & Basalt Generator, Firework Pyrotechnics, and Cauldron Fluid Mechanics.
+- All ten modules have standalone build/test targets and representative frame-loop hooks in `main.zig`; domain rules and transient state are queried or advanced each tick without altering block/entity ownership boundaries.
+- ItemTypes 482–489 cover Red Sandstone, Concrete Powder, Concrete, Buried Treasure Map, Heart of the Sea (relocated to 486 with 64-stack limit), Firework Star, Acacia Planks, and Dark Oak Planks. Metadata, colors, stack sizes, and seven 2x2 recipes are covered by unit tests; `BlockId` remains unchanged at 255.
+
 ## Active State
-- Main branch stable (Phase 8: Milestones 43-370)
-- All tests passing (5265/5265 tests across 291 build/test steps)
+- Main branch stable (Phase 8: Milestones 43-380)
+- All tests passing (5440/5440 tests across 311 build/test steps)
 - Remote and local branches pruned clean
