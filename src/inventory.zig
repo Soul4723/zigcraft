@@ -473,6 +473,11 @@ pub const ItemType = enum(u16) {
     golden_horse_armor = 467,
     diamond_horse_armor = 468,
     frost_walker_boots = 469,
+    swift_sneak_book = 470,
+    reinforced_deepslate = 471,
+    milk_bucket = 472,
+    bottle_o_enchanting = 473,
+    sweeping_edge_book = 474,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
@@ -1060,7 +1065,7 @@ pub const ItemType = enum(u16) {
         return switch (self) {
             .none => 0,
             .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .heart_of_the_sea, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged, .splash_water_bottle, .splash_harming_potion, .water_bottle, .harming_potion => 16,
-            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .frost_walker_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn, .wolf_armor, .bundle, .ghast_harness, .bucket_of_axolotl, .banner, .banner_pattern_stencil, .copper_golem_statue, .music_disc_5, .music_disc_relic, .music_disc_precipice, .music_disc_creator, .enchanted_book, .mending_book, .raid_omen_banner, .evoker_fang_totem, .saddle, .empty_locator_map, .filled_explorer_map, .leather_horse_armor, .iron_horse_armor, .golden_horse_armor, .diamond_horse_armor => 1,
+            .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .frost_walker_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn, .wolf_armor, .bundle, .ghast_harness, .bucket_of_axolotl, .banner, .banner_pattern_stencil, .copper_golem_statue, .music_disc_5, .music_disc_relic, .music_disc_precipice, .music_disc_creator, .enchanted_book, .mending_book, .swift_sneak_book, .sweeping_edge_book, .milk_bucket, .raid_omen_banner, .evoker_fang_totem, .saddle, .empty_locator_map, .filled_explorer_map, .leather_horse_armor, .iron_horse_armor, .golden_horse_armor, .diamond_horse_armor => 1,
             .wither_rose, .glazed_terracotta, .light_weighted_pressure_plate, .heavy_weighted_pressure_plate, .glass_pane => 64,
             .potion_of_turtle_master => 16,
             else => 64,
@@ -1535,6 +1540,11 @@ pub const ItemType = enum(u16) {
             .golden_horse_armor => "Golden Horse Armor",
             .diamond_horse_armor => "Diamond Horse Armor",
             .frost_walker_boots => "Frost Walker Boots",
+            .swift_sneak_book => "Swift Sneak Book",
+            .reinforced_deepslate => "Reinforced Deepslate",
+            .milk_bucket => "Milk Bucket",
+            .bottle_o_enchanting => "Bottle o' Enchanting",
+            .sweeping_edge_book => "Sweeping Edge Book",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -1946,6 +1956,11 @@ pub const ItemType = enum(u16) {
             .golden_horse_armor => .{ 0.96, 0.78, 0.20, 0.95 },
             .diamond_horse_armor => .{ 0.18, 0.78, 0.82, 0.95 },
             .frost_walker_boots => .{ 0.35, 0.78, 0.92, 0.95 },
+            .swift_sneak_book => .{ 0.32, 0.58, 0.78, 0.95 },
+            .reinforced_deepslate => .{ 0.25, 0.29, 0.32, 0.95 },
+            .milk_bucket => .{ 0.90, 0.92, 0.95, 0.95 },
+            .bottle_o_enchanting => .{ 0.25, 0.72, 0.92, 0.85 },
+            .sweeping_edge_book => .{ 0.68, 0.34, 0.76, 0.95 },
             .sand => .{ 0.91, 0.84, 0.63, 0.95 },
             .glass => .{ 0.85, 0.95, 1.0, 0.65 },
             .sandstone => .{ 0.89, 0.82, 0.61, 0.95 },
@@ -2254,6 +2269,18 @@ pub const Inventory = struct {
             }
             if (has_empty_map and has_explorer_map) {
                 self.craft_output = .{ .item = .filled_explorer_map, .count = 2 };
+                return;
+            }
+            const has_book = g0 == .book or g1 == .book or g2 == .book or g3 == .book;
+            const has_enchanted_book = g0 == .enchanted_book or g1 == .enchanted_book or g2 == .enchanted_book or g3 == .enchanted_book;
+            const has_echo_shard = g0 == .echo_shard or g1 == .echo_shard or g2 == .echo_shard or g3 == .echo_shard;
+            const has_diamond = g0 == .diamond or g1 == .diamond or g2 == .diamond or g3 == .diamond;
+            if (has_book and has_echo_shard) {
+                self.craft_output = .{ .item = .swift_sneak_book, .count = 1 };
+                return;
+            }
+            if (has_enchanted_book and has_diamond) {
+                self.craft_output = .{ .item = .sweeping_edge_book, .count = 1 };
                 return;
             }
         }
@@ -11040,4 +11067,28 @@ test "Wave 7 item metadata and map and glass pane recipes preserve BlockId capac
     inv.updateCrafting();
     try std.testing.expectEqual(ItemType.glass_pane, inv.craft_output.item);
     try std.testing.expectEqual(@as(u8, 4), inv.craft_output.count);
+}
+
+test "Wave 8 item metadata and enchanted book recipes preserve BlockId capacity" {
+    try std.testing.expectEqual(@as(u16, 470), @intFromEnum(ItemType.swift_sneak_book));
+    try std.testing.expectEqual(@as(u16, 474), @intFromEnum(ItemType.sweeping_edge_book));
+    try std.testing.expectEqual(@as(u8, 255), @intFromEnum(BlockId.leaf_litter));
+    try std.testing.expectEqual(@as(u8, 1), ItemType.swift_sneak_book.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 1), ItemType.sweeping_edge_book.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 1), ItemType.milk_bucket.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 64), ItemType.reinforced_deepslate.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 64), ItemType.bottle_o_enchanting.maxStackSize());
+    try std.testing.expectEqualStrings("Reinforced Deepslate", ItemType.reinforced_deepslate.name());
+    try std.testing.expectEqualStrings("Milk Bucket", ItemType.milk_bucket.name());
+    try std.testing.expectEqualStrings("Bottle o' Enchanting", ItemType.bottle_o_enchanting.name());
+    try std.testing.expect(ItemType.reinforced_deepslate.getColor()[0] < ItemType.reinforced_deepslate.getColor()[1]);
+
+    var inv = Inventory.init();
+    inv.craft_grid = .{ .{ .item = .book, .count = 1 }, .{ .item = .echo_shard, .count = 1 }, .{}, .{} };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.swift_sneak_book, inv.craft_output.item);
+
+    inv.craft_grid = .{ .{ .item = .enchanted_book, .count = 1 }, .{ .item = .diamond, .count = 1 }, .{}, .{} };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.sweeping_edge_book, inv.craft_output.item);
 }

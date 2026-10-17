@@ -90,6 +90,16 @@ const bee_pollination_mod = @import("world/bee_pollination.zig");
 const cartography_maps_mod = @import("world/cartography_maps.zig");
 const processing_workstations_mod = @import("world/processing_workstations.zig");
 const boots_and_armor_stands_mod = @import("world/boots_and_armor_stands.zig");
+const woodland_mansion_mod = @import("world/woodland_mansion.zig");
+const ocean_monument_mod = @import("world/ocean_monument.zig");
+const ancient_city_mod = @import("world/ancient_city.zig");
+const temple_traps_mod = @import("world/temple_traps.zig");
+const stronghold_triangulation_mod = @import("world/stronghold_triangulation.zig");
+const mushroom_island_mod = @import("world/mushroom_island.zig");
+const weather_lightning_mod = @import("world/weather_lightning.zig");
+const hunger_metabolism_mod = @import("world/hunger_metabolism.zig");
+const experience_orbs_mod = @import("world/experience_orbs.zig");
+const melee_sweep_crit_mod = @import("world/melee_sweep_crit.zig");
 
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
@@ -418,6 +428,17 @@ pub fn main() !void {
     var active_dolphin = dolphin_navigation_mod.DolphinState{};
     var active_bee = bee_pollination_mod.BeePollinatorState{};
     const active_map = cartography_maps_mod.CartographyMapState{ .center_x = 0, .center_z = 0 };
+    // Wave 8 representative domain state; world/entity mutation remains caller-owned.
+    var active_vex = woodland_mansion_mod.VexState.init(woodland_mansion_mod.vex_starvation_min_delay);
+    var active_guardian_laser = ocean_monument_mod.GuardianLaserState{};
+    var desert_pyramid_trap = temple_traps_mod.DesertPyramidTrapState{};
+    var active_eye_flight = stronghold_triangulation_mod.EyeFlightState{
+        .result = stronghold_triangulation_mod.throwEyeOfEnder(.{ 0.0, 64.0, 0.0 }, .{ 64.0, 40.0, 64.0 }, 1),
+    };
+    var active_mooshroom = mushroom_island_mod.MooshroomState{};
+    var active_metabolism = hunger_metabolism_mod.MetabolismState{};
+    var active_melee_elapsed: f32 = 0.0;
+    const active_weather = weather_lightning_mod.WeatherState.clear_sky;
     const IgnitedFlame = struct { x: i32, y: i32, z: i32, t: f32 };
     var flames: [32]IgnitedFlame = undefined;
     var flame_count: usize = 0;
@@ -728,6 +749,28 @@ pub fn main() !void {
         _ = cartography_maps_mod.computeExplorerMapPlayerCursor(active_map, @intFromFloat(player.pos.x), @intFromFloat(player.pos.z));
         _ = processing_workstations_mod.stonecutterYield(.stairs);
         _ = boots_and_armor_stands_mod.frostWalkerRadius(1);
+        active_vex.tick(dt);
+        _ = woodland_mansion_mod.selectEvokerSpell(8.0, 0, 0.0, false, true);
+        _ = woodland_mansion_mod.wololoSheep(.blue);
+        _ = woodland_mansion_mod.VindicatorState.init(true).shouldJohnnyAttackMob(false, false);
+        _ = ocean_monument_mod.tickGuardianLaserBeam(&active_guardian_laser, true, 10.0, false, dt);
+        _ = ocean_monument_mod.evaluateGuardianSpikeThorns(true, true);
+        _ = ocean_monument_mod.placeSpongeInBiomeOrDimension(false, false, 1);
+        _ = ancient_city_mod.computeSwiftSneakSpeedMultiplier(true, 2);
+        _ = ancient_city_mod.doesActionEmitSculkVibration(false, true, false, false);
+        _ = ancient_city_mod.evaluateAncientCityBasementDoorPuzzle(8, 0, 0);
+        _ = temple_traps_mod.advanceDesertPyramidFuse(&desert_pyramid_trap, dt, false);
+        _ = stronghold_triangulation_mod.triangulateStrongholdFromTwoThrows(.{ 0.0, 0.0 }, 0.0, .{ 10.0, -10.0 }, std.math.pi / 2.0);
+        _ = active_eye_flight.tick(dt);
+        _ = mushroom_island_mod.interactMooshroom(&active_mooshroom, true, false, false, null);
+        _ = mushroom_island_mod.canHostileMobSpawnInMushroomFields(true, false);
+        _ = weather_lightning_mod.resolveBiomePrecipitation(0.8, 64, active_weather);
+        _ = weather_lightning_mod.canPlayerSleepInBed(active_weather, 18_000, false);
+        _ = hunger_metabolism_mod.tickMetabolismAndHealing(&active_metabolism, player.health, 20.0, .normal, dt);
+        _ = experience_orbs_mod.xpRequiredForNextLevel(0);
+        _ = experience_orbs_mod.clumpNearbyXpOrbs(3, 1, 5, 0.1);
+        active_melee_elapsed += dt;
+        _ = melee_sweep_crit_mod.computeCooldownDamageScale(active_melee_elapsed, melee_sweep_crit_mod.WeaponAttackSpeed.sword_1_6_hz.rechargeDurationSeconds());
         _ = enchanting_grindstone_mod.computeEnchantSlotOffers(0);
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);
