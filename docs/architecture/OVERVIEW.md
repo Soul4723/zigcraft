@@ -52,6 +52,7 @@ zigcraft/
 │       ├── scaffolding.zig      # Scaffolding tower top placement & sweet berry bush prickle damage
 │       ├── alchemy_buffs.zig    # Swiftness, Strength & Leaping potion timers and combat/speed buffs
 │       ├── ender_chest.zig      # Global quantum EnderVault deposit & withdrawal mechanics
+│       ├── ender_stasis.zig     # Ender Pearl bubble-column stasis, trapdoor impact, Endermite proc & Chorus teleport query
 │       ├── beacon_aura.zig      # Beacon mineral pyramid verification, Haste & Regeneration aura
 │       ├── archaeology.zig      # Suspicious sand brush relic excavation & Copper Bulb latch
 │       ├── wind_charge.zig      # Wind Charge self-boost rocket jump & radial knockback impulse
