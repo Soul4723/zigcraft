@@ -185,6 +185,7 @@ pub fn build(b: *std.Build) void {
         "src/world/fletching_tipped_arrows.zig",
         "src/world/scaffolding_bamboo.zig",
         "src/world/navigation_timepieces.zig",
+        "src/world/lodestone_compass_tracking.zig",
         "src/world/villager_professions.zig",
         "src/world/wandering_trader.zig",
         "src/world/flower_forest_plains.zig",
