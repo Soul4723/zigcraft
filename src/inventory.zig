@@ -544,6 +544,16 @@ pub const ItemType = enum(u16) {
     flying_machine_core = 540,
     zombie_siege_banner = 541,
     cramming_disperser = 542,
+    target_block_core = 543,
+    lightning_deflector = 544,
+    frosted_ice_shard = 545,
+    soul_speed_talisman = 546,
+    swift_sneak_boots_trim = 547,
+    respawn_anchor_shard = 548,
+    lodestone_tracker = 549,
+    composter_catalyst = 550,
+    pyrometallurgy_nozzle = 551,
+    tripwire_tension_gauge = 552,
     clock = 510,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
@@ -1131,9 +1141,9 @@ pub const ItemType = enum(u16) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged, .potion_of_slowness, .splash_water_bottle, .splash_harming_potion, .water_bottle, .harming_potion, .written_book, .wooden_sign, .chunk_loader_token, .moon_phase_talisman, .iron_golem_effigy, .mob_despawn_ward, .zombie_siege_banner, .cramming_disperser, .awkward_potion, .invisibility_potion => 16,
+            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged, .potion_of_slowness, .splash_water_bottle, .splash_harming_potion, .water_bottle, .harming_potion, .written_book, .wooden_sign, .chunk_loader_token, .moon_phase_talisman, .iron_golem_effigy, .mob_despawn_ward, .zombie_siege_banner, .cramming_disperser, .soul_speed_talisman, .swift_sneak_boots_trim, .respawn_anchor_shard, .lodestone_tracker, .tripwire_tension_gauge, .awkward_potion, .invisibility_potion => 16,
             .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .frost_walker_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn, .wolf_armor, .bundle, .ghast_harness, .bucket_of_axolotl, .banner, .banner_pattern_stencil, .copper_golem_statue, .music_disc_5, .music_disc_relic, .music_disc_precipice, .music_disc_creator, .enchanted_book, .mending_book, .swift_sneak_book, .sweeping_edge_book, .feather_falling_book, .milk_bucket, .raid_omen_banner, .evoker_fang_totem, .saddle, .empty_locator_map, .filled_explorer_map, .leather_horse_armor, .iron_horse_armor, .golden_horse_armor, .diamond_horse_armor, .item_frame, .glow_item_frame, .painting, .buried_treasure_map, .music_disc_pigstep, .bucket_of_tadpole, .book_and_quill, .chest_boat, .bamboo_raft, .bed => 1,
-            .wither_rose, .granite, .diorite, .andesite, .polished_granite, .polished_diorite, .polished_andesite, .glow_ink_sac, .fence_gate, .cobblestone_wall, .sculk_vein, .redstone_inverter_core, .repeater_latch_lock, .dropped_item_magnet, .flying_machine_core, .glazed_terracotta, .light_weighted_pressure_plate, .heavy_weighted_pressure_plate, .glass_pane, .stained_glass, .arrow_of_slowness => 64,
+            .wither_rose, .granite, .diorite, .andesite, .polished_granite, .polished_diorite, .polished_andesite, .glow_ink_sac, .fence_gate, .cobblestone_wall, .sculk_vein, .redstone_inverter_core, .repeater_latch_lock, .dropped_item_magnet, .flying_machine_core, .target_block_core, .lightning_deflector, .frosted_ice_shard, .composter_catalyst, .pyrometallurgy_nozzle, .glazed_terracotta, .light_weighted_pressure_plate, .heavy_weighted_pressure_plate, .glass_pane, .stained_glass, .arrow_of_slowness => 64,
             .potion_of_turtle_master => 16,
             else => 64,
         };
@@ -1679,6 +1689,16 @@ pub const ItemType = enum(u16) {
             .flying_machine_core => "Flying Machine Core",
             .zombie_siege_banner => "Zombie Siege Banner",
             .cramming_disperser => "Cramming Disperser",
+            .target_block_core => "Target Block Core",
+            .lightning_deflector => "Lightning Deflector",
+            .frosted_ice_shard => "Frosted Ice Shard",
+            .soul_speed_talisman => "Soul Speed Talisman",
+            .swift_sneak_boots_trim => "Swift Sneak Boots Trim",
+            .respawn_anchor_shard => "Respawn Anchor Shard",
+            .lodestone_tracker => "Lodestone Tracker",
+            .composter_catalyst => "Composter Catalyst",
+            .pyrometallurgy_nozzle => "Pyrometallurgy Nozzle",
+            .tripwire_tension_gauge => "Tripwire Tension Gauge",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -2226,6 +2246,16 @@ pub const ItemType = enum(u16) {
             .flying_machine_core => .{ 0.52, 0.78, 0.30, 0.98 },
             .zombie_siege_banner => .{ 0.30, 0.45, 0.25, 0.98 },
             .cramming_disperser => .{ 0.90, 0.50, 0.20, 0.98 },
+            .target_block_core => .{ 0.88, 0.22, 0.22, 0.98 },
+            .lightning_deflector => .{ 0.95, 0.70, 0.20, 0.98 },
+            .frosted_ice_shard => .{ 0.65, 0.85, 0.95, 0.98 },
+            .soul_speed_talisman => .{ 0.25, 0.55, 0.60, 0.98 },
+            .swift_sneak_boots_trim => .{ 0.05, 0.35, 0.40, 0.98 },
+            .respawn_anchor_shard => .{ 0.45, 0.15, 0.55, 0.98 },
+            .lodestone_tracker => .{ 0.75, 0.75, 0.78, 0.98 },
+            .composter_catalyst => .{ 0.40, 0.60, 0.25, 0.98 },
+            .pyrometallurgy_nozzle => .{ 0.85, 0.45, 0.15, 0.98 },
+            .tripwire_tension_gauge => .{ 0.60, 0.62, 0.65, 0.98 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -2494,6 +2524,25 @@ fn wave15CraftingRecipe(grid: [4]ItemStack) ?ItemStack {
     if (flags[6] and flags[7]) return .{ .item = .repeater_latch_lock, .count = 1 };
     if (flags[8] and flags[9]) return .{ .item = .flying_machine_core, .count = 1 };
     if (flags[10] and flags[11]) return .{ .item = .zombie_siege_banner, .count = 1 };
+    return null;
+}
+
+fn wave16CraftingRecipe(grid: [4]ItemStack) ?ItemStack {
+    var non_empty: usize = 0; var flags = [_]bool{false} ** 12;
+    for (grid) |slot| { if (slot.isEmpty()) continue; non_empty += 1;
+        flags[0] = flags[0] or slot.item == .target_block; flags[1] = flags[1] or slot.item == .redstone_block;
+        flags[2] = flags[2] or slot.item == .lightning_rod; flags[3] = flags[3] or slot.item == .copper_ingot;
+        flags[4] = flags[4] or slot.item == .packed_ice; flags[5] = flags[5] or slot.item == .snowball;
+        flags[6] = flags[6] or slot.item == .soul_sand; flags[7] = flags[7] or slot.item == .gold_nugget;
+        flags[8] = flags[8] or slot.item == .composter; flags[9] = flags[9] or slot.item == .bone_meal;
+        flags[10] = flags[10] or slot.item == .tripwire_hook; flags[11] = flags[11] or slot.item == .string; }
+    if (non_empty != 2) return null;
+    if (flags[0] and flags[1]) return .{ .item = .target_block_core, .count = 1 };
+    if (flags[2] and flags[3]) return .{ .item = .lightning_deflector, .count = 1 };
+    if (flags[4] and flags[5]) return .{ .item = .frosted_ice_shard, .count = 1 };
+    if (flags[6] and flags[7]) return .{ .item = .soul_speed_talisman, .count = 1 };
+    if (flags[8] and flags[9]) return .{ .item = .composter_catalyst, .count = 1 };
+    if (flags[10] and flags[11]) return .{ .item = .tripwire_tension_gauge, .count = 1 };
     return null;
 }
 
@@ -6557,6 +6606,10 @@ pub const Inventory = struct {
             return;
         }
         if (wave15CraftingRecipe(self.craft_grid)) |output| {
+            self.craft_output = output;
+            return;
+        }
+        if (wave16CraftingRecipe(self.craft_grid)) |output| {
             self.craft_output = output;
             return;
         }
@@ -11801,6 +11854,40 @@ test "Wave 15 item metadata and 2x2 recipes preserve BlockId capacity" {
         .{ .a = .redstone_repeater, .b = .lever, .out = .repeater_latch_lock, .count = 1 },
         .{ .a = .observer, .b = .slime_block, .out = .flying_machine_core, .count = 1 },
         .{ .a = .banner, .b = .rotten_flesh, .out = .zombie_siege_banner, .count = 1 },
+    };
+    for (recipes) |recipe| {
+        inv.craft_grid = .{ .{ .item = recipe.a, .count = 1 }, .{ .item = recipe.b, .count = 1 }, .{}, .{} };
+        inv.updateCrafting();
+        try std.testing.expectEqual(recipe.out, inv.craft_output.item);
+        try std.testing.expectEqual(recipe.count, inv.craft_output.count);
+    }
+}
+
+
+test "Wave 16 item metadata and 2x2 recipes preserve BlockId capacity" {
+    try std.testing.expectEqual(@as(u16, 543), @intFromEnum(ItemType.target_block_core));
+    try std.testing.expectEqual(@as(u16, 552), @intFromEnum(ItemType.tripwire_tension_gauge));
+    try std.testing.expectEqual(@as(u8, 64), ItemType.target_block_core.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 64), ItemType.lightning_deflector.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 64), ItemType.frosted_ice_shard.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 16), ItemType.soul_speed_talisman.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 16), ItemType.swift_sneak_boots_trim.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 16), ItemType.respawn_anchor_shard.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 16), ItemType.lodestone_tracker.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 64), ItemType.composter_catalyst.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 64), ItemType.pyrometallurgy_nozzle.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 16), ItemType.tripwire_tension_gauge.maxStackSize());
+    try std.testing.expectEqualStrings("Target Block Core", ItemType.target_block_core.name());
+    try std.testing.expectEqualStrings("Tripwire Tension Gauge", ItemType.tripwire_tension_gauge.name());
+    try std.testing.expectEqual(@as(u8, 255), @intFromEnum(BlockId.leaf_litter));
+    var inv = Inventory.init();
+    const recipes = [_]struct { a: ItemType, b: ItemType, out: ItemType, count: u8 }{
+        .{ .a = .target_block, .b = .redstone_block, .out = .target_block_core, .count = 1 },
+        .{ .a = .lightning_rod, .b = .copper_ingot, .out = .lightning_deflector, .count = 1 },
+        .{ .a = .packed_ice, .b = .snowball, .out = .frosted_ice_shard, .count = 1 },
+        .{ .a = .soul_sand, .b = .gold_nugget, .out = .soul_speed_talisman, .count = 1 },
+        .{ .a = .composter, .b = .bone_meal, .out = .composter_catalyst, .count = 1 },
+        .{ .a = .tripwire_hook, .b = .string, .out = .tripwire_tension_gauge, .count = 1 },
     };
     for (recipes) |recipe| {
         inv.craft_grid = .{ .{ .item = recipe.a, .count = 1 }, .{ .item = recipe.b, .count = 1 }, .{}, .{} };

@@ -170,6 +170,16 @@ const dropped_item_physics_mod = @import("world/dropped_item_physics.zig");
 const flying_machine_kinematics_mod = @import("world/flying_machine_kinematics.zig");
 const zombie_reinforcements_siege_mod = @import("world/zombie_reinforcements_siege.zig");
 const entity_cramming_mod = @import("world/entity_cramming.zig");
+const target_block_projectile_mod = @import("world/target_block_projectile.zig");
+const lightning_redstone_deflection_mod = @import("world/lightning_redstone_deflection.zig");
+const frost_walker_ice_mod = @import("world/frost_walker_ice.zig");
+const soul_speed_kinematics_mod = @import("world/soul_speed_kinematics.zig");
+const swift_sneak_crouch_mod = @import("world/swift_sneak_crouch.zig");
+const respawn_anchor_charge_mod = @import("world/respawn_anchor_charge.zig");
+const lodestone_compass_tracking_mod = @import("world/lodestone_compass_tracking.zig");
+const composter_biofuel_mod = @import("world/composter_biofuel.zig");
+const specialized_furnace_smelting_mod = @import("world/specialized_furnace_smelting.zig");
+const tripwire_hook_circuit_mod = @import("world/tripwire_hook_circuit.zig");
 
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
@@ -968,6 +978,17 @@ pub fn main() !void {
         _ = flying_machine_kinematics_mod.FlyingMachineMaterial.slime;
         _ = zombie_reinforcements_siege_mod.base_spawn_reinforcements_chance;
         _ = entity_cramming_mod.MaxEntityCrammingRule.default_threshold;
+        // Wave 16 representative frame-loop hooks keep new domain rules queryable.
+        _ = target_block_projectile_mod.max_signal_strength;
+        _ = lightning_redstone_deflection_mod.attraction_half_extent;
+        _ = frost_walker_ice_mod.freezeRadius(1);
+        _ = soul_speed_kinematics_mod.base_speed_multiplier;
+        _ = swift_sneak_crouch_mod.BASE_CROUCH_SPEED;
+        _ = respawn_anchor_charge_mod.MAX_CHARGES;
+        _ = lodestone_compass_tracking_mod.Dimension.overworld;
+        _ = composter_biofuel_mod.MAX_LEVEL;
+        _ = specialized_furnace_smelting_mod.SPECIALIZED_FURNACE_COOK_TICKS;
+        _ = tripwire_hook_circuit_mod.max_distance_between_hooks;
         _ = enchanting_grindstone_mod.computeEnchantSlotOffers(0);
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);

@@ -283,3 +283,19 @@ moon phase talismans, golem effigies, mob despawn wards, repeater latch locks,
 dropped item magnets, flying machine cores, zombie siege banners, and cramming
 dispersers. Inventory metadata defines names, colors, stack limits, and six 2x2 recipes.
 `BlockId` remains capped at 255.
+
+### Wave 16 domain modules
+
+Milestones 431–440 add `target_block_projectile.zig`, `lightning_redstone_deflection.zig`,
+`frost_walker_ice.zig`, `soul_speed_kinematics.zig`, `swift_sneak_crouch.zig`,
+`respawn_anchor_charge.zig`, `lodestone_compass_tracking.zig`, `composter_biofuel.zig`,
+`specialized_furnace_smelting.zig`, and `tripwire_hook_circuit.zig`. Each has a standalone
+test target and is imported by `main.zig`, which queries representative deterministic
+rules through the frame loop while existing world/entity ownership remains unchanged.
+
+Wave 16 adds ItemTypes 543–552 for target block cores, lightning deflectors,
+frosted ice shards, soul speed talismans, swift sneak boots trims, respawn anchor
+shards, lodestone trackers, composter catalysts, pyrometallurgy nozzles, and
+tripwire tension gauges. Inventory metadata defines names, colors, stack limits,
+and six 2x2 recipes. `BlockId` remains capped at 255.
+

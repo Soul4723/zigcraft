@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-28 (Session 385)
+Last updated: 2026-10-28 (Session 386)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 6784 passing unit tests across 411 build/test steps
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 7428 passing unit tests across 431 build/test steps
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -78,8 +78,8 @@ Last updated: 2026-10-28 (Session 385)
 - ItemTypes 501–510 cover Bone Block, Calcite, Smooth Basalt, Rooted Dirt, Hanging Roots, Big Dripleaf, Spore Blossom, Awkward Potion, Potion of Invisibility, and Clock. Metadata and six 2x2 recipes are covered; `BlockId` remains unchanged at 255.
 
 ## Active State
-- Main branch stable (Phase 8: Milestones 43-430)
-- All tests passing (6784/6784 tests across 411 build/test steps)
+- Main branch stable (Phase 8: Milestones 43-440)
+- All tests passing (7428/7428 tests across 431 build/test steps)
 - Remote and local branches pruned clean
 
 
@@ -99,3 +99,9 @@ Last updated: 2026-10-28 (Session 385)
 - Milestones 421–430 are integrated on `main`: Chunk Loader Tickets, Redstone Torch Inverter, Regional Difficulty & Moon Phase, Iron Golem Spawning, Mob Despawn Spheres, Redstone Repeater Latch, Dropped Item Physics, Flying Machine Kinematics, Zombie Reinforcements & Siege, and Entity Cramming.
 - All ten Wave 15 world modules have standalone test targets in `build.zig`, imports, and lightweight representative frame-loop hooks in `main.zig`.
 - ItemTypes 533–542 add chunk loader token, redstone inverter core, moon phase talisman, iron golem effigy, mob despawn ward, repeater latch lock, dropped item magnet, flying machine core, zombie siege banner, and cramming disperser with metadata and six 2x2 recipes. `BlockId` remains unchanged at 255.
+
+## Wave 16 Integration
+- Milestones 431–440 are integrated on `main`: Target Block Projectile Detection, Lightning Redstone Deflection, Frost Walker Ice Crystallization, Soul Speed Kinematics, Swift Sneak Crouch Kinematics, Respawn Anchor Charge & Nether Spawning, Lodestone Compass Tracking, Composter Biofuel & Bone Meal Pipeline, Specialized Furnace Smelting, and Tripwire Hook Circuit.
+- All ten Wave 16 world modules have standalone test targets in `build.zig`, imports, and lightweight representative frame-loop hooks in `main.zig`.
+- ItemTypes 543–552 add target block core, lightning deflector, frosted ice shard, soul speed talisman, swift sneak boots trim, respawn anchor shard, lodestone tracker, composter catalyst, pyrometallurgy nozzle, and tripwire tension gauge with metadata and six 2x2 recipes. `BlockId` remains unchanged at 255.
+

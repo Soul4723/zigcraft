@@ -500,3 +500,17 @@ Rough priority order. Completed milestones marked **[x]**.
 428. [x] **Flying Machine Kinematics** — Slime and honey cell push/pull cycles, 2.5 m/s cruise velocity, and station docking (`src/world/flying_machine_kinematics.zig`).
 429. [x] **Zombie Reinforcements & Siege** — Leader spawn bonuses, damage degradation, and midnight village siege mechanics (`src/world/zombie_reinforcements_siege.zig`).
 430. [x] **Entity Cramming** — 24-entity cramming threshold, suffocation damage pulses, minecart grinder kinetics, and climbable exemptions (`src/world/entity_cramming.zig`).
+
+## Wave 16 Integration (Milestones 431–440)
+
+431. [x] **Target Block Projectile Detection** — Bullseye ring gradients, projectile type pulse duration, and redstone wire redirection (`src/world/target_block_projectile.zig`).
+432. [x] **Lightning Redstone Deflection** — 128m rod attraction box, copper de-oxidation shockwaves, and channeling lightning strikes (`src/world/lightning_redstone_deflection.zig`).
+433. [x] **Frost Walker Ice Crystallization** — Freeze radius calculation, 4-stage melting lifecycle, and magma/campfire hazard immunity (`src/world/frost_walker_ice.zig`).
+434. [x] **Soul Speed Kinematics** — Speed scaling (1.30 + 0.105×lvl), 4% boot durability wear, and soul particle emission (`src/world/soul_speed_kinematics.zig`).
+435. [x] **Swift Sneak Crouch Kinematics** — Crouching speed (0.30 + 0.15×lvl), sculk vibration suppression, and edge safety (`src/world/swift_sneak_crouch.zig`).
+436. [x] **Respawn Anchor Charge & Nether Spawning** — 0..4 glowstone charges, light/comparator levels, Nether respawn binding, and 9.0 power overworld detonation (`src/world/respawn_anchor_charge.zig`).
+437. [x] **Lodestone Compass Tracking** — Dimension binding, azimuth needle tracking, interdimensional spin, and block destruction unbinding (`src/world/lodestone_compass_tracking.zig`).
+438. [x] **Composter Biofuel & Bone Meal Pipeline** — 8-level fill states, 5-tier compost probabilities, bone meal harvesting, and comparator signaling (`src/world/composter_biofuel.zig`).
+439. [x] **Specialized Furnace Smelting** — Blast furnace and smoker 2× cook speed, 2× fuel burn rate, item filtering, and comparator signal math (`src/world/specialized_furnace_smelting.zig`).
+440. [x] **Tripwire Hook Circuit** — 40-block tension span, entity collision detection, shears defusal, and snap pulse mechanics (`src/world/tripwire_hook_circuit.zig`).
+
