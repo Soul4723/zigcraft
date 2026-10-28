@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-17 (Session 384)
+Last updated: 2026-10-28 (Session 385)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 6494 passing unit tests across 391 build/test steps
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 6784 passing unit tests across 411 build/test steps
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -78,8 +78,8 @@ Last updated: 2026-10-17 (Session 384)
 - ItemTypes 501–510 cover Bone Block, Calcite, Smooth Basalt, Rooted Dirt, Hanging Roots, Big Dripleaf, Spore Blossom, Awkward Potion, Potion of Invisibility, and Clock. Metadata and six 2x2 recipes are covered; `BlockId` remains unchanged at 255.
 
 ## Active State
-- Main branch stable (Phase 8: Milestones 43-420)
-- All tests passing (6494/6494 tests across 391 build/test steps)
+- Main branch stable (Phase 8: Milestones 43-430)
+- All tests passing (6784/6784 tests across 411 build/test steps)
 - Remote and local branches pruned clean
 
 
@@ -93,3 +93,9 @@ Last updated: 2026-10-17 (Session 384)
 - Milestones 411–420 are integrated on `main`: Igneous Stone Masonry, Glazed Terracotta Mosaic, Lighting Fixtures, Wooden Signs, Fences/Gates/Walls, Doors/Trapdoors/Crawl, Sculk Growth/Harvest, Anvil Repair, Loom/Shield Banners, and TNT Demolition Physics.
 - All ten Wave 14 world modules have standalone test targets in `build.zig`, imports, and lightweight representative frame-loop hooks in `main.zig`.
 - ItemTypes 522–532 add igneous stones, polished masonry, wooden signs, glow ink, fence gates, cobblestone walls, and sculk veins with metadata and six 2x2 recipes. `BlockId` remains unchanged at 255.
+
+
+## Wave 15 Integration
+- Milestones 421–430 are integrated on `main`: Chunk Loader Tickets, Redstone Torch Inverter, Regional Difficulty & Moon Phase, Iron Golem Spawning, Mob Despawn Spheres, Redstone Repeater Latch, Dropped Item Physics, Flying Machine Kinematics, Zombie Reinforcements & Siege, and Entity Cramming.
+- All ten Wave 15 world modules have standalone test targets in `build.zig`, imports, and lightweight representative frame-loop hooks in `main.zig`.
+- ItemTypes 533–542 add chunk loader token, redstone inverter core, moon phase talisman, iron golem effigy, mob despawn ward, repeater latch lock, dropped item magnet, flying machine core, zombie siege banner, and cramming disperser with metadata and six 2x2 recipes. `BlockId` remains unchanged at 255.

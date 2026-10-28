@@ -486,3 +486,17 @@ Rough priority order. Completed milestones marked **[x]**.
 418. [x] **Anvil Repair Mechanics** — Prior-work penalties, 39-level cap, and unit repairs (`src/world/anvil_repair_mechanics.zig`).
 419. [x] **Loom & Shield Banners** — Reusable stencils, six-layer cloning, and shield heraldry (`src/world/loom_shield_banners.zig`).
 420. [x] **TNT Demolition Physics** — Crafting, 80-tick/chain fuses, underwater dampening, and drops (`src/world/tnt_demolition_physics.zig`).
+
+
+## Wave 15 Integration (Milestones 421–430)
+
+421. [x] **Chunk Loader Tickets** — Nether portal 300-tick tickets, 3×3/5×5 load rings, and ender pearl loading (`src/world/chunk_loader_tickets.zig`).
+422. [x] **Redstone Torch Inverter** — NOT gate inversion, 8-flip burnout rules, and vertical torch transmission (`src/world/redstone_torch_inverter.zig`).
+423. [x] **Regional Difficulty & Moon Phase** — 8-phase lunar cycle, regional difficulty scaling, and clamped special multipliers (`src/world/regional_difficulty_moon.zig`).
+424. [x] **Iron Golem Spawning** — 3-villager panic quorum, 24000-tick sleep requirement, and village spawn volume (`src/world/iron_golem_spawning.zig`).
+425. [x] **Mob Despawn Spheres** — 24/32/128m distance zones, 70-hostile mob cap, and persistence exemptions (`src/world/mob_despawn_spheres.zig`).
+426. [x] **Redstone Repeater Latch** — 1..4 redstone tick delay, diode amplification, and side-powered D-latch locking (`src/world/redstone_repeater_latch.zig`).
+427. [x] **Dropped Item Physics** — 6000-tick despawn, stack merge age reset, ice stream sliding, and Nether Star blast immunity (`src/world/dropped_item_physics.zig`).
+428. [x] **Flying Machine Kinematics** — Slime and honey cell push/pull cycles, 2.5 m/s cruise velocity, and station docking (`src/world/flying_machine_kinematics.zig`).
+429. [x] **Zombie Reinforcements & Siege** — Leader spawn bonuses, damage degradation, and midnight village siege mechanics (`src/world/zombie_reinforcements_siege.zig`).
+430. [x] **Entity Cramming** — 24-entity cramming threshold, suffocation damage pulses, minecart grinder kinetics, and climbable exemptions (`src/world/entity_cramming.zig`).

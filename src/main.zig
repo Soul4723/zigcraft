@@ -160,6 +160,16 @@ const sculk_growth_harvest_mod = @import("world/sculk_growth_harvest.zig");
 const anvil_repair_mechanics_mod = @import("world/anvil_repair_mechanics.zig");
 const loom_shield_banners_mod = @import("world/loom_shield_banners.zig");
 const tnt_demolition_physics_mod = @import("world/tnt_demolition_physics.zig");
+const chunk_loader_tickets_mod = @import("world/chunk_loader_tickets.zig");
+const redstone_torch_inverter_mod = @import("world/redstone_torch_inverter.zig");
+const regional_difficulty_moon_mod = @import("world/regional_difficulty_moon.zig");
+const iron_golem_spawning_mod = @import("world/iron_golem_spawning.zig");
+const mob_despawn_spheres_mod = @import("world/mob_despawn_spheres.zig");
+const redstone_repeater_latch_mod = @import("world/redstone_repeater_latch.zig");
+const dropped_item_physics_mod = @import("world/dropped_item_physics.zig");
+const flying_machine_kinematics_mod = @import("world/flying_machine_kinematics.zig");
+const zombie_reinforcements_siege_mod = @import("world/zombie_reinforcements_siege.zig");
+const entity_cramming_mod = @import("world/entity_cramming.zig");
 
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
@@ -947,6 +957,17 @@ pub fn main() !void {
         _ = anvil_repair_mechanics_mod.priorWorkPenaltyLevels(1);
         _ = loom_shield_banners_mod.SixLayerSurvivalLimit.max_loom_layers;
         _ = tnt_demolition_physics_mod.chainReactionFuseTicks(1);
+        // Wave 15 representative frame-loop hooks keep new domain rules queryable.
+        _ = chunk_loader_tickets_mod.portal_ticket_duration_ticks;
+        _ = redstone_torch_inverter_mod.max_toggles_before_burnout;
+        _ = regional_difficulty_moon_mod.MoonPhase.full_moon.brightness();
+        _ = iron_golem_spawning_mod.panic_quorum_villagers;
+        _ = mob_despawn_spheres_mod.zoneForDistance(16.0);
+        _ = redstone_repeater_latch_mod.RepeaterRecipe.craftRepeater(3, 2, 1);
+        _ = dropped_item_physics_mod.isNetherStarImmuneToExplosions();
+        _ = flying_machine_kinematics_mod.FlyingMachineMaterial.slime;
+        _ = zombie_reinforcements_siege_mod.base_spawn_reinforcements_chance;
+        _ = entity_cramming_mod.MaxEntityCrammingRule.default_threshold;
         _ = enchanting_grindstone_mod.computeEnchantSlotOffers(0);
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);

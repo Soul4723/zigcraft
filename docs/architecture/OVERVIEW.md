@@ -267,3 +267,19 @@ rules through the frame loop while existing world/entity ownership remains uncha
 Wave 14 adds ItemTypes 522–532 for igneous masonry, sign and lighting materials,
 fence/wall components, and sculk veins. Inventory metadata defines names, colors,
 stack limits, and six 2x2 recipes. `BlockId` remains capped at 255.
+
+
+### Wave 15 domain modules
+
+Milestones 421–430 add `chunk_loader_tickets.zig`, `redstone_torch_inverter.zig`,
+`regional_difficulty_moon.zig`, `iron_golem_spawning.zig`, `mob_despawn_spheres.zig`,
+`redstone_repeater_latch.zig`, `dropped_item_physics.zig`, `flying_machine_kinematics.zig`,
+`zombie_reinforcements_siege.zig`, and `entity_cramming.zig`. Each has a standalone
+test target and is imported by `main.zig`, which queries representative deterministic
+rules through the frame loop while existing world/entity ownership remains unchanged.
+
+Wave 15 adds ItemTypes 533–542 for chunk loader tokens, redstone inverter cores,
+moon phase talismans, golem effigies, mob despawn wards, repeater latch locks,
+dropped item magnets, flying machine cores, zombie siege banners, and cramming
+dispersers. Inventory metadata defines names, colors, stack limits, and six 2x2 recipes.
+`BlockId` remains capped at 255.
