@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-29 (Session 387)
+Last updated: 2026-10-29 (Session 410)
 
 ## Project Structure
 
@@ -98,6 +98,13 @@ Milestones 315–322 add `enchanting_grindstone.zig`, `village_raid.zig`,
 `redstone_workstations.zig`, `shulker_end_city.zig`,
 `elytra_aerodynamics.zig`, `sea_turtle.zig`, `taiga_fox.zig`, and
 `conduit_frame.zig`. Domain rules and state remain in these focused modules.
+
+### Magma cube splitting and leaping
+
+`magma_cube_splitting.zig` owns magma cube size attributes, lethal split and
+loot outcomes, child launch velocities, accordion leap timing, fall immunity,
+and lava movement speed. Callers supply random rolls and apply returned child,
+item, and experience events through the existing entity and world owners.
 `main.zig` owns and advances representative flight, raid, composter,
 levitation, turtle-growth, and fox state; deterministic interaction helpers
 remain directly callable from their modules. Each module has a standalone

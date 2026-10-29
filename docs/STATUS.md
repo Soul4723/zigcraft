@@ -1,5 +1,9 @@
 # Project Status
 
+Last updated: 2026-10-29 (Session 410, Milestone 502)
+
+Milestone 502 adds three magma cube size tiers, lethal splitting with outward child launch, small-cube magma cream and XP drops, 8-tick spring compression and gravity-driven leaps, fall-damage immunity, and faster lava swimming in `src/world/magma_cube_splitting.zig` (41 focused tests). The standalone module is registered in `build.zig` and queried from the frame loop; entity spawning and world mutation remain with their existing owners.
+
 Last updated: 2026-10-29 (Session 409, Milestone 500)
 
 Milestone 500 adds a 200 HP Ender Dragon arena fight with four combat phases, fireballs and breath, 10-crystal healing tethers, perch projectile immunity, a 200-tick death sequence, 12,000 XP reward, and central End portal/Dragon Egg activation data in `src/world/ender_dragon_arena_fight.zig` (44 focused tests). The module is registered as a standalone test target and advanced at 20 ticks per second from the frame loop; it returns events for world rendering and block mutation owners.
