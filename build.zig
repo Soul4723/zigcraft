@@ -199,6 +199,7 @@ pub fn build(b: *std.Build) void {
         "src/world/dark_forest_canopy.zig",
         "src/world/shipwreck_treasure.zig",
         "src/world/nether_biomes.zig",
+        "src/world/nether_fungus_forest.zig",
         "src/world/firework_pyrotechnics.zig",
         "src/world/cauldron_fluids.zig",
         "src/world/bastion_remnant.zig",
