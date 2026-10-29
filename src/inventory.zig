@@ -566,6 +566,16 @@ pub const ItemType = enum(u16) {
     resin_brick_masonry = 562,
     wooden_slab = 563,
     stone_bricks = 564,
+    sniffer_egg_ancient = 565,
+    trial_key_master = 566,
+    ominous_trial_key_master = 567,
+    breeze_wind_charge_core = 568,
+    mace_density_core = 569,
+    crafter_pulse_core = 570,
+    copper_bulb_core = 571,
+    trial_chamber_map = 572,
+    ominous_bottle_catalyst = 573,
+    bogged_poison_quiver = 574,
     clock = 510,
 
     pub fn toBlockId(self: ItemType) ?BlockId {
@@ -1153,9 +1163,10 @@ pub const ItemType = enum(u16) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged, .potion_of_slowness, .splash_water_bottle, .splash_harming_potion, .water_bottle, .harming_potion, .written_book, .wooden_sign, .chunk_loader_token, .moon_phase_talisman, .iron_golem_effigy, .mob_despawn_ward, .zombie_siege_banner, .cramming_disperser, .soul_speed_talisman, .swift_sneak_boots_trim, .respawn_anchor_shard, .lodestone_tracker, .tripwire_tension_gauge, .shrieker_alarm_core, .calibrated_sensor_tuner, .decorated_pot_motif, .creaking_heart_core, .awkward_potion, .invisibility_potion => 16,
+            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged, .potion_of_slowness, .splash_water_bottle, .splash_harming_potion, .water_bottle, .harming_potion, .written_book, .wooden_sign, .chunk_loader_token, .moon_phase_talisman, .iron_golem_effigy, .mob_despawn_ward, .zombie_siege_banner, .cramming_disperser, .soul_speed_talisman, .swift_sneak_boots_trim, .respawn_anchor_shard, .lodestone_tracker, .tripwire_tension_gauge, .shrieker_alarm_core, .calibrated_sensor_tuner, .decorated_pot_motif, .creaking_heart_core, .awkward_potion, .invisibility_potion, .sniffer_egg_ancient, .trial_key_master, .ominous_trial_key_master, .ominous_bottle_catalyst, .bogged_poison_quiver => 16,
             .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .frost_walker_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn, .wolf_armor, .bundle, .ghast_harness, .bucket_of_axolotl, .banner, .banner_pattern_stencil, .copper_golem_statue, .music_disc_5, .music_disc_relic, .music_disc_precipice, .music_disc_creator, .enchanted_book, .mending_book, .swift_sneak_book, .sweeping_edge_book, .feather_falling_book, .milk_bucket, .raid_omen_banner, .evoker_fang_totem, .saddle, .camel_bridle_saddle, .empty_locator_map, .filled_explorer_map, .leather_horse_armor, .iron_horse_armor, .golden_horse_armor, .diamond_horse_armor, .item_frame, .glow_item_frame, .painting, .buried_treasure_map, .music_disc_pigstep, .bucket_of_tadpole, .book_and_quill, .chest_boat, .bamboo_raft, .bed => 1,
-            .wither_rose, .granite, .diorite, .andesite, .polished_granite, .polished_diorite, .polished_andesite, .glow_ink_sac, .fence_gate, .cobblestone_wall, .sculk_vein, .redstone_inverter_core, .repeater_latch_lock, .dropped_item_magnet, .flying_machine_core, .target_block_core, .lightning_deflector, .frosted_ice_shard, .composter_catalyst, .pyrometallurgy_nozzle, .sculk_bloom_catalyst, .chiseled_bookshelf_slot, .hanging_chain_mount, .eyeblossom_resin_bloom, .resin_brick_masonry, .wooden_slab, .stone_bricks, .glazed_terracotta, .light_weighted_pressure_plate, .heavy_weighted_pressure_plate, .glass_pane, .stained_glass, .arrow_of_slowness => 64,
+            .wither_rose, .granite, .diorite, .andesite, .polished_granite, .polished_diorite, .polished_andesite, .glow_ink_sac, .fence_gate, .cobblestone_wall, .sculk_vein, .redstone_inverter_core, .repeater_latch_lock, .dropped_item_magnet, .flying_machine_core, .target_block_core, .lightning_deflector, .frosted_ice_shard, .composter_catalyst, .pyrometallurgy_nozzle, .sculk_bloom_catalyst, .chiseled_bookshelf_slot, .hanging_chain_mount, .eyeblossom_resin_bloom, .resin_brick_masonry, .wooden_slab, .stone_bricks, .glazed_terracotta, .light_weighted_pressure_plate, .heavy_weighted_pressure_plate, .glass_pane, .stained_glass, .arrow_of_slowness, .breeze_wind_charge_core, .crafter_pulse_core, .copper_bulb_core => 64,
+            .mace_density_core, .trial_chamber_map => 1,
             .potion_of_turtle_master => 16,
             else => 64,
         };
@@ -1723,6 +1734,16 @@ pub const ItemType = enum(u16) {
             .resin_brick_masonry => "Resin Brick Masonry",
             .wooden_slab => "Wooden Slab",
             .stone_bricks => "Stone Bricks",
+            .sniffer_egg_ancient => "Ancient Sniffer Egg",
+            .trial_key_master => "Master Trial Key",
+            .ominous_trial_key_master => "Ominous Master Trial Key",
+            .breeze_wind_charge_core => "Breeze Wind Charge Core",
+            .mace_density_core => "Mace Density Core",
+            .crafter_pulse_core => "Crafter Pulse Core",
+            .copper_bulb_core => "Copper Bulb Core",
+            .trial_chamber_map => "Trial Chamber Map",
+            .ominous_bottle_catalyst => "Ominous Bottle Catalyst",
+            .bogged_poison_quiver => "Bogged Poison Quiver",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -2292,6 +2313,16 @@ pub const ItemType = enum(u16) {
             .resin_brick_masonry => .{ 0.70, 0.32, 0.22, 0.98 },
             .wooden_slab => .{ 0.72, 0.53, 0.29, 0.98 },
             .stone_bricks => .{ 0.56, 0.56, 0.58, 0.98 },
+            .sniffer_egg_ancient => .{ 0.42, 0.58, 0.32, 0.95 },
+            .trial_key_master => .{ 0.30, 0.78, 0.70, 0.95 },
+            .ominous_trial_key_master => .{ 0.42, 0.22, 0.58, 0.95 },
+            .breeze_wind_charge_core => .{ 0.54, 0.86, 0.92, 0.95 },
+            .mace_density_core => .{ 0.42, 0.43, 0.48, 0.95 },
+            .crafter_pulse_core => .{ 0.80, 0.25, 0.20, 0.95 },
+            .copper_bulb_core => .{ 0.83, 0.48, 0.25, 0.95 },
+            .trial_chamber_map => .{ 0.78, 0.70, 0.48, 0.95 },
+            .ominous_bottle_catalyst => .{ 0.45, 0.24, 0.62, 0.95 },
+            .bogged_poison_quiver => .{ 0.30, 0.62, 0.24, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -2615,6 +2646,35 @@ fn wave17CraftingRecipe(grid: [4]ItemStack) ?ItemStack {
     return null;
 }
 
+fn wave18CraftingRecipe(grid: [4]ItemStack) ?ItemStack {
+    var non_empty: usize = 0;
+    var flags = [_]bool{false} ** 12;
+    for (grid) |slot| {
+        if (slot.isEmpty()) continue;
+        non_empty += 1;
+        flags[0] = flags[0] or slot.item == .torchflower_seeds;
+        flags[1] = flags[1] or slot.item == .pitcher_pod;
+        flags[2] = flags[2] or slot.item == .trial_key;
+        flags[3] = flags[3] or slot.item == .copper_ingot;
+        flags[4] = flags[4] or slot.item == .breeze_rod;
+        flags[5] = flags[5] or slot.item == .wind_charge;
+        flags[6] = flags[6] or slot.item == .heavy_core;
+        flags[7] = flags[7] or slot.item == .mace;
+        flags[8] = flags[8] or slot.item == .crafter;
+        flags[9] = flags[9] or slot.item == .redstone_block;
+        flags[10] = flags[10] or slot.item == .copper_bulb;
+        flags[11] = flags[11] or slot.item == .redstone_torch;
+    }
+    if (non_empty != 2) return null;
+    if (flags[0] and flags[1]) return .{ .item = .sniffer_egg_ancient, .count = 1 };
+    if (flags[2] and flags[3]) return .{ .item = .trial_key_master, .count = 1 };
+    if (flags[4] and flags[5]) return .{ .item = .breeze_wind_charge_core, .count = 1 };
+    if (flags[6] and flags[7]) return .{ .item = .mace_density_core, .count = 1 };
+    if (flags[8] and flags[9]) return .{ .item = .crafter_pulse_core, .count = 1 };
+    if (flags[10] and flags[11]) return .{ .item = .copper_bulb_core, .count = 1 };
+    return null;
+}
+
 pub const Inventory = struct {
     pub const HOTBAR_SIZE = 6;
     pub const MAIN_SIZE = 18;
@@ -2776,6 +2836,11 @@ pub const Inventory = struct {
         var non_empty: usize = 0;
         for (self.craft_grid) |s| {
             if (!s.isEmpty()) non_empty += 1;
+        }
+
+        if (wave18CraftingRecipe(self.craft_grid)) |output| {
+            self.craft_output = output;
+            return;
         }
 
         // Wave 17's calibrated sensor tuner shares the legacy sensor ingredients.
@@ -12027,5 +12092,46 @@ test "Wave 17 item metadata and 2x2 recipes preserve BlockId capacity" {
         inv.updateCrafting();
         try std.testing.expectEqual(recipe.out, inv.craft_output.item);
         try std.testing.expectEqual(recipe.count, inv.craft_output.count);
+    }
+}
+
+test "Wave 18 item metadata and 2x2 recipes preserve BlockId capacity" {
+    const metadata = [_]struct { item: ItemType, id: u16, stack: u8, display: []const u8 }{
+        .{ .item = .sniffer_egg_ancient, .id = 565, .stack = 16, .display = "Ancient Sniffer Egg" },
+        .{ .item = .trial_key_master, .id = 566, .stack = 16, .display = "Master Trial Key" },
+        .{ .item = .ominous_trial_key_master, .id = 567, .stack = 16, .display = "Ominous Master Trial Key" },
+        .{ .item = .breeze_wind_charge_core, .id = 568, .stack = 64, .display = "Breeze Wind Charge Core" },
+        .{ .item = .mace_density_core, .id = 569, .stack = 1, .display = "Mace Density Core" },
+        .{ .item = .crafter_pulse_core, .id = 570, .stack = 64, .display = "Crafter Pulse Core" },
+        .{ .item = .copper_bulb_core, .id = 571, .stack = 64, .display = "Copper Bulb Core" },
+        .{ .item = .trial_chamber_map, .id = 572, .stack = 1, .display = "Trial Chamber Map" },
+        .{ .item = .ominous_bottle_catalyst, .id = 573, .stack = 16, .display = "Ominous Bottle Catalyst" },
+        .{ .item = .bogged_poison_quiver, .id = 574, .stack = 16, .display = "Bogged Poison Quiver" },
+    };
+    for (metadata) |entry| {
+        try std.testing.expectEqual(entry.id, @intFromEnum(entry.item));
+        try std.testing.expectEqual(entry.stack, entry.item.maxStackSize());
+        try std.testing.expectEqualStrings(entry.display, entry.item.name());
+        const rgba = entry.item.getColor();
+        for (rgba) |channel| try std.testing.expect(channel >= 0.0 and channel <= 1.0);
+        try std.testing.expect(rgba[3] > 0.0);
+    }
+    try std.testing.expectEqual(@as(u8, 255), @intFromEnum(BlockId.leaf_litter));
+    try std.testing.expect(@intFromEnum(BlockId.leaf_litter) <= 255);
+
+    var inv = Inventory.init();
+    const recipes = [_]struct { a: ItemType, b: ItemType, out: ItemType }{
+        .{ .a = .torchflower_seeds, .b = .pitcher_pod, .out = .sniffer_egg_ancient },
+        .{ .a = .trial_key, .b = .copper_ingot, .out = .trial_key_master },
+        .{ .a = .breeze_rod, .b = .wind_charge, .out = .breeze_wind_charge_core },
+        .{ .a = .heavy_core, .b = .mace, .out = .mace_density_core },
+        .{ .a = .crafter, .b = .redstone_block, .out = .crafter_pulse_core },
+        .{ .a = .copper_bulb, .b = .redstone_torch, .out = .copper_bulb_core },
+    };
+    for (recipes) |recipe| {
+        inv.craft_grid = .{ .{ .item = recipe.a, .count = 1 }, .{ .item = recipe.b, .count = 1 }, .{}, .{} };
+        inv.updateCrafting();
+        try std.testing.expectEqual(recipe.out, inv.craft_output.item);
+        try std.testing.expectEqual(@as(u8, 1), inv.craft_output.count);
     }
 }

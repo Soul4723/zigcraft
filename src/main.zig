@@ -192,6 +192,13 @@ const camel_mount_kinematics_mod = @import("world/camel_mount_kinematics.zig");
 const decorated_pot_storage_mod = @import("world/decorated_pot_storage.zig");
 const creaking_gaze_ai_mod = @import("world/creaking_gaze_ai.zig");
 const resin_masonry_mod = @import("world/resin_masonry.zig");
+const sniffer_digging_flora_mod = @import("world/sniffer_digging_flora.zig");
+const trial_spawner_dynamics_mod = @import("world/trial_spawner_dynamics.zig");
+const vault_loot_dispenser_mod = @import("world/vault_loot_dispenser.zig");
+const breeze_wind_charge_mod = @import("world/breeze_wind_charge.zig");
+const crafter_automation_mod = @import("world/crafter_automation.zig");
+const trial_chamber_generation_mod = @import("world/trial_chamber_generation.zig");
+const ominous_bottle_omen_mod = @import("world/ominous_bottle_omen.zig");
 
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
@@ -1015,7 +1022,15 @@ pub fn main() !void {
         _ = decorated_pot_storage_mod.wobble_duration_seconds;
         _ = creaking_gaze_ai_mod.fov_dot_threshold;
         _ = resin_masonry_mod.MAX_RESIN_LAYERS;
-        _ = copper_bulb_latch_mod.OxidationStage.unoxidized.lightLevel();
+        // Wave 18 representative frame-loop hooks keep all ten domains queryable.
+        _ = sniffer_digging_flora_mod.isSniffable(.dirt);
+        _ = trial_spawner_dynamics_mod.mobCategory(.bogged);
+        _ = vault_loot_dispenser_mod.requiredKey(.standard);
+        _ = breeze_wind_charge_mod.takesWaterDamage(false);
+        _ = mace_smash_kinematics_mod.calculateSmashDamage(2.0, 0);
+        _ = crafter_automation_mod.slot_count;
+        _ = trial_chamber_generation_mod.FOOTPRINT_X;
+        _ = ominous_bottle_omen_mod.amplifierForTier(.tier_1);
         _ = enchanting_grindstone_mod.computeEnchantSlotOffers(0);
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);
