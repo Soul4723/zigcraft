@@ -446,3 +446,12 @@ damage/achievement events, and Looting-aware drops. It is independently
 registered as a test target. Rendering, sound playback, block destruction/fire,
 achievement persistence, and entity inventory changes remain responsibilities
 of their existing world owners.
+
+### Wither boss phases
+
+\`wither_boss_phases.zig\` models the 7-block Wither summoning pattern, spawn
+charge, birth blast, three-head artillery cadence and target selection, armor
+phase, melee events, death animation, and Nether Star/XP rewards. It is a
+standalone test target. Rendering, explosion/block changes, projectile and
+status-effect application, and inventory drops remain with the game systems
+that own those effects.
