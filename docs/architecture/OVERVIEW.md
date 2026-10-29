@@ -495,3 +495,13 @@ entry event, Mining Fatigue III timer and milk cleansing, defeat loot, and apex
 vault contents. It is a standalone test target. The module returns sound and
 phantom events; the existing runtime rendering, audio, player effect, guardian
 placement and terrain systems remain responsible for applying those events.
+
+### Nether portal coordinate scaling
+
+`nether_portal_scaling.zig` models the Overworld/Nether 1:8 horizontal
+coordinate conversion, destination lookup within a horizontal 128-block
+radius, safest-site selection and minimum portal frame block plan, plus
+tick-based entity transit and cooldown rules. It is registered as a standalone
+test target. The live game loop and world owner remain responsible for changing
+dimensions, validating candidate site safety against loaded terrain, and
+applying generated frame blocks.
