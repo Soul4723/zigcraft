@@ -600,4 +600,6 @@ Rough priority order. Completed milestones marked **[x]**.
 
 ## Wave 23 Domain Modules
 
+510. [x] **Nether Portal Coordinate Scaling & Interdimensional Teleportation Grid** — Floor-based 1:8 horizontal conversion, clamped 1:1 Y mapping, 128-block horizontal destination search with 3D closest selection, safety-scored 4x5 portal frame generation, and player/entity transit and cooldown timing (`src/world/nether_portal_scaling.zig`).
+
 508. [x] **Guardian Laser Beam Tracking & Spikes Armor Reaction** — 30 HP Guardian with smooth 2.4 m/s swimming, land hops and half-second suffocation pulses; visible target acquisition within 15m, 60-tick charge, 16m tracking leash and line-of-sight cancellation; difficulty-scaled 6/9/12 HP unmitigated magic beam; twelve retractable orange spikes with 2 HP thorns retaliation; Prismarine Shard, Prismarine Crystal and Raw Cod drop candidates (\`src/world/guardian_laser_spikes.zig\`).

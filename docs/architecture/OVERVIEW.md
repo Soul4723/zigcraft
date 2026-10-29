@@ -486,3 +486,13 @@ and configured stack limits. Six two-ingredient 2x2 recipes are handled by
 `Inventory.updateCrafting()`. `copper_horn` remains the ingredient item at 607;
 `vault_reset_token` uses its requested Wave 22 output ID 613. `BlockId` remains
 within the existing 8-bit capacity.
+
+### Nether portal coordinate scaling
+
+`nether_portal_scaling.zig` models the Overworld/Nether 1:8 horizontal
+coordinate conversion, destination lookup within a horizontal 128-block
+radius, safest-site selection and minimum portal frame block plan, plus
+tick-based entity transit and cooldown rules. It is registered as a standalone
+test target. The live game loop and world owner remain responsible for changing
+dimensions, validating candidate site safety against loaded terrain, and
+applying generated frame blocks.

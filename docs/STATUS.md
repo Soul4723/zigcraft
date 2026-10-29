@@ -1,5 +1,15 @@
 # Project Status
 
+Last updated: 2026-10-29 (Session 416, Milestone 510)
+
+Milestone 510 adds `src/world/nether_portal_scaling.zig` with floor-based 1:8
+Overworld/Nether coordinates, clamped Y coordinates, 128-block horizontal
+portal selection using 3D closest distance, safety-scored generated frames,
+minimum obsidian-frame validation, and player/entity transit ticks with an
+80-tick player trigger and 300-tick return cooldown. It is registered as a
+standalone test target; dimension changes and applying generated blocks remain
+with the game loop and world owners. All 31 focused tests pass.
+
 Last updated: 2026-10-29 (Session 415, Milestone 508)
 
 Milestone 508 adds `src/world/guardian_laser_spikes.zig`, a standalone Guardian
