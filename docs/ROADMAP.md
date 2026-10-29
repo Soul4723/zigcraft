@@ -621,3 +621,16 @@ Rough priority order. Completed milestones marked **[x]**.
 ## Wave 24 Domain Modules
 
 520. [x] **Ender Dragon Respawning Ritual** — Four cardinal fountain crystals, a 600-tick multistage beam sequence, sequential regeneration of all ten pillar crystals, apex convergence, full-health dragon respawn, and exit portal deactivation until the dragon is defeated (`src/world/dragon_respawn_ritual.zig`).
+
+## Wave 24 Integration (Milestones 511–520)
+
+511. [x] **Chorus Teleportation & Purpur Masonry** — Frame-loop hook and inventory recipe integration (`src/world/chorus_teleport_purpur.zig`).
+512. [x] **End Gateway Transit** — Frame-loop hook for gateway entry rules (`src/world/end_gateway_transit.zig`).
+513. [x] **Shulker Shell Defense** — Frame-loop hook for shulker shell drop rules (`src/world/shulker_shell_defense.zig`).
+514. [x] **Shulker Box Storage** — Frame-loop hook for box comparator fullness (`src/world/shulker_box_storage.zig`).
+515. [x] **Elytra Flight Matrix** — Existing frame-loop wear query and 2x2 mending wing recipe (`src/world/elytra_flight_matrix.zig`).
+516. [x] **Dragon Head Acoustics** — Frame-loop Note Block sound resolution (`src/world/dragon_head_acoustics.zig`).
+517. [x] **Dragon's Breath Alchemy** — Frame-loop lingering potion rule query and vial recipe (`src/world/dragons_breath_alchemy.zig`).
+518. [x] **End City Layout** — Frame-loop procedural layout query (`src/world/end_city_layout.zig`).
+519. [x] **End Ship Vault** — Frame-loop ship generation query (`src/world/end_ship_vault.zig`).
+520. [x] **Dragon Respawn Ritual** — Existing 20 Hz ritual tick; integration checked through session build and full tests (`src/world/dragon_respawn_ritual.zig`).

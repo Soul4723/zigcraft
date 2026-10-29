@@ -531,3 +531,25 @@ stack limits. Six two-ingredient 2x2 recipes are handled by
 Ghast Tear Essence, Wither Skull Relic, Nether Star Core, and Conduit Power
 Orb. Existing ingredient tags are reused, including `wither_skull` for the
 Wither Skeleton Skull. `BlockId` remains within the existing 8-bit capacity.
+
+### Wave 24 domain modules
+
+Milestones 511–520 provide standalone rules in `chorus_teleport_purpur.zig`,
+`end_gateway_transit.zig`, `shulker_shell_defense.zig`,
+`shulker_box_storage.zig`, `elytra_flight_matrix.zig`,
+`dragon_head_acoustics.zig`, `dragons_breath_alchemy.zig`,
+`end_city_layout.zig`, `end_ship_vault.zig`, and
+`dragon_respawn_ritual.zig`. All ten are registered once in `build.zig` as
+standalone test targets. `main.zig` queries each domain from the frame loop;
+Elytra wear and the Dragon Respawn Ritual use their existing live simulation
+paths, with the ritual ticking at 20 Hz. The modules return deterministic
+rules and events; existing world, entity, audio, rendering, and inventory
+owners apply runtime changes.
+
+Wave 24 adds ItemTypes 628–637 for Chorus Teleport Matrix, End Gateway Shard,
+Shulker Shell Armor Plate, Quantum Shulker Core, Elytra Mending Wing, Dragon
+Skull Horn, Dragon's Breath Vial, End City Vault Key, End Ship Figurehead, and
+Dragon Respawn Crystal. Six two-item 2x2 recipes are handled by
+`Inventory.updateCrafting()`. `glass_bottle` is introduced at ItemType 638 as
+the ingredient for the Dragon's Breath Vial recipe because no empty glass
+bottle item previously existed. `BlockId` remains within its 8-bit capacity.
