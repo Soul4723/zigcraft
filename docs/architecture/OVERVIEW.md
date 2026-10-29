@@ -329,3 +329,11 @@ breeze/mace/crafter/copper-bulb cores, a trial chamber map, an ominous bottle
 catalyst, and a Bogged poison quiver. Inventory defines display names, RGBA
 colors, and stack sizes, and its 2x2 grid supports six recipes. `BlockId` remains
 capped at 255.
+
+### Goat horn acoustics
+
+`goat_horn_acoustics.zig` owns the eight canonical horn call identities and
+their acoustic event data, including 256-block listener checks, linear
+attenuation, cooldown, directional sonic cone expansion, and frequency-10
+sculk notifications. It also owns Screamer spawn/cadence and goat ram horn
+shedding rules. World/entity owners consume the returned events and drops.
