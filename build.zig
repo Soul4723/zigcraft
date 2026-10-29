@@ -62,6 +62,7 @@ pub fn build(b: *std.Build) void {
         "src/world/amethyst.zig",
         "src/world/campfire_cook.zig",
         "src/world/sculk.zig",
+        "src/world/sculk_sensor_multiplexing.zig",
         "src/world/golem.zig",
         "src/world/cake.zig",
         "src/world/dripstone.zig",
