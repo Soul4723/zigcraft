@@ -127,3 +127,8 @@ Last updated: 2026-10-29 (Session 389)
 - Added standalone `src/world/trial_chamber_traps.zig` with 8-second (160 ticks) ambient hazard timer, random hazard selection (ceiling projectile drop vs lingering cloud 3-5 blocks above player head), 6 lingering potion payload types (poison, slowness, weaving, oozing, infested, wind_charged), cloud physical dynamics (3.0m radius, -0.5m shrink per affliction, 600 ticks / 30s timeout, spherical affliction), ceiling downward projectile ejection ([3]f32{0.0, -0.6, 0.0}), 3.5m wind charge burst with copper door/trapdoor toggling and knockback, and fire charge ground ignition.
 - Registered in `build.zig` for isolated tests.
 - Verification: `zig test src/world/trial_chamber_traps.zig` passes 37/37; `zig build test` passes.
+
+## Milestone 475 — Elytra Kinetic Glide & Firework Rocket Propulsion
+- Added standalone `src/world/elytra_rocket_propulsion.zig` implementing Elytra flight kinematics state machine (`.grounded`, `.falling`, `.gliding`, `.kinetic_impact`), dive/climb aerodynamics (`v_horiz += -0.08 * sin(theta)`, `vy += 0.06 * sin(theta) - gravity`, 0.99 drag decay), Firework Rocket propulsion boost (1.5 m/s^2 forward acceleration along look vector, flight duration tiers 1–3, 5.0 HP firework star explosion hazard), kinetic wall crash collision damage (`(v - 10.0) * 2.0`), durability wear (1/s, broken state at 1 point), and Anvil Phantom Membrane restoration (+108/membrane).
+- Registered in `build.zig` test runner.
+- Verification: 35/35 tests in `src/world/elytra_rocket_propulsion.zig` passed; `zig build test` passed cleanly.
