@@ -410,3 +410,12 @@ Inventory adds ItemTypes 596–605 with display names, RGBA colors, and stack
 sizes. Its 2x2 grid supports six Wave 21 recipes. `gold_ingot` is added as an
 ingredient item at 606 because no gold ingot item type existed; `BlockId` stays
 within its `u8` capacity.
+
+### Milestone 496: trial vault reset domain
+
+`trial_vault_reset.zig` models per-player Vault key locks, Standard and Ominous
+key matching, reset-token consumption, the 5% Ominous Trial Spawner token roll,
+comparator output, animated preview visibility, and seeded loot ejection with
+radial dispersion. It is registered as a standalone test target and referenced
+from the frame loop. Inventory adds `vault_reset_token` as ItemType 608 with
+stack size 16 and display metadata; `BlockId` remains unchanged.

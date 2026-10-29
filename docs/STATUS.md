@@ -1,5 +1,9 @@
 # Project Status
 
+Last updated: 2026-10-29 (Milestone 496)
+
+Milestone 496 adds `src/world/trial_vault_reset.zig` for per-player Standard/Ominous Trial Key unlocks, 5% ominous-spawner reset-token drops, Vault Reset Token cooldown resets, animated per-player preview visibility, comparator output, and 3–6 item radial ejection with bounded upward velocity (31 focused tests). `ItemType.vault_reset_token` is 608.
+
 Last updated: 2026-10-29 (Session 406, Phase 8: Milestones 481–490)
 
 Milestone 492 adds standalone 3D radius-8 sculk bloom propagation, charge-limited substrate conversion, exposed-face vein masks, 85/15 branch rolls, and a 20-tick light state in `src/world/sculk_bloom_geometry.zig` (38 focused tests).
