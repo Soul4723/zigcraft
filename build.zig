@@ -185,6 +185,7 @@ pub fn build(b: *std.Build) void {
         "src/world/boots_and_armor_stands.zig",
         "src/world/woodland_mansion.zig",
         "src/world/ocean_monument.zig",
+        "src/world/guardian_laser_spikes.zig",
         "src/world/ancient_city.zig",
         "src/world/temple_traps.zig",
         "src/world/stronghold_triangulation.zig",

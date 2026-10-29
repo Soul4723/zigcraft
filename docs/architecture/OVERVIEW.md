@@ -85,6 +85,15 @@ impact results, drop rules, and fortress spawner activation rules. Its
 standalone test target is registered in `build.zig`; callers own applying
 rendering, entity damage, and block ignition events to live world state.
 
+### Guardian laser and spikes
+
+`guardian_laser_spikes.zig` owns Guardian swim/land movement rules, laser
+target acquisition and charge/cancel behavior, difficulty damage events,
+spike extension state and thorns retaliation values, and drop candidates. It
+is registered as a standalone test target. The existing entity/rendering
+owners apply movement and visual state to live Guardians and apply emitted
+damage and drops.
+
 ## Water ticks
 
 `main.zig` dispatches `fluid_wash.step` every 0.4 seconds. The step scans the
