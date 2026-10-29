@@ -182,3 +182,20 @@ Last updated: 2026-10-29 (Session 396)
     - Void damage (Y < -64.0 in the Void) and `/kill` commands (`DamageType.command_kill`) bypass the Totem of Undying entirely; player perishes, drops inventory, loses experience, and the totem is preserved unconsumed in the inventory.
 - Registered in `build.zig` test runner.
 - Verification: 45/45 tests in `src/world/totem_undying_resurrection.zig` passed; `zig build test` passed cleanly.
+
+## Milestone 482 — Piglin Brute & Bastion Defense Tactics
+- Added standalone `src/world/piglin_brute_bastion.zig` implementing Piglin Brute entity attributes (50.0 HP / 25 hearts, >3x standard piglin health), 13.0 HP Golden Axe heavy blow damage, visual traits (golden arm band, scarred blind eye, two-handed Golden Axe stance), non-respawning Bastion Remnant generation persistence, total gold distraction and pacification immunity (attacks on sight regardless of full gold armor, ignores barter ingots/blocks), 16.0m Bastion defense alarm broadcast breaking nearby standard Piglin pacification, Overworld/End 300-tick zombification, and defeat drops (8.5% Golden Axe scaled by Looting, 20 XP).
+- Registered in `build.zig` test runner.
+- Verification: 37/37 tests passed cleanly; `zig build test` passed.
+
+## Milestone 483 — Zombified Piglin Neutrality & Group Alarm Swarm
+- Added standalone `src/world/zombified_piglin_swarm.zig` implementing complete Zombified Piglin pack behavior and mechanics:
+  - Zombified Piglin State Machine: `.neutral`, `.angered`, `.calming` with 20.0 HP max health (10 hearts) and Golden Sword weapon.
+  - Natural Neutrality: passively wanders Nether at 3.0 m/s neutral walk speed ignoring players until provoked or struck.
+  - 40-Block Group Alarm Swarm Propagation: when provoked, emits piercing screech (`SoundEffect.zombified_piglin_screech`) and broadcasts alarm across a 40.0m Euclidean radius (`SWARM_ALARM_RADIUS = 40.0`). Line-of-sight is NOT required: penetrates solid walls, netherrack, and caves. All alerted piglins enter `.angered` targeting the provoker player and sprint at 4.35 m/s (+45% speed boost).
+  - Anger Duration & Calming Cycle: uniformly sampled anger timer between 400 and 799 game ticks (20.0 to 39.95s). Continuous pursuit re-aggro resets timer while player is in line-of-sight within 16.0m Euclidean radius. Upon timer expiration without seeing player, transitions to `.calming` (20 ticks) then `.neutral` (anger forgiven).
+  - Undead Fire & Lava Immunity: completely immune to fire, lava, and burning damage (`isImmuneToLava = true`, `isImmuneToFire = true`, `is_undead = true`).
+  - Reinforcement Summoning: taking damage has a 10% chance (`REINFORCEMENT_CHANCE = 0.10`) to summon an angered reinforcement piglin within 16 blocks (`REINFORCEMENT_RADIUS = 16.0`).
+  - Drops on Defeat: Rotten Flesh (0–1 base, scaled by Looting), Gold Nuggets (0–1 base, scaled by Looting), Golden Sword (8.5% base chance, +1.0% per Looting level), and 5 Experience Points (`EXPERIENCE_POINTS_DROP = 5`).
+- Registered in `build.zig` test runner.
+- Verification: 44/44 tests in `src/world/zombified_piglin_swarm.zig` passed; `zig build test` passed cleanly.

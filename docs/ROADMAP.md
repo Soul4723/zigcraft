@@ -563,3 +563,8 @@ Rough priority order. Completed milestones marked **[x]**.
 477. [x] **Skeleton Trap Lightning Summoning & Four Horsemen Combat** — 10m proximity trigger, cosmetic lightning, four mounted horsemen, enchanted gear, summon immunity, despawn timer, and horse taming (`src/world/skeleton_trap_combat.zig`).
 478. [x] **Witch Potion Throwing AI & Raid Healing Mechanics** — 26.0 HP max health, 85% magic resistance, poison immunity, 32-tick defensive drinking, offensive splash attacks, and village raid medic healing (`src/world/witch_potion_combat.zig`).
 480. [x] **Totem of Undying Resurrection & Visual Animation** — Hands priority trigger (offhand then main hand), 1.0 HP restoration, 9-negative-effect cleansing, Regeneration II (45s, 0.8 HP/s, +36 HP), Absorption II (5s, +8 HP), Fire Resistance I (40s), floating wings overlay, sparkle ring bursts, and void death exemption (`src/world/totem_undying_resurrection.zig`).
+
+## Wave 21 Integration (Milestones 481–490)
+
+482. [x] **Piglin Brute & Bastion Defense Tactics** — 50.0 HP health pool, golden arm band, blind eye, gold immunity, 16m bastion alarm coordination, and overworld zombification (`src/world/piglin_brute_bastion.zig`).
+483. [x] **Zombified Piglin Neutrality & Group Alarm Swarm** — Natural neutrality, 40m group alarm swarm propagation, 400–799 ticks anger cycle, 4.35 m/s sprint boost, 16m continuous pursuit re-aggro, undead fire/lava immunity, 10% reinforcement summoning, and defeat drops (`src/world/zombified_piglin_swarm.zig`).
