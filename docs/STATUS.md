@@ -1,5 +1,11 @@
 # Project Status
 
+## Milestone 487 — Target Lead & Leash Knot Tensile Physics
+- Added `src/world/lead_tension_physics.zig` with a fixed-capacity leash registry, 3.0m rest length, specified 0.06-per-meter spring acceleration, strict >10m snapping, snap sound/drop event at the entity position, fence knot creation/release, boat towing, and multiple simultaneous targets.
+- Updated the live mob leash spring in `src/entity/mob.zig` to use the specified acceleration. Updated inventory crafting to consume four String and one Slimeball for two Leads, including exact ingredient consumption.
+- Registered the module in `build.zig` tests and queried its pure tension rule from the main loop.
+- Verification: standalone module passed 44/44 tests; `zig build` passed; `zig build test` passed all test suites.
+
 Last updated: 2026-10-29 (Session 390)
 
 ## What Works

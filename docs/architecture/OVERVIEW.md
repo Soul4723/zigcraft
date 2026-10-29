@@ -249,6 +249,12 @@ Milestones 401–410 add `flower_forest_plains.zig`, `mountain_peaks_ores.zig`,
 tested and imported by `main.zig`, which queries representative deterministic
 rules each frame while existing world/entity systems retain mutation ownership.
 
+Milestone 487 adds `lead_tension_physics.zig`, a deterministic multi-target
+leash registry for player and fence-knot holders. It returns acceleration,
+snap sound, and entity-position drop events for world systems to apply. Live mob
+leash acceleration and inventory lead crafting use the milestone's 3m spring
+and String/Slimeball recipe.
+
 Wave 13 adds ItemTypes 511–521 for flowers, podzol/mossy cobblestone, birch and
 spruce planks, chest boat, bamboo raft, and bed. Metadata includes names, RGBA
 colors, and stack limits; six 2x2 recipes extend the crafting grid. `BlockId`
