@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-29 (Session 387)
+Last updated: 2026-10-29 (Session 408)
 
 ## Project Structure
 
@@ -54,6 +54,7 @@ zigcraft/
 │       ├── ender_chest.zig      # Global quantum EnderVault deposit & withdrawal mechanics
 │       ├── beacon_aura.zig      # Beacon mineral pyramid verification, Haste & Regeneration aura
 │       ├── archaeology.zig      # Suspicious sand brush relic excavation & Copper Bulb latch
+│       ├── brushing_visual_particles.zig # Staged excavation plumes, audio cues & interruption decay
 │       ├── wind_charge.zig      # Wind Charge self-boost rocket jump & radial knockback impulse
 │       ├── mace_combat.zig      # Mace smash attack fall-velocity damage scaling & fall reset
 │       ├── autocrafter.zig      # Crafter batch autocrafting & Trial Vault key loot tables
@@ -410,3 +411,9 @@ Inventory adds ItemTypes 596–605 with display names, RGBA colors, and stack
 sizes. Its 2x2 grid supports six Wave 21 recipes. `gold_ingot` is added as an
 ingredient item at 606 because no gold ingot item type existed; `BlockId` stays
 within its `u8` capacity.
+
+`brushing_visual_particles.zig` complements the archaeology excavation rules
+with deterministic four-stage particle bursts, exposed item-edge/relic sparkle
+flags, pitch and completion-chime events, hand selection, and smooth release
+decay. It is registered as a standalone test target and exposed through the
+frame-loop domain hooks; rendering and audio playback remain consumer-owned.

@@ -1,5 +1,9 @@
 # Project Status
 
+Last updated: 2026-10-29 (Session 408, Milestone 495)
+
+Milestone 495 adds deterministic staged suspicious sand/gravel plume bursts, uncovering-edge and relic sparkle metadata, excavation-stage audio pitch/chime events, main/off-hand brush selection, synchronized-hand reporting, and smooth interruption regression/fade in `src/world/brushing_visual_particles.zig` (38 focused tests). The focused test command passes. `zig build` currently stops on a pre-existing EOF parse error at `src/inventory.zig:12536`.
+
 Last updated: 2026-10-29 (Session 406, Phase 8: Milestones 481–490)
 
 Milestone 492 adds standalone 3D radius-8 sculk bloom propagation, charge-limited substrate conversion, exposed-face vein masks, 85/15 branch rolls, and a 20-tick light state in `src/world/sculk_bloom_geometry.zig` (38 focused tests).
