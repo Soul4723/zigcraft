@@ -284,6 +284,14 @@ dropped item magnets, flying machine cores, zombie siege banners, and cramming
 dispersers. Inventory metadata defines names, colors, stack limits, and six 2x2 recipes.
 `BlockId` remains capped at 255.
 
+### Mace smash kinematics
+
+`mace_smash_kinematics.zig` owns the mace's heavy attack constants and
+deterministic smash rules: fall-scaled damage, Density/Breach calculations,
+fall-state reset, Wind Burst launch impulses, shockwave target filtering, and
+hit durability wear. It is registered as a standalone test target and supplies
+the mace base damage and smash threshold used by `main.zig` combat handling.
+
 ### Wave 16 domain modules
 
 Milestones 431–440 add `target_block_projectile.zig`, `lightning_redstone_deflection.zig`,

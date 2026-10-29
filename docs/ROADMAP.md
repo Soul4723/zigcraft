@@ -527,3 +527,7 @@ Rough priority order. Completed milestones marked **[x]**.
 449. [x] **Creaking Gaze AI** — 45-degree gaze freeze, line-of-sight stalking, and eyeblossom resonance (`src/world/creaking_gaze_ai.zig`).
 450. [x] **Resin Masonry** — Resin clump extrusion, hardening, brick crafting, and masonry architecture (`src/world/resin_masonry.zig`).
 
+## Wave 18 (Milestone 455)
+
+455. [x] **Mace Heavy Weapon Kinematics** — 6-damage, 0.6 attacks/s mace with fall smash scaling, Density/Breach rules, Wind Burst launch impulses, radial knockback filtering, fall reset, and durability wear (`src/world/mace_smash_kinematics.zig`).
+

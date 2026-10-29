@@ -110,3 +110,6 @@ Last updated: 2026-10-29 (Session 387)
 - All ten Wave 17 modules have standalone test targets and are imported in `main.zig`; the frame loop queries representative domain rules while existing world/entity systems retain mutation ownership.
 - ItemTypes 553–562 add sculk bloom catalyst, shrieker alarm core, calibrated sensor tuner, chiseled bookshelf slot, hanging chain mount, camel bridle saddle, decorated pot motif, creaking heart core, eyeblossom resin bloom, and resin brick masonry. Their RGBA metadata, stack limits, and six 2x2 recipes are tested; `wooden_slab` and `stone_bricks` are ingredient ItemTypes 563–564. `BlockId` remains capped at 255.
 
+## Wave 18 Progress
+- Milestone 455 adds the standalone mace smash kinematics module with 30 unit tests, including Density and Breach scaling, Wind Burst impulses, shockwave target filtering, fall reset, and Unbreaking wear. Base smash damage and threshold are connected to the player combat path.
+
