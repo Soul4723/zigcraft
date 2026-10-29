@@ -532,3 +532,7 @@ Rough priority order. Completed milestones marked **[x]**.
 457. [x] **Copper Bulb Bistable Redstone Latch & Oxidation Light Decay** — Rising-edge T-flip-flop with a two-game-tick toggle delay, oxidation-dependent light levels, waxing/scraping interactions, indicator dot, and oxidation-independent comparator output (`src/world/copper_bulb_latch.zig`).
 
 459. [x] **Ominous Bottle, Bad Omen, Raid Omen & Trial Omen** — 32-tick tiered bottle drinking, Bad Omen duration and particles, village raid countdown/cancellation, trial proximity transmutation, ominous spawner aura, and milk cleansing (`src/world/ominous_bottle_omen.zig`).
+
+## Wave 19 Integration (Milestone 462)
+
+462. [x] **Allay Duplication & Amethyst Dance** — 16-block jukebox dance detection, disc-pitched note events, amethyst shard duplication with paired 6,000-tick cooldowns, natural regeneration, item binding, and favorite-player/Note Block delivery queries (`src/world/allay_amethyst_duplication.zig`).

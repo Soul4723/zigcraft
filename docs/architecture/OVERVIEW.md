@@ -324,3 +324,7 @@ as an independent test target and imported by `main.zig` for a representative
 domain-rule query; it does not own world block mutation.
 
 Milestone 459 adds `ominous_bottle_omen.zig`, a deterministic per-player state machine that accepts village/trial proximity, returns particle/sound/raid events, and exposes an aura query for nearby trial spawners. It is registered as a standalone test module; callers own world discovery and event application.
+
+### Wave 19 domain module
+
+Milestone 462 adds `allay_amethyst_duplication.zig`, a standalone Allay behavior model for jukebox detection and dancing animation events, amethyst shard duplication, cooldown and regeneration ticks, item binding, and favorite-player delivery targeting. Runtime systems remain responsible for entity discovery, inventory mutation, particle/audio playback, and dropping held items.

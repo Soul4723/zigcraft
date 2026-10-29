@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 389)
+Last updated: 2026-10-29 (Session 390)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 8336 passing unit tests across 467 build/test steps
@@ -118,3 +118,7 @@ Last updated: 2026-10-29 (Session 389)
 ## Wave 18 Omen Mechanics
 - Milestone 459 adds a standalone omen state machine for tiered Ominous Bottle drinking, Bad Omen, raid countdown/cancellation, Trial Omen transmutation and aura, and milk cleansing.
 - The module has 26 standalone tests and a dedicated test target in `build.zig`; its proximity inputs and emitted events are ready for world integration.
+
+## Wave 19 Allay Mechanics
+- Milestone 462 adds `src/world/allay_amethyst_duplication.zig` with 16-block jukebox dancing, disc-pitched note events, shard-fed duplication, paired 6,000-tick cooldowns, health regeneration, item binding, favorite-player delivery range, and Note Block delivery targeting.
+- The module has a standalone test target and is imported by `main.zig` for a representative range query. Entity discovery, inventory mutation, particles, sound playback, and item dropping remain owned by runtime systems.
