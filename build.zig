@@ -129,6 +129,7 @@ pub fn build(b: *std.Build) void {
         "src/world/warden_scent_blast.zig",
         "src/world/recovery_compass_echo.zig",
         "src/world/sculk_shrieker_warning.zig",
+        "src/world/sculk_shrieker_fog.zig",
         "src/world/strider_mount.zig",
         "src/world/axolotl.zig",
         "src/world/banner_heraldry.zig",
