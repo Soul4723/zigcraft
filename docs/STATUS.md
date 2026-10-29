@@ -148,3 +148,8 @@ Last updated: 2026-10-29 (Session 396)
   - 60-tick (3.0s) initial summon damage immunity window.
   - Mounted archer kinematics AI: closes distance if > 16.0m, kites away if < 8.0m, circles tangentially between 8.0m and 16.0m while firing arrows.
   - Separate entity destruction: horse defeat dismounts rider to fight on foot; rider defeat pacifies skeleton horse into a tameable, rideable mount (12.0 m/s sprint, 3.5m jump, underwater traversal).
+
+## Milestone 478 — Witch Potion Throwing AI & Raid Healing Mechanics
+- Added standalone `src/world/witch_potion_combat.zig` implementing Witch combat AI attributes (26.0 HP max health, 85% magic damage resistance, complete poison immunity), defensive self-drinking state machine (32-tick / 1.6s drinking animation pausing movement; priority: fire -> Fire Resistance 3 min, drowning -> Water Breathing 3 min, low health < 11.0 HP -> Healing I +4.0 HP, far target > 11.0m -> Swiftness I +20% speed 3 min), offensive splash potion projectile selection (40-tick / 2.0s cooldown, 10.0m throw range; priority: <= 8.0m and not slowed -> Slowness I, health >= 8.0 HP and not poisoned -> Poison I, < 3.0m close combat 25% chance -> Weakness I, < 8.0 HP -> Harming I 6.0 direct magic damage), village raid medic healing behavior (scans wounded allies within 10.0m at < 80% HP, throws Splash Healing I / Regeneration I at cluster centroid restoring all allies in 3.0m splash radius), and defeat drops (0–2 of glass bottles, glowstone dust, redstone dust, gunpowder, sugar, spider eyes, sticks scaled by Looting; guaranteed drop of consumed potion if killed while drinking).
+- Registered in `build.zig` test runner.
+- Verification: 38/38 tests in `src/world/witch_potion_combat.zig` passed; `zig build test` passed cleanly.

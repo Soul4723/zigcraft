@@ -561,3 +561,4 @@ Rough priority order. Completed milestones marked **[x]**.
 474. [x] **Shulker Bullet Guided Tracking & Levitation** — Shulker bullet cardinal tracking, shield deflection, and levitation kinematics (`src/world/shulker_bullet_levitation.zig`).
 475. [x] **Elytra Kinetic Glide & Firework Rocket Propulsion** — Aerodynamic pitch dive, kinetic crash damage, and firework rocket propulsion (`src/world/elytra_rocket_propulsion.zig`).
 477. [x] **Skeleton Trap Lightning Summoning & Four Horsemen Combat** — 10m proximity trigger, cosmetic lightning, four mounted horsemen, enchanted gear, summon immunity, despawn timer, and horse taming (`src/world/skeleton_trap_combat.zig`).
+478. [x] **Witch Potion Throwing AI & Raid Healing Mechanics** — 26.0 HP max health, 85% magic resistance, poison immunity, 32-tick defensive drinking, offensive splash attacks, and village raid medic healing (`src/world/witch_potion_combat.zig`).
