@@ -154,6 +154,7 @@ pub fn build(b: *std.Build) void {
         "src/world/witch_potion_combat.zig",
         "src/world/blaze_fortress.zig",
         "src/world/blaze_fireball_artillery.zig",
+        "src/world/ghast_fireball_tennis.zig",
         "src/world/ghast_deflection.zig",
         "src/world/slime_mitosis.zig",
         "src/world/phantom_insomnia.zig",

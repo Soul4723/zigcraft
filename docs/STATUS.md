@@ -1,5 +1,15 @@
 # Project Status
 
+Last updated: 2026-10-29 (Session 411, Milestone 503)
+
+Milestone 503 adds the standalone Ghast artillery and fireball tennis domain in
+`src/world/ghast_fireball_tennis.zig`: 10 HP and 4m dimensions, fire/lava and
+fall immunity, 0.5–1.5 m/s gravity-free flight, visible-target 64m detection,
+10-tick charge, 20 m/s power-1 fireballs, player attack deflection, lethal
+Return to Sender hits, Ghast loot, and 47 focused tests. The module is registered
+as a standalone test target; rendering, sound playback, and world block/entity
+mutation remain with their existing owners.
+
 Last updated: 2026-10-29 (Session 410, Milestone 501)
 
 Milestone 501 adds the standalone Blaze artillery domain in

@@ -437,3 +437,12 @@ second. The module returns events and block data so world/entity owners can
 apply rendering and voxel edits without coupling fight rules to the renderer
 or chunk manager. Its dragon egg item tag mirrors `ItemType.dragon_egg` (152)
 while keeping the standalone module within Zig's source-module import boundary.
+
+### Ghast fireball tennis
+
+`ghast_fireball_tennis.zig` owns Ghast flight and attack rules, projectile
+trajectory and explosion data, attack deflection attribution, Return to Sender
+damage/achievement events, and Looting-aware drops. It is independently
+registered as a test target. Rendering, sound playback, block destruction/fire,
+achievement persistence, and entity inventory changes remain responsibilities
+of their existing world owners.
