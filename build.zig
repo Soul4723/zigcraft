@@ -89,6 +89,7 @@ pub fn build(b: *std.Build) void {
         "src/world/mace_combat.zig",
         "src/world/mace_smash_kinematics.zig",
         "src/world/mace_aerial_combos.zig",
+        "src/world/mace_velocity_scaling.zig",
         "src/world/autocrafter.zig",
         "src/world/crafter_automation.zig",
         "src/world/crafter_factory_clocking.zig",
