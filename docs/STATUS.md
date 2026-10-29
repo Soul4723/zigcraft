@@ -488,6 +488,17 @@ Last updated: 2026-10-29 (Session 390)
 - Registered in `build.zig` test runner.
 - Verification: 49/49 tests in `src/world/crafter_pulsed_grid.zig` passed; `zig build` and `zig build test` passed cleanly (11,841/11,841 tests).
 
+## Milestone 529 — Bogged Poison Combat & Mushroom Shearing Harvest
+- Added standalone `src/world/bogged_poison_harvest.zig` implementing:
+  - Bogged entity attributes: 16.0 HP max health (8 hearts, weaker than 20.0 HP skeleton), bow weapon, 70-tick attack cooldown (3.5s at 20 ticks/sec vs 40-tick standard skeleton).
+  - Poison I-tipped arrow ranged combat: ballistic velocity trajectory kinematics (gravity 0.05, drag 0.99), difficulty-scaled poison duration (4.0s / 80 ticks on Normal, 5.0s / 100 ticks on Hard, 0 on Easy/Peaceful).
+  - Poison status effect mechanics: 1.0 HP magic damage every 25 ticks (1.25s), strictly preserving 1.0 HP minimum health floor (never kills player or target).
+  - Environmental vulnerabilities: 1.0 HP/s daylight burning when exposed to direct sun, with daylight exemptions for helmets (absorbs damage with durability wear), water submersion, powder snow, rain, shade/roof, and night time.
+  - Mushroom shearing harvest: Bogged naturally spawns with mushroom cap growth (`has_mushrooms = true`, `is_sheared = false`); shearing with shears drops 2 mushrooms (Brown/Red 50/50 probability per slot), consumes 1 shears durability, emits `SoundEffect.shears_snip` and moss/mushroom particle bursts, and transitions appearance (`has_mushrooms = false`, `is_sheared = true`); subsequent shearing attempts fail.
+  - Defeat loot scaling: bones (0..2 + Looting), arrows (0..2 + Looting), player-kill poison-tipped arrow (50% base + 10%/level Looting up to 80% max cap; 0 on non-player kill), rare bow drop (8.5% base + 1.0%/level Looting), and 5 XP points.
+- Registered in `build.zig` test runner.
+- Verification: 68/68 tests in `src/world/bogged_poison_harvest.zig` passed; `zig build` and `zig build test` passed cleanly (11,909/11,909 tests across 609 steps).
+
 ## Milestone 530 — Ominous Bottle Consumption & Bad Omen / Trial Omen Transformation Matrix
 - Added standalone `src/world/ominous_bottle_matrix.zig` implementing:
   - 5 Ominous Bottle tiers (Tier I through Tier V) mapping to amplifiers 0..4 via `tier - 1`.
