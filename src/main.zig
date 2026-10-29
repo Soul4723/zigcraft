@@ -223,6 +223,7 @@ const froglight_predation_mod = @import("world/froglight_predation.zig");
 const armadillo_wolf_defense_mod = @import("world/armadillo_wolf_defense.zig");
 const goat_horn_acoustics_mod = @import("world/goat_horn_acoustics.zig");
 const copper_horn_acoustics_mod = @import("world/copper_horn_acoustics.zig");
+const copper_bulb_display_mod = @import("world/copper_bulb_display.zig");
 const sculk_sensor_multiplexing_mod = @import("world/sculk_sensor_multiplexing.zig");
 const deepslate_mineralogy_mod = @import("world/deepslate_mineralogy.zig");
 const warden_sonic_boom_mod = @import("world/warden_sonic_boom.zig");
@@ -1137,6 +1138,9 @@ pub fn main() !void {
         _ = witch_potion_combat_mod.witch_max_health;
         _ = evoker_fangs_vex_mod.EVOKER_MAX_HEALTH;
         _ = totem_undying_resurrection_mod.RESURRECTION_HEALTH_HP;
+        // Wave 22's remaining copper display domain hook; the other nine modules
+        // already have representative queries in their existing wave sections.
+        _ = copper_bulb_display_mod.decodeDigit(9);
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);
         }
