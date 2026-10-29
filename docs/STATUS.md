@@ -1,5 +1,7 @@
 # Project Status
 
+Milestone 492 adds standalone 3D radius-8 sculk bloom propagation, charge-limited substrate conversion, exposed-face vein masks, 85/15 branch rolls, and a 20-tick light state in `src/world/sculk_bloom_geometry.zig` (38 focused tests).
+
 Last updated: 2026-10-29 (Session 404)
 
 Milestone 490 Panda Personalities & Gene Mutation Inheritance is implemented on the current feature branch in \`src/world/panda_genetics_variants.zig\`; it has seven behavior profiles, full two-allele dominance resolution, parent-specific bamboo breeding checks, offspring inheritance, and 1/32 mutation per allele.
