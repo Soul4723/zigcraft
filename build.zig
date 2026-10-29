@@ -163,6 +163,7 @@ pub fn build(b: *std.Build) void {
         "src/world/equine_genetics.zig",
         "src/world/companion_pets.zig",
         "src/world/panda_genetics.zig",
+        "src/world/panda_genetics_variants.zig",
         "src/world/dolphin_navigation.zig",
         "src/world/bee_pollination.zig",
         "src/world/cartography_maps.zig",

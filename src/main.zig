@@ -87,6 +87,7 @@ const note_block_instruments_mod = @import("world/note_block_instruments.zig");
 const equine_genetics_mod = @import("world/equine_genetics.zig");
 const companion_pets_mod = @import("world/companion_pets.zig");
 const panda_genetics_mod = @import("world/panda_genetics.zig");
+const panda_genetics_variants_mod = @import("world/panda_genetics_variants.zig");
 const dolphin_navigation_mod = @import("world/dolphin_navigation.zig");
 const bee_pollination_mod = @import("world/bee_pollination.zig");
 const cartography_maps_mod = @import("world/cartography_maps.zig");
@@ -875,6 +876,7 @@ pub fn main() !void {
         _ = equine_genetics_mod.computeHorseJumpHeight(1.0, 0.5);
         _ = companion_pets_mod.detectParrotHostileMimicry(20.0);
         _ = panda_genetics_mod.canBreedPandasWithBamboo(true, 1);
+        _ = panda_genetics_variants_mod.PandaGenetics.breedingState(true, 8, 8);
         _ = dolphin_navigation_mod.tickDolphinBreathAndMoisture(&active_dolphin, player.in_water, false, false, dt);
         _ = bee_pollination_mod.tickFlowerPollination(&active_bee, false, dt);
         _ = cartography_maps_mod.computeExplorerMapPlayerCursor(active_map, @intFromFloat(player.pos.x), @intFromFloat(player.pos.z));

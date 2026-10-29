@@ -1,5 +1,7 @@
 # Project Status
 
+Milestone 490 Panda Personalities & Gene Mutation Inheritance is implemented on the current feature branch in \`src/world/panda_genetics_variants.zig\`; it has seven behavior profiles, full two-allele dominance resolution, parent-specific bamboo breeding checks, offspring inheritance, and 1/32 mutation per allele.
+
 Last updated: 2026-10-29 (Session 390)
 
 ## What Works
