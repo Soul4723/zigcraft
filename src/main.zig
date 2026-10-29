@@ -234,6 +234,7 @@ const trial_spawner_dynamics_mod = @import("world/trial_spawner_dynamics.zig");
 const trial_spawner_waves_mod = @import("world/trial_spawner_waves.zig");
 const vault_loot_dispenser_mod = @import("world/vault_loot_dispenser.zig");
 const trial_vault_reset_mod = @import("world/trial_vault_reset.zig");
+const vault_multiplayer_reset_mod = @import("world/vault_multiplayer_reset.zig");
 const breeze_wind_charge_mod = @import("world/breeze_wind_charge.zig");
 const crafter_automation_mod = @import("world/crafter_automation.zig");
 const crafter_factory_clocking_mod = @import("world/crafter_factory_clocking.zig");
@@ -1134,6 +1135,8 @@ pub fn main() !void {
         _ = trial_spawner_waves_mod.COOLDOWN_TICKS;
         _ = vault_loot_dispenser_mod.requiredKey(.standard);
         _ = trial_vault_reset_mod.dropsVaultResetToken(true, 4);
+        _ = vault_multiplayer_reset_mod.requiredKey(.standard);
+        _ = vault_multiplayer_reset_mod.dropsVaultResetToken(true, 4);
         _ = breeze_wind_charge_mod.takesWaterDamage(false);
         _ = mace_smash_kinematics_mod.calculateSmashDamage(2.0, 0);
         _ = mace_aerial_combos_mod.damageMultiplier(1);
