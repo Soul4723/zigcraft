@@ -235,6 +235,14 @@ const trial_spawner_waves_mod = @import("world/trial_spawner_waves.zig");
 const vault_loot_dispenser_mod = @import("world/vault_loot_dispenser.zig");
 const trial_vault_reset_mod = @import("world/trial_vault_reset.zig");
 const vault_multiplayer_reset_mod = @import("world/vault_multiplayer_reset.zig");
+const warden_scent_blast_mod = @import("world/warden_scent_blast.zig");
+const sculk_shrieker_fog_mod = @import("world/sculk_shrieker_fog.zig");
+const calibrated_sensor_chains_mod = @import("world/calibrated_sensor_chains.zig");
+const breeze_jump_deflection_mod = @import("world/breeze_jump_deflection.zig");
+const mace_velocity_scaling_mod = @import("world/mace_velocity_scaling.zig");
+const crafter_pulsed_grid_mod = @import("world/crafter_pulsed_grid.zig");
+const bogged_poison_harvest_mod = @import("world/bogged_poison_harvest.zig");
+const ominous_bottle_matrix_mod = @import("world/ominous_bottle_matrix.zig");
 const breeze_wind_charge_mod = @import("world/breeze_wind_charge.zig");
 const crafter_automation_mod = @import("world/crafter_automation.zig");
 const crafter_factory_clocking_mod = @import("world/crafter_factory_clocking.zig");
@@ -1195,6 +1203,17 @@ pub fn main() !void {
         _ = dragons_breath_alchemy_mod.brewLingering(.splash_potion, .poison, .dragons_breath, 1);
         _ = end_city_layout_mod.generateEndCity(.{ .x = 0, .y = 64, .z = 0 });
         _ = end_ship_vault_mod.generateEndShip(.{ .x = 0, .y = 64, .z = 0 });
+        // Wave 25 representative frame-loop hooks keep all ten domains queryable.
+        _ = warden_scent_blast_mod.SCENT_RANGE;
+        _ = sculk_shrieker_fog_mod.DARKNESS_RADIUS;
+        _ = calibrated_sensor_chains_mod.CALIBRATED_SENSOR_RANGE;
+        _ = breeze_jump_deflection_mod.VERTICAL_BOOST_VY;
+        _ = trial_spawner_waves_mod.scaleTotalMobs(6, 2);
+        _ = mace_velocity_scaling_mod.BASE_DAMAGE;
+        _ = vault_multiplayer_reset_mod.requiredKey(.standard);
+        _ = crafter_pulsed_grid_mod.slot_count;
+        _ = bogged_poison_harvest_mod.BOGGED_MAX_HEALTH;
+        _ = ominous_bottle_matrix_mod.DRINKING_DURATION_TICKS;
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);
         }

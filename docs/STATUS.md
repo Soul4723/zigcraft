@@ -509,3 +509,36 @@ Last updated: 2026-10-29 (Session 390)
   - Milk Bucket (`ItemType.milk_bucket`) cleansing: drinking milk immediately cleanses Bad Omen, Raid Omen (canceling raid trigger), and Trial Omen, reverting state to neutral and returning an empty bucket.
 - Registered in `build.zig` test runner.
 - Verification: 53/53 tests in `src/world/ominous_bottle_matrix.zig` passed cleanly; `zig build` and `zig build test` passed cleanly.
+
+## Wave 25 Integration (Milestones 521–530)
+- Verified all ten Wave 25 modules registered in `build.zig` (once each).
+- Connected representative frame-loop queries in `src/main.zig` for all ten domains:
+  - `warden_scent_blast_mod.SCENT_RANGE`
+  - `sculk_shrieker_fog_mod.DARKNESS_RADIUS`
+  - `calibrated_sensor_chains_mod.CALIBRATED_SENSOR_RANGE`
+  - `breeze_jump_deflection_mod.VERTICAL_BOOST_VY`
+  - `trial_spawner_waves_mod.scaleTotalMobs`
+  - `mace_velocity_scaling_mod.BASE_DAMAGE`
+  - `vault_multiplayer_reset_mod.requiredKey`
+  - `crafter_pulsed_grid_mod.slot_count`
+  - `bogged_poison_harvest_mod.BOGGED_MAX_HEALTH`
+  - `ominous_bottle_matrix_mod.DRINKING_DURATION_TICKS`
+- Added ItemTypes 639–648 to `src/inventory.zig` with maximum stack limits, display names, and RGBA colors:
+  - `warden_sonic_pulse_matrix = 639`
+  - `shrieker_darkness_fog_relic = 640`
+  - `calibrated_resonance_matrix = 641`
+  - `wind_charge_rocket_booster = 642`
+  - `ominous_wave_hazard_core = 643`
+  - `mace_velocity_impact_relic = 644`
+  - `vault_reset_token_matrix = 645`
+  - `crafter_pulsed_grid_controller = 646`
+  - `bogged_poison_harvest_quiver = 647`
+  - `ominous_omen_transmutation_matrix = 648`
+- Implemented `wave25CraftingRecipe` providing six unique 2x2 recipes:
+  - `echo_shard` + `sculk_catalyst` -> `warden_sonic_pulse_matrix`
+  - `sculk` + `bone` -> `shrieker_darkness_fog_relic`
+  - `amethyst_shard` + `copper_ingot` -> `calibrated_resonance_matrix`
+  - `wind_charge` + `gunpowder` -> `wind_charge_rocket_booster`
+  - `mace` + `breeze_rod` -> `mace_velocity_impact_relic`
+  - `crafter` + `iron_ingot` -> `crafter_pulsed_grid_controller`
+- Verification: 611/611 build test steps succeeded, 11,963/11,963 tests passed cleanly.

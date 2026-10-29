@@ -640,6 +640,16 @@ pub const ItemType = enum(u16) {
     end_ship_figurehead = 636,
     dragon_respawn_crystal = 637,
     glass_bottle = 638,
+    warden_sonic_pulse_matrix = 639,
+    shrieker_darkness_fog_relic = 640,
+    calibrated_resonance_matrix = 641,
+    wind_charge_rocket_booster = 642,
+    ominous_wave_hazard_core = 643,
+    mace_velocity_impact_relic = 644,
+    vault_reset_token_matrix = 645,
+    crafter_pulsed_grid_controller = 646,
+    bogged_poison_harvest_quiver = 647,
+    ominous_omen_transmutation_matrix = 648,
     clock = 510,
 
     pub const netherite_upgrade_smithing_template = ItemType.netherite_upgrade_template;
@@ -1235,6 +1245,9 @@ pub const ItemType = enum(u16) {
             .mace_density_core, .trial_chamber_map, .screamer_goat_horn, .recovery_compass_talisman, .archaeology_brush_relic, .dyed_bundle_package, .elytra_propulsion_core, .four_horsemen_crest, .witch_brewing_cauldron, .totem_resurrection_effigy, .copper_horn_instrument, .camel_dash_saddle, .mace_combo_catalyst, .dragon_fountain_essence, .nether_star_core, .beacon_pyramid_talisman, .elder_curse_sponge, .nether_portal_compass, .quantum_shulker_core, .elytra_mending_wing, .dragon_skull_horn, .end_ship_figurehead, .dragon_respawn_crystal => 1,
             .piglin_brute_armband, .strider_lava_harness, .panda_gene_scroll, .copper_horn => 1,
             .end_gateway_shard, .dragons_breath_vial, .end_city_vault_key, .glass_bottle => 16,
+            .warden_sonic_pulse_matrix, .mace_velocity_impact_relic => 1,
+            .shrieker_darkness_fog_relic, .calibrated_resonance_matrix, .wind_charge_rocket_booster, .ominous_wave_hazard_core, .vault_reset_token_matrix, .bogged_poison_harvest_quiver, .ominous_omen_transmutation_matrix => 16,
+            .crafter_pulsed_grid_controller => 64,
             .chorus_teleport_matrix, .shulker_shell_armor_plate => 64,
             .zombified_swarm_beacon, .hoglin_tusk_trophy, .reinforced_elastic_lead, .sweet_berry_basket => 16,
             .piglin_barter_token, .nether_fungus_spores, .turtle_scute_core, .sculk_bloom_core, .brush_plume_fiber => 64,
@@ -1879,6 +1892,16 @@ pub const ItemType = enum(u16) {
             .end_ship_figurehead => "End Ship Figurehead",
             .dragon_respawn_crystal => "Dragon Respawn Crystal",
             .glass_bottle => "Glass Bottle",
+            .warden_sonic_pulse_matrix => "Warden Sonic Pulse Matrix",
+            .shrieker_darkness_fog_relic => "Shrieker Darkness Fog Relic",
+            .calibrated_resonance_matrix => "Calibrated Resonance Matrix",
+            .wind_charge_rocket_booster => "Wind Charge Rocket Booster",
+            .ominous_wave_hazard_core => "Ominous Wave Hazard Core",
+            .mace_velocity_impact_relic => "Mace Velocity Impact Relic",
+            .vault_reset_token_matrix => "Vault Reset Token Matrix",
+            .crafter_pulsed_grid_controller => "Crafter Pulsed Grid Controller",
+            .bogged_poison_harvest_quiver => "Bogged Poison Harvest Quiver",
+            .ominous_omen_transmutation_matrix => "Ominous Omen Transmutation Matrix",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -2522,6 +2545,16 @@ pub const ItemType = enum(u16) {
             .end_ship_figurehead => .{ 0.76, 0.58, 0.84, 0.95 },
             .dragon_respawn_crystal => .{ 0.92, 0.22, 0.88, 0.98 },
             .glass_bottle => .{ 0.84, 0.94, 0.96, 0.82 },
+            .warden_sonic_pulse_matrix => .{ 0.08, 0.42, 0.48, 0.95 },
+            .shrieker_darkness_fog_relic => .{ 0.12, 0.28, 0.35, 0.95 },
+            .calibrated_resonance_matrix => .{ 0.65, 0.40, 0.82, 0.95 },
+            .wind_charge_rocket_booster => .{ 0.72, 0.88, 0.96, 0.95 },
+            .ominous_wave_hazard_core => .{ 0.86, 0.52, 0.18, 0.95 },
+            .mace_velocity_impact_relic => .{ 0.45, 0.50, 0.60, 0.95 },
+            .vault_reset_token_matrix => .{ 0.78, 0.62, 0.25, 0.95 },
+            .crafter_pulsed_grid_controller => .{ 0.82, 0.32, 0.22, 0.95 },
+            .bogged_poison_harvest_quiver => .{ 0.38, 0.68, 0.28, 0.95 },
+            .ominous_omen_transmutation_matrix => .{ 0.58, 0.18, 0.52, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -2959,6 +2992,35 @@ fn wave23CraftingRecipe(grid: [4]ItemStack) ?ItemStack {
     return null;
 }
 
+fn wave25CraftingRecipe(grid: [4]ItemStack) ?ItemStack {
+    var non_empty: usize = 0;
+    var flags = [_]bool{false} ** 12;
+    for (grid) |slot| {
+        if (slot.isEmpty()) continue;
+        non_empty += 1;
+        flags[0] = flags[0] or slot.item == .echo_shard;
+        flags[1] = flags[1] or slot.item == .sculk_catalyst;
+        flags[2] = flags[2] or slot.item == .sculk;
+        flags[3] = flags[3] or slot.item == .bone;
+        flags[4] = flags[4] or slot.item == .amethyst_shard;
+        flags[5] = flags[5] or slot.item == .copper_ingot;
+        flags[6] = flags[6] or slot.item == .wind_charge;
+        flags[7] = flags[7] or slot.item == .gunpowder;
+        flags[8] = flags[8] or slot.item == .mace;
+        flags[9] = flags[9] or slot.item == .breeze_rod;
+        flags[10] = flags[10] or slot.item == .crafter;
+        flags[11] = flags[11] or slot.item == .iron_ingot;
+    }
+    if (non_empty != 2) return null;
+    if (flags[0] and flags[1]) return .{ .item = .warden_sonic_pulse_matrix, .count = 1 };
+    if (flags[2] and flags[3]) return .{ .item = .shrieker_darkness_fog_relic, .count = 1 };
+    if (flags[4] and flags[5]) return .{ .item = .calibrated_resonance_matrix, .count = 1 };
+    if (flags[6] and flags[7]) return .{ .item = .wind_charge_rocket_booster, .count = 1 };
+    if (flags[8] and flags[9]) return .{ .item = .mace_velocity_impact_relic, .count = 1 };
+    if (flags[10] and flags[11]) return .{ .item = .crafter_pulsed_grid_controller, .count = 1 };
+    return null;
+}
+
 fn wave24CraftingRecipe(grid: [4]ItemStack) ?ItemStack {
     var non_empty: usize = 0;
     var flags = [_]bool{false} ** 12;
@@ -3258,6 +3320,11 @@ pub const Inventory = struct {
         }
 
         if (wave23CraftingRecipe(self.craft_grid)) |output| {
+            self.craft_output = output;
+            return;
+        }
+
+        if (wave25CraftingRecipe(self.craft_grid)) |output| {
             self.craft_output = output;
             return;
         }
@@ -12853,6 +12920,48 @@ test "Wave 24 item metadata and 2x2 recipes preserve BlockId capacity" {
         .{ .a = .elytra, .b = .phantom_membrane, .out = .elytra_mending_wing },
         .{ .a = .dragon_head, .b = .copper_horn, .out = .dragon_skull_horn },
         .{ .a = .dragons_breath, .b = .glass_bottle, .out = .dragons_breath_vial },
+    };
+    for (recipes) |recipe| {
+        inventory.craft_grid = .{ .{ .item = recipe.a, .count = 1 }, .{ .item = recipe.b, .count = 1 }, .{}, .{} };
+        inventory.updateCrafting();
+        try std.testing.expectEqual(recipe.out, inventory.craft_output.item);
+        try std.testing.expectEqual(@as(u8, 1), inventory.craft_output.count);
+    }
+}
+
+
+test "Wave 25 item metadata and 2x2 recipes preserve BlockId capacity" {
+    const metadata = [_]struct { item: ItemType, id: u16, stack: u8, display: []const u8 }{
+        .{ .item = .warden_sonic_pulse_matrix, .id = 639, .stack = 1, .display = "Warden Sonic Pulse Matrix" },
+        .{ .item = .shrieker_darkness_fog_relic, .id = 640, .stack = 16, .display = "Shrieker Darkness Fog Relic" },
+        .{ .item = .calibrated_resonance_matrix, .id = 641, .stack = 16, .display = "Calibrated Resonance Matrix" },
+        .{ .item = .wind_charge_rocket_booster, .id = 642, .stack = 16, .display = "Wind Charge Rocket Booster" },
+        .{ .item = .ominous_wave_hazard_core, .id = 643, .stack = 16, .display = "Ominous Wave Hazard Core" },
+        .{ .item = .mace_velocity_impact_relic, .id = 644, .stack = 1, .display = "Mace Velocity Impact Relic" },
+        .{ .item = .vault_reset_token_matrix, .id = 645, .stack = 16, .display = "Vault Reset Token Matrix" },
+        .{ .item = .crafter_pulsed_grid_controller, .id = 646, .stack = 64, .display = "Crafter Pulsed Grid Controller" },
+        .{ .item = .bogged_poison_harvest_quiver, .id = 647, .stack = 16, .display = "Bogged Poison Harvest Quiver" },
+        .{ .item = .ominous_omen_transmutation_matrix, .id = 648, .stack = 16, .display = "Ominous Omen Transmutation Matrix" },
+    };
+    for (metadata) |entry| {
+        try std.testing.expectEqual(entry.id, @intFromEnum(entry.item));
+        try std.testing.expectEqual(entry.stack, entry.item.maxStackSize());
+        try std.testing.expectEqualStrings(entry.display, entry.item.name());
+        const rgba = entry.item.getColor();
+        for (rgba) |channel| try std.testing.expect(channel >= 0.0 and channel <= 1.0);
+        try std.testing.expect(rgba[3] > 0.0);
+    }
+    try std.testing.expectEqual(@as(u8, 255), @intFromEnum(BlockId.leaf_litter));
+    try std.testing.expect(@intFromEnum(BlockId.leaf_litter) <= 255);
+
+    var inventory = Inventory.init();
+    const recipes = [_]struct { a: ItemType, b: ItemType, out: ItemType }{
+        .{ .a = .echo_shard, .b = .sculk_catalyst, .out = .warden_sonic_pulse_matrix },
+        .{ .a = .sculk, .b = .bone, .out = .shrieker_darkness_fog_relic },
+        .{ .a = .amethyst_shard, .b = .copper_ingot, .out = .calibrated_resonance_matrix },
+        .{ .a = .wind_charge, .b = .gunpowder, .out = .wind_charge_rocket_booster },
+        .{ .a = .mace, .b = .breeze_rod, .out = .mace_velocity_impact_relic },
+        .{ .a = .crafter, .b = .iron_ingot, .out = .crafter_pulsed_grid_controller },
     };
     for (recipes) |recipe| {
         inventory.craft_grid = .{ .{ .item = recipe.a, .count = 1 }, .{ .item = recipe.b, .count = 1 }, .{}, .{} };

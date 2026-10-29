@@ -647,3 +647,16 @@ Rough priority order. Completed milestones marked **[x]**.
 528. [x] **Crafter 9-Slot Pulsed Automation & Hopper Round-Robin** — 3x3 slot grid with player-toggleable disabled states (`u9` mask), rising edge redstone pulse execution with 4-tick craft delay, sequential hopper round-robin insertion across enabled slots, full-grid backpressure handling, and comparator fullness signal formula ($0..9$) (`src/world/crafter_pulsed_grid.zig`).
 529. [x] **Bogged Poison Combat & Mushroom Shearing Harvest** — 16.0 HP max health (8 hearts), bow weapon with 70-tick attack cooldown, Poison I-tipped arrow ranged combat (4s/80t Normal, 5s/100t Hard) dealing 1.0 HP magic damage per 25 ticks with 1.0 HP minimum health floor preservation, daylight burning (1.0 HP/s) with helmet and water/powder snow exemptions, mushroom shearing harvest removing mushroom cap and dropping 2 mushrooms (Brown/Red 50/50) with shears durability damage and sound/particle bursts, and defeat loot scaling (bones, arrows, 50% base + 10%/level player-kill poison arrows, 8.5% + 1%/level bows, 5 XP) (`src/world/bogged_poison_harvest.zig`).
 530. [x] **Ominous Bottle Consumption & Bad Omen / Trial Omen Transformation Matrix** — 5 bottle tiers (Tier I–V, amplifiers 0..4), 32-tick drinking timing yielding glass bottle and `SoundEffect.potion_drink`, 120,000-tick Bad Omen with higher/equal tier upgrade rules, 64.0m Village boundary transmutation to 600-tick Raid Omen with `SoundEffect.raid_horn` triggering scaled village raids, 14.0m Trial Spawner transmutation to Trial Omen with $18,000 \times (\text{amp}+1)$ duration, `SoundEffect.trial_omen_transmute`, ominous vortex particles, active trial spawner upgrade signaling, and Milk Bucket cleansing across all omens (`src/world/ominous_bottle_matrix.zig`).
+
+## Wave 25 Integration (Milestones 521–530)
+
+521. [x] **Warden Scent Tracking & Sonic Blast** — Frame-loop hook for scent range and calm suspicion queries (`src/world/warden_scent_blast.zig`).
+522. [x] **Sculk Shrieker Warning & Darkness Fog** — Frame-loop hook for darkness radius query (`src/world/sculk_shrieker_fog.zig`).
+523. [x] **Calibrated Sensor Resonance Chains** — Frame-loop hook for calibrated sensor acoustic range query (`src/world/calibrated_sensor_chains.zig`).
+524. [x] **Breeze Wind Charge Rocket Jumps** — Frame-loop hook for vertical boost velocity query (`src/world/breeze_jump_deflection.zig`).
+525. [x] **Trial Spawner Waves & Hazards** — Frame-loop hook for dynamic wave scaling formula query (`src/world/trial_spawner_waves.zig`).
+526. [x] **Mace Height Velocity & Combos** — Frame-loop hook for base weapon damage and smash activation query (`src/world/mace_velocity_scaling.zig`).
+527. [x] **Vault Multi-Player Reset** — Frame-loop hook for vault key matching and reset token query (`src/world/vault_multiplayer_reset.zig`).
+528. [x] **Crafter 9-Slot Pulsed Automation** — Frame-loop hook for crafter slot count and craft delay query (`src/world/crafter_pulsed_grid.zig`).
+529. [x] **Bogged Poison Combat & Shearing** — Frame-loop hook for Bogged health and bow cooldown query (`src/world/bogged_poison_harvest.zig`).
+530. [x] **Ominous Bottle Transformation Matrix** — Frame-loop hook for drinking duration query (`src/world/ominous_bottle_matrix.zig`).
