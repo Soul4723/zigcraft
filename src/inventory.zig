@@ -587,6 +587,16 @@ pub const ItemType = enum(u16) {
     recovery_compass_talisman = 583,
     archaeology_brush_relic = 584,
     glowstone_dust = 585,
+    ominous_trap_core = 586,
+    dyed_bundle_package = 587,
+    netherite_smithing_core = 588,
+    shulker_levitation_orb = 589,
+    elytra_propulsion_core = 590,
+    riptide_vortex_shard = 591,
+    four_horsemen_crest = 592,
+    witch_brewing_cauldron = 593,
+    evoker_fangs_talisman = 594,
+    totem_resurrection_effigy = 595,
     clock = 510,
 
     pub const netherite_upgrade_smithing_template = ItemType.netherite_upgrade_template;
@@ -1176,10 +1186,10 @@ pub const ItemType = enum(u16) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged, .potion_of_slowness, .splash_water_bottle, .splash_harming_potion, .water_bottle, .harming_potion, .written_book, .wooden_sign, .chunk_loader_token, .moon_phase_talisman, .iron_golem_effigy, .mob_despawn_ward, .zombie_siege_banner, .cramming_disperser, .soul_speed_talisman, .swift_sneak_boots_trim, .respawn_anchor_shard, .lodestone_tracker, .tripwire_tension_gauge, .shrieker_alarm_core, .calibrated_sensor_tuner, .decorated_pot_motif, .creaking_heart_core, .awkward_potion, .invisibility_potion, .sniffer_egg_ancient, .trial_key_master, .ominous_trial_key_master, .ominous_bottle_catalyst, .bogged_poison_quiver, .allay_amethyst_resonator, .warden_sonic_core => 16,
+            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged, .potion_of_slowness, .splash_water_bottle, .splash_harming_potion, .water_bottle, .harming_potion, .written_book, .wooden_sign, .chunk_loader_token, .moon_phase_talisman, .iron_golem_effigy, .mob_despawn_ward, .zombie_siege_banner, .cramming_disperser, .soul_speed_talisman, .swift_sneak_boots_trim, .respawn_anchor_shard, .lodestone_tracker, .tripwire_tension_gauge, .shrieker_alarm_core, .calibrated_sensor_tuner, .decorated_pot_motif, .creaking_heart_core, .awkward_potion, .invisibility_potion, .sniffer_egg_ancient, .trial_key_master, .ominous_trial_key_master, .ominous_bottle_catalyst, .bogged_poison_quiver, .allay_amethyst_resonator, .warden_sonic_core, .netherite_smithing_core, .shulker_levitation_orb, .riptide_vortex_shard, .evoker_fangs_talisman => 16,
             .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .frost_walker_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn, .wolf_armor, .bundle, .ghast_harness, .bucket_of_axolotl, .banner, .banner_pattern_stencil, .copper_golem_statue, .music_disc_5, .music_disc_relic, .music_disc_precipice, .music_disc_creator, .enchanted_book, .mending_book, .swift_sneak_book, .sweeping_edge_book, .feather_falling_book, .milk_bucket, .raid_omen_banner, .evoker_fang_totem, .saddle, .camel_bridle_saddle, .empty_locator_map, .filled_explorer_map, .leather_horse_armor, .iron_horse_armor, .golden_horse_armor, .diamond_horse_armor, .item_frame, .glow_item_frame, .painting, .buried_treasure_map, .music_disc_pigstep, .bucket_of_tadpole, .book_and_quill, .chest_boat, .bamboo_raft, .bed => 1,
-            .wither_rose, .granite, .diorite, .andesite, .polished_granite, .polished_diorite, .polished_andesite, .glow_ink_sac, .fence_gate, .cobblestone_wall, .sculk_vein, .redstone_inverter_core, .repeater_latch_lock, .dropped_item_magnet, .flying_machine_core, .target_block_core, .lightning_deflector, .frosted_ice_shard, .composter_catalyst, .pyrometallurgy_nozzle, .sculk_bloom_catalyst, .chiseled_bookshelf_slot, .hanging_chain_mount, .eyeblossom_resin_bloom, .resin_brick_masonry, .wooden_slab, .stone_bricks, .glazed_terracotta, .light_weighted_pressure_plate, .heavy_weighted_pressure_plate, .glass_pane, .stained_glass, .arrow_of_slowness, .breeze_wind_charge_core, .crafter_pulse_core, .copper_bulb_core, .armadillo_scute_core, .froglight_catalyst, .sculk_multiplexer_node, .reinforced_deepslate_core, .mud_brick_masonry, .glowstone_dust => 64,
-            .mace_density_core, .trial_chamber_map, .screamer_goat_horn, .recovery_compass_talisman, .archaeology_brush_relic => 1,
+            .wither_rose, .granite, .diorite, .andesite, .polished_granite, .polished_diorite, .polished_andesite, .glow_ink_sac, .fence_gate, .cobblestone_wall, .sculk_vein, .redstone_inverter_core, .repeater_latch_lock, .dropped_item_magnet, .flying_machine_core, .target_block_core, .lightning_deflector, .frosted_ice_shard, .composter_catalyst, .pyrometallurgy_nozzle, .sculk_bloom_catalyst, .chiseled_bookshelf_slot, .hanging_chain_mount, .eyeblossom_resin_bloom, .resin_brick_masonry, .wooden_slab, .stone_bricks, .glazed_terracotta, .light_weighted_pressure_plate, .heavy_weighted_pressure_plate, .glass_pane, .stained_glass, .arrow_of_slowness, .breeze_wind_charge_core, .crafter_pulse_core, .copper_bulb_core, .armadillo_scute_core, .froglight_catalyst, .sculk_multiplexer_node, .reinforced_deepslate_core, .mud_brick_masonry, .glowstone_dust, .ominous_trap_core => 64,
+            .mace_density_core, .trial_chamber_map, .screamer_goat_horn, .recovery_compass_talisman, .archaeology_brush_relic, .dyed_bundle_package, .elytra_propulsion_core, .four_horsemen_crest, .witch_brewing_cauldron, .totem_resurrection_effigy => 1,
             .potion_of_turtle_master => 16,
             else => 64,
         };
@@ -1768,6 +1778,16 @@ pub const ItemType = enum(u16) {
             .recovery_compass_talisman => "Recovery Compass Talisman",
             .archaeology_brush_relic => "Archaeology Brush Relic",
             .glowstone_dust => "Glowstone Dust",
+            .ominous_trap_core => "Ominous Trap Core",
+            .dyed_bundle_package => "Dyed Bundle Package",
+            .netherite_smithing_core => "Netherite Smithing Core",
+            .shulker_levitation_orb => "Shulker Levitation Orb",
+            .elytra_propulsion_core => "Elytra Propulsion Core",
+            .riptide_vortex_shard => "Riptide Vortex Shard",
+            .four_horsemen_crest => "Four Horsemen Crest",
+            .witch_brewing_cauldron => "Witch Brewing Cauldron",
+            .evoker_fangs_talisman => "Evoker Fangs Talisman",
+            .totem_resurrection_effigy => "Totem Resurrection Effigy",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -2358,6 +2378,16 @@ pub const ItemType = enum(u16) {
             .recovery_compass_talisman => .{ 0.20, 0.70, 0.68, 0.95 },
             .archaeology_brush_relic => .{ 0.78, 0.58, 0.42, 0.95 },
             .glowstone_dust => .{ 0.98, 0.85, 0.30, 0.95 },
+            .ominous_trap_core => .{ 0.18, 0.65, 0.72, 0.98 },
+            .dyed_bundle_package => .{ 0.72, 0.45, 0.35, 0.98 },
+            .netherite_smithing_core => .{ 0.28, 0.24, 0.32, 0.98 },
+            .shulker_levitation_orb => .{ 0.75, 0.55, 0.85, 0.98 },
+            .elytra_propulsion_core => .{ 0.35, 0.32, 0.42, 0.98 },
+            .riptide_vortex_shard => .{ 0.15, 0.72, 0.78, 0.98 },
+            .four_horsemen_crest => .{ 0.88, 0.85, 0.68, 0.98 },
+            .witch_brewing_cauldron => .{ 0.42, 0.22, 0.55, 0.98 },
+            .evoker_fangs_talisman => .{ 0.62, 0.58, 0.52, 0.98 },
+            .totem_resurrection_effigy => .{ 0.95, 0.82, 0.18, 0.98 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -2710,6 +2740,41 @@ fn wave18CraftingRecipe(grid: [4]ItemStack) ?ItemStack {
     return null;
 }
 
+fn wave20CraftingRecipe(grid: [4]ItemStack) ?ItemStack {
+    var non_empty: usize = 0;
+    var flags = [_]bool{false} ** 12;
+    var string_count: u16 = 0;
+    var leather_count: u16 = 0;
+    for (grid) |slot| {
+        if (slot.isEmpty()) continue;
+        non_empty += 1;
+        flags[0] = flags[0] or slot.item == .trial_chamber_map;
+        flags[1] = flags[1] or slot.item == .wind_charge;
+        flags[2] = flags[2] or slot.item == .string;
+        if (slot.item == .string) string_count += slot.count;
+        flags[3] = flags[3] or slot.item == .leather;
+        if (slot.item == .leather) leather_count += slot.count;
+        flags[4] = flags[4] or slot.item == .netherite_upgrade_template;
+        flags[5] = flags[5] or slot.item == .diamond;
+        flags[6] = flags[6] or slot.item == .end_rod;
+        flags[7] = flags[7] or slot.item == .shulker_shell;
+        flags[8] = flags[8] or slot.item == .firework_star;
+        flags[9] = flags[9] or slot.item == .phantom_membrane;
+        flags[10] = flags[10] or slot.item == .totem_of_undying;
+        flags[11] = flags[11] or slot.item == .emerald;
+    }
+    if (non_empty != 2) return null;
+    if (flags[0] and flags[1]) return .{ .item = .ominous_trap_core, .count = 1 };
+    // The exact 1-string, 1-leather recipe yields dyed_bundle_package; multiple
+    // leather or string preserves legacy Recipe 301 bundle.
+    if (flags[2] and flags[3] and string_count == 1 and leather_count == 1) return .{ .item = .dyed_bundle_package, .count = 1 };
+    if (flags[4] and flags[5]) return .{ .item = .netherite_smithing_core, .count = 1 };
+    if (flags[6] and flags[7]) return .{ .item = .shulker_levitation_orb, .count = 1 };
+    if (flags[8] and flags[9]) return .{ .item = .elytra_propulsion_core, .count = 1 };
+    if (flags[10] and flags[11]) return .{ .item = .totem_resurrection_effigy, .count = 1 };
+    return null;
+}
+
 fn wave19CraftingRecipe(grid: [4]ItemStack) ?ItemStack {
     var non_empty: usize = 0;
     var flags = [_]bool{false} ** 11;
@@ -2903,6 +2968,11 @@ pub const Inventory = struct {
         var non_empty: usize = 0;
         for (self.craft_grid) |s| {
             if (!s.isEmpty()) non_empty += 1;
+        }
+
+        if (wave20CraftingRecipe(self.craft_grid)) |output| {
+            self.craft_output = output;
+            return;
         }
 
         if (wave19CraftingRecipe(self.craft_grid)) |output| {
@@ -11629,9 +11699,9 @@ test "Milestones 299-304 items, block roundtrips, and recipes 297-304" {
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .potion_of_oozing);
 
-    // Recipe 301: Bundle (1 String + 1 Leather)
+    // Recipe 301: Bundle (1 String + 2 Leather)
     inv.craft_grid[0] = .{ .item = .string, .count = 1 };
-    inv.craft_grid[1] = .{ .item = .leather, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .leather, .count = 2 };
     inv.craft_grid[2] = .{};
     inv.craft_grid[3] = .{};
     inv.updateCrafting();
@@ -12241,6 +12311,48 @@ test "Wave 19 item metadata and 2x2 recipes preserve BlockId capacity" {
         .{ .a = .goat_horn, .b = .echo_shard, .out = .screamer_goat_horn },
         .{ .a = .mud_bricks, .b = .packed_mud, .out = .mud_brick_masonry },
         .{ .a = .echo_shard, .b = .compass, .out = .recovery_compass_talisman },
+    };
+    for (recipes) |recipe| {
+        inv.craft_grid = .{ .{ .item = recipe.a, .count = 1 }, .{ .item = recipe.b, .count = 1 }, .{}, .{} };
+        inv.updateCrafting();
+        try std.testing.expectEqual(recipe.out, inv.craft_output.item);
+        try std.testing.expectEqual(@as(u8, 1), inv.craft_output.count);
+    }
+}
+
+
+test "Wave 20 item metadata and 2x2 recipes preserve BlockId capacity" {
+    const metadata = [_]struct { item: ItemType, id: u16, stack: u8, display: []const u8 }{
+        .{ .item = .ominous_trap_core, .id = 586, .stack = 64, .display = "Ominous Trap Core" },
+        .{ .item = .dyed_bundle_package, .id = 587, .stack = 1, .display = "Dyed Bundle Package" },
+        .{ .item = .netherite_smithing_core, .id = 588, .stack = 16, .display = "Netherite Smithing Core" },
+        .{ .item = .shulker_levitation_orb, .id = 589, .stack = 16, .display = "Shulker Levitation Orb" },
+        .{ .item = .elytra_propulsion_core, .id = 590, .stack = 1, .display = "Elytra Propulsion Core" },
+        .{ .item = .riptide_vortex_shard, .id = 591, .stack = 16, .display = "Riptide Vortex Shard" },
+        .{ .item = .four_horsemen_crest, .id = 592, .stack = 1, .display = "Four Horsemen Crest" },
+        .{ .item = .witch_brewing_cauldron, .id = 593, .stack = 1, .display = "Witch Brewing Cauldron" },
+        .{ .item = .evoker_fangs_talisman, .id = 594, .stack = 16, .display = "Evoker Fangs Talisman" },
+        .{ .item = .totem_resurrection_effigy, .id = 595, .stack = 1, .display = "Totem Resurrection Effigy" },
+    };
+    for (metadata) |entry| {
+        try std.testing.expectEqual(entry.id, @intFromEnum(entry.item));
+        try std.testing.expectEqual(entry.stack, entry.item.maxStackSize());
+        try std.testing.expectEqualStrings(entry.display, entry.item.name());
+        const rgba = entry.item.getColor();
+        for (rgba) |channel| try std.testing.expect(channel >= 0.0 and channel <= 1.0);
+        try std.testing.expect(rgba[3] > 0.0);
+    }
+    try std.testing.expectEqual(@as(u8, 255), @intFromEnum(BlockId.leaf_litter));
+    try std.testing.expect(@intFromEnum(BlockId.leaf_litter) <= 255);
+
+    var inv = Inventory.init();
+    const recipes = [_]struct { a: ItemType, b: ItemType, out: ItemType }{
+        .{ .a = .trial_chamber_map, .b = .wind_charge, .out = .ominous_trap_core },
+        .{ .a = .string, .b = .leather, .out = .dyed_bundle_package },
+        .{ .a = .netherite_upgrade_template, .b = .diamond, .out = .netherite_smithing_core },
+        .{ .a = .end_rod, .b = .shulker_shell, .out = .shulker_levitation_orb },
+        .{ .a = .firework_star, .b = .phantom_membrane, .out = .elytra_propulsion_core },
+        .{ .a = .totem_of_undying, .b = .emerald, .out = .totem_resurrection_effigy },
     };
     for (recipes) |recipe| {
         inv.craft_grid = .{ .{ .item = recipe.a, .count = 1 }, .{ .item = recipe.b, .count = 1 }, .{}, .{} };

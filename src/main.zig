@@ -209,6 +209,16 @@ const deepslate_mineralogy_mod = @import("world/deepslate_mineralogy.zig");
 const warden_sonic_boom_mod = @import("world/warden_sonic_boom.zig");
 const recovery_compass_echo_mod = @import("world/recovery_compass_echo.zig");
 const archaeology_brush_excavation_mod = @import("world/archaeology_brush_excavation.zig");
+const trial_chamber_traps_mod = @import("world/trial_chamber_traps.zig");
+const bundle_dyeing_nesting_mod = @import("world/bundle_dyeing_nesting.zig");
+const netherite_smithing_pipeline_mod = @import("world/netherite_smithing_pipeline.zig");
+const shulker_bullet_levitation_mod = @import("world/shulker_bullet_levitation.zig");
+const elytra_rocket_propulsion_mod = @import("world/elytra_rocket_propulsion.zig");
+const riptide_trident_kinematics_mod = @import("world/riptide_trident_kinematics.zig");
+const skeleton_trap_combat_mod = @import("world/skeleton_trap_combat.zig");
+const witch_potion_combat_mod = @import("world/witch_potion_combat.zig");
+const evoker_fangs_vex_mod = @import("world/evoker_fangs_vex.zig");
+const totem_undying_resurrection_mod = @import("world/totem_undying_resurrection.zig");
 
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
@@ -1057,6 +1067,17 @@ pub fn main() !void {
         _ = warden_sonic_boom_mod.SONIC_BOOM_RANGE;
         _ = recovery_compass_echo_mod.isAncientCityExclusive(.echo_shard);
         _ = archaeology_brush_excavation_mod.TOTAL_EXCAVATION_TICKS;
+        // Wave 20 representative frame-loop hooks keep all ten domains queryable.
+        _ = trial_chamber_traps_mod.HAZARD_INTERVAL_TICKS;
+        _ = bundle_dyeing_nesting_mod.TOTAL_BUNDLE_CAPACITY;
+        _ = netherite_smithing_pipeline_mod.NETHERITE_BLOCK_BLAST_RESISTANCE;
+        _ = shulker_bullet_levitation_mod.LEVITATION_DURATION_TICKS;
+        _ = elytra_rocket_propulsion_mod.rocket_acceleration;
+        _ = riptide_trident_kinematics_mod.BASE_LAUNCH_SPEED;
+        _ = skeleton_trap_combat_mod.TRIGGER_DISTANCE;
+        _ = witch_potion_combat_mod.witch_max_health;
+        _ = evoker_fangs_vex_mod.EVOKER_MAX_HEALTH;
+        _ = totem_undying_resurrection_mod.RESURRECTION_HEALTH_HP;
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);
         }
