@@ -1,5 +1,9 @@
 # Project Status
 
+Last updated: 2026-10-29 (Session 409, Milestone 500)
+
+Milestone 500 adds a 200 HP Ender Dragon arena fight with four combat phases, fireballs and breath, 10-crystal healing tethers, perch projectile immunity, a 200-tick death sequence, 12,000 XP reward, and central End portal/Dragon Egg activation data in `src/world/ender_dragon_arena_fight.zig` (44 focused tests). The module is registered as a standalone test target and advanced at 20 ticks per second from the frame loop; it returns events for world rendering and block mutation owners.
+
 Last updated: 2026-10-29 (Session 408, Milestone 498)
 
 Milestone 498 adds 1- and 4-redstone-tick factory clocks, rising-edge iron-block crafting with a 4-game-tick minimum delay, enabled-slot round-robin hopper feed with backpressure, comparator fullness, and an ore-to-ingot-to-block throughput simulator in `src/world/crafter_factory_clocking.zig` (37 focused tests).
