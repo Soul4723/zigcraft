@@ -153,3 +153,23 @@ Last updated: 2026-10-29 (Session 396)
 - Added standalone `src/world/witch_potion_combat.zig` implementing Witch combat AI attributes (26.0 HP max health, 85% magic damage resistance, complete poison immunity), defensive self-drinking state machine (32-tick / 1.6s drinking animation pausing movement; priority: fire -> Fire Resistance 3 min, drowning -> Water Breathing 3 min, low health < 11.0 HP -> Healing I +4.0 HP, far target > 11.0m -> Swiftness I +20% speed 3 min), offensive splash potion projectile selection (40-tick / 2.0s cooldown, 10.0m throw range; priority: <= 8.0m and not slowed -> Slowness I, health >= 8.0 HP and not poisoned -> Poison I, < 3.0m close combat 25% chance -> Weakness I, < 8.0 HP -> Harming I 6.0 direct magic damage), village raid medic healing behavior (scans wounded allies within 10.0m at < 80% HP, throws Splash Healing I / Regeneration I at cluster centroid restoring all allies in 3.0m splash radius), and defeat drops (0–2 of glass bottles, glowstone dust, redstone dust, gunpowder, sugar, spider eyes, sticks scaled by Looting; guaranteed drop of consumed potion if killed while drinking).
 - Registered in `build.zig` test runner.
 - Verification: 38/38 tests in `src/world/witch_potion_combat.zig` passed; `zig build test` passed cleanly.
+
+## Milestone 480 — Totem of Undying Resurrection Mechanics & Visual Animation
+- Added standalone `src/world/totem_undying_resurrection.zig` implementing complete Totem of Undying death cheat mechanics:
+  - Slot check & Hand Priority: evaluates fatal lethal damage (HP <= 0.0); checks offhand slot FIRST, then main hand slot.
+  - Item consumption: exactly 1 Totem of Undying (`ItemType.totem_of_undying` / ID 449, or legacy ID 330) is consumed (`is_consumed = true`).
+  - Death cancellation: prevents player demise, retains entire inventory without dropping, and preserves all accumulated experience points (`death_cancelled = true`).
+  - Immediate health reset: resets player health to exactly 1.0 HP (half a heart).
+  - Status Cleansing: immediately cleanses all 9 negative status effects: Poison, Fatal Poison, Wither, Slowness, Weakness, Mining Fatigue, Levitation, Darkness, and Bad Omen, while preserving active positive buffs (Speed, Strength, Haste).
+  - Resurrection Buff Suite:
+    - **Regeneration II** for 45.0 seconds (900 ticks): restores 0.8 HP/s (0.04 HP/tick, total +36.0 HP recovery, capped at max health).
+    - **Absorption II** for 5.0 seconds (100 ticks): adds 4 extra golden absorption hearts (+8.0 absorption HP) that absorb incoming damage before regular health and expire at 100 ticks.
+    - **Fire Resistance I** for 40.0 seconds (800 ticks): completely prevents fire and lava damage, preserving any existing longer fire resistance timer.
+  - Visual & Audio Resurrection Feedback:
+    - Floating Totem Animation: 30-tick (1.5s) screen-filling overlay with golden wings (`[4]f32{ 1.0, 0.84, 0.0, 1.0 }`), emerald eyes (`[4]f32{ 0.1, 0.9, 0.3, 1.0 }`), progress, scaling curve (0.5x to 1.25x peak), fade-out alpha, and wing spread.
+    - Particle Burst: emits 32 golden and emerald sparkle ring particles (`TotemParticle`) expanding radially with upward drift and drag decay.
+    - Sound Event: emits majestic `SoundEffect.totem_use` chime cue.
+  - Void Death Exemption:
+    - Void damage (Y < -64.0 in the Void) and `/kill` commands (`DamageType.command_kill`) bypass the Totem of Undying entirely; player perishes, drops inventory, loses experience, and the totem is preserved unconsumed in the inventory.
+- Registered in `build.zig` test runner.
+- Verification: 45/45 tests in `src/world/totem_undying_resurrection.zig` passed; `zig build test` passed cleanly.
