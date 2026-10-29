@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-29 (Session 387)
+Last updated: 2026-10-29 (Session 419)
 
 ## Project Structure
 
@@ -31,6 +31,7 @@ zigcraft/
 │   │   └── highlight.zig        # Wireframe block selection box
 │   └── world/
 │       ├── block.zig            # BlockId definitions & block attributes
+│       ├── dragon_head_acoustics.zig # Dragon-head jaw, skull Note Block sounds & prow mounts
 │       ├── chunk.zig            # 16x16x16 chunk storage
 │       ├── chunk_mesh.zig       # Greedy chunk meshing with ambient occlusion
 │       ├── terrain.zig          # fBm heightmap terrain & cave generation

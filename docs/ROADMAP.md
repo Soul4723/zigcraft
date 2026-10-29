@@ -598,6 +598,10 @@ Rough priority order. Completed milestones marked **[x]**.
 499. [x] **Copper Bulb Display** — BCD digit decoding and compact copper bulb segment layouts (\`src/world/copper_bulb_display.zig\`).
 500. [x] **Ender Dragon Arena Fight** — Four-phase arena combat, crystal healing, fireball/breath attacks, defeat sequence, XP reward, and End exit portal activation (\`src/world/ender_dragon_arena_fight.zig\`).
 
+## Wave 24 Domain Modules
+
+516. [x] **Dragon Head Figurehead & Mob Skull Note Block Acoustics** — Dragon head helmet slot, 0.25 eye emissive property, 20-tick powered/walking jaw animation, six mob-skull acoustic sound selections, and vertical/angled ship-bow figurehead mounts (`src/world/dragon_head_acoustics.zig`). Renderer/audio playback integration remains with runtime owners.
+
 ## Wave 23 Domain Modules
 
 510. [x] **Nether Portal Coordinate Scaling & Interdimensional Teleportation Grid** — Floor-based 1:8 horizontal conversion, clamped 1:1 Y mapping, 128-block horizontal destination search with 3D closest selection, safety-scored 4x5 portal frame generation, and player/entity transit and cooldown timing (`src/world/nether_portal_scaling.zig`).

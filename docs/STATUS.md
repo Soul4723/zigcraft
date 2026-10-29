@@ -1,6 +1,23 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 418, Phase 8: Milestones 501–510)
+Last updated: 2026-10-29 (Session 419, Milestone 516)
+
+Milestone 516 adds dragon-head head-slot equipment support, 0.25 eye emissive
+data, a 20-tick jaw hinge animation state for redstone or walking activation,
+six mob-skull Note Block acoustic mappings, and vertical/angled prow
+figurehead orientations. The standalone module has 27 focused tests; the
+dispenser equipment model also verifies dragon-head head-slot equipping.
+Rendering and playback of the modeled jaw/acoustic events remain runtime
+integration work. Verification passes 11,247 tests across 583 build/test
+steps.
+
+## Milestone 516: Dragon Head Acoustics & Figurehead
+
+- `src/world/dragon_head_acoustics.zig` contains the 20-tick jaw animation state, eye glow intensity, mob skull sound selection and ship-bow mount orientations.
+- Dragon head is recognized as headwear and equips into `EquipmentSlot.head` in the shared living-entity equipment model.
+- Verification: standalone module passes 27 tests; `zig build` succeeds; full build test passes 11,247/11,247 tests across 583 steps.
+
+## Wave 23 Integration (Milestones 501–510)
 
 Wave 23 integration completes Milestones 501–510. All ten domain modules are
 registered once as standalone test targets, imported into `main.zig`, and
