@@ -329,3 +329,12 @@ breeze/mace/crafter/copper-bulb cores, a trial chamber map, an ominous bottle
 catalyst, and a Bogged poison quiver. Inventory defines display names, RGBA
 colors, and stack sizes, and its 2x2 grid supports six recipes. `BlockId` remains
 capped at 255.
+
+### Sculk vibration routing
+
+`sculk_sensor_multiplexing.zig` models vibration travel and sensor-local state:
+voxel traversal checks wool and wool-carpet cells along the open source-to-sensor
+segment, arrival is delayed by one game tick per block, and a sensor emits its
+frequency as redstone/comparator output for 30 ticks followed by a ten-tick
+recovery. Waterlogged state suppresses sound and particles while retaining the
+redstone signal. The module has a standalone build test target.

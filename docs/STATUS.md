@@ -2,6 +2,9 @@
 
 Last updated: 2026-10-29 (Session 388)
 
+## Latest standalone mechanic
+- Milestone 465 adds sculk sensor frequency multiplexing and vibration routing in `src/world/sculk_sensor_multiplexing.zig`. The module covers delayed arrival, wool occlusion, waterlogged silent output, 30-tick active/10-tick cooldown timing, and comparator frequency mapping; 32 module tests pass.
+
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 8407 passing unit tests across 471 build/test steps
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW

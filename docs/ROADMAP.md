@@ -539,3 +539,5 @@ Rough priority order. Completed milestones marked **[x]**.
 458. [x] **Trial Chamber Generation** — Validated chamber sites, connected rooms, themed traps, spawner sockets, and vault alcoves (`src/world/trial_chamber_generation.zig`).
 459. [x] **Ominous Bottle & Trial Omen** — Tiered drinking, Bad Omen, raid countdown, trial transmutation, spawner aura, and milk cleansing (`src/world/ominous_bottle_omen.zig`).
 460. [x] **Bogged & Stray Variants** — Variant combat stats, poison/slowness arrows, spawning rules, and Bogged shearing (`src/world/bogged_stray_variants.zig`).
+
+465. [x] **Sculk Sensor Frequency Multiplexing & Vibration Routing** — One-block-per-tick travel delay, eight-block detection radius, wool/wool-carpet raycast occlusion, waterlogged silence, 30-tick activation, 10-tick recovery, and frequency-matched comparator output (`src/world/sculk_sensor_multiplexing.zig`).
