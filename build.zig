@@ -85,6 +85,7 @@ pub fn build(b: *std.Build) void {
         "src/world/brushing_visual_particles.zig",
         "src/world/wind_charge.zig",
         "src/world/breeze_wind_charge.zig",
+        "src/world/breeze_jump_deflection.zig",
         "src/world/mace_combat.zig",
         "src/world/mace_smash_kinematics.zig",
         "src/world/mace_aerial_combos.zig",
