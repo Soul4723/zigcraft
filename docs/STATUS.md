@@ -1,8 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 390)
+Last updated: 2026-10-29 (Session 404)
 
 ## What Works
+- Standalone sea turtle lifecycle rules: seagrass breeding, home-beach egg laying/incubation, baby maturation scute drops, five-scute helmet recipe matching, and water-breathing refresh logic (29 focused tests)
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 9349 passing unit tests across 511 build/test steps
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
