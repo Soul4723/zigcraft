@@ -1,8 +1,8 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 404)
+Last updated: 2026-10-29 (Session 406)
 
-Milestone 490 Panda Personalities & Gene Mutation Inheritance is implemented on the current feature branch in \`src/world/panda_genetics_variants.zig\`; it has seven behavior profiles, full two-allele dominance resolution, parent-specific bamboo breeding checks, offspring inheritance, and 1/32 mutation per allele.
+Milestone 491 Copper Horn Instrument Crafting & 3-Pitch Registers is implemented in `src/world/copper_horn_acoustics.zig`; it preserves all eight goat horn themes, maps camera pitch to three registers, adds a sneaking vibrato mode, and covers crafting, 256m propagation, 140-tick cooldown, and frequency-10 sculk activation. Inventory adds Copper Horn item 596 and its 2x2 recipe.
 
 Last updated: 2026-10-29 (Session 390)
 

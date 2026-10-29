@@ -573,3 +573,7 @@ Rough priority order. Completed milestones marked **[x]**.
 483. [x] **Zombified Piglin Neutrality & Group Alarm Swarm** — Natural neutrality, 40m group alarm swarm propagation, 400–799 ticks anger cycle, 4.35 m/s sprint boost, 16m continuous pursuit re-aggro, undead fire/lava immunity, 10% reinforcement summoning, and defeat drops (`src/world/zombified_piglin_swarm.zig`).
 489. [x] **Sea Turtle Scute Shedding & Turtle Helmet Water Breathing** — Seagrass love mode and breeding, home beach return, 200-tick sand egg laying, night crack stages and 40–50 minute incubation, baby growth and seagrass acceleration, maturity scute shedding, five-scute helmet recipe, and 200-tick breathing refresh on water entry/surfacing (`src/world/turtle_scute_helmet.zig`).
 490. [x] **Panda Personalities & Gene Mutation Inheritance** — Seven personality behavior profiles, dominant/recessive allele resolution, parent-specific bamboo breeding prerequisite, Punnett allele inheritance, and independent 1/32 allele mutation (\`src/world/panda_genetics_variants.zig\`).
+
+## Wave 22 Integration (Milestones 491–500)
+
+491. [x] **Copper Horn Instrument Crafting & 3-Pitch Registers** — Craft from any goat horn theme plus three copper ingots; camera pitch selects 1.33× high, 1.0× mid, or 0.75× low register, sneaking enables vibrato, and sound propagates 256m with a 140-tick cooldown and frequency-10 sculk activation (`src/world/copper_horn_acoustics.zig`).

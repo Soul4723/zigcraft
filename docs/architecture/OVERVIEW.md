@@ -60,6 +60,7 @@ zigcraft/
 │       ├── calibrated_sculk.zig # Calibrated sculk sensor acoustic frequency filtering & resonance
 │       ├── frog.zig             # Frog predation drops, froglight variants & lily pad jump velocity
 │       ├── goat_horn.zig        # Goat horn 64m acoustic broadcast, cooldown & ramming impulse
+│       ├── copper_horn_acoustics.zig # Copper horn theme inheritance, pitch registers, vibrato & sculk wave
 │       └── persistence.zig      # Binary chunk serialization
 └── docs/
     ├── STATUS.md                # Real-time state of the project
@@ -395,3 +396,11 @@ Milestone 489 adds `turtle_scute_helmet.zig` as a standalone lifecycle module
 with breeding, home-beach egg laying and incubation, baby growth/scute drops,
 helmet recipe matching, and water-breathing timer rules. Its API is covered by
 an isolated build/test target; world entity mutation remains with consumers.
+
+### Wave 22 domain modules
+
+Milestone 491 adds `copper_horn_acoustics.zig` as a standalone instrument module.
+It preserves the goat horn theme during crafting and playback, maps camera pitch
+to high/mid/low multipliers, changes vibrato while sneaking, and emits 256m
+frequency-10 sound waves behind a 140-tick cooldown. Inventory registers
+`copper_horn` as ItemType 596 with the 1 goat horn + 3 copper ingot recipe.
