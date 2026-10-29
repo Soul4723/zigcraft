@@ -199,6 +199,7 @@ const sculk_bloom_geometry_mod = @import("world/sculk_bloom_geometry.zig");
 const sculk_shrieker_warning_mod = @import("world/sculk_shrieker_warning.zig");
 const calibrated_sculk_resonance_mod = @import("world/calibrated_sculk_resonance.zig");
 const chiseled_bookshelf_storage_mod = @import("world/chiseled_bookshelf_storage.zig");
+const bookshelf_secret_latch_mod = @import("world/bookshelf_secret_latch.zig");
 const hanging_sign_mechanics_mod = @import("world/hanging_sign_mechanics.zig");
 const camel_mount_kinematics_mod = @import("world/camel_mount_kinematics.zig");
 const decorated_pot_storage_mod = @import("world/decorated_pot_storage.zig");
@@ -1071,6 +1072,7 @@ pub fn main() !void {
         _ = sculk_shrieker_warning_mod.MAX_WARNING_LEVEL;
         _ = calibrated_sculk_resonance_mod.matchesFilter(8, 8);
         _ = chiseled_bookshelf_storage_mod.total_slots;
+        _ = bookshelf_secret_latch_mod.door_transition_ticks;
         _ = hanging_sign_mechanics_mod.crafting_yield;
         _ = camel_mount_kinematics_mod.camel_step_height;
         _ = decorated_pot_storage_mod.wobble_duration_seconds;
