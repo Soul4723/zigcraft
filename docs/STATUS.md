@@ -406,3 +406,16 @@ Last updated: 2026-10-29 (Session 390)
   - Drops on Defeat: Rotten Flesh (0–1 base, scaled by Looting), Gold Nuggets (0–1 base, scaled by Looting), Golden Sword (8.5% base chance, +1.0% per Looting level), and 5 Experience Points (`EXPERIENCE_POINTS_DROP = 5`).
 - Registered in `build.zig` test runner.
 - Verification: 44/44 tests in `src/world/zombified_piglin_swarm.zig` passed; `zig build test` passed cleanly.
+
+## Milestone 525 — Trial Spawner Waves & Dynamic Ominous Potion Hazards
+- Added standalone `src/world/trial_spawner_waves.zig` implementing:
+  - Dynamic player scaling for total mob waves: $N = \lfloor\text{base} \times (1.0 + 0.5 \times (P - 1))\rfloor$.
+  - Dynamic player scaling for simultaneous mob cap: $M = \lfloor\text{base} \times (1.0 + 0.5 \times (P - 1))\rfloor$.
+  - 14.0m Euclidean radius detection boundary for Survival and Adventure players.
+  - Ominous transformation (`is_ominous = true`) triggered by approaching players with the `trial_omen` effect.
+  - Ominous mob equipment: Chainmail/Iron armor with Protection I and weapons with Sharpness I.
+  - 160-tick (8.0-second) periodic ominous hazard timer dropping lingering potion clouds (Poison, Slowness, Weaving, Oozing, Infested, Wind Charged) or downward projectile drops (Fire Charges, Wind Charges) directly above players.
+  - Loot bundle ejection on wave completion with 50% Trial Key and 30% Ominous Key drop probabilities.
+  - 30-minute (36,000-tick) cooldown lock venting grey smoke particles.
+- Registered in `build.zig` test runner and connected representative frame-loop queries in `src/main.zig`.
+- Verification: 47/47 tests in `src/world/trial_spawner_waves.zig` passed; `zig build` and `zig build test` passed cleanly (11,638/11,638 tests).
