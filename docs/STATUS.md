@@ -246,3 +246,8 @@ Last updated: 2026-10-29 (Session 390)
   - Drops on Defeat: Rotten Flesh (0–1 base, scaled by Looting), Gold Nuggets (0–1 base, scaled by Looting), Golden Sword (8.5% base chance, +1.0% per Looting level), and 5 Experience Points (`EXPERIENCE_POINTS_DROP = 5`).
 - Registered in `build.zig` test runner.
 - Verification: 44/44 tests in `src/world/zombified_piglin_swarm.zig` passed; `zig build test` passed cleanly.
+
+## Milestone 488 — Fox Sneaking Predation & Berry Bush Sweet Harvest
+- Added standalone `src/world/fox_sweet_berry.zig` with red and snow fox habitats, 10 HP health, walk/sprint speeds, curled low-light daytime sleep and 3m wake checks, prey selection, 30-tick aim and capped 5m/2.5m pounce trajectory, 2 HP landing bite, and 20%/40-tick snow-stuck behavior.
+- Added sweet berry bush prick immunity and mature stage 2/3 harvesting for 2–3 berries with stage regression, single-stack mouth pickup and 600-tick food healing, and sweet-berry love mode producing a baby fox.
+- Registered the standalone module test target in `build.zig`; 34 unit tests passed and `zig build` completed cleanly.
