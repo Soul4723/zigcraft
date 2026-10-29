@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-29 (Session 387)
+Last updated: 2026-10-29 (Session 388)
 
 ## Project Structure
 
@@ -314,4 +314,15 @@ bookshelf, hanging sign, camel, decorated pot, Creaking, eyeblossom, and resin
 materials. Inventory metadata includes names, RGBA colors, stack limits, and six
 2x2 recipes. `wooden_slab` and `stone_bricks` ingredient types occupy 563–564.
 `BlockId` remains capped at 255.
+
+### Trial Chamber generation
+
+`trial_chamber_generation.zig` describes a deterministic, seed-driven 64×32×64
+structure layout independently of world mutation. It provides room bounds and
+doorway graph connectivity, a palette-aware `blockAt` query, trap payload and
+ejection metadata, and placement validation for spawners and vault alcoves.
+`Site` inputs reject bedrock intersections, missing solid foundations, open
+void columns, and ceiling violations before a layout is returned. Runtime
+dispenser, spawner, vault, and block mutation remains with their consuming
+systems.
 

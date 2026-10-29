@@ -527,3 +527,7 @@ Rough priority order. Completed milestones marked **[x]**.
 449. [x] **Creaking Gaze AI** — 45-degree gaze freeze, line-of-sight stalking, and eyeblossom resonance (`src/world/creaking_gaze_ai.zig`).
 450. [x] **Resin Masonry** — Resin clump extrusion, hardening, brick crafting, and masonry architecture (`src/world/resin_masonry.zig`).
 
+## Trial Chamber Structures
+
+458. [x] **Trial Chamber Procedural Architecture & Traps** — Seeded 64×32×64 room graph, tuff/copper block queries, weathered copper palettes, tripwire dispenser and scaffolding water-current traps, validated spawner sockets and vault alcoves (`src/world/trial_chamber_generation.zig`).
+
