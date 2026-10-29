@@ -128,6 +128,7 @@ pub fn build(b: *std.Build) void {
         "src/world/shulker_end_city.zig",
         "src/world/shulker_bullet_levitation.zig",
         "src/world/elytra_aerodynamics.zig",
+        "src/world/elytra_rocket_propulsion.zig",
         "src/world/sea_turtle.zig",
         "src/world/taiga_fox.zig",
         "src/world/conduit_frame.zig",
