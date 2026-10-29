@@ -182,3 +182,43 @@ Last updated: 2026-10-29 (Session 396)
     - Void damage (Y < -64.0 in the Void) and `/kill` commands (`DamageType.command_kill`) bypass the Totem of Undying entirely; player perishes, drops inventory, loses experience, and the totem is preserved unconsumed in the inventory.
 - Registered in `build.zig` test runner.
 - Verification: 45/45 tests in `src/world/totem_undying_resurrection.zig` passed; `zig build test` passed cleanly.
+
+## Milestone 481 — Piglin Bartering & Gold Ingot Economy
+- Added standalone `src/world/piglin_bartering_economy.zig` implementing complete Piglin gold pacification, hostility provocation, 120-tick bartering inspection lifecycle, and nether barter loot dispensing:
+  - Gold Armor Pacification:
+    - Player wearing at least 1 piece of golden armor (golden_helmet, golden_chestplate, golden_leggings, golden_boots) pacifies standard Piglins (`is_pacified = true`, `is_hostile = false`, `is_charging = false`).
+    - Players without golden armor leave Piglins hostile (`is_hostile = true`, charges with golden sword or crossbow).
+    - Piglin Brutes ignore armor and are never pacified.
+  - Hostility Triggers (breaks pacification regardless of golden armor):
+    - Attacking any Piglin or Piglin Brute provokes all Piglins within 16 blocks for 600 ticks (30s).
+    - Opening guarded containers (chest, trapped chest, shulker box, ender chest, barrel) within 16 blocks breaks pacification.
+    - Breaking guarded gold blocks (gold block, gilded blackstone, gold ore, nether gold ore, deepslate gold ore, raw gold block) within 16 blocks breaks pacification.
+    - Emits angry sound (`SoundEvent.piglin_angry`) and angry villager particles (`ParticleEvent.angry_villager`).
+  - Bartering Interaction & Inspection Phase:
+    - Right-clicking Piglin with Gold Ingot (`ItemType.gold_ingot`) or throwing Gold Ingot within 3.5m starts 120 game ticks (6.0 seconds) inspection.
+    - While inspecting: Piglin stops moving, holds ingot in hand, and ignores distractions.
+    - Non-gold items (iron ingot, diamond, dirt, stone, gold nugget, gold block) are rejected and do not trigger bartering.
+    - Hostility during inspection immediately aborts bartering and drops the ingot.
+  - Bartering Loot Dispensing:
+    - At the completion of 120 ticks: consumes the gold ingot (`consumed_gold_ingot = true`), drops 1 bartered loot item at Piglin position with upward pop velocity (`vy = 0.30`).
+    - Emits barter completion sound (`SoundEvent.piglin_barter_complete`) and sparkle particles (`ParticleEvent.barter_sparkle`).
+    - Complete 15-entry Nether loot pool with nominal probabilities and count ranges:
+      - Soul Speed Enchanted Book (1.09%, count 1)
+      - Iron Boots with Soul Speed (1.89%, count 1)
+      - Potion of Fire Resistance (2.18%, count 1) / Splash Potion (2.18%, count 1)
+      - Ender Pearl (4.36%, count 2..4)
+      - Crying Obsidian (8.71%, count 1..3)
+      - Obsidian (8.71%, count 1)
+      - Fire Charge (8.71%, count 1)
+      - Nether Quartz (4.36%, count 5..12)
+      - String (4.36%, count 3..9)
+      - Magma Cream (4.36%, count 1)
+      - Leather (8.71%, count 2..4)
+      - Soul Sand (8.71%, count 2..8)
+      - Gravel (8.71%, count 8..16)
+      - Iron Nugget (2.18%, count 10..36)
+    - Baby Piglins confiscate the gold ingot upon inspection completion without dropping loot.
+  - Multi-Piglin Bastion Simulation:
+    - `PiglinBarterEconomy` simulator managing selective anger radius, broadcasted container and mining triggers, and world-wide loot tick updates.
+- Registered in `build.zig` test runner.
+- Verification: 45/45 tests in `src/world/piglin_bartering_economy.zig` passed; `zig build test` passed cleanly.
