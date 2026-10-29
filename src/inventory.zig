@@ -629,6 +629,17 @@ pub const ItemType = enum(u16) {
     guardian_laser_emitter = 625,
     elder_curse_sponge = 626,
     nether_portal_compass = 627,
+    chorus_teleport_matrix = 628,
+    end_gateway_shard = 629,
+    shulker_shell_armor_plate = 630,
+    quantum_shulker_core = 631,
+    elytra_mending_wing = 632,
+    dragon_skull_horn = 633,
+    dragons_breath_vial = 634,
+    end_city_vault_key = 635,
+    end_ship_figurehead = 636,
+    dragon_respawn_crystal = 637,
+    glass_bottle = 638,
     clock = 510,
 
     pub const netherite_upgrade_smithing_template = ItemType.netherite_upgrade_template;
@@ -1221,8 +1232,10 @@ pub const ItemType = enum(u16) {
             .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged, .potion_of_slowness, .splash_water_bottle, .splash_harming_potion, .water_bottle, .harming_potion, .written_book, .wooden_sign, .chunk_loader_token, .moon_phase_talisman, .iron_golem_effigy, .mob_despawn_ward, .zombie_siege_banner, .cramming_disperser, .soul_speed_talisman, .swift_sneak_boots_trim, .respawn_anchor_shard, .lodestone_tracker, .tripwire_tension_gauge, .shrieker_alarm_core, .calibrated_sensor_tuner, .decorated_pot_motif, .creaking_heart_core, .awkward_potion, .invisibility_potion, .sniffer_egg_ancient, .trial_key_master, .ominous_trial_key_master, .ominous_bottle_catalyst, .bogged_poison_quiver, .allay_amethyst_resonator, .warden_sonic_core, .netherite_smithing_core, .shulker_levitation_orb, .riptide_vortex_shard, .evoker_fangs_talisman, .vault_reset_token, .secret_bookshelf_mechanism, .factory_clock_regulator, .copper_bulb_display_module, .ghast_tear_essence, .wither_skull_relic, .conduit_power_orb, .guardian_laser_emitter => 16,
             .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .frost_walker_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn, .wolf_armor, .bundle, .ghast_harness, .bucket_of_axolotl, .banner, .banner_pattern_stencil, .copper_golem_statue, .music_disc_5, .music_disc_relic, .music_disc_precipice, .music_disc_creator, .enchanted_book, .mending_book, .swift_sneak_book, .sweeping_edge_book, .feather_falling_book, .milk_bucket, .raid_omen_banner, .evoker_fang_totem, .saddle, .camel_bridle_saddle, .empty_locator_map, .filled_explorer_map, .leather_horse_armor, .iron_horse_armor, .golden_horse_armor, .diamond_horse_armor, .item_frame, .glow_item_frame, .painting, .buried_treasure_map, .music_disc_pigstep, .bucket_of_tadpole, .book_and_quill, .chest_boat, .bamboo_raft, .bed => 1,
             .wither_rose, .granite, .diorite, .andesite, .polished_granite, .polished_diorite, .polished_andesite, .glow_ink_sac, .fence_gate, .cobblestone_wall, .sculk_vein, .redstone_inverter_core, .repeater_latch_lock, .dropped_item_magnet, .flying_machine_core, .target_block_core, .lightning_deflector, .frosted_ice_shard, .composter_catalyst, .pyrometallurgy_nozzle, .sculk_bloom_catalyst, .chiseled_bookshelf_slot, .hanging_chain_mount, .eyeblossom_resin_bloom, .resin_brick_masonry, .wooden_slab, .stone_bricks, .glazed_terracotta, .light_weighted_pressure_plate, .heavy_weighted_pressure_plate, .glass_pane, .stained_glass, .arrow_of_slowness, .breeze_wind_charge_core, .crafter_pulse_core, .copper_bulb_core, .armadillo_scute_core, .froglight_catalyst, .sculk_multiplexer_node, .reinforced_deepslate_core, .mud_brick_masonry, .glowstone_dust, .ominous_trap_core, .blaze_artillery_core, .magma_cream_catalyst => 64,
-            .mace_density_core, .trial_chamber_map, .screamer_goat_horn, .recovery_compass_talisman, .archaeology_brush_relic, .dyed_bundle_package, .elytra_propulsion_core, .four_horsemen_crest, .witch_brewing_cauldron, .totem_resurrection_effigy, .copper_horn_instrument, .camel_dash_saddle, .mace_combo_catalyst, .dragon_fountain_essence, .nether_star_core, .beacon_pyramid_talisman, .elder_curse_sponge, .nether_portal_compass => 1,
+            .mace_density_core, .trial_chamber_map, .screamer_goat_horn, .recovery_compass_talisman, .archaeology_brush_relic, .dyed_bundle_package, .elytra_propulsion_core, .four_horsemen_crest, .witch_brewing_cauldron, .totem_resurrection_effigy, .copper_horn_instrument, .camel_dash_saddle, .mace_combo_catalyst, .dragon_fountain_essence, .nether_star_core, .beacon_pyramid_talisman, .elder_curse_sponge, .nether_portal_compass, .quantum_shulker_core, .elytra_mending_wing, .dragon_skull_horn, .end_ship_figurehead, .dragon_respawn_crystal => 1,
             .piglin_brute_armband, .strider_lava_harness, .panda_gene_scroll, .copper_horn => 1,
+            .end_gateway_shard, .dragons_breath_vial, .end_city_vault_key, .glass_bottle => 16,
+            .chorus_teleport_matrix, .shulker_shell_armor_plate => 64,
             .zombified_swarm_beacon, .hoglin_tusk_trophy, .reinforced_elastic_lead, .sweet_berry_basket => 16,
             .piglin_barter_token, .nether_fungus_spores, .turtle_scute_core, .sculk_bloom_core, .brush_plume_fiber => 64,
             .potion_of_turtle_master => 16,
@@ -1855,6 +1868,17 @@ pub const ItemType = enum(u16) {
             .guardian_laser_emitter => "Guardian Laser Emitter",
             .elder_curse_sponge => "Elder Curse Sponge",
             .nether_portal_compass => "Nether Portal Compass",
+            .chorus_teleport_matrix => "Chorus Teleport Matrix",
+            .end_gateway_shard => "End Gateway Shard",
+            .shulker_shell_armor_plate => "Shulker Shell Armor Plate",
+            .quantum_shulker_core => "Quantum Shulker Core",
+            .elytra_mending_wing => "Elytra Mending Wing",
+            .dragon_skull_horn => "Dragon Skull Horn",
+            .dragons_breath_vial => "Dragon's Breath Vial",
+            .end_city_vault_key => "End City Vault Key",
+            .end_ship_figurehead => "End Ship Figurehead",
+            .dragon_respawn_crystal => "Dragon Respawn Crystal",
+            .glass_bottle => "Glass Bottle",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -2487,6 +2511,17 @@ pub const ItemType = enum(u16) {
             .guardian_laser_emitter => .{ 1.0, 0.32, 0.12, 0.98 },
             .elder_curse_sponge => .{ 0.94, 0.78, 0.32, 0.98 },
             .nether_portal_compass => .{ 0.58, 0.24, 0.75, 0.98 },
+            .chorus_teleport_matrix => .{ 0.76, 0.48, 0.82, 0.95 },
+            .end_gateway_shard => .{ 0.28, 0.12, 0.46, 0.95 },
+            .shulker_shell_armor_plate => .{ 0.68, 0.42, 0.72, 0.95 },
+            .quantum_shulker_core => .{ 0.82, 0.38, 0.86, 0.98 },
+            .elytra_mending_wing => .{ 0.58, 0.72, 0.66, 0.95 },
+            .dragon_skull_horn => .{ 0.24, 0.20, 0.28, 0.98 },
+            .dragons_breath_vial => .{ 0.72, 0.28, 0.82, 0.90 },
+            .end_city_vault_key => .{ 0.92, 0.78, 0.42, 0.95 },
+            .end_ship_figurehead => .{ 0.76, 0.58, 0.84, 0.95 },
+            .dragon_respawn_crystal => .{ 0.92, 0.22, 0.88, 0.98 },
+            .glass_bottle => .{ 0.84, 0.94, 0.96, 0.82 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -2924,6 +2959,35 @@ fn wave23CraftingRecipe(grid: [4]ItemStack) ?ItemStack {
     return null;
 }
 
+fn wave24CraftingRecipe(grid: [4]ItemStack) ?ItemStack {
+    var non_empty: usize = 0;
+    var flags = [_]bool{false} ** 12;
+    for (grid) |slot| {
+        if (slot.isEmpty()) continue;
+        non_empty += 1;
+        flags[0] = flags[0] or slot.item == .chorus_fruit;
+        flags[1] = flags[1] or slot.item == .ender_pearl;
+        flags[2] = flags[2] or slot.item == .shulker_shell;
+        flags[3] = flags[3] or slot.item == .iron_ingot;
+        flags[4] = flags[4] or slot.item == .shulker_box;
+        flags[5] = flags[5] or slot.item == .diamond;
+        flags[6] = flags[6] or slot.item == .elytra;
+        flags[7] = flags[7] or slot.item == .phantom_membrane;
+        flags[8] = flags[8] or slot.item == .dragon_head;
+        flags[9] = flags[9] or slot.item == .copper_horn;
+        flags[10] = flags[10] or slot.item == .dragons_breath;
+        flags[11] = flags[11] or slot.item == .glass_bottle;
+    }
+    if (non_empty != 2) return null;
+    if (flags[0] and flags[1]) return .{ .item = .chorus_teleport_matrix, .count = 1 };
+    if (flags[2] and flags[3]) return .{ .item = .shulker_shell_armor_plate, .count = 1 };
+    if (flags[4] and flags[5]) return .{ .item = .quantum_shulker_core, .count = 1 };
+    if (flags[6] and flags[7]) return .{ .item = .elytra_mending_wing, .count = 1 };
+    if (flags[8] and flags[9]) return .{ .item = .dragon_skull_horn, .count = 1 };
+    if (flags[10] and flags[11]) return .{ .item = .dragons_breath_vial, .count = 1 };
+    return null;
+}
+
 fn wave20CraftingRecipe(grid: [4]ItemStack) ?ItemStack {
     var non_empty: usize = 0;
     var flags = [_]bool{false} ** 12;
@@ -3194,6 +3258,11 @@ pub const Inventory = struct {
         }
 
         if (wave23CraftingRecipe(self.craft_grid)) |output| {
+            self.craft_output = output;
+            return;
+        }
+
+        if (wave24CraftingRecipe(self.craft_grid)) |output| {
             self.craft_output = output;
             return;
         }
@@ -12743,6 +12812,47 @@ test "Wave 23 item metadata and 2x2 recipes preserve BlockId capacity" {
         .{ .a = .wither_skull, .b = .coal, .out = .wither_skull_relic },
         .{ .a = .nether_star, .b = .obsidian, .out = .nether_star_core },
         .{ .a = .prismarine_shard, .b = .prismarine_crystals, .out = .conduit_power_orb },
+    };
+    for (recipes) |recipe| {
+        inventory.craft_grid = .{ .{ .item = recipe.a, .count = 1 }, .{ .item = recipe.b, .count = 1 }, .{}, .{} };
+        inventory.updateCrafting();
+        try std.testing.expectEqual(recipe.out, inventory.craft_output.item);
+        try std.testing.expectEqual(@as(u8, 1), inventory.craft_output.count);
+    }
+}
+
+test "Wave 24 item metadata and 2x2 recipes preserve BlockId capacity" {
+    const metadata = [_]struct { item: ItemType, id: u16, stack: u8, display: []const u8 }{
+        .{ .item = .chorus_teleport_matrix, .id = 628, .stack = 64, .display = "Chorus Teleport Matrix" },
+        .{ .item = .end_gateway_shard, .id = 629, .stack = 16, .display = "End Gateway Shard" },
+        .{ .item = .shulker_shell_armor_plate, .id = 630, .stack = 64, .display = "Shulker Shell Armor Plate" },
+        .{ .item = .quantum_shulker_core, .id = 631, .stack = 1, .display = "Quantum Shulker Core" },
+        .{ .item = .elytra_mending_wing, .id = 632, .stack = 1, .display = "Elytra Mending Wing" },
+        .{ .item = .dragon_skull_horn, .id = 633, .stack = 1, .display = "Dragon Skull Horn" },
+        .{ .item = .dragons_breath_vial, .id = 634, .stack = 16, .display = "Dragon's Breath Vial" },
+        .{ .item = .end_city_vault_key, .id = 635, .stack = 16, .display = "End City Vault Key" },
+        .{ .item = .end_ship_figurehead, .id = 636, .stack = 1, .display = "End Ship Figurehead" },
+        .{ .item = .dragon_respawn_crystal, .id = 637, .stack = 1, .display = "Dragon Respawn Crystal" },
+    };
+    for (metadata) |entry| {
+        try std.testing.expectEqual(entry.id, @intFromEnum(entry.item));
+        try std.testing.expectEqual(entry.stack, entry.item.maxStackSize());
+        try std.testing.expectEqualStrings(entry.display, entry.item.name());
+        const rgba = entry.item.getColor();
+        for (rgba) |channel| try std.testing.expect(channel >= 0.0 and channel <= 1.0);
+        try std.testing.expect(rgba[3] > 0.0);
+    }
+    try std.testing.expectEqual(@as(u8, 255), @intFromEnum(BlockId.leaf_litter));
+    try std.testing.expect(@intFromEnum(BlockId.leaf_litter) <= 255);
+
+    var inventory = Inventory.init();
+    const recipes = [_]struct { a: ItemType, b: ItemType, out: ItemType }{
+        .{ .a = .chorus_fruit, .b = .ender_pearl, .out = .chorus_teleport_matrix },
+        .{ .a = .shulker_shell, .b = .iron_ingot, .out = .shulker_shell_armor_plate },
+        .{ .a = .shulker_box, .b = .diamond, .out = .quantum_shulker_core },
+        .{ .a = .elytra, .b = .phantom_membrane, .out = .elytra_mending_wing },
+        .{ .a = .dragon_head, .b = .copper_horn, .out = .dragon_skull_horn },
+        .{ .a = .dragons_breath, .b = .glass_bottle, .out = .dragons_breath_vial },
     };
     for (recipes) |recipe| {
         inventory.craft_grid = .{ .{ .item = recipe.a, .count = 1 }, .{ .item = recipe.b, .count = 1 }, .{}, .{} };

@@ -101,6 +101,11 @@ const allay_collector_mod = @import("world/allay_collector.zig");
 const note_block_instruments_mod = @import("world/note_block_instruments.zig");
 const dragon_head_acoustics_mod = @import("world/dragon_head_acoustics.zig");
 const end_ship_vault_mod = @import("world/end_ship_vault.zig");
+const end_gateway_transit_mod = @import("world/end_gateway_transit.zig");
+const end_city_layout_mod = @import("world/end_city_layout.zig");
+const dragons_breath_alchemy_mod = @import("world/dragons_breath_alchemy.zig");
+const shulker_shell_defense_mod = @import("world/shulker_shell_defense.zig");
+const shulker_box_storage_mod = @import("world/shulker_box_storage.zig");
 const equine_genetics_mod = @import("world/equine_genetics.zig");
 const companion_pets_mod = @import("world/companion_pets.zig");
 const panda_genetics_mod = @import("world/panda_genetics.zig");
@@ -1174,6 +1179,16 @@ pub fn main() !void {
         _ = guardian_laser_spikes_mod.LASER_CHARGE_TICKS;
         _ = elder_guardian_curse_mod.MINING_FATIGUE_III_TICKS;
         _ = nether_portal_scaling_mod.overworldToNether(.{ .x = 0, .y = 64, .z = 0 });
+        // Wave 24 representative frame-loop hooks; Elytra wear and dragon ritual
+        // ticking are already queried in their active simulation paths above.
+        _ = chorus_teleport_purpur_mod.smelt(.chorus_fruit);
+        _ = end_gateway_transit_mod.canEnter(.ender_pearl);
+        _ = shulker_shell_defense_mod.shulkerShellDropChance(0);
+        _ = (shulker_box_storage_mod.ShulkerBox{}).comparatorSignal();
+        _ = dragon_head_acoustics_mod.resolveNoteBlockSound(.dragon, .default_note_block_instrument);
+        _ = dragons_breath_alchemy_mod.brewLingering(.splash_potion, .poison, .dragons_breath, 1);
+        _ = end_city_layout_mod.generateEndCity(.{ .x = 0, .y = 64, .z = 0 });
+        _ = end_ship_vault_mod.generateEndShip(.{ .x = 0, .y = 64, .z = 0 });
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);
         }
