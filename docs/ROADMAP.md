@@ -531,3 +531,5 @@ Rough priority order. Completed milestones marked **[x]**.
 
 457. [x] **Copper Bulb Bistable Redstone Latch & Oxidation Light Decay** — Rising-edge T-flip-flop with a two-game-tick toggle delay, oxidation-dependent light levels, waxing/scraping interactions, indicator dot, and oxidation-independent comparator output (`src/world/copper_bulb_latch.zig`).
 
+460. [x] **Bogged & Stray Skeleton Biome Variants** — Bogged Poison I arrows and shearing, Stray Slowness I arrows and powder-snow immunity, and thunderstorm skeleton trap horsemen (`src/world/bogged_stray_variants.zig`).
+

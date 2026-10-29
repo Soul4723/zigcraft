@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 388)
+Last updated: 2026-10-29 (Session 389)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 8267 passing unit tests across 463 build/test steps
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 8346 passing unit tests across 467 build/test steps
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -113,4 +113,5 @@ Last updated: 2026-10-29 (Session 388)
 ## Wave 18 Integration
 - Milestone 457 adds `src/world/copper_bulb_latch.zig` with delayed rising-edge toggles, four oxidation light levels, waxing and scraping, indicator-dot state, and comparator output.
 - The module has a standalone test target and is imported by `main.zig`; the frame loop queries its oxidation light rule. Its deterministic mechanics are independent of world mutation.
+- Milestone 460 adds `src/world/bogged_stray_variants.zig` with Bogged shearing and Poison I arrows, Stray Slowness I arrows and powder-snow immunity, plus thunderstorm trap spawning, horse triggering, and four horsemen. The module has a standalone test target, representative main-loop rule queries, and 36 passing tests.
 

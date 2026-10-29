@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-29 (Session 387)
+Last updated: 2026-10-29 (Session 389)
 
 ## Project Structure
 
@@ -322,4 +322,9 @@ two-game-tick rising-edge toggles, oxidation-dependent light decay, waxing and
 scraping, indicator-dot state, and comparator output. The module is registered
 as an independent test target and imported by `main.zig` for a representative
 domain-rule query; it does not own world block mutation.
+
+Milestone 460 adds `bogged_stray_variants.zig` for Bogged and Stray combat,
+shearing, powder-snow immunity, and skeleton trap horseman rules. It is registered
+as an independent test target and queried from `main.zig`; entity and world
+mutation remains with their existing owners.
 
