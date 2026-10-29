@@ -660,3 +660,16 @@ Rough priority order. Completed milestones marked **[x]**.
 528. [x] **Crafter 9-Slot Pulsed Automation** — Frame-loop hook for crafter slot count and craft delay query (`src/world/crafter_pulsed_grid.zig`).
 529. [x] **Bogged Poison Combat & Shearing** — Frame-loop hook for Bogged health and bow cooldown query (`src/world/bogged_poison_harvest.zig`).
 530. [x] **Ominous Bottle Transformation Matrix** — Frame-loop hook for drinking duration query (`src/world/ominous_bottle_matrix.zig`).
+
+## Wave 26 Domain Modules
+
+531. [ ] **Creaking Heart Damage Link & Invulnerability Particles** — Creaking puppet damage immunity, attack deflection particle beam pointing to Creaking Heart, Creaking Heart HP decay from axe strikes, and puppet dissolution on heart destruction (`src/world/creaking_damage_link.zig`).
+532. [ ] **Pale Moss Carpet & Pale Hanging Moss Spread Dynamics** — Pale Moss Carpet surface spreading up pale oak trunks, downward draping Pale Hanging Moss vertical growth (1–8 blocks), bonemeal radial reaction, and shears harvesting (`src/world/pale_moss_spread.zig`).
+533. [ ] **Eyeblossom Day/Night Bloom & Bee Poison Dynamics** — Closed (day) vs. Open (night) Eyeblossom state machine, ambient glowing eye particles, bee pollination poisoning and hostility trigger, and Suspicious Stew effect variety (`src/world/eyeblossom_bloom_toxicity.zig`).
+534. [ ] **Resin Clump Smelting & Resin Brick Masonry Pipeline** — Furnace smelting Resin Clumps into Resin Bricks, 4-brick block crafting, chiseled/stairs/slab/wall masonry variations, and stonecutter recipes (`src/world/resin_brick_masonry.zig`).
+535. [ ] **Armor Trim Smithing & Material Color Palette Matrix** — 16 Armor Trim Templates, Smithing Table 10-material palette overlays (Iron, Copper, Gold, Lapis, Emerald, Diamond, Netherite, Redstone, Amethyst, Quartz), and 7-diamond template duplication (`src/world/armor_trim_palette.zig`).
+536. [ ] **Bundle 64-Weight Item Nesting & Radial Scroll Selection** — 16-color dyed bundles, 64-weight item capacity math, nested bundle weight accounting, right-click radial item cycling, and cauldron washing (`src/world/bundle_capacity_cycling.zig`).
+537. [ ] **Trial Chamber Procedural Traps & Secret Dispensers** — Hidden tripwire corridor triggers, staggered repeater pulse delays, dispenser payloads (arrows, poison clouds, fire charges), and water/powder snow pit hazards (`src/world/trial_chamber_traps_gen.zig`).
+538. [ ] **Wind Charge Block Interactions & Lever/Door Actuation** — Wind charge blast impact against wooden/iron doors, trapdoors, fence gates, levers, and buttons, candle/campfire extinguishing, and fragile block dislodging (`src/world/wind_charge_block_actuation.zig`).
+539. [ ] **Copper Door & Trapdoor Redstone Actuation & Oxidation** — 4-stage oxidation (Unaffected to Oxidized), player right-click manual toggling, redstone power actuation, honeycomb waxing, and axe scraping (`src/world/copper_door_trapdoor.zig`).
+540. [ ] **Heavy Core Mace Assembly & Smashing Sound Acoustics** — Heavy Core block blast resistance and physical traits, vertical Breeze Rod + Heavy Core crafting recipe, 3D spatial synthesized mace acoustic cues, and radial vapor shockwave rings (`src/world/mace_assembly_acoustics.zig`).
