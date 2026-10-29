@@ -390,3 +390,8 @@ supports six recipes (`ominous_trap_core`, `dyed_bundle_package`,
 and `totem_resurrection_effigy`). Disambiguation preserves legacy Recipe 301
 `bundle` when multiple leather (count >= 2) is supplied. `BlockId` remains
 capped at 255.
+
+Milestone 489 adds `turtle_scute_helmet.zig` as a standalone lifecycle module
+with breeding, home-beach egg laying and incubation, baby growth/scute drops,
+helmet recipe matching, and water-breathing timer rules. Its API is covered by
+an isolated build/test target; world entity mutation remains with consumers.
