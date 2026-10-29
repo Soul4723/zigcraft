@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 396)
+Last updated: 2026-10-29 (Session 390)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 8911 passing unit tests across 491 build/test steps
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 9349 passing unit tests across 511 build/test steps
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -78,8 +78,8 @@ Last updated: 2026-10-29 (Session 396)
 - ItemTypes 501–510 cover Bone Block, Calcite, Smooth Basalt, Rooted Dirt, Hanging Roots, Big Dripleaf, Spore Blossom, Awkward Potion, Potion of Invisibility, and Clock. Metadata and six 2x2 recipes are covered; `BlockId` remains unchanged at 255.
 
 ## Active State
-- Main branch stable (Phase 8: Milestones 461–470)
-- All tests passing (8911/8911 tests across 491 build/test steps)
+- Main branch stable (Phase 8: Milestones 471–480)
+- All tests passing (9349/9349 tests across 511 build/test steps)
 - Remote and local branches pruned clean
 
 
@@ -122,6 +122,13 @@ Last updated: 2026-10-29 (Session 396)
 - ItemTypes 575–584 add the ten Wave 19 materials (Armadillo Scute Core, Allay Amethyst Resonator, Froglight Catalyst, Screamer Goat Horn, Sculk Multiplexer Node, Reinforced Deepslate Core, Mud Brick Masonry, Warden Sonic Core, Recovery Compass Talisman, and Archaeology Brush Relic) alongside Glowstone Dust (585). Their display names, RGBA colors, stack limits, and six 2x2 crafting recipes are covered by unit tests; `BlockId` capacity is preserved (<= 255).
 - Disambiguation: Single Echo Shard + Compass crafts `recovery_compass_talisman` in 2x2 crafting; multiple Echo Shards (count >= 2) preserve legacy Recipe 234 `recovery_compass`, matching the Wave 17 calibrated sensor precedent.
 - Verification: `zig build` passes; `zig build test --summary all` passes 8911/8911 tests across 491 build/test steps.
+
+## Wave 20 Integration
+- Milestones 471–480 are integrated: Trial Chamber Traps & Ominous Spawner, Bundle Dyeing, Nesting & Cauldron Washing, Netherite Smithing Pipeline & Lava Buoyancy, Shulker Bullet Guided Tracking & Levitation, Elytra Kinetic Glide & Firework Rocket Propulsion, Riptide Trident Water/Rain Surge & Kinetic Impact, Skeleton Trap Lightning Summoning & Four Horsemen Combat, Witch Potion Throwing AI & Raid Healing Mechanics, Evoker Fangs & Vex Phasing Kinematics, and Totem of Undying Resurrection & Visual Animation.
+- All ten modules are registered as standalone test targets in `build.zig`, imported in `main.zig`, and queried through representative per-frame domain hooks. World and entity mutation ownership remains with existing systems.
+- ItemTypes 586–595 add the ten Wave 20 materials (Ominous Trap Core, Dyed Bundle Package, Netherite Smithing Core, Shulker Levitation Orb, Elytra Propulsion Core, Riptide Vortex Shard, Four Horsemen Crest, Witch Brewing Cauldron, Evoker Fangs Talisman, and Totem Resurrection Effigy). Their display names, RGBA colors, stack limits, and six 2x2 crafting recipes are covered by unit tests; `BlockId` capacity is preserved (<= 255).
+- Disambiguation: Single String + Leather (count = 1) crafts `dyed_bundle_package` in 2x2 crafting; multiple Leather (count >= 2) preserves legacy Recipe 301 `bundle`, matching the Wave 17 calibrated sensor and Wave 19 recovery compass precedents.
+- Verification: `zig build` passes; `zig build test --summary all` passes 9349/9349 tests across 511 build/test steps.
 
 ## Milestone 471 — Trial Chambers Spawner Ominous Potion Spawning & Projectile Traps
 - Added standalone `src/world/trial_chamber_traps.zig` with 8-second (160 ticks) ambient hazard timer, random hazard selection (ceiling projectile drop vs lingering cloud 3-5 blocks above player head), 6 lingering potion payload types (poison, slowness, weaving, oozing, infested, wind_charged), cloud physical dynamics (3.0m radius, -0.5m shrink per affliction, 600 ticks / 30s timeout, spherical affliction), ceiling downward projectile ejection ([3]f32{0.0, -0.6, 0.0}), 3.5m wind charge burst with copper door/trapdoor toggling and knockback, and fire charge ground ignition.

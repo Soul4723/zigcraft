@@ -560,8 +560,10 @@ Rough priority order. Completed milestones marked **[x]**.
 473. [x] **Netherite Smithing Pipeline & Lava Buoyancy** — Netherite upgrade template smithing conversion and buoyant item physics (`src/world/netherite_smithing_pipeline.zig`).
 474. [x] **Shulker Bullet Guided Tracking & Levitation** — Shulker bullet cardinal tracking, shield deflection, and levitation kinematics (`src/world/shulker_bullet_levitation.zig`).
 475. [x] **Elytra Kinetic Glide & Firework Rocket Propulsion** — Aerodynamic pitch dive, kinetic crash damage, and firework rocket propulsion (`src/world/elytra_rocket_propulsion.zig`).
+476. [x] **Riptide Trident Water/Rain Surge & Kinetic Impact** — Riptide water/rain surge launch kinematics, velocity-scaled damage, radial splash, and fall damage elimination (`src/world/riptide_trident_kinematics.zig`).
 477. [x] **Skeleton Trap Lightning Summoning & Four Horsemen Combat** — 10m proximity trigger, cosmetic lightning, four mounted horsemen, enchanted gear, summon immunity, despawn timer, and horse taming (`src/world/skeleton_trap_combat.zig`).
 478. [x] **Witch Potion Throwing AI & Raid Healing Mechanics** — 26.0 HP max health, 85% magic resistance, poison immunity, 32-tick defensive drinking, offensive splash attacks, and village raid medic healing (`src/world/witch_potion_combat.zig`).
+479. [x] **Evoker Fangs & Vex Phasing Kinematics** — Evoker spellcasting, 16-fang offensive line, 20-fang defensive circle, unmitigated piercing damage, and vex phasing kinematics (`src/world/evoker_fangs_vex.zig`).
 480. [x] **Totem of Undying Resurrection & Visual Animation** — Hands priority trigger (offhand then main hand), 1.0 HP restoration, 9-negative-effect cleansing, Regeneration II (45s, 0.8 HP/s, +36 HP), Absorption II (5s, +8 HP), Fire Resistance I (40s), floating wings overlay, sparkle ring bursts, and void death exemption (`src/world/totem_undying_resurrection.zig`).
 
 ## Wave 21 Integration (Milestones 481–490)

@@ -359,3 +359,34 @@ supports six recipes (`armadillo_scute_core`, `allay_amethyst_resonator`,
 `recovery_compass_talisman`). Disambiguation preserves legacy Recipe 234
 `recovery_compass` when multiple echo shards (count >= 2) are supplied. `BlockId`
 remains capped at 255.
+
+
+### Wave 20 domain modules
+
+Milestones 471–480 add `trial_chamber_traps.zig`, `bundle_dyeing_nesting.zig`,
+`netherite_smithing_pipeline.zig`, `shulker_bullet_levitation.zig`,
+`elytra_rocket_propulsion.zig`, `riptide_trident_kinematics.zig`,
+`skeleton_trap_combat.zig`, `witch_potion_combat.zig`, `evoker_fangs_vex.zig`,
+and `totem_undying_resurrection.zig`. All ten modules are registered as standalone
+test targets in `build.zig`. `main.zig` imports each module and wires
+representative per-frame query hooks keeping their deterministic rules active;
+world and entity mutation stays with existing owners.
+
+Wave 20 adds ItemTypes 586–595:
+- 586: `ominous_trap_core` (stack 64)
+- 587: `dyed_bundle_package` (stack 1)
+- 588: `netherite_smithing_core` (stack 16)
+- 589: `shulker_levitation_orb` (stack 16)
+- 590: `elytra_propulsion_core` (stack 1)
+- 591: `riptide_vortex_shard` (stack 16)
+- 592: `four_horsemen_crest` (stack 1)
+- 593: `witch_brewing_cauldron` (stack 1)
+- 594: `evoker_fangs_talisman` (stack 16)
+- 595: `totem_resurrection_effigy` (stack 1)
+
+Inventory defines display names, RGBA colors, and stack sizes, and its 2x2 grid
+supports six recipes (`ominous_trap_core`, `dyed_bundle_package`,
+`netherite_smithing_core`, `shulker_levitation_orb`, `elytra_propulsion_core`,
+and `totem_resurrection_effigy`). Disambiguation preserves legacy Recipe 301
+`bundle` when multiple leather (count >= 2) is supplied. `BlockId` remains
+capped at 255.
