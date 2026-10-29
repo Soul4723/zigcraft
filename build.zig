@@ -90,6 +90,7 @@ pub fn build(b: *std.Build) void {
         "src/world/decorated_pot.zig",
         "src/world/pale_garden.zig",
         "src/world/armadillo_wolf_armor.zig",
+        "src/world/armadillo_wolf_defense.zig",
         "src/world/ominous_trial.zig",
         "src/world/trial_spawner_dynamics.zig",
         "src/world/trial_chamber_generation.zig",
