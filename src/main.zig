@@ -223,6 +223,7 @@ const deepslate_mineralogy_mod = @import("world/deepslate_mineralogy.zig");
 const warden_sonic_boom_mod = @import("world/warden_sonic_boom.zig");
 const recovery_compass_echo_mod = @import("world/recovery_compass_echo.zig");
 const archaeology_brush_excavation_mod = @import("world/archaeology_brush_excavation.zig");
+const brushing_visual_particles_mod = @import("world/brushing_visual_particles.zig");
 const trial_chamber_traps_mod = @import("world/trial_chamber_traps.zig");
 const bundle_dyeing_nesting_mod = @import("world/bundle_dyeing_nesting.zig");
 const netherite_smithing_pipeline_mod = @import("world/netherite_smithing_pipeline.zig");
@@ -1104,6 +1105,7 @@ pub fn main() !void {
         _ = warden_sonic_boom_mod.SONIC_BOOM_RANGE;
         _ = recovery_compass_echo_mod.isAncientCityExclusive(.echo_shard);
         _ = archaeology_brush_excavation_mod.TOTAL_EXCAVATION_TICKS;
+        _ = brushing_visual_particles_mod.TOTAL_EXCAVATION_TICKS;
         // Wave 20 representative frame-loop hooks keep all ten domains queryable.
         _ = trial_chamber_traps_mod.HAZARD_INTERVAL_TICKS;
         _ = bundle_dyeing_nesting_mod.TOTAL_BUNDLE_CAPACITY;
