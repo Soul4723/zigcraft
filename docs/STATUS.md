@@ -1,8 +1,10 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 408, Milestone 498)
+Last updated: 2026-10-29 (Session 409, Milestone 499)
 
 Milestone 498 adds 1- and 4-redstone-tick factory clocks, rising-edge iron-block crafting with a 4-game-tick minimum delay, enabled-slot round-robin hopper feed with backpressure, comparator fullness, and an ore-to-ingot-to-block throughput simulator in `src/world/crafter_factory_clocking.zig` (37 focused tests).
+
+Milestone 499 adds a 3×5 copper-bulb seven-segment display, decimal decoder, XOR-minimal bulb toggles, oxidation-preserving light emission, and two-digit 00–99 cascade in `src/world/copper_bulb_display.zig` (38 display tests; standalone build test target).
 
 Milestone 492 adds standalone 3D radius-8 sculk bloom propagation, charge-limited substrate conversion, exposed-face vein masks, 85/15 branch rolls, and a 20-tick light state in `src/world/sculk_bloom_geometry.zig` (38 focused tests).
 

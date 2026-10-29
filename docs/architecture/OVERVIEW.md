@@ -419,3 +419,12 @@ hopper insertion, backpressure, comparator fullness, and a Blast Furnace to
 Crafter to output-chest throughput simulation. It is registered as a standalone
 test module and referenced by the frame loop; actual world containers and item
 entity mutation remain with their existing owners.
+
+### Copper bulb display
+
+`copper_bulb_display.zig` composes the existing oxidation-aware copper bulb
+latch into a 3×5×1 seven-segment digit. It exposes a BCD decoder, changes only
+segments whose desired and current bits differ, and retains each bulb's
+oxidation stage while toggling. Two displays form a decimal 00–99 cascade.
+The module has a standalone test target; world placement and redstone wiring
+remain with future consumers.
