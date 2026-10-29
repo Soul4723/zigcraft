@@ -211,6 +211,7 @@ const mangrove_mud_architecture_mod = @import("world/mangrove_mud_architecture.z
 const sniffer_digging_flora_mod = @import("world/sniffer_digging_flora.zig");
 const trial_spawner_dynamics_mod = @import("world/trial_spawner_dynamics.zig");
 const vault_loot_dispenser_mod = @import("world/vault_loot_dispenser.zig");
+const trial_vault_reset_mod = @import("world/trial_vault_reset.zig");
 const breeze_wind_charge_mod = @import("world/breeze_wind_charge.zig");
 const crafter_automation_mod = @import("world/crafter_automation.zig");
 const crafter_factory_clocking_mod = @import("world/crafter_factory_clocking.zig");
@@ -1087,7 +1088,9 @@ pub fn main() !void {
         // Wave 18 representative frame-loop hooks keep all ten domains queryable.
         _ = sniffer_digging_flora_mod.isSniffable(.dirt);
         _ = trial_spawner_dynamics_mod.mobCategory(.bogged);
+        _ = trial_spawner_dynamics_mod.OMINOUS_RESET_TOKEN_CHANCE;
         _ = vault_loot_dispenser_mod.requiredKey(.standard);
+        _ = trial_vault_reset_mod.dropsVaultResetToken(true, 4);
         _ = breeze_wind_charge_mod.takesWaterDamage(false);
         _ = mace_smash_kinematics_mod.calculateSmashDamage(2.0, 0);
         _ = mace_aerial_combos_mod.damageMultiplier(1);

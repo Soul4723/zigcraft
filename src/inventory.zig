@@ -609,6 +609,7 @@ pub const ItemType = enum(u16) {
     panda_gene_scroll = 605,
     gold_ingot = 606,
     copper_horn = 607,
+    vault_reset_token = 608,
     clock = 510,
 
     pub const netherite_upgrade_smithing_template = ItemType.netherite_upgrade_template;
@@ -1198,7 +1199,7 @@ pub const ItemType = enum(u16) {
     pub fn maxStackSize(self: ItemType) u8 {
         return switch (self) {
             .none => 0,
-            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged, .potion_of_slowness, .splash_water_bottle, .splash_harming_potion, .water_bottle, .harming_potion, .written_book, .wooden_sign, .chunk_loader_token, .moon_phase_talisman, .iron_golem_effigy, .mob_despawn_ward, .zombie_siege_banner, .cramming_disperser, .soul_speed_talisman, .swift_sneak_boots_trim, .respawn_anchor_shard, .lodestone_tracker, .tripwire_tension_gauge, .shrieker_alarm_core, .calibrated_sensor_tuner, .decorated_pot_motif, .creaking_heart_core, .awkward_potion, .invisibility_potion, .sniffer_egg_ancient, .trial_key_master, .ominous_trial_key_master, .ominous_bottle_catalyst, .bogged_poison_quiver, .allay_amethyst_resonator, .warden_sonic_core, .netherite_smithing_core, .shulker_levitation_orb, .riptide_vortex_shard, .evoker_fangs_talisman => 16,
+            .armor_stand, .target_dummy, .ender_pearl, .dragon_head, .lingering_poison_potion, .lingering_weakness_potion, .water_breathing_potion, .slow_falling_potion, .conduit, .honey_bottle, .healing_potion, .night_vision_potion, .regeneration_potion, .swiftness_potion, .strength_potion, .leaping_potion, .ominous_bottle, .potion_of_infested, .potion_of_oozing, .potion_of_weaving, .potion_of_wind_charged, .potion_of_slowness, .splash_water_bottle, .splash_harming_potion, .water_bottle, .harming_potion, .written_book, .wooden_sign, .chunk_loader_token, .moon_phase_talisman, .iron_golem_effigy, .mob_despawn_ward, .zombie_siege_banner, .cramming_disperser, .soul_speed_talisman, .swift_sneak_boots_trim, .respawn_anchor_shard, .lodestone_tracker, .tripwire_tension_gauge, .shrieker_alarm_core, .calibrated_sensor_tuner, .decorated_pot_motif, .creaking_heart_core, .awkward_potion, .invisibility_potion, .sniffer_egg_ancient, .trial_key_master, .ominous_trial_key_master, .ominous_bottle_catalyst, .bogged_poison_quiver, .allay_amethyst_resonator, .warden_sonic_core, .netherite_smithing_core, .shulker_levitation_orb, .riptide_vortex_shard, .evoker_fangs_talisman, .vault_reset_token => 16,
             .wooden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe, .iron_sword, .diamond_sword, .netherite_sword, .diamond_helmet, .diamond_chestplate, .diamond_leggings, .diamond_boots, .flint_and_steel, .wooden_axe, .iron_axe, .diamond_axe, .netherite_axe, .wooden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel, .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe, .wooden_sword, .stone_sword, .golden_sword, .stone_pickaxe, .golden_pickaxe, .leather_helmet, .leather_chestplate, .leather_leggings, .leather_boots, .stone_axe, .golden_axe, .stone_shovel, .golden_shovel, .shears, .iron_helmet, .iron_chestplate, .iron_leggings, .iron_boots, .golden_helmet, .golden_chestplate, .golden_leggings, .golden_boots, .warped_fungus_on_a_stick, .netherite_chestplate, .elytra, .soul_speed_boots, .frost_walker_boots, .netherite_helmet, .turtle_helmet, .trident, .netherite_leggings, .netherite_boots, .bow, .shield, .lodestone_compass, .crossbow, .music_disc_13, .music_disc_cat, .fishing_rod, .minecart, .chest_minecart, .furnace_minecart, .tnt_minecart, .hopper_minecart, .spyglass, .recovery_compass, .cake, .totem_of_undying, .powder_snow_bucket, .beetroot_soup, .mushroom_stew, .chainmail_helmet, .chainmail_chestplate, .chainmail_leggings, .chainmail_boots, .brush, .mace, .suspicious_stew, .goat_horn, .wolf_armor, .bundle, .ghast_harness, .bucket_of_axolotl, .banner, .banner_pattern_stencil, .copper_golem_statue, .music_disc_5, .music_disc_relic, .music_disc_precipice, .music_disc_creator, .enchanted_book, .mending_book, .swift_sneak_book, .sweeping_edge_book, .feather_falling_book, .milk_bucket, .raid_omen_banner, .evoker_fang_totem, .saddle, .camel_bridle_saddle, .empty_locator_map, .filled_explorer_map, .leather_horse_armor, .iron_horse_armor, .golden_horse_armor, .diamond_horse_armor, .item_frame, .glow_item_frame, .painting, .buried_treasure_map, .music_disc_pigstep, .bucket_of_tadpole, .book_and_quill, .chest_boat, .bamboo_raft, .bed => 1,
             .wither_rose, .granite, .diorite, .andesite, .polished_granite, .polished_diorite, .polished_andesite, .glow_ink_sac, .fence_gate, .cobblestone_wall, .sculk_vein, .redstone_inverter_core, .repeater_latch_lock, .dropped_item_magnet, .flying_machine_core, .target_block_core, .lightning_deflector, .frosted_ice_shard, .composter_catalyst, .pyrometallurgy_nozzle, .sculk_bloom_catalyst, .chiseled_bookshelf_slot, .hanging_chain_mount, .eyeblossom_resin_bloom, .resin_brick_masonry, .wooden_slab, .stone_bricks, .glazed_terracotta, .light_weighted_pressure_plate, .heavy_weighted_pressure_plate, .glass_pane, .stained_glass, .arrow_of_slowness, .breeze_wind_charge_core, .crafter_pulse_core, .copper_bulb_core, .armadillo_scute_core, .froglight_catalyst, .sculk_multiplexer_node, .reinforced_deepslate_core, .mud_brick_masonry, .glowstone_dust, .ominous_trap_core => 64,
             .mace_density_core, .trial_chamber_map, .screamer_goat_horn, .recovery_compass_talisman, .archaeology_brush_relic, .dyed_bundle_package, .elytra_propulsion_core, .four_horsemen_crest, .witch_brewing_cauldron, .totem_resurrection_effigy => 1,
@@ -1815,6 +1816,7 @@ pub const ItemType = enum(u16) {
             .panda_gene_scroll => "Panda Gene Scroll",
             .gold_ingot => "Gold Ingot",
             .copper_horn => "Copper Horn",
+            .vault_reset_token => "Vault Reset Token",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -2427,6 +2429,7 @@ pub const ItemType = enum(u16) {
             .panda_gene_scroll => .{ 0.90, 0.88, 0.76, 0.98 },
             .gold_ingot => .{ 0.98, 0.78, 0.16, 0.98 },
             .copper_horn => .{ 0.82, 0.48, 0.24, 0.98 },
+            .vault_reset_token => .{ 0.20, 0.74, 0.82, 0.98 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -12533,4 +12536,13 @@ test "Wave 21 item metadata and 2x2 recipes preserve BlockId capacity" {
         try std.testing.expectEqual(recipe.out, inv.craft_output.item);
         try std.testing.expectEqual(recipe.count, inv.craft_output.count);
     }
+}
+
+test "vault reset token has stack metadata and display color" {
+    try std.testing.expectEqual(@as(u16, 608), @intFromEnum(ItemType.vault_reset_token));
+    try std.testing.expectEqual(@as(u8, 16), ItemType.vault_reset_token.maxStackSize());
+    try std.testing.expectEqualStrings("Vault Reset Token", ItemType.vault_reset_token.name());
+    const rgba = ItemType.vault_reset_token.getColor();
+    for (rgba) |channel| try std.testing.expect(channel >= 0.0 and channel <= 1.0);
+    try std.testing.expect(rgba[3] > 0.0);
 }
