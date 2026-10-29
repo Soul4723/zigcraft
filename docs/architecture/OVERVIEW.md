@@ -525,3 +525,11 @@ stack limits. Six two-ingredient 2x2 recipes are handled by
 Ghast Tear Essence, Wither Skull Relic, Nether Star Core, and Conduit Power
 Orb. Existing ingredient tags are reused, including `wither_skull` for the
 Wither Skeleton Skull. `BlockId` remains within the existing 8-bit capacity.
+
+### Dragon's Breath alchemy and tipped arrows
+
+`dragons_breath_alchemy.zig` models bottle collection from an active breath
+cloud, splash-to-lingering brewing metadata, effect-preserving 3x3 tipped-arrow
+crafting, and potion/effect duration mappings. It is registered as a standalone
+test target. Existing inventory, projectile, and world systems own live item
+consumption, cloud rendering, and impact effect application.

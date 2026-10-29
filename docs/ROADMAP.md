@@ -617,3 +617,7 @@ Rough priority order. Completed milestones marked **[x]**.
 508. [x] **Guardian Laser & Spikes** — Charged tracking laser, swimming movement, spikes, and retaliation (`src/world/guardian_laser_spikes.zig`).
 509. [x] **Elder Guardian Curse** — Monument entry Mining Fatigue, curse events, defeat drops, and apex vault (`src/world/elder_guardian_curse.zig`).
 510. [x] **Nether Portal Scaling** — 1:8 coordinate conversion, destination selection, frame generation, and transit cooldown (`src/world/nether_portal_scaling.zig`).
+
+## Alchemy & Fletching
+
+517. [x] **Dragon's Breath Lingering Potion Alchemy & Tipped Arrows** — Breath-cloud bottle harvesting and radius shrinkage, splash potion conversion to a 30-second lingering cloud, and effect-preserving eight-arrow crafting for the specified potion types (`src/world/dragons_breath_alchemy.zig`).

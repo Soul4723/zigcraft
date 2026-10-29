@@ -1,5 +1,17 @@
 # Project Status
 
+Last updated: 2026-10-29 (Session 419, Milestone 517)
+
+Milestone 517 adds `src/world/dragons_breath_alchemy.zig` with one-bottle
+Dragon's Breath harvesting and 0.5m cloud shrinkage, splash-to-lingering
+brewing with a 30-second/600-tick cloud, and eight-arrow tipped-arrow crafting
+for ten potion effects. The standalone module has 30 focused tests and is
+registered in `build.zig`. The existing brewing and inventory owners still
+apply live item interactions and projectile impact effects.
+
+Verification: the requested standalone test passes all 46 tests (30 module
+tests plus 16 imported brewing tests); `zig build` passes.
+
 Last updated: 2026-10-29 (Session 418, Phase 8: Milestones 501–510)
 
 Wave 23 integration completes Milestones 501–510. All ten domain modules are
