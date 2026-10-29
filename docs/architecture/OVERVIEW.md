@@ -1,5 +1,10 @@
 # Architecture Overview
 
+Shulker box portability and dye rules live in the standalone
+`src/world/shulker_box_storage.zig` domain module. The item payload owns a fixed
+27-slot inventory so mining and placement can preserve contents; world and
+inventory runtime call sites remain responsible for invoking these rules.
+
 Last updated: 2026-10-29 (Session 387)
 
 ## Project Structure

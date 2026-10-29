@@ -617,3 +617,7 @@ Rough priority order. Completed milestones marked **[x]**.
 508. [x] **Guardian Laser & Spikes** — Charged tracking laser, swimming movement, spikes, and retaliation (`src/world/guardian_laser_spikes.zig`).
 509. [x] **Elder Guardian Curse** — Monument entry Mining Fatigue, curse events, defeat drops, and apex vault (`src/world/elder_guardian_curse.zig`).
 510. [x] **Nether Portal Scaling** — 1:8 coordinate conversion, destination selection, frame generation, and transit cooldown (`src/world/nether_portal_scaling.zig`).
+
+## Wave 24 Domain Modules
+
+514. [x] **Shulker Box Portable Storage & Dyeing** — 27-slot inventory payload preserved through tool/explosion mining and placement, anti-nesting, all 16 dye colors, water-cauldron washing, and comparator fullness output (`src/world/shulker_box_storage.zig`). The module defines deterministic storage and crafting rules; runtime block break/place/inventory plumbing remains with the game-loop owners.

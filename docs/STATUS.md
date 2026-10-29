@@ -2,6 +2,12 @@
 
 Last updated: 2026-10-29 (Session 418, Phase 8: Milestones 501–510)
 
+Milestone 514 adds a standalone shulker box storage model with 27 saved item
+slots, portable contents through mining and placement, anti-nesting, 16-color
+dyeing and water-cauldron washing, and comparator fullness output. Its 31
+focused unit tests pass. Runtime world/inventory plumbing remains to be wired
+to this domain model.
+
 Wave 23 integration completes Milestones 501–510. All ten domain modules are
 registered once as standalone test targets, imported into `main.zig`, and
 queried from representative frame-loop hooks. ItemTypes 618–627 add the Wave
