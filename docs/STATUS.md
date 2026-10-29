@@ -2,6 +2,10 @@
 
 Last updated: 2026-10-29 (Session 404)
 
+Milestone 490 Panda Personalities & Gene Mutation Inheritance is implemented on the current feature branch in \`src/world/panda_genetics_variants.zig\`; it has seven behavior profiles, full two-allele dominance resolution, parent-specific bamboo breeding checks, offspring inheritance, and 1/32 mutation per allele.
+
+Last updated: 2026-10-29 (Session 390)
+
 ## What Works
 - Standalone sea turtle lifecycle rules: seagrass breeding, home-beach egg laying/incubation, baby maturation scute drops, five-scute helmet recipe matching, and water-breathing refresh logic (29 focused tests)
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 9349 passing unit tests across 511 build/test steps
