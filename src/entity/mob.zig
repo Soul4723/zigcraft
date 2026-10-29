@@ -91,7 +91,7 @@ pub const Mob = struct {
             .pig => 0.75,
             .wolf => 0.8,
             .emberbeast => 1.0,
-            .wither_skeleton => 1.6,
+            .wither_skeleton => 2.4,
             .piglin, .piglin_brute => 1.5,
             .blaze => 1.8,
             .target_dummy => 1.8,
@@ -116,7 +116,7 @@ pub const Mob = struct {
             .pig => 1.6,
             .wolf => 3.2,
             .emberbeast => 3.6,
-            .wither_skeleton => 2.8,
+            .wither_skeleton => 3.6,
             .piglin => 2.6,
             .piglin_brute => 3.0,
             .blaze => 2.4,
@@ -152,7 +152,7 @@ pub const Mob = struct {
             .anim_time = 0.0,
             .change_dir_timer = 2.0,
             .wants_sound = false,
-            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze or mob_type == .enderman or mob_type == .phantom) 20 else if (mob_type == .piglin_brute or mob_type == .drowned) 15 else if (mob_type == .ender_dragon) 200 else if (mob_type == .elder_guardian) 80 else if (mob_type == .target_dummy) 50 else if (mob_type == .shulker or mob_type == .turtle or mob_type == .guardian) 30 else if (mob_type == .spider or mob_type == .endermite) 8 else if (mob_type == .cave_spider) 6 else if (mob_type == .skeleton or mob_type == .zombie or mob_type == .creeper or mob_type == .dolphin) 10 else if (mob_type == .slime) 16 else if (mob_type == .wither_skeleton or mob_type == .piglin) 10 else 3,
+            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze or mob_type == .enderman or mob_type == .phantom or mob_type == .wither_skeleton) 20 else if (mob_type == .piglin_brute or mob_type == .drowned) 15 else if (mob_type == .ender_dragon) 200 else if (mob_type == .elder_guardian) 80 else if (mob_type == .target_dummy) 50 else if (mob_type == .shulker or mob_type == .turtle or mob_type == .guardian) 30 else if (mob_type == .spider or mob_type == .endermite) 8 else if (mob_type == .cave_spider) 6 else if (mob_type == .skeleton or mob_type == .zombie or mob_type == .creeper or mob_type == .dolphin) 10 else if (mob_type == .slime) 16 else if (mob_type == .piglin) 10 else 3,
             .in_water = false,
             .in_bubble_column = false,
             .in_whirlpool = false,
@@ -599,10 +599,11 @@ test "champion flag defaults off" {
     try std.testing.expect(!m.is_champion);
 }
 
-test "wither skeleton tall, tough hunter" {
+test "wither skeleton has 2.4m height, 20 hp, and 3.6m/s sprint speed" {
     const sk = Mob.init(.wither_skeleton, 0.0, 1.0, 0.0);
-    try std.testing.expectEqual(sk.health, 10);
-    try std.testing.expect(sk.height > 1.5);
+    try std.testing.expectEqual(@as(f32, 20.0), sk.health);
+    try std.testing.expectEqual(@as(f32, 2.4), sk.height);
+    try std.testing.expectEqual(@as(f32, 3.6), sk.walk_speed);
     try std.testing.expectEqual(getSound(.wither_skeleton), .mob_growl);
     try std.testing.expectEqual(@import("../inventory.zig").getMobMeatDrop(.wither_skeleton), .coal);
 }

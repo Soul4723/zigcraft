@@ -7443,9 +7443,9 @@ pub fn getEmberBonus(wx: i32, wz: i32) u8 {
     return @as(u8, @intCast(h));
 }
 
-/// Rare trophy: wither skeletons drop a skull on ~1-in-8 deterministic kills.
+/// Rare trophy: a coordinate-stable roll approximates the 2.5% base skull rate.
 pub fn dropsWitherSkull(wx: i32, wy: i32, wz: i32) bool {
-    const h: u32 = @as(u32, @bitCast(wx *% 13 +% wy *% 29 +% wz *% 7)) % 8;
+    const h: u32 = @as(u32, @bitCast(wx *% 13 +% wy *% 29 +% wz *% 7)) % 40;
     return h == 0;
 }
 

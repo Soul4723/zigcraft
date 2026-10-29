@@ -166,8 +166,8 @@ pub const Player = struct {
     pub const heal_hunger_threshold: f32 = 14.0;
 
     /// Passive drain: hunger falls over time, health regen/suffer follows.
-    pub const wither_duration: f32 = 8.0;
-    pub const wither_rate: f32 = 1.0;
+    pub const wither_duration: f32 = 10.0;
+    pub const wither_rate: f32 = 0.5;
     pub const poison_duration: f32 = 10.0;
     pub const poison_rate: f32 = 1.0;
 
@@ -276,7 +276,15 @@ pub const Player = struct {
         return self.wither_timer > 0.0;
     }
 
+    pub fn drinkMilk(self: *Player) void {
+        self.wither_timer = 0.0;
+        self.poison_timer = 0.0;
+        self.weakness_timer = 0.0;
+        self.hunger_debuff_timer = 0.0;
+    }
+
     pub fn tickVitals(self: *Player, dt: f32) void {
+        const wither_was_active = self.wither_timer > 0.0;
         self.fire_resistance_timer = @max(0.0, self.fire_resistance_timer - dt);
         self.water_breathing_timer = @max(0.0, self.water_breathing_timer - dt);
         self.slow_falling_timer = @max(0.0, self.slow_falling_timer - dt);
@@ -291,7 +299,7 @@ pub const Player = struct {
         self.levitation_timer = @max(0.0, self.levitation_timer - dt);
         self.rocket_boost_timer = @max(0.0, self.rocket_boost_timer - dt);
         self.insomnia_timer += dt;
-        if (self.wither_timer > 0.0 and self.health > 0.0) {
+        if (wither_was_active and self.health > 0.0) {
             self.health = @max(0.0, self.health - dt * wither_rate);
         }
         // Poison damage cannot reduce player health below 1.0 HP (unlike Wither which kills)
@@ -671,20 +679,20 @@ test "player vitals drain and regen" {
     try std.testing.expect(p.health < h);
 }
 
-test "wither effect drains health over 8s" {
+test "wither effect drains one hp every two seconds for ten seconds" {
     var p = Player.init(0.5, 1.0, 0.5);
     p.health = 10.0;
     p.hunger = 10.0;
     p.applyWither();
     try std.testing.expect(p.isWithered());
-    p.tickVitals(3.0);
-    try std.testing.expectApproxEqAbs(p.health, 7.0, 0.001);
+    for (0..40) |_| p.tickVitals(0.05);
+    try std.testing.expectApproxEqAbs(p.health, 9.0, 0.001);
     try std.testing.expect(p.isWithered());
-    p.tickVitals(5.0);
-    try std.testing.expectApproxEqAbs(p.health, 7.0, 0.001);
+    for (0..160) |_| p.tickVitals(0.05);
+    try std.testing.expectApproxEqAbs(p.health, 5.0, 0.001);
     try std.testing.expect(!p.isWithered());
     p.applyWither();
-    p.tickVitals(7.0);
+    for (0..400) |_| p.tickVitals(0.05);
     try std.testing.expectApproxEqAbs(p.health, 0.0, 0.001);
     p.respawn(0, 1, 0);
     try std.testing.expect(!p.isWithered());
@@ -696,7 +704,7 @@ test "wither effect drains health over 8s" {
     q.regen_timer = 30.0;
     q.applyWither();
     q.tickVitals(2.0);
-    try std.testing.expectApproxEqAbs(q.health, 8.0, 0.001);
+    try std.testing.expectApproxEqAbs(q.health, 9.0, 0.001);
     q.eatGolden();
     try std.testing.expect(!q.isWithered());
 }

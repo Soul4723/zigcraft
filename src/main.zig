@@ -6625,6 +6625,11 @@ pub fn main() !void {
                 audio.play(.burn_sizzle, 0.9);
                 particles.spawnBurnSparks(.{ player.pos.x, player.pos.y, player.pos.z }, 12);
                 std.debug.print("elytra rocket boost ignited!\n", .{});
+            } else if (held_eat.item == .milk_bucket and (player.wither_timer > 0.0 or player.poison_timer > 0.0 or player.weakness_timer > 0.0 or player.hunger_debuff_timer > 0.0)) {
+                player.drinkMilk();
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.9);
+                std.debug.print("drank milk bucket: cleared status effects\n", .{});
             } else if (held_eat.item == .weakness_potion) {
                 player.applyWeakness();
                 inventory.slots[selected_slot].decrement(1);
