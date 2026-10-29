@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 388)
+Last updated: 2026-10-29 (Session 390)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 8407 passing unit tests across 471 build/test steps
@@ -115,3 +115,8 @@ Last updated: 2026-10-29 (Session 388)
 - All ten modules are registered once as standalone test targets in `build.zig`, imported in `main.zig`, and queried through representative frame-loop hooks. Existing world/entity systems retain mutation ownership.
 - ItemTypes 565–574 add the ten Wave 18 materials with display names, RGBA colors, stack limits, and six 2x2 recipes. Metadata and recipes are covered by an inventory unit test; `BlockId` remains capped at 255.
 - Verification: `zig build` passes; `zig build test --summary all` passes 8407/8407 tests across 471 build/test steps.
+
+## Milestone 463: Froglight Predation
+- Added a standalone `froglight_predation.zig` rules module covering frog habitat variants, size-filtered prey targeting, tongue strikes, lethal consumption and exact drops, and froglight light/hardness/blast-resistance properties.
+- Registered the module as a standalone test target and queried representative habitat mapping from the main frame loop.
+- Verification: direct module test passes (35 module tests, plus imported block tests).

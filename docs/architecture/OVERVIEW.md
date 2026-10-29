@@ -329,3 +329,12 @@ breeze/mace/crafter/copper-bulb cores, a trial chamber map, an ominous bottle
 catalyst, and a Bogged poison quiver. Inventory defines display names, RGBA
 colors, and stack sizes, and its 2x2 grid supports six recipes. `BlockId` remains
 capped at 255.
+
+### Milestone 463: frog predation
+
+`froglight_predation.zig` defines frog habitat/variant mapping, small slime and
+magma cube targeting, tongue strike resolution and loot, and froglight physical
+and illumination properties. The module has a standalone test target and a
+representative habitat query in `main.zig`; entity mutation remains with the
+existing world/entity owners. Its standalone item enum mirrors the canonical
+inventory IDs because Zig's standalone module root cannot import `inventory.zig`.
