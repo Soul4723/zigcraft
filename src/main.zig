@@ -27,7 +27,7 @@ const ender_chest_mod = @import("world/ender_chest.zig");
 const beacon_aura_mod = @import("world/beacon_aura.zig");
 const archaeology_mod = @import("world/archaeology.zig");
 const wind_charge_mod = @import("world/wind_charge.zig");
-const mace_combat_mod = @import("world/mace_combat.zig");
+const mace_smash_kinematics_mod = @import("world/mace_smash_kinematics.zig");
 const autocrafter_mod = @import("world/autocrafter.zig");
 const calibrated_sculk_mod = @import("world/calibrated_sculk.zig");
 const frog_mod = @import("world/frog.zig");
@@ -3064,15 +3064,10 @@ pub fn main() !void {
                 const held_weapon = inventory.slots[selected_slot].item;
                 const fall_blocks: f32 = if (!player.on_ground and player.vel_y < -2.0) (-player.vel_y * 0.4) else 0.0;
                 const base_hit_dmg: u8 = if (held_weapon == .mace)
-                    mace_combat_mod.calculateMaceDamage(fall_blocks)
+                    @intFromFloat(@floor(mace_smash_kinematics_mod.calculateSmashDamage(fall_blocks, 0)))
                 else
                     combat_mod.calculatePlayerAttackDamageWithWooden(held_weapon == .netherite_sword, held_weapon == .diamond_sword, held_weapon == .iron_sword, held_weapon == .stone_sword, held_weapon == .golden_sword, held_weapon == .wooden_sword, player.isWeakened());
                 const hit_dmg: u8 = alchemy_buffs_mod.applyStrengthBonus(base_hit_dmg, buff_timers);
-                if (mace_combat_mod.shouldNegateFallOnSmash(held_weapon == .mace, fall_blocks)) {
-                    player.vel_y = 0.0;
-                    audio.play(.anvil_clang, 1.0);
-                }
-
                 var bartered = false;
                 if (right and !right_down and inventory.slots[selected_slot].item == .gold_nugget) {
                     if (mob_manager.tryBarter(cam.position, dir, combat_mod.melee_range)) |b| {
@@ -3123,6 +3118,10 @@ pub fn main() !void {
                 if (!bartered) {
                 if (hit_mob_opt) |hit_mob| {
                     mob_hit_cooldown = combat_mod.melee_cooldown;
+                    if (held_weapon == .mace and mace_smash_kinematics_mod.isSmashAttack(fall_blocks)) {
+                        player.vel_y = 0.0;
+                        audio.play(.anvil_clang, 1.0);
+                    }
                     if (held_weapon.isTool()) {
                         if (tool_wear.use(selected_slot, held_weapon.maxDurability())) {
                             inventory.slots[selected_slot].clear();
