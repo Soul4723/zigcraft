@@ -207,6 +207,7 @@ const ominous_bottle_omen_mod = @import("world/ominous_bottle_omen.zig");
 const froglight_predation_mod = @import("world/froglight_predation.zig");
 const armadillo_wolf_defense_mod = @import("world/armadillo_wolf_defense.zig");
 const goat_horn_acoustics_mod = @import("world/goat_horn_acoustics.zig");
+const copper_horn_acoustics_mod = @import("world/copper_horn_acoustics.zig");
 const sculk_sensor_multiplexing_mod = @import("world/sculk_sensor_multiplexing.zig");
 const deepslate_mineralogy_mod = @import("world/deepslate_mineralogy.zig");
 const warden_sonic_boom_mod = @import("world/warden_sonic_boom.zig");
@@ -1070,6 +1071,7 @@ pub fn main() !void {
         _ = allay_amethyst_duplication_mod.DUPLICATION_COOLDOWN_TICKS;
         _ = froglight_predation_mod.acquisition_range;
         _ = goat_horn_acoustics_mod.ACOUSTIC_RADIUS;
+        _ = copper_horn_acoustics_mod.registerForCameraPitch(0);
         _ = sculk_sensor_multiplexing_mod.SENSOR_RANGE;
         _ = deepslate_mineralogy_mod.deepslateProbability(-4.0);
         _ = mangrove_mud_architecture_mod.MUD_HARDNESS;
