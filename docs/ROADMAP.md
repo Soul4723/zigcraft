@@ -132,11 +132,11 @@ Rough priority order. Completed milestones marked **[x]**.
 104. [x] **Monster Spawner Cage Block & Fortress Alcoves** — Monster spawner block (block 57, item 66) with iron mesh grating atlas tile (5,0), glowing core (emissive 0.6), and procedural placement in fortress junction alcoves (#222).
 105. [x] **Spawner Cage Mob Wave Anchoring** — Fortress reinforcement pulse detects nearby active spawner cages (16m activation radius) and spawns emberbeasts near the cage alcove (#223).
 106. [x] **Spawner Cage Spinning Ember Particles** — Active player-placed spawner cages emit orbiting ember flames within 16m activation radius (#224).
-107. [x] **Wither Skeleton Fortress Hunter** — Tall bone mob (10 HP, 1.5x bite, fire-immune) guarding fortress bridges with hunt AI and spawner waves (#225).
-108. [x] **Wither Bite Status Effect** — Skeleton bites apply 8s poison (1 HP/s drain, cleared on respawn) with dark purple HUD indicator bar stacked above fire-res bar (#226).
+107. [x] **Wither Skeleton Fortress Hunter** — Nether fortress hunter, attributes and Wither I mechanics superseded by Milestone 504 (#225).
+108. [x] **Wither Bite Status Effect** — Initial 8s poison behavior superseded by Milestone 504's 10s lethal Wither I effect and black HUD health color (#226).
 109. [x] **Wither Healing Suppression** — Regen and passive hunger healing paused while withered; health bar darkens to bone-gray for readability (#227).
-110. [x] **Wither Cure via Golden Apple** — Eating a golden apple cleanses wither poison; milk bucket deferred until cows exist (#228).
-111. [x] **Wither Skeleton Skull Trophy** — Rare deterministic ~1/8 bone-white skull drop on wither skeleton kills (melee + fire-charge paths) (#229).
+110. [x] **Wither Cure via Golden Apple** — Golden Apple cleansing retained; milk bucket cleansing added in Milestone 504 (#228).
+111. [x] **Wither Skeleton Skull Trophy** — Initial 1/8 chance superseded by Milestone 504's 2.5% base chance and Looting scaling (#229).
 112. [x] **Placeable Wither Skull Trophy Block** — Skull places as non-solid display block with bone tile art; breaks back into skull via generic paths (#230).
 113. [x] **Wither Champion Summon** — Completed soul-sand skull-T (either axis) consumes pattern, raises 30 HP wither skeleton champion with roar + flame burst (#231).
 114. [x] **Nether Star & Champion Combat Scaling** — Wither champion deals 2.5x bite damage; defeat drops 1 Nether Star + 2 skulls across melee and fire-charge kill paths (#225).
@@ -583,3 +583,4 @@ Rough priority order. Completed milestones marked **[x]**.
 500. [x] **Ender Dragon Multi-Phase Arena Fight & Exit Portal Activation** — 200 HP boss bar, circling/strafing/perching/charging states, fireball and Dragon's Breath attacks, 10 End Crystal tethers with healing and explosion recoil, a 200-tick defeat animation, 12,000 XP, and the central End Portal/Dragon Egg (\`src/world/ender_dragon_arena_fight.zig\`).
 501. [x] **Nether Fortress Blaze Spawner & Fireball Rapid Volleys** — 20 HP fire-immune hovering blaze, water/rain damage, rotating rods and smoke/flame particles, 60-tick charge, three 14 m/s fireballs six ticks apart, five-second target ignition, 100-tick cooldown, Looting-scaled blaze rod drops, and 10 XP (\`src/world/blaze_fireball_artillery.zig\`).
 503. [x] **Ghast Aerial Artillery & Fireball Tennis Deflection** — 10 HP 4x4x4m fire/lava-immune flight, 64m visible-target acquisition, ten-tick charge, 20 m/s power-1 fireballs, player attack deflection, lethal Return to Sender hits, Looting-aware gunpowder/tear drops, and five XP (\`src/world/ghast_fireball_tennis.zig\`).
+504. [x] **Wither Skeleton Beheading & Wither Effect Debuff** — 2.4m/20 HP/3.6m/s fire-immune skeleton with stone sword; difficulty melee damage and 200-tick lethal Wither I; milk cleansing; 2.5% +1%/Looting skull chance, charged Creeper guaranteed skull, regular drops, and 5 XP (\`src/world/wither_skeleton_effect.zig\`). Runtime attributes/debuff/milk/HUD/base drop behavior aligned; Looting and charged-kill context remain exposed through the standalone domain rules pending game-loop context plumbing.

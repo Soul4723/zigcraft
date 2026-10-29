@@ -10,6 +10,21 @@ Return to Sender hits, Ghast loot, and 47 focused tests. The module is registere
 as a standalone test target; rendering, sound playback, and world block/entity
 mutation remain with their existing owners.
 
+Last updated: 2026-10-29 (Session 412, Milestone 504)
+
+Milestone 504 adds Wither Skeleton attributes and the Wither I debuff in
+`src/world/wither_skeleton_effect.zig`: 2.4m height, 20 HP, 3.6m/s sprint,
+stone sword, fire/lava immunity, 5/8/12 HP difficulty hits, 200-tick Wither I
+with black hearts and lethal 1 HP/40-tick drain, milk cleansing, 2.5% base
+skull drops with Looting scaling, charged Creeper guaranteed skull, bones/coal,
+and 5 XP (35 focused tests). Runtime mob attributes, player debuff timing,
+milk use, Wither HUD color, and the coordinate-stable base skull chance were
+aligned with those values.
+
+Charged Creeper attribution and Looting-aware runtime kill plumbing remain
+represented by the standalone domain API; the current game loop does not yet
+provide those kill-context/enchantment inputs.
+
 Last updated: 2026-10-29 (Session 410, Milestone 501)
 
 Milestone 501 adds the standalone Blaze artillery domain in
