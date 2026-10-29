@@ -134,6 +134,7 @@ pub fn build(b: *std.Build) void {
         "src/world/evoker_fangs_vex.zig",
         "src/world/sea_turtle.zig",
         "src/world/taiga_fox.zig",
+        "src/world/fox_sweet_berry.zig",
         "src/world/conduit_frame.zig",
         "src/world/enderman_ai.zig",
         "src/world/piglin_bastion.zig",
