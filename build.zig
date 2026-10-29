@@ -270,6 +270,7 @@ pub fn build(b: *std.Build) void {
         "src/world/specialized_furnace_smelting.zig",
         "src/world/tripwire_hook_circuit.zig",
         "src/world/sculk_catalyst_bloom.zig",
+        "src/world/sculk_bloom_geometry.zig",
         "src/world/chiseled_bookshelf_storage.zig",
         "src/world/hanging_sign_mechanics.zig",
         "src/world/camel_mount_kinematics.zig",

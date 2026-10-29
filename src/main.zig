@@ -195,6 +195,7 @@ const specialized_furnace_smelting_mod = @import("world/specialized_furnace_smel
 const tripwire_hook_circuit_mod = @import("world/tripwire_hook_circuit.zig");
 const creaking_heart_puppet_mod = @import("world/creaking_heart_puppet.zig");
 const sculk_catalyst_bloom_mod = @import("world/sculk_catalyst_bloom.zig");
+const sculk_bloom_geometry_mod = @import("world/sculk_bloom_geometry.zig");
 const sculk_shrieker_warning_mod = @import("world/sculk_shrieker_warning.zig");
 const calibrated_sculk_resonance_mod = @import("world/calibrated_sculk_resonance.zig");
 const chiseled_bookshelf_storage_mod = @import("world/chiseled_bookshelf_storage.zig");
@@ -1066,6 +1067,7 @@ pub fn main() !void {
         _ = creaking_heart_puppet_mod.MAX_TETHER_RADIUS;
         // Wave 17 representative frame-loop hooks keep new domain rules queryable.
         _ = sculk_catalyst_bloom_mod.catalyst_radius;
+        _ = sculk_bloom_geometry_mod.BLOOM_TICKS;
         _ = sculk_shrieker_warning_mod.MAX_WARNING_LEVEL;
         _ = calibrated_sculk_resonance_mod.matchesFilter(8, 8);
         _ = chiseled_bookshelf_storage_mod.total_slots;

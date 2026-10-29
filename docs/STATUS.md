@@ -2,6 +2,10 @@
 
 Last updated: 2026-10-29 (Session 406, Phase 8: Milestones 481–490)
 
+Milestone 492 adds standalone 3D radius-8 sculk bloom propagation, charge-limited substrate conversion, exposed-face vein masks, 85/15 branch rolls, and a 20-tick light state in `src/world/sculk_bloom_geometry.zig` (38 focused tests).
+
+Last updated: 2026-10-29 (Session 404)
+
 Wave 21 integration completes Milestones 481–490. The ten domain modules are
 registered as standalone tests, imported and queried from the frame loop, and
 represented by ItemTypes 596–605 with six 2x2 recipes. `gold_ingot` is added
