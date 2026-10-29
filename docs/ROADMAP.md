@@ -664,7 +664,7 @@ Rough priority order. Completed milestones marked **[x]**.
 ## Wave 26 Domain Modules
 
 531. [ ] **Creaking Heart Damage Link & Invulnerability Particles** — Creaking puppet damage immunity, attack deflection particle beam pointing to Creaking Heart, Creaking Heart HP decay from axe strikes, and puppet dissolution on heart destruction (`src/world/creaking_damage_link.zig`).
-532. [ ] **Pale Moss Carpet & Pale Hanging Moss Spread Dynamics** — Pale Moss Carpet surface spreading up pale oak trunks, downward draping Pale Hanging Moss vertical growth (1–8 blocks), bonemeal radial reaction, and shears harvesting (`src/world/pale_moss_spread.zig`).
+532. [x] **Pale Moss Carpet & Pale Hanging Moss Spread Dynamics** — Pale Moss Carpet surface spreading up pale oak trunks, downward draping Pale Hanging Moss vertical growth (1–8 blocks), bonemeal radial reaction, and shears harvesting (`src/world/pale_moss_spread.zig`).
 533. [ ] **Eyeblossom Day/Night Bloom & Bee Poison Dynamics** — Closed (day) vs. Open (night) Eyeblossom state machine, ambient glowing eye particles, bee pollination poisoning and hostility trigger, and Suspicious Stew effect variety (`src/world/eyeblossom_bloom_toxicity.zig`).
 534. [ ] **Resin Clump Smelting & Resin Brick Masonry Pipeline** — Furnace smelting Resin Clumps into Resin Bricks, 4-brick block crafting, chiseled/stairs/slab/wall masonry variations, and stonecutter recipes (`src/world/resin_brick_masonry.zig`).
 535. [ ] **Armor Trim Smithing & Material Color Palette Matrix** — 16 Armor Trim Templates, Smithing Table 10-material palette overlays (Iron, Copper, Gold, Lapis, Emerald, Diamond, Netherite, Redstone, Amethyst, Quartz), and 7-diamond template duplication (`src/world/armor_trim_palette.zig`).

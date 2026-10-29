@@ -542,3 +542,16 @@ Last updated: 2026-10-29 (Session 390)
   - `mace` + `breeze_rod` -> `mace_velocity_impact_relic`
   - `crafter` + `iron_ingot` -> `crafter_pulsed_grid_controller`
 - Verification: 611/611 build test steps succeeded, 11,963/11,963 tests passed cleanly.
+
+## Milestone 532: Pale Moss Carpet & Pale Hanging Moss Spread Dynamics
+- Implemented `src/world/pale_moss_spread.zig` providing comprehensive domain logic for Pale Garden moss:
+  - Pale Moss Carpet block physics: height 0.0625m (1 pixel / 1/16th block), non-solid walk-through collision.
+  - Placement and support rules: floor attachment requiring solid top face below; wall-climbing attachment on solid vertical side faces (Pale Oak log/wood trunks); detachment/pop rules when support is removed.
+  - Carpet flammability: combustible property with adjacent fire and lava ignition.
+  - Pale Hanging Moss block physics: vertical downward hanging plant with tip growth (length 1 to 8 blocks).
+  - Ceiling support rule: hangs from underside of solid blocks or leaves, or from another pale hanging moss block directly above.
+  - Cascade breaking physics: breaking any segment in a hanging moss column instantly breaks all dependent hanging moss blocks below it, while preserving segments above and promoting the new lowest segment to tip.
+  - Tool harvest mechanics: breaking with Shears guarantees 100% Pale Hanging Moss drop, consumes 1 shears durability, and emits `shears_snip` audio cue; breaking with bare hands or other tools yields 0% drop and 0 shears wear.
+  - Bonemeal radial spread reaction: when applied to a Pale Moss Block, consumes 1 bonemeal, emits green/white sparkle particles, radiates across solid floor blocks within a 5-block horizontal radius ($dx^2 + dz^2 \le 25.0$), generates carpet on solid top faces, climbs vertically up Pale Oak wood/logs up to 2 blocks high, and generates downward hanging moss under Pale Oak leaves (1 to 3 blocks length).
+- Registered `src/world/pale_moss_spread.zig` in `build.zig`.
+- Verification: 45/45 unit tests passed in `pale_moss_spread.zig`; 613/613 build test steps succeeded, 12,008/12,008 tests passed cleanly.
