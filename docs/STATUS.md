@@ -1,5 +1,17 @@
 # Project Status
 
+Last updated: 2026-10-29 (Session 415, Milestone 507)
+
+Milestone 507 adds `src/world/conduit_underwater_power.zig`, a standalone
+conduit domain model requiring water immersion and 16–42 valid Prismarine,
+Dark Prismarine, Prismarine Bricks, or Sea Lantern frame blocks. It linearly
+scales Conduit Power from 32m to 96m, granting underwater sight, water breathing
+with air restoration, and removal of the underwater mining penalty. A complete
+42-block frame zaps the nearest living Drowned, Guardian, or Elder Guardian
+within 8m for 4 HP every 40 ticks and emits glowing bubble particle events.
+All 25 focused tests pass. Runtime rendering, effect display, and entity/world
+mutation remain with their existing owners.
+
 Last updated: 2026-10-29 (Session 412, Milestone 505)
 
 Milestone 505 adds \`src/world/wither_boss_phases.zig\`, a standalone Wither

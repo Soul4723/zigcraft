@@ -597,3 +597,7 @@ Rough priority order. Completed milestones marked **[x]**.
 498. [x] **Crafter Factory Clocking** — Redstone-tick pulse clocks, rising-edge crafting, round-robin hopper feed, backpressure, and factory throughput (\`src/world/crafter_factory_clocking.zig\`).
 499. [x] **Copper Bulb Display** — BCD digit decoding and compact copper bulb segment layouts (\`src/world/copper_bulb_display.zig\`).
 500. [x] **Ender Dragon Arena Fight** — Four-phase arena combat, crystal healing, fireball/breath attacks, defeat sequence, XP reward, and End exit portal activation (\`src/world/ender_dragon_arena_fight.zig\`).
+
+## Milestone 507
+
+507. [x] **Conduit Underwater Power & Hostile Mob Zap Artillery** — Water-gated 16–42 block prismarine frame, linear 32–96m Conduit Power radius, underwater sight/breathing/mining effects, and 4 HP zap every 40 ticks against nearby Drowned, Guardians, and Elder Guardians (\`src/world/conduit_underwater_power.zig\`).

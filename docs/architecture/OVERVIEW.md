@@ -85,6 +85,14 @@ impact results, drop rules, and fortress spawner activation rules. Its
 standalone test target is registered in `build.zig`; callers own applying
 rendering, entity damage, and block ignition events to live world state.
 
+### Conduit underwater power
+
+`src/world/conduit_underwater_power.zig` contains the water immersion check,
+valid frame-material counting, linear 32–96m aura range, player effect and air
+restoration results, and 40-tick hostile aquatic mob zap selection. The module
+is registered as a standalone test target. Callers own applying status HUD,
+particle rendering, and entity health/world changes.
+
 ## Water ticks
 
 `main.zig` dispatches `fluid_wash.step` every 0.4 seconds. The step scans the
