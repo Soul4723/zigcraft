@@ -527,8 +527,15 @@ Rough priority order. Completed milestones marked **[x]**.
 449. [x] **Creaking Gaze AI** — 45-degree gaze freeze, line-of-sight stalking, and eyeblossom resonance (`src/world/creaking_gaze_ai.zig`).
 450. [x] **Resin Masonry** — Resin clump extrusion, hardening, brick crafting, and masonry architecture (`src/world/resin_masonry.zig`).
 
-## Wave 18 Integration (Milestone 457)
+## Wave 18 Integration (Milestones 451–460)
 
-457. [x] **Copper Bulb Bistable Redstone Latch & Oxidation Light Decay** — Rising-edge T-flip-flop with a two-game-tick toggle delay, oxidation-dependent light levels, waxing/scraping interactions, indicator dot, and oxidation-independent comparator output (`src/world/copper_bulb_latch.zig`).
-
-459. [x] **Ominous Bottle, Bad Omen, Raid Omen & Trial Omen** — 32-tick tiered bottle drinking, Bad Omen duration and particles, village raid countdown/cancellation, trial proximity transmutation, ominous spawner aura, and milk cleansing (`src/world/ominous_bottle_omen.zig`).
+451. [x] **Sniffer Digging & Ancient Flora** — Sniffer search/dig lifecycle, ancient seed drops, Torchflower and Pitcher Plant crops, egg hatching, and snifflet growth (`src/world/sniffer_digging_flora.zig`).
+452. [x] **Trial Spawner Dynamics** — Player-scaled waves, mob categories, activation and cooldown phases, and trial rewards (`src/world/trial_spawner_dynamics.zig`).
+453. [x] **Vault Loot Dispenser** — Key-gated, per-player vault unlocks, deterministic loot, item ejection, and comparator output (`src/world/vault_loot_dispenser.zig`).
+454. [x] **Breeze & Wind Charge** — Breeze leaps and attacks, projectile deflection, wind bursts, and wind-charge block interactions (`src/world/breeze_wind_charge.zig`).
+455. [x] **Mace Smash Kinematics** — Fall-distance smash damage, density scaling, breach, and wind-burst effects (`src/world/mace_smash_kinematics.zig`).
+456. [x] **Crafter Automation** — Nine-slot recipe matching, slot disabling, redstone pulse cooldown, ejection, and comparator signal (`src/world/crafter_automation.zig`).
+457. [x] **Copper Bulb Latch** — Two-tick rising-edge toggle, oxidation light decay, waxing/scraping, and comparator state (`src/world/copper_bulb_latch.zig`).
+458. [x] **Trial Chamber Generation** — Validated chamber sites, connected rooms, themed traps, spawner sockets, and vault alcoves (`src/world/trial_chamber_generation.zig`).
+459. [x] **Ominous Bottle & Trial Omen** — Tiered drinking, Bad Omen, raid countdown, trial transmutation, spawner aura, and milk cleansing (`src/world/ominous_bottle_omen.zig`).
+460. [x] **Bogged & Stray Variants** — Variant combat stats, poison/slowness arrows, spawning rules, and Bogged shearing (`src/world/bogged_stray_variants.zig`).

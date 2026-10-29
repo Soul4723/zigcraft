@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 389)
+Last updated: 2026-10-29 (Session 388)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 8336 passing unit tests across 467 build/test steps
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 8407 passing unit tests across 471 build/test steps
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -78,8 +78,8 @@ Last updated: 2026-10-29 (Session 389)
 - ItemTypes 501–510 cover Bone Block, Calcite, Smooth Basalt, Rooted Dirt, Hanging Roots, Big Dripleaf, Spore Blossom, Awkward Potion, Potion of Invisibility, and Clock. Metadata and six 2x2 recipes are covered; `BlockId` remains unchanged at 255.
 
 ## Active State
-- Main branch stable (Phase 8: Milestones 43-457)
-- All tests passing (8267/8267 tests across 463 build/test steps)
+- Main branch stable (Phase 8: Milestones 451–460)
+- All tests passing (8407/8407 tests across 471 build/test steps)
 - Remote and local branches pruned clean
 
 
@@ -111,10 +111,7 @@ Last updated: 2026-10-29 (Session 389)
 - ItemTypes 553–562 add sculk bloom catalyst, shrieker alarm core, calibrated sensor tuner, chiseled bookshelf slot, hanging chain mount, camel bridle saddle, decorated pot motif, creaking heart core, eyeblossom resin bloom, and resin brick masonry. Their RGBA metadata, stack limits, and six 2x2 recipes are tested; `wooden_slab` and `stone_bricks` are ingredient ItemTypes 563–564. `BlockId` remains capped at 255.
 
 ## Wave 18 Integration
-- Milestone 457 adds `src/world/copper_bulb_latch.zig` with delayed rising-edge toggles, four oxidation light levels, waxing and scraping, indicator-dot state, and comparator output.
-- The module has a standalone test target and is imported by `main.zig`; the frame loop queries its oxidation light rule. Its deterministic mechanics are independent of world mutation.
-
-
-## Wave 18 Omen Mechanics
-- Milestone 459 adds a standalone omen state machine for tiered Ominous Bottle drinking, Bad Omen, raid countdown/cancellation, Trial Omen transmutation and aura, and milk cleansing.
-- The module has 26 standalone tests and a dedicated test target in `build.zig`; its proximity inputs and emitted events are ready for world integration.
+- Milestones 451–460 are integrated: Sniffer Digging & Ancient Flora, Trial Spawner Dynamics, Vault Loot Dispenser, Breeze & Wind Charge, Mace Smash Kinematics, Crafter Automation, Copper Bulb Latch, Trial Chamber Generation, Ominous Bottle & Trial Omen, and Bogged & Stray Variants.
+- All ten modules are registered once as standalone test targets in `build.zig`, imported in `main.zig`, and queried through representative frame-loop hooks. Existing world/entity systems retain mutation ownership.
+- ItemTypes 565–574 add the ten Wave 18 materials with display names, RGBA colors, stack limits, and six 2x2 recipes. Metadata and recipes are covered by an inventory unit test; `BlockId` remains capped at 255.
+- Verification: `zig build` passes; `zig build test --summary all` passes 8407/8407 tests across 471 build/test steps.

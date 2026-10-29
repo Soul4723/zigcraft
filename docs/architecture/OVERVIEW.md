@@ -315,12 +315,17 @@ materials. Inventory metadata includes names, RGBA colors, stack limits, and six
 2x2 recipes. `wooden_slab` and `stone_bricks` ingredient types occupy 563–564.
 `BlockId` remains capped at 255.
 
-### Wave 18 domain module
+### Wave 18 domain modules
 
-Milestone 457 adds `copper_bulb_latch.zig`, a standalone state machine for
-two-game-tick rising-edge toggles, oxidation-dependent light decay, waxing and
-scraping, indicator-dot state, and comparator output. The module is registered
-as an independent test target and imported by `main.zig` for a representative
-domain-rule query; it does not own world block mutation.
+Milestones 451–460 add `sniffer_digging_flora.zig`, `trial_spawner_dynamics.zig`,
+`vault_loot_dispenser.zig`, `breeze_wind_charge.zig`, `mace_smash_kinematics.zig`,
+`crafter_automation.zig`, `copper_bulb_latch.zig`, `trial_chamber_generation.zig`,
+`ominous_bottle_omen.zig`, and `bogged_stray_variants.zig`. All ten modules are
+standalone test targets. `main.zig` imports them and queries representative
+mechanics each frame; world and entity mutation remains with their existing owners.
 
-Milestone 459 adds `ominous_bottle_omen.zig`, a deterministic per-player state machine that accepts village/trial proximity, returns particle/sound/raid events, and exposes an aura query for nearby trial spawners. It is registered as a standalone test module; callers own world discovery and event application.
+Wave 18 adds ItemTypes 565–574 for ancient sniffer eggs, master trial keys,
+breeze/mace/crafter/copper-bulb cores, a trial chamber map, an ominous bottle
+catalyst, and a Bogged poison quiver. Inventory defines display names, RGBA
+colors, and stack sizes, and its 2x2 grid supports six recipes. `BlockId` remains
+capped at 255.
