@@ -23,7 +23,8 @@ aligned with those values.
 
 Charged Creeper attribution and Looting-aware runtime kill plumbing remain
 represented by the standalone domain API; the current game loop does not yet
-provide those kill-context/enchantment inputs.
+provide those kill-context/enchantment inputs. `zig build` and `zig build test`
+passed.
 
 Last updated: 2026-10-29 (Session 410, Milestone 501)
 
