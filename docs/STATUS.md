@@ -487,3 +487,14 @@ Last updated: 2026-10-29 (Session 390)
   - Redstone comparator fullness formula: $\min(9, \text{count}(\text{disabled}) + \text{count}(\text{occupied}))$ yielding output range $0..9$ as `u4`.
 - Registered in `build.zig` test runner.
 - Verification: 49/49 tests in `src/world/crafter_pulsed_grid.zig` passed; `zig build` and `zig build test` passed cleanly (11,841/11,841 tests).
+
+## Milestone 530 — Ominous Bottle Consumption & Bad Omen / Trial Omen Transformation Matrix
+- Added standalone `src/world/ominous_bottle_matrix.zig` implementing:
+  - 5 Ominous Bottle tiers (Tier I through Tier V) mapping to amplifiers 0..4 via `tier - 1`.
+  - 32-tick (1.6s) drinking consumption duration consuming 1 ominous bottle, yielding 1 empty glass bottle (`ItemType.glass_bottle`), and emitting `SoundEffect.potion_drink`.
+  - Bad Omen status effect duration of 120,000 game ticks (100 minutes) with tier stacking rules: higher or equal tier updates amplifier and resets duration to 120,000 ticks, while lower tier preserves existing higher amplifier and duration without downgrading.
+  - Village boundary 64.0m Euclidean proximity detection transmuting Bad Omen into Raid Omen, preserving amplifier, initiating a 600-tick (30s) countdown timer, emitting `SoundEffect.raid_horn`, and triggering a scaled Village Raid upon expiration.
+  - Trial Spawner 14.0m Euclidean proximity detection transmuting Bad Omen into Trial Omen, preserving amplifier, setting duration formula $\text{duration\_ticks} = 18,000 \times (\text{amplifier} + 1)$, emitting `SoundEffect.trial_omen_transmute` and ominous particle vortex, and signaling nearby active trial spawners to upgrade to ominous.
+  - Milk Bucket (`ItemType.milk_bucket`) cleansing: drinking milk immediately cleanses Bad Omen, Raid Omen (canceling raid trigger), and Trial Omen, reverting state to neutral and returning an empty bucket.
+- Registered in `build.zig` test runner.
+- Verification: 53/53 tests in `src/world/ominous_bottle_matrix.zig` passed cleanly; `zig build` and `zig build test` passed cleanly.
