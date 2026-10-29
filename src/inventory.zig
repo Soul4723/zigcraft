@@ -589,6 +589,8 @@ pub const ItemType = enum(u16) {
     glowstone_dust = 585,
     clock = 510,
 
+    pub const netherite_upgrade_smithing_template = ItemType.netherite_upgrade_template;
+
     pub fn toBlockId(self: ItemType) ?BlockId {
         return switch (self) {
             .stone => .stone,
