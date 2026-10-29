@@ -110,6 +110,7 @@ pub fn build(b: *std.Build) void {
         "src/world/happy_ghast.zig",
         "src/world/warden_deep_dark.zig",
         "src/world/warden_sonic_boom.zig",
+        "src/world/recovery_compass_echo.zig",
         "src/world/sculk_shrieker_warning.zig",
         "src/world/strider_mount.zig",
         "src/world/axolotl.zig",
