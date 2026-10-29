@@ -99,6 +99,7 @@ const snow_golem_ai_mod = @import("world/snow_golem_ai.zig");
 const allay_collector_mod = @import("world/allay_collector.zig");
 const note_block_instruments_mod = @import("world/note_block_instruments.zig");
 const dragon_head_acoustics_mod = @import("world/dragon_head_acoustics.zig");
+const end_ship_vault_mod = @import("world/end_ship_vault.zig");
 const equine_genetics_mod = @import("world/equine_genetics.zig");
 const companion_pets_mod = @import("world/companion_pets.zig");
 const panda_genetics_mod = @import("world/panda_genetics.zig");
@@ -917,6 +918,7 @@ pub fn main() !void {
         var dragon_head_animation = dragon_head_acoustics_mod.DragonHeadAnimation{};
         dragon_head_animation.tick(false, false);
         _ = dragon_head_acoustics_mod.resolveNoteBlockSound(null, .default_note_block_instrument);
+        _ = end_ship_vault_mod.generateEndShip(.{ .x = 0, .y = 64, .z = 0 });
         _ = equine_genetics_mod.computeHorseJumpHeight(1.0, 0.5);
         _ = companion_pets_mod.detectParrotHostileMimicry(20.0);
         _ = panda_genetics_mod.canBreedPandasWithBamboo(true, 1);
