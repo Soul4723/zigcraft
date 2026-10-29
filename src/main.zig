@@ -180,6 +180,7 @@ const lodestone_compass_tracking_mod = @import("world/lodestone_compass_tracking
 const composter_biofuel_mod = @import("world/composter_biofuel.zig");
 const specialized_furnace_smelting_mod = @import("world/specialized_furnace_smelting.zig");
 const tripwire_hook_circuit_mod = @import("world/tripwire_hook_circuit.zig");
+const creaking_heart_puppet_mod = @import("world/creaking_heart_puppet.zig");
 
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
@@ -989,6 +990,7 @@ pub fn main() !void {
         _ = composter_biofuel_mod.MAX_LEVEL;
         _ = specialized_furnace_smelting_mod.SPECIALIZED_FURNACE_COOK_TICKS;
         _ = tripwire_hook_circuit_mod.max_distance_between_hooks;
+        _ = creaking_heart_puppet_mod.MAX_TETHER_RADIUS;
         _ = enchanting_grindstone_mod.computeEnchantSlotOffers(0);
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);

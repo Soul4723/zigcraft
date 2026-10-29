@@ -229,6 +229,7 @@ pub fn build(b: *std.Build) void {
         "src/world/composter_biofuel.zig",
         "src/world/specialized_furnace_smelting.zig",
         "src/world/tripwire_hook_circuit.zig",
+        "src/world/creaking_heart_puppet.zig",
         "src/world/interact.zig",
         "src/world/hotbar.zig",
         "src/world/mining.zig",
