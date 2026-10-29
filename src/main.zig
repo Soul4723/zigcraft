@@ -102,6 +102,7 @@ const hunger_metabolism_mod = @import("world/hunger_metabolism.zig");
 const experience_orbs_mod = @import("world/experience_orbs.zig");
 const melee_sweep_crit_mod = @import("world/melee_sweep_crit.zig");
 const skeleton_variants_mod = @import("world/skeleton_variants.zig");
+const bogged_stray_variants_mod = @import("world/bogged_stray_variants.zig");
 const zombie_conversions_mod = @import("world/zombie_conversions.zig");
 const spider_arachnids_mod = @import("world/spider_arachnids.zig");
 const mountain_goat_mod = @import("world/mountain_goat.zig");
@@ -873,6 +874,9 @@ pub fn main() !void {
         _ = melee_sweep_crit_mod.computeCooldownDamageScale(active_melee_elapsed, melee_sweep_crit_mod.WeaponAttackSpeed.sword_1_6_hz.rechargeDurationSeconds());
         _ = skeleton_variants_mod.tickSkeletonPowderSnowConversion(&active_skeleton_freeze, dt, false);
         _ = skeleton_variants_mod.computeSkeletonArrowPayload(.icy_stray);
+        _ = bogged_stray_variants_mod.arrowPayload(.bogged);
+        _ = bogged_stray_variants_mod.arrowPayload(.stray);
+        _ = bogged_stray_variants_mod.trapSpawnProbability(0.5);
         _ = zombie_conversions_mod.tickZombieUnderwaterConversion(&active_zombie_submersion, false, dt);
         _ = zombie_conversions_mod.HuskMechanics.huskMeleeHungerDurationSeconds(1.0);
         _ = spider_arachnids_mod.isSpiderHostileAtLightLevel(12, false);
