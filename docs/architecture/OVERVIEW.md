@@ -315,3 +315,12 @@ materials. Inventory metadata includes names, RGBA colors, stack limits, and six
 2x2 recipes. `wooden_slab` and `stone_bricks` ingredient types occupy 563–564.
 `BlockId` remains capped at 255.
 
+### Breeze mob domain module
+
+`breeze_wind_charge.zig` contains standalone Breeze movement, projectile
+deflection, Wind Charge flight/burst, block actuation, and loot rules. The
+module is independently registered in `build.zig`; existing `BlockId` states
+are used for levers, doors, and trapdoors. Wooden and stone button pressed
+states are modeled locally because the current block registry has no button
+variants. The game entity loop does not yet own Breeze instances.
+

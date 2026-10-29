@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 387)
+Last updated: 2026-10-29 (Session 388)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 7946 passing unit tests across 451 build/test steps
@@ -109,4 +109,7 @@ Last updated: 2026-10-29 (Session 387)
 - Milestones 441–450 are integrated: Sculk Catalyst Bloom, Sculk Shrieker Warning, Calibrated Sculk Resonance, Chiseled Bookshelf Storage, Hanging Sign Mechanics, Camel Mount Kinematics, Decorated Pot Storage, Creaking Heart Puppet, Creaking Gaze AI, and Resin Masonry.
 - All ten Wave 17 modules have standalone test targets and are imported in `main.zig`; the frame loop queries representative domain rules while existing world/entity systems retain mutation ownership.
 - ItemTypes 553–562 add sculk bloom catalyst, shrieker alarm core, calibrated sensor tuner, chiseled bookshelf slot, hanging chain mount, camel bridle saddle, decorated pot motif, creaking heart core, eyeblossom resin bloom, and resin brick masonry. Their RGBA metadata, stack limits, and six 2x2 recipes are tested; `wooden_slab` and `stone_bricks` are ingredient ItemTypes 563–564. `BlockId` remains capped at 255.
+
+## Breeze Mob Mechanics
+- Milestone 454 adds the standalone `breeze_wind_charge.zig` domain module with parabolic leap calculations, water hazard detection, seven projectile deflections, Wind Charge firing/burst resolution, wind-actuated interactive states, and Breeze Rod loot. The module has a standalone test target; the current game entity loop does not yet own Breeze entities.
 

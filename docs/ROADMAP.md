@@ -527,3 +527,5 @@ Rough priority order. Completed milestones marked **[x]**.
 449. [x] **Creaking Gaze AI** — 45-degree gaze freeze, line-of-sight stalking, and eyeblossom resonance (`src/world/creaking_gaze_ai.zig`).
 450. [x] **Resin Masonry** — Resin clump extrusion, hardening, brick crafting, and masonry architecture (`src/world/resin_masonry.zig`).
 
+454. [x] **Breeze Mob AI & Wind Charge Kinematics** — 15-block parabolic leaps, automatic projectile deflection, 20 m/s Wind Charges, 3.5m bursts, wind-actuated blocks, and Breeze Rod loot (`src/world/breeze_wind_charge.zig`).
+
