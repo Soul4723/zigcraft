@@ -553,3 +553,37 @@ Dragon Respawn Crystal. Six two-item 2x2 recipes are handled by
 `Inventory.updateCrafting()`. `glass_bottle` is introduced at ItemType 638 as
 the ingredient for the Dragon's Breath Vial recipe because no empty glass
 bottle item previously existed. `BlockId` remains within its 8-bit capacity.
+
+### Wave 25 domain modules
+
+Milestones 521–530 provide standalone rules in `warden_scent_blast.zig`,
+`sculk_shrieker_fog.zig`, `calibrated_sensor_chains.zig`,
+`breeze_jump_deflection.zig`, `trial_spawner_waves.zig`,
+`mace_velocity_scaling.zig`, `vault_multiplayer_reset.zig`,
+`crafter_pulsed_grid.zig`, `bogged_poison_harvest.zig`, and
+`ominous_bottle_matrix.zig`. All ten are registered once in `build.zig` as
+standalone test targets, and representative hooks are queried each frame from
+`main.zig`. ItemTypes 639–648 add the Wave 25 materials with display names,
+RGBA colors, and configured stack limits. Six 2x2 recipes produce the
+Warden Sonic Pulse Matrix, Shrieker Darkness Fog Relic, Calibrated Resonance
+Matrix, Wind Charge Rocket Booster, Mace Velocity Impact Relic, and Crafter
+Pulsed Grid Controller.
+
+### Wave 26 domain modules
+
+Milestone 534 introduces `src/world/resin_brick_masonry.zig` providing the
+standalone pyrometallurgy, 2x2 crafting, stonecutter conversions, and
+architectural masonry pipeline for Resin materials:
+- Resin Clump furnace (200 ticks / 10s) and blast furnace (100 ticks / 5s)
+  smelting with 0.1 XP per clump (1.0 XP / 10 clumps).
+- 2x2 crafting of 4 Resin Bricks into 1 Block of Resin Bricks.
+- Hardness 1.5, blast resistance 6.0, wooden pickaxe harvest tier, and complete
+  fire and lava immunity.
+- Resin Brick Stairs with straight, inner, and outer corner shape states.
+- Resin Brick Slabs with lower, upper, and double-slab merging kinematics.
+- Resin Brick Walls with cardinal post-and-side connections and 1.5m jump-proof bounds.
+- Chiseled Resin Bricks crafted from 2 vertically stacked slabs.
+- Stonecutter 1:1 conversions from 1 Resin Bricks block to stairs, slabs (1:2),
+  walls, and chiseled blocks.
+The module is registered as a standalone test target in `build.zig` and queried
+from `src/main.zig`.

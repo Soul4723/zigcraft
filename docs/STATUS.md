@@ -1,5 +1,37 @@
 # Project Status
 
+Last updated: 2026-10-29 (Session 428, Milestone 534)
+
+Milestone 534 adds `src/world/resin_brick_masonry.zig` implementing the complete
+Resin Clump smelting, 2x2 block crafting, stonecutter conversion, and architectural
+masonry pipeline:
+- Smelting Resin Clumps into Resin Bricks in Standard Furnaces (200 ticks / 10.0s)
+  and Blast Furnaces (100 ticks / 5.0s, 2x speed) yielding 0.1 XP per clump (1.0 XP / 10 clumps).
+- Incompatible pyrometallurgy rejection for food Smokers and Campfires.
+- Progressive tick-based smelting simulation with cook progress tracking, multiple item
+  completion leaping, and banked XP claiming.
+- 2x2 Crafting: 4 Resin Bricks -> 1 Block of Resin Bricks (`BlockId.resin_bricks` / `ItemType.resin_bricks`).
+- Physical block properties: hardness 1.5, blast resistance 6.0, wooden pickaxe harvest tier
+  (drops itself with pickaxe, drops nothing with bare hand or non-pickaxe tools).
+- Fire resistance: immune to fire spread and lava ignition across all resin brick blocks.
+- Architectural Masonry:
+  - Resin Brick Stairs: 6 blocks -> 4 stairs; straight, inner left/right, and outer left/right corner states;
+    lower half vs upper half (upside down); 1.0m collision height.
+  - Resin Brick Slab: 3 blocks -> 6 slabs; bottom half (height 0.5m), top half (height 0.5m),
+    and combining into double slab (height 1.0m, drops 2 slabs with pickaxe).
+  - Resin Brick Wall: 6 blocks -> 6 walls; post-and-side connections to adjacent solid blocks and walls;
+    straight NS/EW wall post lowering; 1.5m jump-proof collision height.
+  - Chiseled Resin Bricks: 2 slabs vertically stacked -> 1 chiseled block with ceremonial carved medallion face.
+- Stonecutter 1:1 conversion:
+  - 1 Resin Bricks -> 1 Resin Brick Stairs
+  - 1 Resin Bricks -> 2 Resin Brick Slabs
+  - 1 Resin Bricks -> 1 Resin Brick Wall
+  - 1 Resin Bricks -> 1 Chiseled Resin Bricks
+- Registered in `build.zig` and connected to frame loop in `src/main.zig`.
+- Verification: 68/68 standalone unit tests pass; full test suite passes 12,031/12,031 tests across 613 steps.
+
+---
+
 Last updated: 2026-10-29 (Session 420, Phase 8: Milestones 511–520)
 
 Wave 24 integration completes Milestones 511–520. All ten domain modules are
