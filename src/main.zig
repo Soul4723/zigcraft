@@ -210,6 +210,7 @@ const decorated_pot_storage_mod = @import("world/decorated_pot_storage.zig");
 const creaking_gaze_ai_mod = @import("world/creaking_gaze_ai.zig");
 const resin_masonry_mod = @import("world/resin_masonry.zig");
 const mangrove_mud_architecture_mod = @import("world/mangrove_mud_architecture.zig");
+const chorus_teleport_purpur_mod = @import("world/chorus_teleport_purpur.zig");
 const sniffer_digging_flora_mod = @import("world/sniffer_digging_flora.zig");
 const trial_spawner_dynamics_mod = @import("world/trial_spawner_dynamics.zig");
 const vault_loot_dispenser_mod = @import("world/vault_loot_dispenser.zig");
@@ -1083,6 +1084,7 @@ pub fn main() !void {
         _ = lodestone_compass_tracking_mod.Dimension.overworld;
         _ = composter_biofuel_mod.MAX_LEVEL;
         _ = specialized_furnace_smelting_mod.SPECIALIZED_FURNACE_COOK_TICKS;
+        _ = chorus_teleport_purpur_mod.teleport_attempts;
         _ = tripwire_hook_circuit_mod.max_distance_between_hooks;
         _ = creaking_heart_puppet_mod.MAX_TETHER_RADIUS;
         // Wave 17 representative frame-loop hooks keep new domain rules queryable.
@@ -6700,26 +6702,50 @@ pub fn main() !void {
                 particles.spawnWaterSplash(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 10);
                 std.debug.print("drank water breathing potion (timer={d:.1}s)\n", .{player.water_breathing_timer});
             } else if (held_eat.item == .chorus_fruit) {
-                // Eating chorus fruit restores 4 hunger and teleports player to a random spot within 8 blocks
+                // Chorus fruit can be eaten at full hunger; resolve a safe destination before moving.
                 player.hunger = @min(20.0, player.hunger + 4.0);
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.8);
-                audio.play(.mob_teleport, 1.0);
-                particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 20);
-
-                // Disperse player randomly +/- 8 blocks horizontally
-                const seed_u: u32 = @as(u32, @bitCast(@as(i32, @intFromFloat(player.pos.x * 16.0)))) *% 31 +%
+                var random_state: u32 = @as(u32, @bitCast(@as(i32, @intFromFloat(player.pos.x * 16.0)))) *% 31 +%
                     @as(u32, @bitCast(@as(i32, @intFromFloat(player.pos.z * 16.0)))) *% 17 +%
-                    @as(u32, @intFromFloat(player.hunger * 10.0));
-                const dx: f32 = @as(f32, @floatFromInt(@as(i32, @intCast((seed_u >> 4) % 15)) - 7));
-                const dz: f32 = @as(f32, @floatFromInt(@as(i32, @intCast((seed_u >> 12) % 15)) - 7));
-                const new_x = player.pos.x + dx;
-                const new_z = player.pos.z + dz;
-                player.pos.x = new_x;
-                player.pos.z = new_z;
-                player.vel_y = 0.0;
-                particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 24);
-                std.debug.print("ate chorus fruit; teleported to ({d:.1}, {d:.1}, {d:.1})\n", .{ player.pos.x, player.pos.y, player.pos.z });
+                    @as(u32, @intFromFloat(player.hunger * 10.0)) +% @as(u32, @truncate(frame_count));
+                const origin_x: i32 = @intFromFloat(@floor(player.pos.x));
+                const origin_y: i32 = @intFromFloat(@floor(player.pos.y));
+                const origin_z: i32 = @intFromFloat(@floor(player.pos.z));
+                var teleported = false;
+                var attempt: usize = 0;
+                while (attempt < chorus_teleport_purpur_mod.teleport_attempts) : (attempt += 1) {
+                    random_state = random_state *% 1664525 +% 1013904223;
+                    const dx: i32 = @as(i32, @intCast((random_state >> 16) % 17)) - 8;
+                    random_state = random_state *% 1664525 +% 1013904223;
+                    const dy: i32 = @as(i32, @intCast((random_state >> 16) % 17)) - 8;
+                    random_state = random_state *% 1664525 +% 1013904223;
+                    const dz: i32 = @as(i32, @intCast((random_state >> 16) % 17)) - 8;
+                    const target_x = origin_x + dx;
+                    const target_y = origin_y + dy;
+                    const target_z = origin_z + dz;
+                    const feet = manager.getBlockWorld(target_x, target_y, target_z);
+                    const head = manager.getBlockWorld(target_x, target_y + 1, target_z);
+                    const ground = manager.getBlockWorld(target_x, target_y - 1, target_z);
+                    const feet_clear = !feet.is_solid() and feet != .water and feet != .lava;
+                    const head_clear = !head.is_solid() and head != .water and head != .lava;
+                    if (!feet_clear or !head_clear or !ground.is_solid()) continue;
+
+                    particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 20);
+                    audio.play(.mob_teleport, 1.0);
+                    player.pos.x = @as(f32, @floatFromInt(target_x)) + 0.5;
+                    player.pos.y = @floatFromInt(target_y);
+                    player.pos.z = @as(f32, @floatFromInt(target_z)) + 0.5;
+                    player.vel_y = 0.0;
+                    const teleport_effects = chorus_teleport_purpur_mod.TeleportEffects{};
+                    active_chorus.fall_distance = teleport_effects.fall_distance;
+                    particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 24);
+                    teleported = true;
+                    break;
+                }
+                if (teleported) {
+                    std.debug.print("ate chorus fruit; teleported to ({d:.1}, {d:.1}, {d:.1})\n", .{ player.pos.x, player.pos.y, player.pos.z });
+                }
             } else if (held_eat.item == .glass) {
                 // If standing inside or near a dragon breath cloud, bottle Dragon's Breath!
                 var bottled = false;
