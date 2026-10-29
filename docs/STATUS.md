@@ -1,22 +1,28 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 419, Milestone 520)
+Last updated: 2026-10-29 (Session 420, Phase 8: Milestones 511–520)
 
-Milestone 520 adds the standalone Ender Dragon respawn ritual state machine in
-`src/world/dragon_respawn_ritual.zig`. Four exact cardinal fountain placements
-start a 600-tick sequence with magenta charging beams, ten sequential pillar
-crystal regens, purple apex convergence, an expanding emergence sphere, a
-power-12 completion burst, four consumed fountain crystals, exit portal air
-blocks, and a respawned 200 HP dragon. The module is registered for standalone
-tests and advanced at 20 ticks per second; visual effects, block mutations,
-and live dragon replacement remain caller-applied events. All 40 focused
-ritual tests pass.
+Wave 24 integration completes Milestones 511–520. All ten domain modules are
+registered once as standalone test targets in `build.zig`, imported by
+`main.zig`, and queried from representative frame-loop hooks. The Dragon
+Respawn Ritual advances at 20 ticks per second in the existing simulation.
+ItemTypes 628–637 add the Wave 24 materials with display names, RGBA colors,
+and requested stack limits; six 2x2 recipes are available through
+`Inventory.updateCrafting()`. `glass_bottle` is added at ID 638 as a missing
+ingredient for the Dragon's Breath Vial recipe. `BlockId` remains within its
+8-bit capacity. Verification passes 11,520 tests across 591 build/test steps.
+
+## Wave 24 Integration (Milestones 511–520)
+
+- Integrated chorus teleportation/purpur masonry, End Gateway transit, Shulker shell defense, Shulker Box storage, Elytra flight, Dragon Head acoustics, Dragon's Breath alchemy, End City layout, End Ship vault, and Dragon Respawn Ritual.
+- The ten modules are each registered exactly once as standalone test targets; all are imported and queried each frame, using existing Elytra wear and 20 Hz ritual simulation hooks where those rules already run.
+- ItemTypes 628–637 define Chorus Teleport Matrix, End Gateway Shard, Shulker Shell Armor Plate, Quantum Shulker Core, Elytra Mending Wing, Dragon Skull Horn, Dragon's Breath Vial, End City Vault Key, End Ship Figurehead, and Dragon Respawn Crystal. Six 2x2 recipes craft the matrix, armor plate, core, mending wing, horn, and vial. The inventory test checks IDs, stack limits, display names, RGBA channels, all six outputs, and `BlockId` capacity.
+- Verification: `ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache ZIG_LOCAL_CACHE_DIR=/tmp/zig-local-cache zig build` passes; the same environment with `zig build test --summary all` passes 11,520/11,520 tests across 591 steps.
 
 ## Wave 24 (Milestone 520)
 
 - Added the four-crystal Ender Dragon respawn ritual and caller-applied events.
-- Verification: the ritual module passes all 40 of its tests (162 total when
-  including the imported block module tests).
+- Verification: the ritual module passes all 40 focused tests (162 total including imported block tests).
 
 ---
 
