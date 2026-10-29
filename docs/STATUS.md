@@ -1,8 +1,10 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 406, Phase 8: Milestones 481–490)
+Last updated: 2026-10-29 (Session 408, Phase 8: Milestones 481–493)
 
 Milestone 492 adds standalone 3D radius-8 sculk bloom propagation, charge-limited substrate conversion, exposed-face vein masks, 85/15 branch rolls, and a 20-tick light state in `src/world/sculk_bloom_geometry.zig` (38 focused tests).
+
+Milestone 493 adds standalone camel 1.5m step assistance, two-block gap stride gravity handling, 50-tick dash charging, a 19.5m/s 12-block dash burst, and a 55-tick stamina cooldown in `src/world/camel_step_dash.zig` (30 focused tests).
 
 Last updated: 2026-10-29 (Session 404)
 
