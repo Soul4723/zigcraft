@@ -585,3 +585,15 @@ Rough priority order. Completed milestones marked **[x]**.
 503. [x] **Ghast Aerial Artillery & Fireball Tennis Deflection** — 10 HP 4x4x4m fire/lava-immune flight, 64m visible-target acquisition, ten-tick charge, 20 m/s power-1 fireballs, player attack deflection, lethal Return to Sender hits, Looting-aware gunpowder/tear drops, and five XP (\`src/world/ghast_fireball_tennis.zig\`).
 505. [x] **Wither Three-Headed Spawning & Flying Shield Phases** — X/Z-axis soul sand/soil T summoning with three skulls, 220-tick invulnerable charge and power-7 birth blast, three-head targeting/skull events, armor-phase projectile immunity and melee charge, and one explosion-proof Nether Star plus 50 XP (\`src/world/wither_boss_phases.zig\`).
 504. [x] **Wither Skeleton Beheading & Wither Effect Debuff** — 2.4m/20 HP/3.6m/s fire-immune skeleton with stone sword; difficulty melee damage and 200-tick lethal Wither I; milk cleansing; 2.5% +1%/Looting skull chance, charged Creeper guaranteed skull, regular drops, and 5 XP (\`src/world/wither_skeleton_effect.zig\`). Runtime attributes/debuff/milk/HUD/base drop behavior aligned; Looting and charged-kill context remain exposed through the standalone domain rules pending game-loop context plumbing.
+## Wave 22 Integration (Milestones 491–500)
+
+491. [x] **Copper Horn Acoustics** — Pitch-register selection, 256-block sound range, frequency-10 sculk events, cooldown, and vibrato (\`src/world/copper_horn_acoustics.zig\`).
+492. [x] **Sculk Bloom Geometry** — Radius-8 3D bloom propagation, substrate conversion, exposed-face veins, branch probabilities, and bloom lighting (\`src/world/sculk_bloom_geometry.zig\`).
+493. [x] **Camel Step & Dash** — 1.5-block step height, two-block ravine stride, dash charge, and 12-block surge kinematics (\`src/world/camel_step_dash.zig\`).
+494. [x] **Bookshelf Secret Latch** — Six-slot combination input, comparator latch, and piston door transition timing (\`src/world/bookshelf_secret_latch.zig\`).
+495. [x] **Brushing Visual Particles** — Four-stage excavation plume particles, interruption decay, and brush-hand audio modulation (\`src/world/brushing_visual_particles.zig\`).
+496. [x] **Trial Vault Reset** — Per-player vault unlock state, reset-token drops, loot ejection, and item dispersion (\`src/world/trial_vault_reset.zig\`).
+497. [x] **Mace Aerial Combos** — Chained smash timing, combo damage multipliers, and radial kinetic launch effects (\`src/world/mace_aerial_combos.zig\`).
+498. [x] **Crafter Factory Clocking** — Redstone-tick pulse clocks, rising-edge crafting, round-robin hopper feed, backpressure, and factory throughput (\`src/world/crafter_factory_clocking.zig\`).
+499. [x] **Copper Bulb Display** — BCD digit decoding and compact copper bulb segment layouts (\`src/world/copper_bulb_display.zig\`).
+500. [x] **Ender Dragon Arena Fight** — Four-phase arena combat, crystal healing, fireball/breath attacks, defeat sequence, XP reward, and End exit portal activation (\`src/world/ender_dragon_arena_fight.zig\`).
