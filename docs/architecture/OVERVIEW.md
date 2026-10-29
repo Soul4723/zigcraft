@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-29 (Session 387)
+Last updated: 2026-10-29 (Session 420)
 
 ## Project Structure
 
@@ -531,3 +531,12 @@ stack limits. Six two-ingredient 2x2 recipes are handled by
 Ghast Tear Essence, Wither Skull Relic, Nether Star Core, and Conduit Power
 Orb. Existing ingredient tags are reused, including `wither_skull` for the
 Wither Skeleton Skull. `BlockId` remains within the existing 8-bit capacity.
+
+### Warden scent and sonic blast
+
+`warden_scent_blast.zig` owns periodic nearest-player scent acquisition,
+per-player suspicion meters, calm decay, Warden agitation/roar/chase state,
+and penetrating sonic blast damage and impulse results. It is registered as a
+standalone test target. The module reports deterministic state and effects;
+runtime entity animation, facing, movement, damage, and velocity owners apply
+them to live entities.

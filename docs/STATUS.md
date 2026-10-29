@@ -1,5 +1,24 @@
 # Project Status
 
+Last updated: 2026-10-29 (Session 420, Milestone 521)
+
+Milestone 521 adds `src/world/warden_scent_blast.zig`, a standalone Warden
+scent and penetrating sonic blast model. Wardens sniff every 84 ticks while
+not chasing, detect the nearest player within 16m, add 35 suspicion, escalate
+from calm wandering through agitation and a 40-tick roar to a 4.2m/s chase,
+and decay suspicion by one point per calm second without vibrations. Sonic
+blasts hit within 15 horizontal meters through terrain, deal 10 unmitigated
+damage, and apply a 6m/s upward and 8m/s horizontal impulse. All 37 focused
+tests pass. The module is a standalone domain target; live entity animation,
+movement, damage and velocity application remain with runtime owners.
+
+## Wave 25 (Milestones 521–530)
+
+- Added Warden scent tracking, suspicion escalation, roar timing, and penetrating sonic blast rules.
+- Verification: the focused module passes all 37 tests.
+
+---
+
 Last updated: 2026-10-29 (Session 419, Milestone 520)
 
 Milestone 520 adds the standalone Ender Dragon respawn ritual state machine in
