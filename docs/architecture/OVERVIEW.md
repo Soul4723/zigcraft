@@ -395,3 +395,18 @@ Milestone 489 adds `turtle_scute_helmet.zig` as a standalone lifecycle module
 with breeding, home-beach egg laying and incubation, baby growth/scute drops,
 helmet recipe matching, and water-breathing timer rules. Its API is covered by
 an isolated build/test target; world entity mutation remains with consumers.
+
+### Wave 21 domain modules
+
+Milestones 481–490 add standalone domain modules for Piglin bartering and
+Bastion defense, zombified Piglin swarm alarms, Strider lava mounting, Nether
+fungus forest growth, Hoglin repellent behavior, lead tension, fox berry
+predation, turtle scute and helmet rules, and panda genetics variants. Each is
+registered as a standalone test target in `build.zig`; `main.zig` imports all
+ten and queries representative rules in the frame loop. Entity and world
+mutation remains with their existing owners.
+
+Inventory adds ItemTypes 596–605 with display names, RGBA colors, and stack
+sizes. Its 2x2 grid supports six Wave 21 recipes. `gold_ingot` is added as an
+ingredient item at 606 because no gold ingot item type existed; `BlockId` stays
+within its `u8` capacity.

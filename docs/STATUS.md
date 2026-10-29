@@ -1,8 +1,12 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 404)
+Last updated: 2026-10-29 (Session 406, Phase 8: Milestones 481–490)
 
-Milestone 490 Panda Personalities & Gene Mutation Inheritance is implemented on the current feature branch in \`src/world/panda_genetics_variants.zig\`; it has seven behavior profiles, full two-allele dominance resolution, parent-specific bamboo breeding checks, offspring inheritance, and 1/32 mutation per allele.
+Wave 21 integration completes Milestones 481–490. The ten domain modules are
+registered as standalone tests, imported and queried from the frame loop, and
+represented by ItemTypes 596–605 with six 2x2 recipes. `gold_ingot` is added
+as an ingredient item (606), since it was not previously declared. `BlockId`
+capacity remains at 255.
 
 Last updated: 2026-10-29 (Session 390)
 
@@ -134,6 +138,13 @@ Last updated: 2026-10-29 (Session 390)
 - ItemTypes 586–595 add the ten Wave 20 materials (Ominous Trap Core, Dyed Bundle Package, Netherite Smithing Core, Shulker Levitation Orb, Elytra Propulsion Core, Riptide Vortex Shard, Four Horsemen Crest, Witch Brewing Cauldron, Evoker Fangs Talisman, and Totem Resurrection Effigy). Their display names, RGBA colors, stack limits, and six 2x2 crafting recipes are covered by unit tests; `BlockId` capacity is preserved (<= 255).
 - Disambiguation: Single String + Leather (count = 1) crafts `dyed_bundle_package` in 2x2 crafting; multiple Leather (count >= 2) preserves legacy Recipe 301 `bundle`, matching the Wave 17 calibrated sensor and Wave 19 recovery compass precedents.
 - Verification: `zig build` passes; `zig build test --summary all` passes 9349/9349 tests across 511 build/test steps.
+
+## Wave 21 Integration (Milestones 481–490)
+- Integrated Piglin barter and Bastion defense, Zombified Piglin swarm alarms, Strider lava mounting, Nether fungus forest growth, Hoglin repellent behavior, lead tension physics, fox berry predation, turtle scute and helmet rules, and panda genetics variants.
+- All ten modules are registered once in `build.zig`, imported by `main.zig`, and queried through representative frame-loop hooks; entity and world mutation remains with their existing owners.
+- ItemTypes 596–605 define the ten requested materials with display names, RGBA colors, and configured stack limits. Six 2x2 recipes create the barter token, brute armband, strider harness, fungus spores, reinforced lead, and berry basket. The test checks IDs, stack sizes, names, color channels, recipe outputs, and `BlockId` capacity.
+- `gold_ingot` did not exist in `ItemType`; it is now declared as ingredient ID 606 with normal stack behavior, name, and color.
+- Verification: `ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache ZIG_LOCAL_CACHE_DIR=/tmp/zig-local-cache zig build` passes; `ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache ZIG_LOCAL_CACHE_DIR=/tmp/zig-local-cache zig build test --summary all` passes 9727/9727 tests across 531 build/test steps.
 
 ## Milestone 471 — Trial Chambers Spawner Ominous Potion Spawning & Projectile Traps
 - Added standalone `src/world/trial_chamber_traps.zig` with 8-second (160 ticks) ambient hazard timer, random hazard selection (ceiling projectile drop vs lingering cloud 3-5 blocks above player head), 6 lingering potion payload types (poison, slowness, weaving, oozing, infested, wind_charged), cloud physical dynamics (3.0m radius, -0.5m shrink per affliction, 600 ticks / 30s timeout, spherical affliction), ceiling downward projectile ejection ([3]f32{0.0, -0.6, 0.0}), 3.5m wind charge burst with copper door/trapdoor toggling and knockback, and fire charge ground ignition.
