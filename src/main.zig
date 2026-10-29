@@ -213,6 +213,7 @@ const trial_spawner_dynamics_mod = @import("world/trial_spawner_dynamics.zig");
 const vault_loot_dispenser_mod = @import("world/vault_loot_dispenser.zig");
 const breeze_wind_charge_mod = @import("world/breeze_wind_charge.zig");
 const crafter_automation_mod = @import("world/crafter_automation.zig");
+const crafter_factory_clocking_mod = @import("world/crafter_factory_clocking.zig");
 const trial_chamber_generation_mod = @import("world/trial_chamber_generation.zig");
 const ominous_bottle_omen_mod = @import("world/ominous_bottle_omen.zig");
 const froglight_predation_mod = @import("world/froglight_predation.zig");
@@ -1091,6 +1092,7 @@ pub fn main() !void {
         _ = mace_smash_kinematics_mod.calculateSmashDamage(2.0, 0);
         _ = mace_aerial_combos_mod.damageMultiplier(1);
         _ = crafter_automation_mod.slot_count;
+        _ = crafter_factory_clocking_mod.ClockMode.four_redstone_ticks.periodGameTicks();
         _ = trial_chamber_generation_mod.FOOTPRINT_X;
         _ = ominous_bottle_omen_mod.amplifierForTier(.tier_1);
         _ = froglight_predation_mod.nativeVariant(.swamp);

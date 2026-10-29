@@ -410,3 +410,12 @@ Inventory adds ItemTypes 596–605 with display names, RGBA colors, and stack
 sizes. Its 2x2 grid supports six Wave 21 recipes. `gold_ingot` is added as an
 ingredient item at 606 because no gold ingot item type existed; `BlockId` stays
 within its `u8` capacity.
+
+### Crafter factory clocking
+
+`crafter_factory_clocking.zig` owns deterministic factory timing and item flow:
+2/8-game-tick pulse clocks, rising-edge recipe execution, nine-slot round-robin
+hopper insertion, backpressure, comparator fullness, and a Blast Furnace to
+Crafter to output-chest throughput simulation. It is registered as a standalone
+test module and referenced by the frame loop; actual world containers and item
+entity mutation remain with their existing owners.
