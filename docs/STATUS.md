@@ -1,6 +1,11 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 406, Phase 8: Milestones 481–490)
+Last updated: 2026-10-29 (Session 408, Milestone 494)
+
+Milestone 494 adds a multi-bookshelf secret combination latch with 0/15 comparator
+output, slot-content reset behavior, and a six-tick 2x2 piston door actuator in
+`src/world/bookshelf_secret_latch.zig` (33 focused tests). Fixed a missing closing
+brace in the existing Wave 21 inventory test so the project build can parse again.
 
 Milestone 492 adds standalone 3D radius-8 sculk bloom propagation, charge-limited substrate conversion, exposed-face vein masks, 85/15 branch rolls, and a 20-tick light state in `src/world/sculk_bloom_geometry.zig` (38 focused tests).
 
