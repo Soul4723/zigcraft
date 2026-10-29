@@ -88,6 +88,7 @@ const wither_boss_phases_mod = @import("world/wither_boss_phases.zig");
 const wither_skeleton_effect_mod = @import("world/wither_skeleton_effect.zig");
 const ender_dragon_fight_mod = @import("world/ender_dragon_fight.zig");
 const ender_dragon_arena_fight_mod = @import("world/ender_dragon_arena_fight.zig");
+const dragon_respawn_ritual_mod = @import("world/dragon_respawn_ritual.zig");
 const villager_curing_mod = @import("world/villager_curing.zig");
 const piston_adhesion_mod = @import("world/piston_adhesion.zig");
 const fishing_treasure_mod = @import("world/fishing_treasure.zig");
@@ -565,6 +566,7 @@ pub fn main() !void {
     var active_wither = wither_boss_mod.WitherBoss{};
     var active_dragon_breath = ender_dragon_fight_mod.DragonBreathCloud{ .pos = .{ 0.0, 64.0, 0.0 } };
     var active_dragon_arena_fight = ender_dragon_arena_fight_mod.DragonArenaFight{};
+    var active_dragon_respawn_ritual = dragon_respawn_ritual_mod.DragonRespawnRitual{};
     var dragon_arena_tick_accumulator: f32 = 0.0;
     var active_villager_cure = villager_curing_mod.ZombieVillagerCureState{};
     var active_shield = shield_thorns_combat_mod.ShieldBlockState{};
@@ -893,6 +895,7 @@ pub fn main() !void {
             dragon_arena_tick_accumulator -= 0.05;
             _ = active_dragon_arena_fight.healFromNearbyCrystal();
             _ = ender_dragon_arena_fight_mod.updateArena(&active_dragon_arena_fight, .{ player.pos.x, player.pos.y, player.pos.z });
+            _ = active_dragon_respawn_ritual.tick();
         }
         _ = active_dragon_arena_fight.dragon.bossBar();
         if (active_villager_cure.is_converting) active_villager_cure.cure_timer = @max(0.0, active_villager_cure.cure_timer - dt);

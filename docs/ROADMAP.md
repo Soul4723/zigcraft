@@ -617,3 +617,7 @@ Rough priority order. Completed milestones marked **[x]**.
 508. [x] **Guardian Laser & Spikes** — Charged tracking laser, swimming movement, spikes, and retaliation (`src/world/guardian_laser_spikes.zig`).
 509. [x] **Elder Guardian Curse** — Monument entry Mining Fatigue, curse events, defeat drops, and apex vault (`src/world/elder_guardian_curse.zig`).
 510. [x] **Nether Portal Scaling** — 1:8 coordinate conversion, destination selection, frame generation, and transit cooldown (`src/world/nether_portal_scaling.zig`).
+
+## Wave 24 Domain Modules
+
+520. [x] **Ender Dragon Respawning Ritual** — Four cardinal fountain crystals, a 600-tick multistage beam sequence, sequential regeneration of all ten pillar crystals, apex convergence, full-health dragon respawn, and exit portal deactivation until the dragon is defeated (`src/world/dragon_respawn_ritual.zig`).
