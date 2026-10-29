@@ -108,6 +108,7 @@ const zombie_conversions_mod = @import("world/zombie_conversions.zig");
 const spider_arachnids_mod = @import("world/spider_arachnids.zig");
 const mountain_goat_mod = @import("world/mountain_goat.zig");
 const hoglin_zoglin_mod = @import("world/hoglin_zoglin.zig");
+const hoglin_warped_repellent_mod = @import("world/hoglin_warped_repellent.zig");
 const ranged_enchantments_mod = @import("world/ranged_enchantments.zig");
 const item_frames_paintings_mod = @import("world/item_frames_paintings.zig");
 const armor_toughness_epf_mod = @import("world/armor_toughness_epf.zig");
@@ -560,6 +561,7 @@ pub fn main() !void {
     var active_skeleton_freeze = skeleton_variants_mod.SkeletonFreezeConversionState{};
     var active_zombie_submersion = zombie_conversions_mod.ZombieSubmersionState{ .variant = .desert_husk };
     const active_hoglin = hoglin_zoglin_mod.HoglinState.init();
+    var active_warped_hoglin = hoglin_warped_repellent_mod.Hoglin.init();
     var active_item_frame = item_frames_paintings_mod.ItemFrameState{};
     var active_hopper = hopper_item_sorter_mod.HopperContainerState{};
     var active_hopper_source: ?hopper_item_sorter_mod.ItemStack = null;
@@ -914,6 +916,9 @@ pub fn main() !void {
         _ = mountain_goat_mod.milkGoatWithBucket(false);
         _ = hoglin_zoglin_mod.tickHoglinOverworldZombification(false, &hoglin_zombify_timer, dt);
         _ = hoglin_zoglin_mod.isHoglinRepelledByBlock(active_hoglin.is_zoglin, false, 0.0);
+        _ = active_warped_hoglin.updateRepellent(.{}, .{}, .other);
+        _ = hoglin_warped_repellent_mod.attackDamage(.normal);
+        _ = active_warped_hoglin.tickDimension(.nether, 1);
         _ = ranged_enchantments_mod.computePowerBowDamage(2.0, 0);
         _ = ranged_enchantments_mod.computeCrossbowReloadSeconds(0);
         _ = item_frames_paintings_mod.itemFrameComparatorSignal(active_item_frame);

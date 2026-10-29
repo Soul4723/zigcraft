@@ -185,6 +185,7 @@ pub fn build(b: *std.Build) void {
         "src/world/spider_arachnids.zig",
         "src/world/mountain_goat.zig",
         "src/world/hoglin_zoglin.zig",
+        "src/world/hoglin_warped_repellent.zig",
         "src/world/ranged_enchantments.zig",
         "src/world/item_frames_paintings.zig",
         "src/world/armor_toughness_epf.zig",
