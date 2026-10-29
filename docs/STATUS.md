@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 388)
+Last updated: 2026-10-29 (Session 389)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 8267 passing unit tests across 463 build/test steps
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 8336 passing unit tests across 467 build/test steps
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -114,3 +114,7 @@ Last updated: 2026-10-29 (Session 388)
 - Milestone 457 adds `src/world/copper_bulb_latch.zig` with delayed rising-edge toggles, four oxidation light levels, waxing and scraping, indicator-dot state, and comparator output.
 - The module has a standalone test target and is imported by `main.zig`; the frame loop queries its oxidation light rule. Its deterministic mechanics are independent of world mutation.
 
+
+## Wave 18 Omen Mechanics
+- Milestone 459 adds a standalone omen state machine for tiered Ominous Bottle drinking, Bad Omen, raid countdown/cancellation, Trial Omen transmutation and aura, and milk cleansing.
+- The module has 26 standalone tests and a dedicated test target in `build.zig`; its proximity inputs and emitted events are ready for world integration.
