@@ -12533,3 +12533,4 @@ test "Wave 21 item metadata and 2x2 recipes preserve BlockId capacity" {
         try std.testing.expectEqual(recipe.out, inv.craft_output.item);
         try std.testing.expectEqual(recipe.count, inv.craft_output.count);
     }
+}
