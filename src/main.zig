@@ -78,6 +78,7 @@ const swamp_witch_mod = @import("world/swamp_witch.zig");
 const blaze_fortress_mod = @import("world/blaze_fortress.zig");
 const ghast_deflection_mod = @import("world/ghast_deflection.zig");
 const slime_mitosis_mod = @import("world/slime_mitosis.zig");
+const magma_cube_splitting_mod = @import("world/magma_cube_splitting.zig");
 const phantom_insomnia_mod = @import("world/phantom_insomnia.zig");
 const wither_boss_mod = @import("world/wither_boss.zig");
 const ender_dragon_fight_mod = @import("world/ender_dragon_fight.zig");
@@ -861,6 +862,8 @@ pub fn main() !void {
         _ = active_blaze_brewing.tick(dt);
         _ = ghast_deflection_mod.canGhastSeeTarget(0.0, true);
         _ = slime_mitosis_mod.swampMoonPhaseSpawnChance(0, 0, 64);
+        _ = magma_cube_splitting_mod.MagmaCubeSize.big.meleeDamage();
+        _ = magma_cube_splitting_mod.takesFallDamage();
         phantom_insomnia.tick(dt);
         active_phantom.climb(dt);
         // A Wither only advances after a summon interaction has started it.

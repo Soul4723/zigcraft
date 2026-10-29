@@ -155,6 +155,7 @@ pub fn build(b: *std.Build) void {
         "src/world/blaze_fortress.zig",
         "src/world/ghast_deflection.zig",
         "src/world/slime_mitosis.zig",
+        "src/world/magma_cube_splitting.zig",
         "src/world/phantom_insomnia.zig",
         "src/world/wither_boss.zig",
         "src/world/ender_dragon_fight.zig",
