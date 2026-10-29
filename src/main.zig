@@ -28,6 +28,7 @@ const beacon_aura_mod = @import("world/beacon_aura.zig");
 const archaeology_mod = @import("world/archaeology.zig");
 const wind_charge_mod = @import("world/wind_charge.zig");
 const mace_smash_kinematics_mod = @import("world/mace_smash_kinematics.zig");
+const mace_aerial_combos_mod = @import("world/mace_aerial_combos.zig");
 const autocrafter_mod = @import("world/autocrafter.zig");
 const calibrated_sculk_mod = @import("world/calibrated_sculk.zig");
 const frog_mod = @import("world/frog.zig");
@@ -1088,6 +1089,7 @@ pub fn main() !void {
         _ = vault_loot_dispenser_mod.requiredKey(.standard);
         _ = breeze_wind_charge_mod.takesWaterDamage(false);
         _ = mace_smash_kinematics_mod.calculateSmashDamage(2.0, 0);
+        _ = mace_aerial_combos_mod.damageMultiplier(1);
         _ = crafter_automation_mod.slot_count;
         _ = trial_chamber_generation_mod.FOOTPRINT_X;
         _ = ominous_bottle_omen_mod.amplifierForTier(.tier_1);
