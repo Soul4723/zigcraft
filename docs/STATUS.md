@@ -477,3 +477,13 @@ Last updated: 2026-10-29 (Session 390)
   - Redstone Comparator Integration: outputs signal strength 15 for the nearest eligible player, 0 if the nearest player has unlocked, and 0 when no players are in range.
 - Registered in `build.zig` test runner and connected representative frame-loop queries in `src/main.zig`.
 - Verification: 37/37 tests in `src/world/vault_multiplayer_reset.zig` passed; `zig build` and `zig build test` passed cleanly (11,792/11,792 tests).
+
+## Milestone 528 — Crafter 9-Slot Pulsed Automation & Hopper Round-Robin
+- Added standalone `src/world/crafter_pulsed_grid.zig` implementing:
+  - 3x3 slot grid with player-toggleable disabled states (`u9` mask). Disabling an occupied slot ejects/clears its contents, and disabled slots refuse direct or hopper item insertion.
+  - Rising edge redstone pulse execution consuming 1 item per enabled slot, crafting configured recipes, and ejecting through 6-direction front nozzle.
+  - Minimum 4-tick craft delay between consecutive craft operations (`craft_delay_ticks = 4`).
+  - `HopperRoundRobin` sequential distribution advancing across enabled slots, skipping disabled/full slots, wrapping 8 to 0, and handling backpressure when all enabled slots are saturated.
+  - Redstone comparator fullness formula: $\min(9, \text{count}(\text{disabled}) + \text{count}(\text{occupied}))$ yielding output range $0..9$ as `u4`.
+- Registered in `build.zig` test runner.
+- Verification: 49/49 tests in `src/world/crafter_pulsed_grid.zig` passed; `zig build` and `zig build test` passed cleanly (11,841/11,841 tests).
