@@ -106,6 +106,7 @@ pub const Item = enum(u16) {
     blaze_rod = 107,
     rotten_flesh = 145,
     chorus_fruit = 156,
+    popped_chorus_fruit = 157,
     raw_cod = 184,
     cooked_cod = 185,
     kelp = 187,
@@ -423,6 +424,7 @@ pub fn getRecipe(item: Item, furnace_type: SpecializedFurnaceType) ?SmeltRecipe 
 
 /// Standard furnace recipe lookup for comparison.
 pub fn getRegularFurnaceRecipe(item: Item) ?SmeltRecipe {
+    if (item == .chorus_fruit) return SmeltRecipe{ .input = item, .output = .popped_chorus_fruit, .output_count = 1, .experience = 0.1, .cook_ticks = REGULAR_FURNACE_COOK_TICKS };
     // If it's a blast furnace or smoker recipe, regular furnace also supports it with 200 ticks
     if (getRecipe(item, .blast_furnace)) |r| {
         var copy = r;
@@ -443,6 +445,13 @@ pub fn getRegularFurnaceRecipe(item: Item) ?SmeltRecipe {
         .clay => SmeltRecipe{ .input = item, .output = .terracotta, .output_count = 1, .experience = 0.35, .cook_ticks = REGULAR_FURNACE_COOK_TICKS },
         else => null,
     };
+}
+
+test "regular furnace smelts chorus fruit into popped fruit in 200 ticks" {
+    const recipe = getRegularFurnaceRecipe(.chorus_fruit).?;
+    try std.testing.expectEqual(Item.popped_chorus_fruit, recipe.output);
+    try std.testing.expectEqual(@as(u16, 1), recipe.output_count);
+    try std.testing.expectEqual(REGULAR_FURNACE_COOK_TICKS, recipe.cook_ticks);
 }
 
 /// One inventory slot inside a furnace container.
