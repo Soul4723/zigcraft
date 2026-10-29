@@ -201,6 +201,7 @@ const calibrated_sculk_resonance_mod = @import("world/calibrated_sculk_resonance
 const chiseled_bookshelf_storage_mod = @import("world/chiseled_bookshelf_storage.zig");
 const hanging_sign_mechanics_mod = @import("world/hanging_sign_mechanics.zig");
 const camel_mount_kinematics_mod = @import("world/camel_mount_kinematics.zig");
+const camel_step_dash_mod = @import("world/camel_step_dash.zig");
 const decorated_pot_storage_mod = @import("world/decorated_pot_storage.zig");
 const creaking_gaze_ai_mod = @import("world/creaking_gaze_ai.zig");
 const resin_masonry_mod = @import("world/resin_masonry.zig");
@@ -1073,6 +1074,7 @@ pub fn main() !void {
         _ = chiseled_bookshelf_storage_mod.total_slots;
         _ = hanging_sign_mechanics_mod.crafting_yield;
         _ = camel_mount_kinematics_mod.camel_step_height;
+        _ = camel_step_dash_mod.canStrideGap(2.0);
         _ = decorated_pot_storage_mod.wobble_duration_seconds;
         _ = creaking_gaze_ai_mod.fov_dot_threshold;
         _ = resin_masonry_mod.MAX_RESIN_LAYERS;
