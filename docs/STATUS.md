@@ -1,5 +1,16 @@
 # Project Status
 
+Last updated: 2026-10-29 (Session 416, Milestone 509)
+
+Milestone 509 adds `src/world/elder_guardian_curse.zig`: 80 HP/2.8m/1.8 m/s
+Elder Guardian stats, three monument room assignments, 50m entry curse event,
+30-tick phantom, 6,000-tick Mining Fatigue III with a 0.001 mining-speed
+multiplier and milk cleansing, two-HP spikes retaliation, guaranteed Wet
+Sponge, 20% Tide template, 10 XP, and an eight-Gold-Block apex vault. All 46
+focused tests pass. The standalone API is registered for tests; live rendering,
+audio playback, effect plumbing, and procedural apex vault placement remain
+runtime integration work.
+
 Last updated: 2026-10-29 (Session 415, Milestone 508)
 
 Milestone 508 adds `src/world/guardian_laser_spikes.zig`, a standalone Guardian
