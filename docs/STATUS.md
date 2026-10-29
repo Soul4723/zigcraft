@@ -7,7 +7,8 @@ restoration (including full hunger), 16-attempt radius-8 3D safe landing
 selection, fall reset and teleport effect data, 200-tick Chorus Fruit smelting,
 and shaped Purpur block/pillar/slab/stair recipe descriptors. The player use
 path now checks solid ground and two clear non-fluid blocks before teleporting;
-regular furnaces produce Popped Chorus Fruit. All 33 focused module tests pass.
+regular furnaces produce Popped Chorus Fruit. All 33 focused tests pass across
+the domain and furnace modules.
 Purpur slab and stair block/item registration and live crafting-grid handling
 remain unimplemented; their recipes currently exist as standalone domain data.
 
