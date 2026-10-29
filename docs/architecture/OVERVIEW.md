@@ -505,3 +505,12 @@ tick-based entity transit and cooldown rules. It is registered as a standalone
 test target. The live game loop and world owner remain responsible for changing
 dimensions, validating candidate site safety against loaded terrain, and
 applying generated frame blocks.
+
+### End gateway transit
+
+`end_gateway_transit.zig` models the post-dragon arena gateway structure, its
+single portal aperture and twelve Bedrock casing blocks, persistent magenta
+beam metadata, pearl collision and crawl entry, safe outer-island landing data,
+and the linked return trip to the central fountain. It is registered as a
+standalone test target. The world owner remains responsible for applying the
+generated casing and changing live player positions.

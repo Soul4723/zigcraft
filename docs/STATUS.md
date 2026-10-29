@@ -1,5 +1,16 @@
 # Project Status
 
+Last updated: 2026-10-29 (Session 418, Milestone 512)
+
+Milestone 512 adds `src/world/end_gateway_transit.zig`: arena-perimeter
+gateways at radius 96/Y=75, a one-block End Gateway aperture surrounded by 12
+Bedrock casing blocks, a persistent magenta beam flag, pearl collision and
+crawl entry rules, and a deterministic safe End Stone landing 1,024 blocks
+outward with a generated return gateway to the central fountain. The module is
+registered as a standalone test target; applying block structures and player
+dimension/position changes remain with runtime world owners. All 38 focused
+gateway tests pass.
+
 Last updated: 2026-10-29 (Session 416, Milestone 509)
 
 Milestone 509 adds `src/world/elder_guardian_curse.zig`: 80 HP/2.8m/1.8 m/s
@@ -42,7 +53,7 @@ timed skull heads, the 150 HP armor transition with projectile immunity and
 ground melee, and a 200-tick defeat animation with one blast-proof Nether Star
 and 50 XP. The module is registered as a standalone test target; its events
 leave rendering, world block mutation, projectile application, and inventory
-changes with their existing owners. All 36 focused tests pass.
+changes with their existing owners. All 38 focused tests pass.
 
 Last updated: 2026-10-29 (Session 411, Milestone 503)
 
