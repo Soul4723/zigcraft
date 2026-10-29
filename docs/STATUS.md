@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 388)
+Last updated: 2026-10-29 (Session 391)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 8407 passing unit tests across 471 build/test steps
@@ -120,3 +120,8 @@ Last updated: 2026-10-29 (Session 388)
 - Added standalone `src/world/goat_horn_acoustics.zig` with all eight canonical horn variants, 256-block propagation and attenuation, 140-tick cooldown, directional expanding sonic cone data, frequency-10 sculk vibration, screamer call/spawn/cadence, ram windup/charge, and two-side horn shedding.
 - Module is registered in `build.zig` for isolated tests. Gameplay systems can consume the returned wave, particle, and horn-drop data; live entity/player dispatch remains an integration point.
 - Verification: the standalone module test passes 40/40; `zig build` passes.
+
+## Milestone 468 — Warden Emergence & Sonic Boom Kinematics
+- Added `src/world/warden_sonic_boom.zig` for the 500 HP Warden's 134-tick invulnerable emergence, acoustic agitation and periodic 16m scent checks, 1200-tick calm retreat, armor/shield-piercing sonic boom, knockback, and periodic Darkness aura.
+- Registered the module for standalone tests. Live world and player dispatch remains an integration point.
+- Verification: the standalone module test passes 37/37; `zig build` passes; full `zig build test --summary all` passes 8763/8763 tests across 483 steps.

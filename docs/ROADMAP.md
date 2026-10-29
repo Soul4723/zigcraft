@@ -541,3 +541,4 @@ Rough priority order. Completed milestones marked **[x]**.
 460. [x] **Bogged & Stray Variants** — Variant combat stats, poison/slowness arrows, spawning rules, and Bogged shearing (`src/world/bogged_stray_variants.zig`).
 
 464. [x] **Goat Horn Resonance & Screamer Call Acoustics** — Eight horn calls, 256-block sound propagation, 140-tick use cooldown, frequency-10 sensor event, directional cone particles, and screamer ram/shedding rules (`src/world/goat_horn_acoustics.zig`).
+468. [x] **Ancient City Warden Emerge & Sonic Boom Attack Kinematics** — 500 HP Warden, vibration agitation and scent tracking, 134-tick invulnerable emergence, 1200-tick calm burrow, 34-tick piercing sonic boom with 100-tick cooldown and 6/8 m/s knockback, and 20m Darkness aura pulse (`src/world/warden_sonic_boom.zig`).
