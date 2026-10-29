@@ -62,6 +62,7 @@ const village_raid_mod = @import("world/village_raid.zig");
 const redstone_workstations_mod = @import("world/redstone_workstations.zig");
 const shulker_end_city_mod = @import("world/shulker_end_city.zig");
 const elytra_aerodynamics_mod = @import("world/elytra_aerodynamics.zig");
+const elytra_flight_matrix_mod = @import("world/elytra_flight_matrix.zig");
 const sea_turtle_mod = @import("world/sea_turtle.zig");
 const turtle_scute_helmet_mod = @import("world/turtle_scute_helmet.zig");
 const taiga_fox_mod = @import("world/taiga_fox.zig");
@@ -1144,6 +1145,7 @@ pub fn main() !void {
         _ = netherite_smithing_pipeline_mod.NETHERITE_BLOCK_BLAST_RESISTANCE;
         _ = shulker_bullet_levitation_mod.LEVITATION_DURATION_TICKS;
         _ = elytra_rocket_propulsion_mod.rocket_acceleration;
+        _ = elytra_flight_matrix_mod.wearProbability(3);
         _ = riptide_trident_kinematics_mod.BASE_LAUNCH_SPEED;
         _ = skeleton_trap_combat_mod.TRIGGER_DISTANCE;
         _ = witch_potion_combat_mod.witch_max_health;
