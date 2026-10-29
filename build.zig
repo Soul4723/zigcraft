@@ -46,6 +46,7 @@ pub fn build(b: *std.Build) void {
         "src/world/nether_portal_scaling.zig",
         "src/world/dragon_head_acoustics.zig",
         "src/world/end_gateway_transit.zig",
+        "src/world/end_city_layout.zig",
         "src/world/summon.zig",
         "src/world/hazard.zig",
         "src/world/falling_blocks.zig",
