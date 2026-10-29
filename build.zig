@@ -173,6 +173,7 @@ pub fn build(b: *std.Build) void {
         "src/world/ruined_portal.zig",
         "src/world/pillager_outpost.zig",
         "src/world/ocean_ruins.zig",
+        "src/world/sniffer_digging_flora.zig",
         "src/world/trail_ruins.zig",
         "src/world/netherite_metallurgy.zig",
         "src/world/coral_reef.zig",
