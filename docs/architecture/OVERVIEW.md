@@ -56,6 +56,7 @@ zigcraft/
 │       ├── archaeology.zig      # Suspicious sand brush relic excavation & Copper Bulb latch
 │       ├── wind_charge.zig      # Wind Charge self-boost rocket jump & radial knockback impulse
 │       ├── mace_combat.zig      # Mace smash attack fall-velocity damage scaling & fall reset
+│       ├── mace_aerial_combos.zig # Aerial combo damage, Wind Burst launch & radial shockwave rules
 │       ├── autocrafter.zig      # Crafter batch autocrafting & Trial Vault key loot tables
 │       ├── calibrated_sculk.zig # Calibrated sculk sensor acoustic frequency filtering & resonance
 │       ├── frog.zig             # Frog predation drops, froglight variants & lily pad jump velocity

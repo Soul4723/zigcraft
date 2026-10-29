@@ -1,5 +1,13 @@
 # Project Status
 
+Last updated: 2026-10-29 (Session 408, Milestone 497)
+
+Milestone 497 adds standalone chained mace aerial smashes in
+`src/world/mace_aerial_combos.zig`: one-based combo tracking with a 2.0x damage
+cap, Wind Burst III's +13 m/s launch, a 3.5m radial shockwave with combo-scaled
+falloff and +3.5 m/s secondary pop, and complete fall damage reset on a landed
+smash. Its 38 focused tests pass.
+
 Last updated: 2026-10-29 (Session 406, Phase 8: Milestones 481–490)
 
 Milestone 492 adds standalone 3D radius-8 sculk bloom propagation, charge-limited substrate conversion, exposed-face vein masks, 85/15 branch rolls, and a 20-tick light state in `src/world/sculk_bloom_geometry.zig` (38 focused tests).
