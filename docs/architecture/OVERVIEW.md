@@ -329,3 +329,5 @@ breeze/mace/crafter/copper-bulb cores, a trial chamber map, an ominous bottle
 catalyst, and a Bogged poison quiver. Inventory defines display names, RGBA
 colors, and stack sizes, and its 2x2 grid supports six recipes. `BlockId` remains
 capped at 255.
+
+Milestone 461 adds `armadillo_wolf_defense.zig`, which owns deterministic armadillo roll-up/threat timing and wolf armor crafting, ownership, damage, repair, crack, dye, and washing rules. It is registered as a standalone test target; callers supply detected threats and apply returned interaction results and sounds.

@@ -539,3 +539,5 @@ Rough priority order. Completed milestones marked **[x]**.
 458. [x] **Trial Chamber Generation** — Validated chamber sites, connected rooms, themed traps, spawner sockets, and vault alcoves (`src/world/trial_chamber_generation.zig`).
 459. [x] **Ominous Bottle & Trial Omen** — Tiered drinking, Bad Omen, raid countdown, trial transmutation, spawner aura, and milk cleansing (`src/world/ominous_bottle_omen.zig`).
 460. [x] **Bogged & Stray Variants** — Variant combat stats, poison/slowness arrows, spawning rules, and Bogged shearing (`src/world/bogged_stray_variants.zig`).
+
+461. [x] **Armadillo Rolling Defense & Wolf Armor Crafting Pipeline (`src/world/armadillo_wolf_defense.zig`)** — Four-state roll-up lifecycle with 7m Euclidean threat filtering, shell-clack feedback, 200 threat-free ticks before unrolling, damage mitigation, brush and natural scute drops, six-scute armor crafting, owner-only wolf armor equip/removal, 64-point durability with four crack stages and shatter feedback, scute repair, sixteen RGB dye colors, and cauldron washing. Registered as a standalone test target; callers provide nearby threats and apply returned interactions/events.
