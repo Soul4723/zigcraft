@@ -226,6 +226,7 @@ const camel_mount_kinematics_mod = @import("world/camel_mount_kinematics.zig");
 const camel_step_dash_mod = @import("world/camel_step_dash.zig");
 const decorated_pot_storage_mod = @import("world/decorated_pot_storage.zig");
 const creaking_gaze_ai_mod = @import("world/creaking_gaze_ai.zig");
+const creaking_damage_link_mod = @import("world/creaking_damage_link.zig");
 const resin_masonry_mod = @import("world/resin_masonry.zig");
 const mangrove_mud_architecture_mod = @import("world/mangrove_mud_architecture.zig");
 const chorus_teleport_purpur_mod = @import("world/chorus_teleport_purpur.zig");
@@ -1214,6 +1215,7 @@ pub fn main() !void {
         _ = crafter_pulsed_grid_mod.slot_count;
         _ = bogged_poison_harvest_mod.BOGGED_MAX_HEALTH;
         _ = ominous_bottle_matrix_mod.DRINKING_DURATION_TICKS;
+        _ = creaking_damage_link_mod.CREAKING_HEART_MAX_HEALTH;
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);
         }
