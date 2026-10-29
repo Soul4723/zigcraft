@@ -1,5 +1,14 @@
 # Project Status
 
+Last updated: 2026-10-29 (Session 410, Milestone 501)
+
+Milestone 501 adds the standalone Blaze artillery domain in
+`src/world/blaze_fireball_artillery.zig`: 20 HP fire/lava immunity, water and
+rain damage, altitude holding and twelve rotating rods with smoke/flame
+particles, a 60-tick charge and three fireballs six ticks apart, five-second
+target ignition, 100-tick volley cooldown, blaze rod/Looting drops, XP, and
+fortress spawner activation data (41 focused tests).
+
 Last updated: 2026-10-29 (Session 409, Milestone 500)
 
 Milestone 500 adds a 200 HP Ender Dragon arena fight with four combat phases, fireballs and breath, 10-crystal healing tethers, perch projectile immunity, a 200-tick death sequence, 12,000 XP reward, and central End portal/Dragon Egg activation data in `src/world/ender_dragon_arena_fight.zig` (44 focused tests). The module is registered as a standalone test target and advanced at 20 ticks per second from the frame loop; it returns events for world rendering and block mutation owners.
