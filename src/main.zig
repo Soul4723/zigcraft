@@ -202,6 +202,13 @@ const crafter_automation_mod = @import("world/crafter_automation.zig");
 const trial_chamber_generation_mod = @import("world/trial_chamber_generation.zig");
 const ominous_bottle_omen_mod = @import("world/ominous_bottle_omen.zig");
 const froglight_predation_mod = @import("world/froglight_predation.zig");
+const armadillo_wolf_defense_mod = @import("world/armadillo_wolf_defense.zig");
+const goat_horn_acoustics_mod = @import("world/goat_horn_acoustics.zig");
+const sculk_sensor_multiplexing_mod = @import("world/sculk_sensor_multiplexing.zig");
+const deepslate_mineralogy_mod = @import("world/deepslate_mineralogy.zig");
+const warden_sonic_boom_mod = @import("world/warden_sonic_boom.zig");
+const recovery_compass_echo_mod = @import("world/recovery_compass_echo.zig");
+const archaeology_brush_excavation_mod = @import("world/archaeology_brush_excavation.zig");
 
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
@@ -1039,6 +1046,17 @@ pub fn main() !void {
         _ = ominous_bottle_omen_mod.amplifierForTier(.tier_1);
         _ = froglight_predation_mod.nativeVariant(.swamp);
         _ = enchanting_grindstone_mod.computeEnchantSlotOffers(0);
+        // Wave 19 representative frame-loop hooks keep all ten domains queryable.
+        _ = armadillo_wolf_defense_mod.threat_radius;
+        _ = allay_amethyst_duplication_mod.DUPLICATION_COOLDOWN_TICKS;
+        _ = froglight_predation_mod.acquisition_range;
+        _ = goat_horn_acoustics_mod.ACOUSTIC_RADIUS;
+        _ = sculk_sensor_multiplexing_mod.SENSOR_RANGE;
+        _ = deepslate_mineralogy_mod.deepslateProbability(-4.0);
+        _ = mangrove_mud_architecture_mod.MUD_HARDNESS;
+        _ = warden_sonic_boom_mod.SONIC_BOOM_RANGE;
+        _ = recovery_compass_echo_mod.isAncientCityExclusive(.echo_shard);
+        _ = archaeology_brush_excavation_mod.TOTAL_EXCAVATION_TICKS;
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);
         }

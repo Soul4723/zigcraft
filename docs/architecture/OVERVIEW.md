@@ -330,10 +330,32 @@ catalyst, and a Bogged poison quiver. Inventory defines display names, RGBA
 colors, and stack sizes, and its 2x2 grid supports six recipes. `BlockId` remains
 capped at 255.
 
-### Goat horn acoustics
+### Wave 19 domain modules
 
-`goat_horn_acoustics.zig` owns the eight canonical horn call identities and
-their acoustic event data, including 256-block listener checks, linear
-attenuation, cooldown, directional sonic cone expansion, and frequency-10
-sculk notifications. It also owns Screamer spawn/cadence and goat ram horn
-shedding rules. World/entity owners consume the returned events and drops.
+Milestones 461–470 add `armadillo_wolf_defense.zig`, `allay_amethyst_duplication.zig`,
+`froglight_predation.zig`, `goat_horn_acoustics.zig`, `sculk_sensor_multiplexing.zig`,
+`deepslate_mineralogy.zig`, `mangrove_mud_architecture.zig`, `warden_sonic_boom.zig`,
+`recovery_compass_echo.zig`, and `archaeology_brush_excavation.zig`. All ten modules
+are registered as standalone test targets in `build.zig`. `main.zig` imports each
+module and wires representative per-frame query hooks keeping their deterministic
+rules active; world and entity mutation stays with existing owners.
+
+Wave 19 adds ItemTypes 575–584:
+- 575: `armadillo_scute_core` (stack 64)
+- 576: `allay_amethyst_resonator` (stack 16)
+- 577: `froglight_catalyst` (stack 64)
+- 578: `screamer_goat_horn` (stack 1)
+- 579: `sculk_multiplexer_node` (stack 64)
+- 580: `reinforced_deepslate_core` (stack 64)
+- 581: `mud_brick_masonry` (stack 64)
+- 582: `warden_sonic_core` (stack 16)
+- 583: `recovery_compass_talisman` (stack 1)
+- 584: `archaeology_brush_relic` (stack 1)
+- 585: `glowstone_dust` (stack 64, ingredient)
+
+Inventory defines display names, RGBA colors, and stack sizes, and its 2x2 grid
+supports six recipes (`armadillo_scute_core`, `allay_amethyst_resonator`,
+`froglight_catalyst`, `screamer_goat_horn`, `mud_brick_masonry`, and
+`recovery_compass_talisman`). Disambiguation preserves legacy Recipe 234
+`recovery_compass` when multiple echo shards (count >= 2) are supplied. `BlockId`
+remains capped at 255.

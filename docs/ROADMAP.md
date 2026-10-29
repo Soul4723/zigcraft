@@ -540,4 +540,15 @@ Rough priority order. Completed milestones marked **[x]**.
 459. [x] **Ominous Bottle & Trial Omen** — Tiered drinking, Bad Omen, raid countdown, trial transmutation, spawner aura, and milk cleansing (`src/world/ominous_bottle_omen.zig`).
 460. [x] **Bogged & Stray Variants** — Variant combat stats, poison/slowness arrows, spawning rules, and Bogged shearing (`src/world/bogged_stray_variants.zig`).
 
+## Wave 19 Integration (Milestones 461–470)
+
+461. [x] **Armadillo Rolling Defense & Wolf Armor** — Threat detection, curling posture, brush scute harvesting, and wolf armor crack absorption (`src/world/armadillo_wolf_defense.zig`).
+462. [x] **Allay Amethyst Duplication & Jukebox Dance** — Jukebox dancing, amethyst duplication, 5-minute cooldown, item delivery, and note particles (`src/world/allay_amethyst_duplication.zig`).
+463. [x] **Froglight Bio-Luminescence & Predation** — Frog variant coloration, small magma cube predation, and ochre/pearlescent/verdant froglight genesis (`src/world/froglight_predation.zig`).
 464. [x] **Goat Horn Resonance & Screamer Call Acoustics** — Eight horn calls, 256-block sound propagation, 140-tick use cooldown, frequency-10 sensor event, directional cone particles, and screamer ram/shedding rules (`src/world/goat_horn_acoustics.zig`).
+465. [x] **Sculk Sensor Multiplexing & Vibration Occlusion** — 1-block-per-tick vibration travel, wool occlusion, comparator signal, and waterlogged silence (`src/world/sculk_sensor_multiplexing.zig`).
+466. [x] **Deepslate Mineralogy & Blast Containment** — Stratigraphic transition (Y=0 to Y=-8), masonry conversions, hardness tiers, and reinforced blast containment (`src/world/deepslate_mineralogy.zig`).
+467. [x] **Mangrove Prop Roots & Mud Architecture** — Prop-root cage generation, mud hydration genesis, packed mud, and mud brick masonry (`src/world/mangrove_mud_architecture.zig`).
+468. [x] **Warden Agitation & Sonic Boom** — 500 HP health pool, agitation tiers, emergence, calm burrowing, and unmitigated sonic boom beam (`src/world/warden_sonic_boom.zig`).
+469. [x] **Recovery Compass Echo Shard Metallurgy** — 8-echo-shard crafting, death coordinate lock, interdimensional spin, and jewel-bearing needle kinematics (`src/world/recovery_compass_echo.zig`).
+470. [x] **Archaeology Brush & Excavation** — Brush crafting, suspicious sand/gravel 4-stage excavation, decay recovery, and artifact extraction (`src/world/archaeology_brush_excavation.zig`).
