@@ -115,3 +115,7 @@ Last updated: 2026-10-29 (Session 388)
 - All ten modules are registered once as standalone test targets in `build.zig`, imported in `main.zig`, and queried through representative frame-loop hooks. Existing world/entity systems retain mutation ownership.
 - ItemTypes 565–574 add the ten Wave 18 materials with display names, RGBA colors, stack limits, and six 2x2 recipes. Metadata and recipes are covered by an inventory unit test; `BlockId` remains capped at 255.
 - Verification: `zig build` passes; `zig build test --summary all` passes 8407/8407 tests across 471 build/test steps.
+
+## Wave 19 Work
+- Milestone 466 adds the standalone `src/world/deepslate_mineralogy.zig` rules module and a dedicated `build.zig` test target. It covers the Y=0..-8 transition, deepslate mining and smelting, 2x2 masonry and stonecutter yields, and reinforced deepslate blast, piston, Wither, and dragon collision properties.
+- The module's 35 standalone tests and `zig build` pass. The pre-existing inventory already models deepslate drops, smelting, and polished/brick recipes; new tile and shaped-cut results currently live in the mineralogy module's namespaced `ItemType` model pending gameplay inventory/block integration.

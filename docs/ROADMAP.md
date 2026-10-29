@@ -539,3 +539,7 @@ Rough priority order. Completed milestones marked **[x]**.
 458. [x] **Trial Chamber Generation** — Validated chamber sites, connected rooms, themed traps, spawner sockets, and vault alcoves (`src/world/trial_chamber_generation.zig`).
 459. [x] **Ominous Bottle & Trial Omen** — Tiered drinking, Bad Omen, raid countdown, trial transmutation, spawner aura, and milk cleansing (`src/world/ominous_bottle_omen.zig`).
 460. [x] **Bogged & Stray Variants** — Variant combat stats, poison/slowness arrows, spawning rules, and Bogged shearing (`src/world/bogged_stray_variants.zig`).
+
+## Wave 19 Integration
+
+466. [x] **Deepslate Mineralogy & Reinforced Blast Containment** — Linear Y=0..-8 stone/deepslate transition, silk-touch mining and smelting, masonry progression and stonecutter cuts, and reinforced-deepslate blast/mob/piston immunity (`src/world/deepslate_mineralogy.zig`).
