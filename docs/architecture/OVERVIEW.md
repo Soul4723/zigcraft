@@ -486,3 +486,12 @@ and configured stack limits. Six two-ingredient 2x2 recipes are handled by
 `Inventory.updateCrafting()`. `copper_horn` remains the ingredient item at 607;
 `vault_reset_token` uses its requested Wave 22 output ID 613. `BlockId` remains
 within the existing 8-bit capacity.
+
+### Elder Guardian curse
+
+`elder_guardian_curse.zig` defines the Elder Guardian's 80 HP, 1.8 m/s swim
+speed, geometry height, spike retaliation, monument room assignments, curse
+entry event, Mining Fatigue III timer and milk cleansing, defeat loot, and apex
+vault contents. It is a standalone test target. The module returns sound and
+phantom events; the existing runtime rendering, audio, player effect, guardian
+placement and terrain systems remain responsible for applying those events.
