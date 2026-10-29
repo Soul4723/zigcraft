@@ -1,6 +1,8 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 406, Phase 8: Milestones 481–490)
+Last updated: 2026-10-29 (Session 408, Milestone 498)
+
+Milestone 498 adds 1- and 4-redstone-tick factory clocks, rising-edge iron-block crafting with a 4-game-tick minimum delay, enabled-slot round-robin hopper feed with backpressure, comparator fullness, and an ore-to-ingot-to-block throughput simulator in `src/world/crafter_factory_clocking.zig` (37 focused tests).
 
 Milestone 492 adds standalone 3D radius-8 sculk bloom propagation, charge-limited substrate conversion, exposed-face vein masks, 85/15 branch rolls, and a 20-tick light state in `src/world/sculk_bloom_geometry.zig` (38 focused tests).
 
