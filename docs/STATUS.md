@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 388)
+Last updated: 2026-10-29 (Session 389)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 8407 passing unit tests across 471 build/test steps
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 8911 passing unit tests across 491 build/test steps
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -78,8 +78,8 @@ Last updated: 2026-10-29 (Session 388)
 - ItemTypes 501–510 cover Bone Block, Calcite, Smooth Basalt, Rooted Dirt, Hanging Roots, Big Dripleaf, Spore Blossom, Awkward Potion, Potion of Invisibility, and Clock. Metadata and six 2x2 recipes are covered; `BlockId` remains unchanged at 255.
 
 ## Active State
-- Main branch stable (Phase 8: Milestones 451–460)
-- All tests passing (8407/8407 tests across 471 build/test steps)
+- Main branch stable (Phase 8: Milestones 461–470)
+- All tests passing (8911/8911 tests across 491 build/test steps)
 - Remote and local branches pruned clean
 
 
@@ -116,10 +116,12 @@ Last updated: 2026-10-29 (Session 388)
 - ItemTypes 565–574 add the ten Wave 18 materials with display names, RGBA colors, stack limits, and six 2x2 recipes. Metadata and recipes are covered by an inventory unit test; `BlockId` remains capped at 255.
 - Verification: `zig build` passes; `zig build test --summary all` passes 8407/8407 tests across 471 build/test steps.
 
-## Milestone 464 — Goat Horn Acoustics
-- Added standalone `src/world/goat_horn_acoustics.zig` with all eight canonical horn variants, 256-block propagation and attenuation, 140-tick cooldown, directional expanding sonic cone data, frequency-10 sculk vibration, screamer call/spawn/cadence, ram windup/charge, and two-side horn shedding.
-- Module is registered in `build.zig` for isolated tests. Gameplay systems can consume the returned wave, particle, and horn-drop data; live entity/player dispatch remains an integration point.
-- Verification: the standalone module test passes 40/40; `zig build` passes.
+## Wave 19 Integration
+- Milestones 461–470 are integrated: Armadillo Rolling Defense & Wolf Armor, Allay Amethyst Duplication & Jukebox Dance, Froglight Bio-Luminescence & Predation, Goat Horn Resonance & Screamer Call Acoustics, Sculk Sensor Multiplexing & Vibration Occlusion, Deepslate Mineralogy & Blast Containment, Mangrove Prop Roots & Mud Architecture, Warden Agitation & Sonic Boom, Recovery Compass Echo Shard Metallurgy, and Archaeology Brush & Excavation.
+- All ten modules are registered as standalone test targets in `build.zig`, imported in `main.zig`, and queried through representative per-frame domain hooks. World and entity mutation ownership remains with existing systems.
+- ItemTypes 575–584 add the ten Wave 19 materials (Armadillo Scute Core, Allay Amethyst Resonator, Froglight Catalyst, Screamer Goat Horn, Sculk Multiplexer Node, Reinforced Deepslate Core, Mud Brick Masonry, Warden Sonic Core, Recovery Compass Talisman, and Archaeology Brush Relic) alongside Glowstone Dust (585). Their display names, RGBA colors, stack limits, and six 2x2 crafting recipes are covered by unit tests; `BlockId` capacity is preserved (<= 255).
+- Disambiguation: Single Echo Shard + Compass crafts `recovery_compass_talisman` in 2x2 crafting; multiple Echo Shards (count >= 2) preserve legacy Recipe 234 `recovery_compass`, matching the Wave 17 calibrated sensor precedent.
+- Verification: `zig build` passes; `zig build test --summary all` passes 8911/8911 tests across 491 build/test steps.
 
 ## Milestone 471 — Trial Chambers Spawner Ominous Potion Spawning & Projectile Traps
 - Added standalone `src/world/trial_chamber_traps.zig` with 8-second (160 ticks) ambient hazard timer, random hazard selection (ceiling projectile drop vs lingering cloud 3-5 blocks above player head), 6 lingering potion payload types (poison, slowness, weaving, oozing, infested, wind_charged), cloud physical dynamics (3.0m radius, -0.5m shrink per affliction, 600 ticks / 30s timeout, spherical affliction), ceiling downward projectile ejection ([3]f32{0.0, -0.6, 0.0}), 3.5m wind charge burst with copper door/trapdoor toggling and knockback, and fire charge ground ignition.
