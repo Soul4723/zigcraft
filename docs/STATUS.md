@@ -1,9 +1,10 @@
 # Project Status
 
-Last updated: 2026-10-28 (Session 386)
+Last updated: 2026-10-29 (Session 387)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 7428 passing unit tests across 431 build/test steps
+- Sniffer digging and ancient flora domain rules in `src/world/sniffer_digging_flora.zig`: 30/20/200/20-tick search-to-rise states, 9600-tick cooldown with 16-block scent avoidance, valid organic substrates, seed extrusion, Torchflower/Pitcher Plant growth and harvest, egg hatching, breeding, and Snifflet growth. Registered as a standalone test target; game-loop entity integration remains future work.
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 7674 passing unit tests across 439 build/test steps, including 42 Sniffer/ancient flora tests
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing

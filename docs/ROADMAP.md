@@ -514,3 +514,7 @@ Rough priority order. Completed milestones marked **[x]**.
 439. [x] **Specialized Furnace Smelting** — Blast furnace and smoker 2× cook speed, 2× fuel burn rate, item filtering, and comparator signal math (`src/world/specialized_furnace_smelting.zig`).
 440. [x] **Tripwire Hook Circuit** — 40-block tension span, entity collision detection, shears defusal, and snap pulse mechanics (`src/world/tripwire_hook_circuit.zig`).
 
+## Wave 17 Domain Modules
+
+451. [x] **Sniffer Digging & Ancient Flora** — Sniffer search/dig/rise/cooldown kinematics with 16-block scent memory, seed extrusion, Torchflower and two-block Pitcher Plant growth/harvest, Sniffer Egg hatching, breeding, and Snifflet growth (`src/world/sniffer_digging_flora.zig`).
+

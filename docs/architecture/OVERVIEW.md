@@ -299,3 +299,11 @@ shards, lodestone trackers, composter catalysts, pyrometallurgy nozzles, and
 tripwire tension gauges. Inventory metadata defines names, colors, stack limits,
 and six 2x2 recipes. `BlockId` remains capped at 255.
 
+### Wave 17 domain module
+
+Milestone 451 adds `sniffer_digging_flora.zig` as a standalone mechanics module.
+It owns deterministic Sniffer state transitions and scent memory, ancient crop
+stage/occupancy/harvest rules, egg timers, breeding eligibility, and baby growth
+acceleration. The module has a dedicated test target; persistent entities,
+world mutation, and frame-loop integration remain owned by future consumers.
+
