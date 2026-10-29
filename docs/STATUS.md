@@ -120,3 +120,8 @@ Last updated: 2026-10-29 (Session 388)
 - Added standalone `src/world/goat_horn_acoustics.zig` with all eight canonical horn variants, 256-block propagation and attenuation, 140-tick cooldown, directional expanding sonic cone data, frequency-10 sculk vibration, screamer call/spawn/cadence, ram windup/charge, and two-side horn shedding.
 - Module is registered in `build.zig` for isolated tests. Gameplay systems can consume the returned wave, particle, and horn-drop data; live entity/player dispatch remains an integration point.
 - Verification: the standalone module test passes 40/40; `zig build` passes.
+
+## Milestone 471 — Trial Chambers Spawner Ominous Potion Spawning & Projectile Traps
+- Added standalone `src/world/trial_chamber_traps.zig` with 8-second (160 ticks) ambient hazard timer, random hazard selection (ceiling projectile drop vs lingering cloud 3-5 blocks above player head), 6 lingering potion payload types (poison, slowness, weaving, oozing, infested, wind_charged), cloud physical dynamics (3.0m radius, -0.5m shrink per affliction, 600 ticks / 30s timeout, spherical affliction), ceiling downward projectile ejection ([3]f32{0.0, -0.6, 0.0}), 3.5m wind charge burst with copper door/trapdoor toggling and knockback, and fire charge ground ignition.
+- Registered in `build.zig` for isolated tests.
+- Verification: `zig test src/world/trial_chamber_traps.zig` passes 37/37; `zig build test` passes.
