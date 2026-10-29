@@ -243,6 +243,7 @@ pub fn build(b: *std.Build) void {
         "src/world/amethyst_geode_budding.zig",
         "src/world/azalea_lush_ecology.zig",
         "src/world/brewing_stand_alchemy.zig",
+        "src/world/dragons_breath_alchemy.zig",
         "src/world/fletching_tipped_arrows.zig",
         "src/world/scaffolding_bamboo.zig",
         "src/world/navigation_timepieces.zig",
