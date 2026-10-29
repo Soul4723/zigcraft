@@ -552,3 +552,12 @@ Rough priority order. Completed milestones marked **[x]**.
 468. [x] **Warden Agitation & Sonic Boom** — 500 HP health pool, agitation tiers, emergence, calm burrowing, and unmitigated sonic boom beam (`src/world/warden_sonic_boom.zig`).
 469. [x] **Recovery Compass Echo Shard Metallurgy** — 8-echo-shard crafting, death coordinate lock, interdimensional spin, and jewel-bearing needle kinematics (`src/world/recovery_compass_echo.zig`).
 470. [x] **Archaeology Brush & Excavation** — Brush crafting, suspicious sand/gravel 4-stage excavation, decay recovery, and artifact extraction (`src/world/archaeology_brush_excavation.zig`).
+
+## Wave 20 Integration (Milestones 471–480)
+
+471. [x] **Trial Chamber Traps & Ominous Spawner** — Ominous spawner potion clouds, projectile traps, and cloud shrinkage (`src/world/trial_chamber_traps.zig`).
+472. [x] **Bundle Dyeing, Nesting & Cauldron Washing** — 64-weight capacity, nested bundles, 16 dye colors, and cauldron washing (`src/world/bundle_dyeing_nesting.zig`).
+473. [x] **Netherite Smithing Pipeline & Lava Buoyancy** — Netherite upgrade template smithing conversion and buoyant item physics (`src/world/netherite_smithing_pipeline.zig`).
+474. [x] **Shulker Bullet Guided Tracking & Levitation** — Shulker bullet cardinal tracking, shield deflection, and levitation kinematics (`src/world/shulker_bullet_levitation.zig`).
+475. [x] **Elytra Kinetic Glide & Firework Rocket Propulsion** — Aerodynamic pitch dive, kinetic crash damage, and firework rocket propulsion (`src/world/elytra_rocket_propulsion.zig`).
+477. [x] **Skeleton Trap Lightning Summoning & Four Horsemen Combat** — 10m proximity trigger, cosmetic lightning, four mounted horsemen, enchanted gear, summon immunity, despawn timer, and horse taming (`src/world/skeleton_trap_combat.zig`).

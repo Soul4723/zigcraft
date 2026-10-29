@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 389)
+Last updated: 2026-10-29 (Session 396)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 8911 passing unit tests across 491 build/test steps
@@ -137,3 +137,14 @@ Last updated: 2026-10-29 (Session 389)
 - Added standalone `src/world/riptide_trident_kinematics.zig` implementing Riptide Level I-III activation prerequisites (submerged in still/flowing/bubble water or exposed to rain/thunderstorm under open sky, rejection in dry air or indoor rain shelter), mutual exclusivity with Loyalty and Channeling, charge kinematics (10 ticks / 0.5s minimum threshold, 20 ticks full charge), directional launch velocity along camera look vector (`6.0 + 3.0 * level m/s`: 9.0, 12.0, 15.0 m/s), spinning hydrodynamic vortex animation (`is_spinning = true`, 20 ticks duration), swirling bubble and splash particle generation, kinetic collision damage (9.0 HP base melee + `speed * 0.5` kinetic velocity scaling), radial AOE splash damage (9.0 HP) to hostile mobs within 2.0m radius, outward radial knockback impulse, fall damage mitigation (`fall_distance = 0.0` at launch), and durability consumption (1 point per launch).
 - Registered in `build.zig` test runner.
 - Verification: 49/49 tests in `src/world/riptide_trident_kinematics.zig` passed; `zig build test` passed cleanly.
+
+## Milestone 477 Integration
+- Skeleton Trap Horse & Four Horsemen combat mechanics (`src/world/skeleton_trap_combat.zig`):
+  - Natural lightning strike spawn evaluation (0.75% to 7.5% probability scaled by regional difficulty).
+  - Peaceful passive wandering skeleton trap horse entity with 15-minute (18,000-tick) unengaged despawn timer.
+  - Proximity trigger at 10.0m Euclidean distance triggering zero-damage cosmetic lightning and summoning `TheFourHorsemen`.
+  - Four mounted Skeleton Horsemen with 20.0 HP riders and 53.0 HP horses.
+  - Rider equipment: Enchanted Iron Helmet (prevents daylight fire) and Enchanted Bow.
+  - 60-tick (3.0s) initial summon damage immunity window.
+  - Mounted archer kinematics AI: closes distance if > 16.0m, kites away if < 8.0m, circles tangentially between 8.0m and 16.0m while firing arrows.
+  - Separate entity destruction: horse defeat dismounts rider to fight on foot; rider defeat pacifies skeleton horse into a tameable, rideable mount (12.0 m/s sprint, 3.5m jump, underwater traversal).
