@@ -1,5 +1,24 @@
 # Project Status
 
+Last updated: 2026-10-29 (Session 420, Milestone 522)
+
+Milestone 522 adds the standalone warning and pulsing-fog domain model in
+`src/world/sculk_shrieker_fog.zig`. Natural shriekers advance per-player warning
+tiers and emit a one-time Tier 4 Warden emergence event; placed shriekers retain
+warning state and cannot summon. Activations use a 200-tick cooldown, 12,000-tick
+calm decay, 40m spherical darkness aura, 240-tick duration, and a four-second
+sine fog cycle interpolating between 25m/35m clear vision and 2m/6m gloom. The
+standalone module is registered in `build.zig`; rendering and applying the
+returned Warden event remain runtime-owner work. All 34 focused tests pass.
+
+## Wave 25 (Milestone 522)
+
+- Added warning escalation, calm decay, darkness radius/timing, fog density
+  interpolation, and Tier 4 emergence events.
+- Verification: all 34 focused tests and `zig build` pass.
+
+---
+
 Last updated: 2026-10-29 (Session 419, Milestone 520)
 
 Milestone 520 adds the standalone Ender Dragon respawn ritual state machine in

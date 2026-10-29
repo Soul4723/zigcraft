@@ -621,3 +621,4 @@ Rough priority order. Completed milestones marked **[x]**.
 ## Wave 24 Domain Modules
 
 520. [x] **Ender Dragon Respawning Ritual** — Four cardinal fountain crystals, a 600-tick multistage beam sequence, sequential regeneration of all ten pillar crystals, apex convergence, full-health dragon respawn, and exit portal deactivation until the dragon is defeated (`src/world/dragon_respawn_ritual.zig`).
+522. [x] **Sculk Shrieker Warning Scream & Darkness Fog Density** — Per-player warning tiers with 200-tick activation cooldown and 12,000-tick calm decay; natural-only Tier 4 Warden emergence; 40m/240-tick darkness aura; and a four-second sine fog cycle between 25m/35m and 2m/6m (`src/world/sculk_shrieker_fog.zig`).
