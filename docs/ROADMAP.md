@@ -617,3 +617,7 @@ Rough priority order. Completed milestones marked **[x]**.
 508. [x] **Guardian Laser & Spikes** — Charged tracking laser, swimming movement, spikes, and retaliation (`src/world/guardian_laser_spikes.zig`).
 509. [x] **Elder Guardian Curse** — Monument entry Mining Fatigue, curse events, defeat drops, and apex vault (`src/world/elder_guardian_curse.zig`).
 510. [x] **Nether Portal Scaling** — 1:8 coordinate conversion, destination selection, frame generation, and transit cooldown (`src/world/nether_portal_scaling.zig`).
+
+## Wave 24 Domain Modules
+
+519. [x] **Airborne End Ship & Elytra Vault** — Floating purpur vessel with curved keel, mast and End Rod yardarms, forward-facing dragon head prow, two Healing II potions, enchanted End City loot chests, Elytra item frame, and ceiling Shulker sentry (`src/world/end_ship_vault.zig`). Runtime placement and entity/container application remain with existing world owners.

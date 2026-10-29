@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-29 (Session 387)
+Last updated: 2026-10-29 (Session 419)
 
 ## Project Structure
 
@@ -525,3 +525,13 @@ stack limits. Six two-ingredient 2x2 recipes are handled by
 Ghast Tear Essence, Wither Skull Relic, Nether Star Core, and Conduit Power
 Orb. Existing ingredient tags are reused, including `wither_skull` for the
 Wither Skeleton Skull. `BlockId` remains within the existing 8-bit capacity.
+
+### Airborne End Ship vault
+
+`end_ship_vault.zig` generates a deterministic End Ship relative to an End City
+origin. Its bounded vessel model covers the purpur hull, decks, mast and End Rod
+rigging, dragon head prow, lower-deck brewing stand and chests, Elytra item frame,
+and ceiling Shulker guard. It is registered as a standalone test target and
+queried by the frame loop. The existing world and entity owners remain
+responsible for placing generated blocks, populating live containers, spawning
+the guard, and rendering the structure.

@@ -1,6 +1,14 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 418, Phase 8: Milestones 501–510)
+Last updated: 2026-10-29 (Session 419, Milestone 519)
+
+Milestone 519 adds the standalone End Ship generator and Elytra vault in
+`src/world/end_ship_vault.zig`. It places the purpur vessel relative to an End
+City origin, models the dragon head prow, mast lighting, two Healing II potions,
+two enchanted-loot chests, the Elytra item frame, and its ceiling Shulker guard.
+The module is registered as a test target and queried by the main loop. Its
+27 focused tests and `zig build` pass. Runtime terrain placement, container
+population, entity spawning, and rendering remain with their existing owners.
 
 Wave 23 integration completes Milestones 501–510. All ten domain modules are
 registered once as standalone test targets, imported into `main.zig`, and
