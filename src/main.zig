@@ -45,6 +45,7 @@ const bundle_pouch_mod = @import("world/bundle_pouch.zig");
 const copper_fixtures_mod = @import("world/copper_fixtures.zig");
 const copper_bulb_latch_mod = @import("world/copper_bulb_latch.zig");
 const jukebox_discs_mod = @import("world/jukebox_discs.zig");
+const allay_amethyst_duplication_mod = @import("world/allay_amethyst_duplication.zig");
 const happy_ghast_mod = @import("world/happy_ghast.zig");
 const warden_deep_dark_mod = @import("world/warden_deep_dark.zig");
 const strider_mount_mod = @import("world/strider_mount.zig");
@@ -884,6 +885,8 @@ pub fn main() !void {
         _ = bogged_stray_variants_mod.arrowPayload(.bogged);
         _ = bogged_stray_variants_mod.arrowPayload(.stray);
         _ = bogged_stray_variants_mod.trapSpawnProbability(0.5);
+        _ = allay_amethyst_duplication_mod.isJukeboxInDanceRange(.{ 0.0, 0.0, 0.0 }, .{ 4.0, 0.0, 0.0 });
+        _ = allay_amethyst_duplication_mod.ALLAY_MAX_HEALTH;
         _ = zombie_conversions_mod.tickZombieUnderwaterConversion(&active_zombie_submersion, false, dt);
         _ = zombie_conversions_mod.HuskMechanics.huskMeleeHungerDurationSeconds(1.0);
         _ = spider_arachnids_mod.isSpiderHostileAtLightLevel(12, false);
