@@ -107,6 +107,7 @@ pub fn build(b: *std.Build) void {
         "src/world/camel.zig",
         "src/world/decorated_pot.zig",
         "src/world/pale_garden.zig",
+        "src/world/pale_moss_spread.zig",
         "src/world/armadillo_wolf_armor.zig",
         "src/world/armadillo_wolf_defense.zig",
         "src/world/ominous_trial.zig",
