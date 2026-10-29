@@ -74,6 +74,7 @@ pub fn build(b: *std.Build) void {
         "src/world/beacon_aura.zig",
         "src/world/archaeology.zig",
         "src/world/wind_charge.zig",
+        "src/world/breeze_wind_charge.zig",
         "src/world/mace_combat.zig",
         "src/world/autocrafter.zig",
         "src/world/calibrated_sculk.zig",
