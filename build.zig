@@ -93,6 +93,7 @@ pub fn build(b: *std.Build) void {
         "src/world/autocrafter.zig",
         "src/world/crafter_automation.zig",
         "src/world/crafter_factory_clocking.zig",
+        "src/world/crafter_pulsed_grid.zig",
         "src/world/calibrated_sculk.zig",
         "src/world/calibrated_sculk_resonance.zig",
         "src/world/calibrated_sensor_chains.zig",
