@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 390)
+Last updated: 2026-10-29 (Session 404)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 9349 passing unit tests across 511 build/test steps
@@ -129,6 +129,11 @@ Last updated: 2026-10-29 (Session 390)
 - ItemTypes 586–595 add the ten Wave 20 materials (Ominous Trap Core, Dyed Bundle Package, Netherite Smithing Core, Shulker Levitation Orb, Elytra Propulsion Core, Riptide Vortex Shard, Four Horsemen Crest, Witch Brewing Cauldron, Evoker Fangs Talisman, and Totem Resurrection Effigy). Their display names, RGBA colors, stack limits, and six 2x2 crafting recipes are covered by unit tests; `BlockId` capacity is preserved (<= 255).
 - Disambiguation: Single String + Leather (count = 1) crafts `dyed_bundle_package` in 2x2 crafting; multiple Leather (count >= 2) preserves legacy Recipe 301 `bundle`, matching the Wave 17 calibrated sensor and Wave 19 recovery compass precedents.
 - Verification: `zig build` passes; `zig build test --summary all` passes 9349/9349 tests across 511 build/test steps.
+
+## Milestone 486
+- Added `src/world/hoglin_warped_repellent.zig` with Hoglin combat stats and vertical toss, Euclidean warped-item fear and fleeing, Crimson Fungus breeding/baby growth, dimension-based Zoglin conversion, and drops.
+- Registered the standalone test target and added representative main-loop domain hooks. The module has 42 standalone unit tests.
+- Verification: the requested standalone Zig test passes 42/42; `zig build` and `zig build test` also pass.
 
 ## Milestone 471 — Trial Chambers Spawner Ominous Potion Spawning & Projectile Traps
 - Added standalone `src/world/trial_chamber_traps.zig` with 8-second (160 ticks) ambient hazard timer, random hazard selection (ceiling projectile drop vs lingering cloud 3-5 blocks above player head), 6 lingering potion payload types (poison, slowness, weaving, oozing, infested, wind_charged), cloud physical dynamics (3.0m radius, -0.5m shrink per affliction, 600 ticks / 30s timeout, spherical affliction), ceiling downward projectile ejection ([3]f32{0.0, -0.6, 0.0}), 3.5m wind charge burst with copper door/trapdoor toggling and knockback, and fire charge ground ignition.

@@ -390,3 +390,11 @@ supports six recipes (`ominous_trap_core`, `dyed_bundle_package`,
 and `totem_resurrection_effigy`). Disambiguation preserves legacy Recipe 301
 `bundle` when multiple leather (count >= 2) is supplied. `BlockId` remains
 capped at 255.
+
+### Hoglin breeding and warped repellent
+
+`hoglin_warped_repellent.zig` provides deterministic Hoglin combat attributes,
+repellent detection and fleeing vectors, Crimson Fungus breeding and baby
+maturation, and 300-tick Overworld/End conversion. It is registered as a
+standalone test target and queried from the main loop; persistent entity and
+world changes remain owned by the consuming systems.
