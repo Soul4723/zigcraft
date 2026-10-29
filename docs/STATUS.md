@@ -1,5 +1,15 @@
 # Project Status
 
+Last updated: 2026-10-29 (Session 415, Milestone 506)
+
+Milestone 506 adds `src/world/beacon_status_pyramids.zig`, a standalone beacon
+status domain for four mineral pyramid tiers (9/34/83/164 blocks), clear-sky
+beam eligibility, tiered primary and secondary power selection, one-item
+payment consumption, spherical 20–50m pulse coverage, and 80-tick effect pulses
+lasting 11–17 seconds. The module is registered as a standalone test target;
+the game loop and player status-effect storage remain with their existing
+owners. All 44 focused tests pass.
+
 Last updated: 2026-10-29 (Session 412, Milestone 505)
 
 Milestone 505 adds \`src/world/wither_boss_phases.zig\`, a standalone Wither

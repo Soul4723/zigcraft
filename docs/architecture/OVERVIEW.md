@@ -53,6 +53,7 @@ zigcraft/
 │       ├── alchemy_buffs.zig    # Swiftness, Strength & Leaping potion timers and combat/speed buffs
 │       ├── ender_chest.zig      # Global quantum EnderVault deposit & withdrawal mechanics
 │       ├── beacon_aura.zig      # Beacon mineral pyramid verification, Haste & Regeneration aura
+│       ├── beacon_status_pyramids.zig # Pyramid validation, power selection and status-effect pulse rules
 │       ├── archaeology.zig      # Suspicious sand brush relic excavation & Copper Bulb latch
 │       ├── wind_charge.zig      # Wind Charge self-boost rocket jump & radial knockback impulse
 │       ├── mace_combat.zig      # Mace smash attack fall-velocity damage scaling & fall reset
@@ -455,6 +456,15 @@ phase, melee events, death animation, and Nether Star/XP rewards. It is a
 standalone test target. Rendering, explosion/block changes, projectile and
 status-effect application, and inventory drops remain with the game systems
 that own those effects.
+
+### Beacon status pyramids
+
+`beacon_status_pyramids.zig` independently validates the four mineral pyramid
+tiers and clear-sky requirement, consumes one eligible payment when the
+selected powers are valid, and models spherical effect range, duration, and
+80-tick pulse timing. It is a standalone test target. The frame loop applies
+player status effects and renders the beacon beam through their existing
+owners.
 
 ### Wave 22 domain modules
 

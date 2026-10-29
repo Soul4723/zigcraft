@@ -597,3 +597,5 @@ Rough priority order. Completed milestones marked **[x]**.
 498. [x] **Crafter Factory Clocking** — Redstone-tick pulse clocks, rising-edge crafting, round-robin hopper feed, backpressure, and factory throughput (\`src/world/crafter_factory_clocking.zig\`).
 499. [x] **Copper Bulb Display** — BCD digit decoding and compact copper bulb segment layouts (\`src/world/copper_bulb_display.zig\`).
 500. [x] **Ender Dragon Arena Fight** — Four-phase arena combat, crystal healing, fireball/breath attacks, defeat sequence, XP reward, and End exit portal activation (\`src/world/ender_dragon_arena_fight.zig\`).
+
+506. [x] **Beacon Four-Tier Mineral Pyramids & Status Beam Effects** — 9/34/83/164-block pyramids, five eligible mineral blocks and payment items, clear-sky beam validation, tiered primary powers, Tier IV regeneration or Level II amplifier, spherical range, and 80-tick pulses lasting 11–17 seconds (`src/world/beacon_status_pyramids.zig`).
