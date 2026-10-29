@@ -36,6 +36,7 @@ zigcraft/
 │       ├── terrain.zig          # fBm heightmap terrain & cave generation
 │       ├── fluid_wash.zig       # Water wash rules and staged nearby flow ticks
 │       ├── redstone.zig         # Wire BFS logic, delay stages, power propagation
+│       ├── vault_loot_dispenser.zig # Per-player vault keys, loot ejection, display, and comparator rules
 │       ├── farming.zig          # Wheat crop growth stages, hydration, bone meal & harvest yield
 │       ├── trading.zig          # Emerald workstation bartering professions, offers & tier XP
 │       ├── apiary.zig           # Beehive pollination, honey harvesting & honey block physics

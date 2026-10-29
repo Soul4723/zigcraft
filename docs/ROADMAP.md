@@ -527,3 +527,7 @@ Rough priority order. Completed milestones marked **[x]**.
 449. [x] **Creaking Gaze AI** — 45-degree gaze freeze, line-of-sight stalking, and eyeblossom resonance (`src/world/creaking_gaze_ai.zig`).
 450. [x] **Resin Masonry** — Resin clump extrusion, hardening, brick crafting, and masonry architecture (`src/world/resin_masonry.zig`).
 
+## Milestone 453
+
+453. [x] **Vault Key Locking & Per-Player Loot Dispenser** — Standard and ominous keys, per-player unlock/display state, 40-tick item ejection with velocity, loot pools, and nearest-player comparator output (`src/world/vault_loot_dispenser.zig`).
+

@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 387)
+Last updated: 2026-10-29 (Session 388)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 7946 passing unit tests across 451 build/test steps
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 8045 passing unit tests across 457 build/test steps
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -80,6 +80,8 @@ Last updated: 2026-10-29 (Session 387)
 ## Active State
 - Main branch stable (Phase 8: Milestones 43-450)
 - All tests passing (7946/7946 tests across 451 build/test steps)
+- Milestone 453 adds a standalone vault domain module with per-player unlocking, standard/ominous key validation and loot pools, animated display state, physics-ready ejection stacks, and comparator output.
+- All tests passing (8045/8045 tests across 457 build/test steps)
 - Remote and local branches pruned clean
 
 
