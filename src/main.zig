@@ -76,11 +76,15 @@ const strider_lava_mount_mod = @import("world/strider_lava_mount.zig");
 const charged_creeper_mod = @import("world/charged_creeper.zig");
 const swamp_witch_mod = @import("world/swamp_witch.zig");
 const blaze_fortress_mod = @import("world/blaze_fortress.zig");
+const blaze_fireball_artillery_mod = @import("world/blaze_fireball_artillery.zig");
 const ghast_deflection_mod = @import("world/ghast_deflection.zig");
+const ghast_fireball_tennis_mod = @import("world/ghast_fireball_tennis.zig");
 const slime_mitosis_mod = @import("world/slime_mitosis.zig");
 const magma_cube_splitting_mod = @import("world/magma_cube_splitting.zig");
 const phantom_insomnia_mod = @import("world/phantom_insomnia.zig");
 const wither_boss_mod = @import("world/wither_boss.zig");
+const wither_boss_phases_mod = @import("world/wither_boss_phases.zig");
+const wither_skeleton_effect_mod = @import("world/wither_skeleton_effect.zig");
 const ender_dragon_fight_mod = @import("world/ender_dragon_fight.zig");
 const ender_dragon_arena_fight_mod = @import("world/ender_dragon_arena_fight.zig");
 const villager_curing_mod = @import("world/villager_curing.zig");
@@ -104,6 +108,11 @@ const processing_workstations_mod = @import("world/processing_workstations.zig")
 const boots_and_armor_stands_mod = @import("world/boots_and_armor_stands.zig");
 const woodland_mansion_mod = @import("world/woodland_mansion.zig");
 const ocean_monument_mod = @import("world/ocean_monument.zig");
+const beacon_status_pyramids_mod = @import("world/beacon_status_pyramids.zig");
+const conduit_underwater_power_mod = @import("world/conduit_underwater_power.zig");
+const guardian_laser_spikes_mod = @import("world/guardian_laser_spikes.zig");
+const elder_guardian_curse_mod = @import("world/elder_guardian_curse.zig");
+const nether_portal_scaling_mod = @import("world/nether_portal_scaling.zig");
 const ancient_city_mod = @import("world/ancient_city.zig");
 const temple_traps_mod = @import("world/temple_traps.zig");
 const stronghold_triangulation_mod = @import("world/stronghold_triangulation.zig");
@@ -1141,6 +1150,17 @@ pub fn main() !void {
         // Wave 22's remaining copper display domain hook; the other nine modules
         // already have representative queries in their existing wave sections.
         _ = copper_bulb_display_mod.decodeDigit(9);
+        // Wave 23 representative frame-loop hooks keep all ten domains queryable.
+        _ = blaze_fireball_artillery_mod.CHARGE_TICKS;
+        _ = magma_cube_splitting_mod.MagmaCubeSize.big.meleeDamage();
+        _ = ghast_fireball_tennis_mod.SIGHT_RANGE;
+        _ = wither_skeleton_effect_mod.WITHER_DURATION_TICKS;
+        _ = wither_boss_phases_mod.SPAWN_TICKS;
+        _ = beacon_status_pyramids_mod.tierProperties(.four);
+        _ = conduit_underwater_power_mod.evaluateActivation(true, conduit_underwater_power_mod.complete_frame_blocks);
+        _ = guardian_laser_spikes_mod.LASER_CHARGE_TICKS;
+        _ = elder_guardian_curse_mod.MINING_FATIGUE_III_TICKS;
+        _ = nether_portal_scaling_mod.overworldToNether(.{ .x = 0, .y = 64, .z = 0 });
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);
         }

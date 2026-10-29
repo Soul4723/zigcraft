@@ -604,3 +604,16 @@ Rough priority order. Completed milestones marked **[x]**.
 
 508. [x] **Guardian Laser Beam Tracking & Spikes Armor Reaction** — 30 HP Guardian with smooth 2.4 m/s swimming, land hops and half-second suffocation pulses; visible target acquisition within 15m, 60-tick charge, 16m tracking leash and line-of-sight cancellation; difficulty-scaled 6/9/12 HP unmitigated magic beam; twelve retractable orange spikes with 2 HP thorns retaliation; Prismarine Shard, Prismarine Crystal and Raw Cod drop candidates (\`src/world/guardian_laser_spikes.zig\`).
 509. [x] **Elder Guardian Mining Fatigue III Curse & Monument Apex** — 80 HP, 2.8m Elder Guardian with 1.8 m/s swim speed and 2 HP extended-spike retaliation; three room-assigned monument guardians; 50m Euclidean entry curse with 30-tick phantom/audio event, 6,000-tick Mining Fatigue III (0.001 mining-speed multiplier) and milk cleansing; guaranteed Wet Sponge, 20% Tide template, 10 XP, and an eight-Gold-Block dark-prismarine apex vault (\`src/world/elder_guardian_curse.zig\`). The module exposes deterministic rules and events; rendering, sound playback, actual guardian placement, effect application, and vault block generation remain with runtime owners.
+
+## Wave 23 Integration (Milestones 501–510)
+
+501. [x] **Blaze Fireball Artillery** — Blaze hovering, rotating rods, water sensitivity, and three-fireball volleys (`src/world/blaze_fireball_artillery.zig`).
+502. [x] **Magma Cube Splitting** — Three size tiers, compressing leaps, lava swimming, and death splitting (`src/world/magma_cube_splitting.zig`).
+503. [x] **Ghast Fireball Tennis** — Aerial artillery, player fireball deflection, and Return to Sender combat (`src/world/ghast_fireball_tennis.zig`).
+504. [x] **Wither Skeleton Effect** — Wither I melee effect, milk cleansing, and skull-drop rules (`src/world/wither_skeleton_effect.zig`).
+505. [x] **Wither Boss Phases** — T-frame summoning, birth charge, three-head combat, armor transition, and defeat reward (`src/world/wither_boss_phases.zig`).
+506. [x] **Beacon Status Pyramids** — Four-tier mineral pyramids, primary and secondary power selection, and activation (`src/world/beacon_status_pyramids.zig`).
+507. [x] **Conduit Underwater Power** — Prismarine-frame activation, underwater power, and hostile aquatic mob zaps (`src/world/conduit_underwater_power.zig`).
+508. [x] **Guardian Laser & Spikes** — Charged tracking laser, swimming movement, spikes, and retaliation (`src/world/guardian_laser_spikes.zig`).
+509. [x] **Elder Guardian Curse** — Monument entry Mining Fatigue, curse events, defeat drops, and apex vault (`src/world/elder_guardian_curse.zig`).
+510. [x] **Nether Portal Scaling** — 1:8 coordinate conversion, destination selection, frame generation, and transit cooldown (`src/world/nether_portal_scaling.zig`).

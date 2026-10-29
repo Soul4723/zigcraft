@@ -1,5 +1,21 @@
 # Project Status
 
+Last updated: 2026-10-29 (Session 418, Phase 8: Milestones 501–510)
+
+Wave 23 integration completes Milestones 501–510. All ten domain modules are
+registered once as standalone test targets, imported into `main.zig`, and
+queried from representative frame-loop hooks. ItemTypes 618–627 add the Wave
+23 materials with display names, RGBA colors, requested stack limits, and six
+2x2 recipes. `BlockId` remains within its 8-bit capacity. Verification passes
+10,791 tests across 571 build/test steps.
+
+## Wave 23 Integration (Milestones 501–510)
+
+- Integrated Blaze artillery, Magma Cube splitting, Ghast fireball tennis, Wither Skeleton effect, Wither boss phases, Beacon status pyramids, Conduit underwater power, Guardian laser/spikes, Elder Guardian curse, and Nether portal coordinate scaling.
+- The ten modules were already registered exactly once in `build.zig`; all are now imported and queried once per frame from representative domain hooks in `main.zig`.
+- ItemTypes 618–627 define the Wave 23 core, catalyst, essence, relic, talisman, orb, emitter, sponge, and compass materials. Item metadata defines display names, RGBA colors, and requested stack sizes. Six 2x2 recipes produce the Blaze Artillery Core, Magma Cream Catalyst, Ghast Tear Essence, Wither Skull Relic, Nether Star Core, and Conduit Power Orb. The inventory unit test checks the item IDs, stack limits, names, valid colors, recipe outputs, and `BlockId` capacity.
+- Verification: `ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache ZIG_LOCAL_CACHE_DIR=/tmp/zig-local-cache zig build` passes; `ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache ZIG_LOCAL_CACHE_DIR=/tmp/zig-local-cache zig build test --summary all` passes 10,791/10,791 tests across 571 build/test steps.
+
 Last updated: 2026-10-29 (Session 416, Milestone 509)
 
 Milestone 509 adds `src/world/elder_guardian_curse.zig`: 80 HP/2.8m/1.8 m/s

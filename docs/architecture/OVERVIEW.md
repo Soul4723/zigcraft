@@ -505,3 +505,23 @@ tick-based entity transit and cooldown rules. It is registered as a standalone
 test target. The live game loop and world owner remain responsible for changing
 dimensions, validating candidate site safety against loaded terrain, and
 applying generated frame blocks.
+
+### Wave 23 domain modules
+
+Milestones 501–510 provide standalone domain rules in
+`blaze_fireball_artillery.zig`, `magma_cube_splitting.zig`,
+`ghast_fireball_tennis.zig`, `wither_skeleton_effect.zig`,
+`wither_boss_phases.zig`, `beacon_status_pyramids.zig`,
+`conduit_underwater_power.zig`, `guardian_laser_spikes.zig`,
+`elder_guardian_curse.zig`, and `nether_portal_scaling.zig`. Each module is
+registered once as a standalone test target in `build.zig`; `main.zig` imports
+all ten and queries representative rules each frame. The modules return
+deterministic state, values, and events; existing world, entity, rendering,
+audio, and inventory owners remain responsible for applying runtime effects.
+
+Wave 23 adds ItemTypes 618–627 with display names, RGBA colors, and configured
+stack limits. Six two-ingredient 2x2 recipes are handled by
+`Inventory.updateCrafting()`: Blaze Artillery Core, Magma Cream Catalyst,
+Ghast Tear Essence, Wither Skull Relic, Nether Star Core, and Conduit Power
+Orb. Existing ingredient tags are reused, including `wither_skull` for the
+Wither Skeleton Skull. `BlockId` remains within the existing 8-bit capacity.
