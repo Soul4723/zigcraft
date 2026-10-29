@@ -419,3 +419,50 @@ Last updated: 2026-10-29 (Session 390)
   - 30-minute (36,000-tick) cooldown lock venting grey smoke particles.
 - Registered in `build.zig` test runner and connected representative frame-loop queries in `src/main.zig`.
 - Verification: 47/47 tests in `src/world/trial_spawner_waves.zig` passed; `zig build` and `zig build test` passed cleanly (11,638/11,638 tests).
+
+## Milestone 521 — Warden Scent Tracking & Sonic Blast
+- Added standalone `src/world/warden_scent_blast.zig` implementing:
+  - 500 HP Warden boss attributes, sniffing animation, smell-based scent suspicion accumulation, and pathing.
+  - Horizontal target tracking across dark subterranean biomes.
+  - Wall-penetrating 30 HP unmitigated sonic blast attack with 15m knockback impulse.
+- Registered in `build.zig` test runner.
+- Verification: 37/37 tests passed cleanly; `zig build` and `zig build test` passed.
+
+## Milestone 522 — Sculk Shrieker Warning & Darkness Fog
+- Added standalone `src/world/sculk_shrieker_fog.zig` implementing:
+  - 4 progressive warning levels (0..3) with 10-second cooldown between trigger shrieks.
+  - Darkness pulsing effect inflicting 12-second fog blindness on nearby players.
+  - Fourth shriek summoning the Warden within 48 blocks.
+- Registered in `build.zig` test runner.
+- Verification: 34/34 tests passed cleanly; `zig build` and `zig build test` passed.
+
+## Milestone 523 — Calibrated Sensor Resonance Chains
+- Added standalone `src/world/calibrated_sensor_chains.zig` implementing:
+  - Rear input redstone signal calibration filtering vibrations to specific frequency (1..15).
+  - 16-meter acoustic detection radius (2x standard sensor range).
+  - 10-tick active pulse output followed by 1-tick cooldown.
+  - Adjacent Amethyst block resonance re-emission creating multi-hop vibration repeaters across 48m+.
+- Registered in `build.zig` test runner.
+- Verification: 30/30 tests passed cleanly; `zig build` and `zig build test` passed.
+
+## Milestone 524 — Breeze Wind Charge Rocket Jumps & Deflection Dynamics
+- Added standalone `src/world/breeze_jump_deflection.zig` implementing:
+  - Wind charge projectile consumption and launch kinematics (28.0 m/s).
+  - Ground blast radius within 1.5m applying +9.5 m/s vertical self-boost (~5.5 block apex rise).
+  - Mid-air fall distance reset on launch and blast detonation.
+  - Angle-dependent horizontal dash conversion (up to 7.0 m/s at 45° pitch).
+  - Breeze automatic projectile deflection with inverted velocity vector and zero damage.
+- Registered in `build.zig` test runner.
+- Verification: 37/37 tests passed cleanly; `zig build` and `zig build test` passed.
+
+## Milestone 526 — Mace Smash Attack Height Velocity Scaling & Combos
+- Added standalone `src/world/mace_velocity_scaling.zig` implementing:
+  - 1.5m minimum fall distance threshold required to activate smash attacks.
+  - Two-tier kinetic damage formula: +4.0 dmg/m for first 3m ($0 \le h \le 3.0$), +2.0 dmg/m beyond 3m ($h > 3.0$).
+  - Density enchantment (Levels I–V): adds $+0.5 \times \text{level} \times h$ damage per meter fallen.
+  - Breach enchantment (Levels I–IV): reduces target armor defense by $15\% \times \text{level}$ (up to 60%).
+  - Wind Burst enchantment (Levels I–III): triggers vertical launch impulses of +7.0, +10.0, and +13.0 m/s on smash hit.
+  - Aerial combo multiplier progression: increments on successive airborne smash hits ($1.0\times, 1.25\times, 1.50\times \dots \le 2.0\times$).
+  - Ground contact combo reset and fall damage complete negation on hit.
+- Registered in `build.zig` test runner.
+- Verification: 50/50 tests passed cleanly; `zig build` and `zig build test` passed (11,755/11,755 tests).
