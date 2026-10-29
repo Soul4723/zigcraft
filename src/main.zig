@@ -244,6 +244,7 @@ const mace_velocity_scaling_mod = @import("world/mace_velocity_scaling.zig");
 const crafter_pulsed_grid_mod = @import("world/crafter_pulsed_grid.zig");
 const bogged_poison_harvest_mod = @import("world/bogged_poison_harvest.zig");
 const ominous_bottle_matrix_mod = @import("world/ominous_bottle_matrix.zig");
+const eyeblossom_bloom_toxicity_mod = @import("world/eyeblossom_bloom_toxicity.zig");
 const breeze_wind_charge_mod = @import("world/breeze_wind_charge.zig");
 const crafter_automation_mod = @import("world/crafter_automation.zig");
 const crafter_factory_clocking_mod = @import("world/crafter_factory_clocking.zig");
@@ -1216,6 +1217,7 @@ pub fn main() !void {
         _ = bogged_poison_harvest_mod.BOGGED_MAX_HEALTH;
         _ = ominous_bottle_matrix_mod.DRINKING_DURATION_TICKS;
         _ = creaking_damage_link_mod.CREAKING_HEART_MAX_HEALTH;
+        _ = eyeblossom_bloom_toxicity_mod.POISON_DURATION_TICKS;
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);
         }
