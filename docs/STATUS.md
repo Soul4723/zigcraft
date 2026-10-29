@@ -1,5 +1,13 @@
 # Project Status
 
+Last updated: 2026-10-29 (Session 419, Milestone 515)
+
+Milestone 515 adds `src/world/elytra_flight_matrix.zig` with stall onset and
+recovery, lift loss and nose-down tumble, terminal dive speed, Unbreaking wear
+probability, broken-at-one flight prevention, and Mending XP repairs. The module
+is registered as a standalone test target and imported into the frame loop.
+Focused verification passes all 43 module tests; `zig build` passes.
+
 Last updated: 2026-10-29 (Session 418, Phase 8: Milestones 501–510)
 
 Wave 23 integration completes Milestones 501–510. All ten domain modules are

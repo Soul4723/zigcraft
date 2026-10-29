@@ -525,3 +525,11 @@ stack limits. Six two-ingredient 2x2 recipes are handled by
 Ghast Tear Essence, Wither Skull Relic, Nether Star Core, and Conduit Power
 Orb. Existing ingredient tags are reused, including `wither_skull` for the
 Wither Skeleton Skull. `BlockId` remains within the existing 8-bit capacity.
+
+### Elytra flight matrix
+
+`elytra_flight_matrix.zig` owns deterministic stall and terminal-dive
+kinematics, Unbreaking wear probability, broken-at-one flight eligibility, and
+equipped Mending XP repair. It is registered as a standalone test target and
+queried by the frame loop; random rolls and XP-orb ownership remain with runtime
+systems.

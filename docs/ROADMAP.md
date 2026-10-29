@@ -617,3 +617,5 @@ Rough priority order. Completed milestones marked **[x]**.
 508. [x] **Guardian Laser & Spikes** — Charged tracking laser, swimming movement, spikes, and retaliation (`src/world/guardian_laser_spikes.zig`).
 509. [x] **Elder Guardian Curse** — Monument entry Mining Fatigue, curse events, defeat drops, and apex vault (`src/world/elder_guardian_curse.zig`).
 510. [x] **Nether Portal Scaling** — 1:8 coordinate conversion, destination selection, frame generation, and transit cooldown (`src/world/nether_portal_scaling.zig`).
+
+515. [x] **Elytra Flight Aerodynamics & Mending/Unbreaking Durability Matrix** — Stall at pitch above 35 degrees below 6 m/s, 90% lift loss and nose-down recovery at 8 m/s, 67.5 m/s terminal dives, Unbreaking wear probability, broken-at-one flight lockout, and 2 durability per Mending XP point (`src/world/elytra_flight_matrix.zig`).
