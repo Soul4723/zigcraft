@@ -542,3 +542,20 @@ Last updated: 2026-10-29 (Session 390)
   - `mace` + `breeze_rod` -> `mace_velocity_impact_relic`
   - `crafter` + `iron_ingot` -> `crafter_pulsed_grid_controller`
 - Verification: 611/611 build test steps succeeded, 11,963/11,963 tests passed cleanly.
+
+## Milestone 533 — Eyeblossom Day/Night Bloom & Bee Poison Dynamics
+- Added standalone `src/world/eyeblossom_bloom_toxicity.zig` implementing:
+  - Eyeblossom State Machine & Nocturnal Transition:
+    - Closed Eyeblossom: daytime ticks 0..12,999 or 23,001..24,000, or skylight > 7; appearance has closed grey petals, no eye visible, non-emissive (`emissive = 0.0`).
+    - Open Eyeblossom: nighttime ticks 13,000..23,000 or skylight <= 7; appearance has blooming petals revealing glowing orange iris, emissive glow (`emissive = 0.6`), and emits ambient drifting orange eye sparkle particles.
+    - Dusk opening transition (at tick 13,000 or darkness entry): snaps open, plays `SoundEffect.eyeblossom_open`.
+    - Dawn closing transition (at tick 23,000 or light return): snaps shut, plays `SoundEffect.eyeblossom_close`.
+  - Bee Pollination & Toxicity Interaction:
+    - Closed Eyeblossom pollination: Bee gathers nectar safely without adverse effects (`is_poisoned = false`, `is_angered = false`, eyes normal, steady flight).
+    - Open Eyeblossom pollination: Bee attempting pollination receives Poison status effect dealing 1.0 HP magic damage per second (duration 10.0 seconds / 200 ticks); bee becomes immediately agitated/angered (`is_angered = true`, eyes glow red, flying erratically).
+  - Suspicious Stew Crafting Synergy:
+    - Crafting Suspicious Stew with a Closed Eyeblossom yields Speed I buff for 10.0 seconds (200 ticks).
+    - Crafting Suspicious Stew with an Open Eyeblossom yields Blindness I debuff for 10.0 seconds (200 ticks).
+  - Multi-flower patch simulation (`EyeblossomPatch`) tracking synchronized day/night cascades and transitions.
+- Registered in `build.zig` test runner and connected frame-loop query in `src/main.zig`.
+- Verification: 52/52 tests in `src/world/eyeblossom_bloom_toxicity.zig` passed cleanly; `zig build` and `zig build test` passed cleanly (12,015/12,015 tests across 613 steps).
