@@ -1,5 +1,16 @@
 # Project Status
 
+Last updated: 2026-10-29 (Session 412, Milestone 505)
+
+Milestone 505 adds \`src/world/wither_boss_phases.zig\`, a standalone Wither
+domain model for X/Z-axis soul sand/soil T-frame summoning, a 220-tick zero-to-
+300 HP invulnerable birth charge and power-7 explosion, three independently
+timed skull heads, the 150 HP armor transition with projectile immunity and
+ground melee, and a 200-tick defeat animation with one blast-proof Nether Star
+and 50 XP. The module is registered as a standalone test target; its events
+leave rendering, world block mutation, projectile application, and inventory
+changes with their existing owners. All 36 focused tests pass.
+
 Last updated: 2026-10-29 (Session 411, Milestone 503)
 
 Milestone 503 adds the standalone Ghast artillery and fireball tennis domain in
