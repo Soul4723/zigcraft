@@ -337,3 +337,11 @@ their acoustic event data, including 256-block listener checks, linear
 attenuation, cooldown, directional sonic cone expansion, and frequency-10
 sculk notifications. It also owns Screamer spawn/cadence and goat ram horn
 shedding rules. World/entity owners consume the returned events and drops.
+
+### Mangrove and mud-brick architecture
+
+`mangrove_mud_architecture.zig` owns deterministic prop-root cage geometry,
+waterlogging state, dirt-to-mud hydration results, mud compaction and masonry
+recipe outputs, stonecutter yields, and variant collision heights. It is
+standalone-tested and queried by `main.zig`; inventory and world owners apply
+the returned item and block changes.

@@ -541,3 +541,4 @@ Rough priority order. Completed milestones marked **[x]**.
 460. [x] **Bogged & Stray Variants** — Variant combat stats, poison/slowness arrows, spawning rules, and Bogged shearing (`src/world/bogged_stray_variants.zig`).
 
 464. [x] **Goat Horn Resonance & Screamer Call Acoustics** — Eight horn calls, 256-block sound propagation, 140-tick use cooldown, frequency-10 sensor event, directional cone particles, and screamer ram/shedding rules (`src/world/goat_horn_acoustics.zig`).
+467. [x] **Mangrove Swamp Ecology & Mud Brick Architecture** — Outward/downward waterlogged prop-root cages, dirt hydration, mud compaction, mud-brick masonry recipes, stonecutter yields, and variant collision heights (`src/world/mangrove_mud_architecture.zig`).

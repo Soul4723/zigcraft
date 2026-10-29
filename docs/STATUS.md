@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 388)
+Last updated: 2026-10-29 (Session 391)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 8407 passing unit tests across 471 build/test steps
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 8770 passing unit tests across 483 build/test steps
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -120,3 +120,8 @@ Last updated: 2026-10-29 (Session 388)
 - Added standalone `src/world/goat_horn_acoustics.zig` with all eight canonical horn variants, 256-block propagation and attenuation, 140-tick cooldown, directional expanding sonic cone data, frequency-10 sculk vibration, screamer call/spawn/cadence, ram windup/charge, and two-side horn shedding.
 - Module is registered in `build.zig` for isolated tests. Gameplay systems can consume the returned wave, particle, and horn-drop data; live entity/player dispatch remains an integration point.
 - Verification: the standalone module test passes 40/40; `zig build` passes.
+
+## Milestone 467 — Mangrove Swamp Ecology & Mud Brick Architecture
+- Added `src/world/mangrove_mud_architecture.zig` with prop-root cage geometry (1–3 block radius), waterlogging, axe-mining/hardness data, water-bottle dirt hydration, mud/packed-mud/brick crafting rules, masonry variants, and direct stonecutter yields.
+- The module is registered as an isolated test target and imported by `main.zig`; its rules return world changes for existing owners to apply.
+- Verification: the standalone module test passes 44/44; `zig build` passes; `zig build test --summary all` passes 8770/8770 tests across 483 steps.
