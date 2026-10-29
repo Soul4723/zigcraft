@@ -419,3 +419,13 @@ hopper insertion, backpressure, comparator fullness, and a Blast Furnace to
 Crafter to output-chest throughput simulation. It is registered as a standalone
 test module and referenced by the frame loop; actual world containers and item
 entity mutation remain with their existing owners.
+
+### Ender Dragon arena fight
+
+`ender_dragon_arena_fight.zig` owns the Ender Dragon's arena phase machine,
+attack events, crystal tether/healing rules, death animation timing, and exit
+portal/egg activation data. `main.zig` advances this state at 20 ticks per
+second. The module returns events and block data so world/entity owners can
+apply rendering and voxel edits without coupling fight rules to the renderer
+or chunk manager. Its dragon egg item tag mirrors `ItemType.dragon_egg` (152)
+while keeping the standalone module within Zig's source-module import boundary.
