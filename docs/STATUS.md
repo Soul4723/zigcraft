@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 387)
+Last updated: 2026-10-29 (Session 388)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 7946 passing unit tests across 451 build/test steps
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 8267 passing unit tests across 463 build/test steps
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -78,8 +78,8 @@ Last updated: 2026-10-29 (Session 387)
 - ItemTypes 501–510 cover Bone Block, Calcite, Smooth Basalt, Rooted Dirt, Hanging Roots, Big Dripleaf, Spore Blossom, Awkward Potion, Potion of Invisibility, and Clock. Metadata and six 2x2 recipes are covered; `BlockId` remains unchanged at 255.
 
 ## Active State
-- Main branch stable (Phase 8: Milestones 43-450)
-- All tests passing (7946/7946 tests across 451 build/test steps)
+- Main branch stable (Phase 8: Milestones 43-457)
+- All tests passing (8267/8267 tests across 463 build/test steps)
 - Remote and local branches pruned clean
 
 
@@ -109,4 +109,8 @@ Last updated: 2026-10-29 (Session 387)
 - Milestones 441–450 are integrated: Sculk Catalyst Bloom, Sculk Shrieker Warning, Calibrated Sculk Resonance, Chiseled Bookshelf Storage, Hanging Sign Mechanics, Camel Mount Kinematics, Decorated Pot Storage, Creaking Heart Puppet, Creaking Gaze AI, and Resin Masonry.
 - All ten Wave 17 modules have standalone test targets and are imported in `main.zig`; the frame loop queries representative domain rules while existing world/entity systems retain mutation ownership.
 - ItemTypes 553–562 add sculk bloom catalyst, shrieker alarm core, calibrated sensor tuner, chiseled bookshelf slot, hanging chain mount, camel bridle saddle, decorated pot motif, creaking heart core, eyeblossom resin bloom, and resin brick masonry. Their RGBA metadata, stack limits, and six 2x2 recipes are tested; `wooden_slab` and `stone_bricks` are ingredient ItemTypes 563–564. `BlockId` remains capped at 255.
+
+## Wave 18 Integration
+- Milestone 457 adds `src/world/copper_bulb_latch.zig` with delayed rising-edge toggles, four oxidation light levels, waxing and scraping, indicator-dot state, and comparator output.
+- The module has a standalone test target and is imported by `main.zig`; the frame loop queries its oxidation light rule. Its deterministic mechanics are independent of world mutation.
 

@@ -315,3 +315,11 @@ materials. Inventory metadata includes names, RGBA colors, stack limits, and six
 2x2 recipes. `wooden_slab` and `stone_bricks` ingredient types occupy 563–564.
 `BlockId` remains capped at 255.
 
+### Wave 18 domain module
+
+Milestone 457 adds `copper_bulb_latch.zig`, a standalone state machine for
+two-game-tick rising-edge toggles, oxidation-dependent light decay, waxing and
+scraping, indicator-dot state, and comparator output. The module is registered
+as an independent test target and imported by `main.zig` for a representative
+domain-rule query; it does not own world block mutation.
+

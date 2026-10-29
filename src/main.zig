@@ -43,6 +43,7 @@ const ominous_trial_mod = @import("world/ominous_trial.zig");
 const trial_alchemy_mod = @import("world/trial_alchemy.zig");
 const bundle_pouch_mod = @import("world/bundle_pouch.zig");
 const copper_fixtures_mod = @import("world/copper_fixtures.zig");
+const copper_bulb_latch_mod = @import("world/copper_bulb_latch.zig");
 const jukebox_discs_mod = @import("world/jukebox_discs.zig");
 const happy_ghast_mod = @import("world/happy_ghast.zig");
 const warden_deep_dark_mod = @import("world/warden_deep_dark.zig");
@@ -1010,6 +1011,7 @@ pub fn main() !void {
         _ = decorated_pot_storage_mod.wobble_duration_seconds;
         _ = creaking_gaze_ai_mod.fov_dot_threshold;
         _ = resin_masonry_mod.MAX_RESIN_LAYERS;
+        _ = copper_bulb_latch_mod.OxidationStage.unoxidized.lightLevel();
         _ = enchanting_grindstone_mod.computeEnchantSlotOffers(0);
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);

@@ -96,6 +96,7 @@ pub fn build(b: *std.Build) void {
         "src/world/trial_alchemy.zig",
         "src/world/bundle_pouch.zig",
         "src/world/copper_fixtures.zig",
+        "src/world/copper_bulb_latch.zig",
         "src/world/jukebox_discs.zig",
         "src/world/happy_ghast.zig",
         "src/world/warden_deep_dark.zig",
