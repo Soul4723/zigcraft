@@ -193,6 +193,7 @@ const camel_mount_kinematics_mod = @import("world/camel_mount_kinematics.zig");
 const decorated_pot_storage_mod = @import("world/decorated_pot_storage.zig");
 const creaking_gaze_ai_mod = @import("world/creaking_gaze_ai.zig");
 const resin_masonry_mod = @import("world/resin_masonry.zig");
+const mangrove_mud_architecture_mod = @import("world/mangrove_mud_architecture.zig");
 const sniffer_digging_flora_mod = @import("world/sniffer_digging_flora.zig");
 const trial_spawner_dynamics_mod = @import("world/trial_spawner_dynamics.zig");
 const vault_loot_dispenser_mod = @import("world/vault_loot_dispenser.zig");
@@ -1026,6 +1027,7 @@ pub fn main() !void {
         _ = decorated_pot_storage_mod.wobble_duration_seconds;
         _ = creaking_gaze_ai_mod.fov_dot_threshold;
         _ = resin_masonry_mod.MAX_RESIN_LAYERS;
+        _ = mangrove_mud_architecture_mod.generateRootCage(2, .{ false, false, false, false });
         // Wave 18 representative frame-loop hooks keep all ten domains queryable.
         _ = sniffer_digging_flora_mod.isSniffable(.dirt);
         _ = trial_spawner_dynamics_mod.mobCategory(.bogged);

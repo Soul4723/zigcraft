@@ -252,6 +252,7 @@ pub fn build(b: *std.Build) void {
         "src/world/creaking_heart_puppet.zig",
         "src/world/creaking_gaze_ai.zig",
         "src/world/resin_masonry.zig",
+        "src/world/mangrove_mud_architecture.zig",
         "src/world/interact.zig",
         "src/world/hotbar.zig",
         "src/world/mining.zig",
