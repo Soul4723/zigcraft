@@ -372,6 +372,11 @@ test targets in `build.zig`. `main.zig` imports each module and wires
 representative per-frame query hooks keeping their deterministic rules active;
 world and entity mutation stays with existing owners.
 
+Milestone 485 adds `nether_fungus_forest.zig` as a standalone deterministic
+ecology module. It owns nylium sprout selection, matching-soil growth checks,
+giant-fungus geometry, canopy lighting, vine placement, and Nether wood fire
+properties; the caller supplies world edits through its bounded grid model.
+
 Wave 20 adds ItemTypes 586–595:
 - 586: `ominous_trap_core` (stack 64)
 - 587: `dyed_bundle_package` (stack 1)

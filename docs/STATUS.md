@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 390)
+Last updated: 2026-10-29 (Session 404)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 9349 passing unit tests across 511 build/test steps
@@ -246,3 +246,9 @@ Last updated: 2026-10-29 (Session 390)
   - Drops on Defeat: Rotten Flesh (0–1 base, scaled by Looting), Gold Nuggets (0–1 base, scaled by Looting), Golden Sword (8.5% base chance, +1.0% per Looting level), and 5 Experience Points (`EXPERIENCE_POINTS_DROP = 5`).
 - Registered in `build.zig` test runner.
 - Verification: 44/44 tests in `src/world/zombified_piglin_swarm.zig` passed; `zig build test` passed cleanly.
+
+## Milestone 485 — Warped & Crimson Fungus Forest Ecology & Tree Growth
+- Added standalone `src/world/nether_fungus_forest.zig` with deterministic nylium sprouting and giant-fungus generation helpers.
+- Crimson and warped nylium bone meal sprouting supports matching fungus/root/foliage types across 3x3 or 5x5 areas. Huge fungus growth requires a matching fungus and nylium; three rolls use a 40% success threshold and the fourth attempt guarantees growth.
+- Giant fungi use 7–9 block canopy footprints, 4–27 block stems, 1x1 or 3x3 stem columns, matching wart canopies, 1–5 level-15 shroomlights, crimson hanging vines, and warped ground vines. The listed crimson/warped stem and woodworking families are modeled as nonflammable.
+- Registered the module as a standalone test target. Verification: 28/28 focused tests passed; full `zig build` passed.
