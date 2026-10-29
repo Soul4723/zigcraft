@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 389)
+Last updated: 2026-10-29 (Session 396)
 
 ## What Works
 - Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 8911 passing unit tests across 491 build/test steps
@@ -132,3 +132,14 @@ Last updated: 2026-10-29 (Session 389)
 - Added standalone `src/world/elytra_rocket_propulsion.zig` implementing Elytra flight kinematics state machine (`.grounded`, `.falling`, `.gliding`, `.kinetic_impact`), dive/climb aerodynamics (`v_horiz += -0.08 * sin(theta)`, `vy += 0.06 * sin(theta) - gravity`, 0.99 drag decay), Firework Rocket propulsion boost (1.5 m/s^2 forward acceleration along look vector, flight duration tiers 1–3, 5.0 HP firework star explosion hazard), kinetic wall crash collision damage (`(v - 10.0) * 2.0`), durability wear (1/s, broken state at 1 point), and Anvil Phantom Membrane restoration (+108/membrane).
 - Registered in `build.zig` test runner.
 - Verification: 35/35 tests in `src/world/elytra_rocket_propulsion.zig` passed; `zig build test` passed cleanly.
+
+## Milestone 477 Integration
+- Skeleton Trap Horse & Four Horsemen combat mechanics (`src/world/skeleton_trap_combat.zig`):
+  - Natural lightning strike spawn evaluation (0.75% to 7.5% probability scaled by regional difficulty).
+  - Peaceful passive wandering skeleton trap horse entity with 15-minute (18,000-tick) unengaged despawn timer.
+  - Proximity trigger at 10.0m Euclidean distance triggering zero-damage cosmetic lightning and summoning `TheFourHorsemen`.
+  - Four mounted Skeleton Horsemen with 20.0 HP riders and 53.0 HP horses.
+  - Rider equipment: Enchanted Iron Helmet (prevents daylight fire) and Enchanted Bow.
+  - 60-tick (3.0s) initial summon damage immunity window.
+  - Mounted archer kinematics AI: closes distance if > 16.0m, kites away if < 8.0m, circles tangentially between 8.0m and 16.0m while firing arrows.
+  - Separate entity destruction: horse defeat dismounts rider to fight on foot; rider defeat pacifies skeleton horse into a tameable, rideable mount (12.0 m/s sprint, 3.5m jump, underwater traversal).
