@@ -195,6 +195,7 @@ pub fn build(b: *std.Build) void {
         "src/world/sniffer_digging_flora.zig",
         "src/world/trail_ruins.zig",
         "src/world/netherite_metallurgy.zig",
+        "src/world/netherite_smithing_pipeline.zig",
         "src/world/coral_reef.zig",
         "src/world/ice_spikes_biome.zig",
         "src/world/swamp_marsh.zig",
