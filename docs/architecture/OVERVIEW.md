@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-29 (Session 387)
+Last updated: 2026-10-29 (Session 388)
 
 ## Project Structure
 
@@ -314,4 +314,13 @@ bookshelf, hanging sign, camel, decorated pot, Creaking, eyeblossom, and resin
 materials. Inventory metadata includes names, RGBA colors, stack limits, and six
 2x2 recipes. `wooden_slab` and `stone_bricks` ingredient types occupy 563–564.
 `BlockId` remains capped at 255.
+
+### Crafter automation
+
+Milestone 456 adds `crafter_automation.zig` as an independently tested domain
+module. It owns a 9-slot grid, disabled/occupied bitmasks, hopper insertion,
+shaped recipe matching, redstone edge/cooldown state, nozzle ejection results,
+failure feedback, and comparator signal calculation. The module uses a local
+item enum so its standalone Zig test target does not cross the `src/world`
+module boundary to import `src/inventory.zig`.
 

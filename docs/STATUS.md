@@ -110,3 +110,7 @@ Last updated: 2026-10-29 (Session 387)
 - All ten Wave 17 modules have standalone test targets and are imported in `main.zig`; the frame loop queries representative domain rules while existing world/entity systems retain mutation ownership.
 - ItemTypes 553–562 add sculk bloom catalyst, shrieker alarm core, calibrated sensor tuner, chiseled bookshelf slot, hanging chain mount, camel bridle saddle, decorated pot motif, creaking heart core, eyeblossom resin bloom, and resin brick masonry. Their RGBA metadata, stack limits, and six 2x2 recipes are tested; `wooden_slab` and `stone_bricks` are ingredient ItemTypes 563–564. `BlockId` remains capped at 255.
 
+## Crafter Automation
+- Milestone 456 adds standalone `crafter_automation.zig` mechanics for the 9-slot toggleable grid, hopper insertion, shaped 2x2/3x3 recipes, rising-edge redstone crafting with an eight-game-tick cooldown, directional output ejection, failure feedback, and comparator signal math.
+- The module has 40 standalone unit tests and is registered as an isolated test target in `build.zig`. Its local item enum keeps the module testable without importing `src/inventory.zig` across the Zig module boundary.
+

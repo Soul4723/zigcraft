@@ -527,3 +527,7 @@ Rough priority order. Completed milestones marked **[x]**.
 449. [x] **Creaking Gaze AI** — 45-degree gaze freeze, line-of-sight stalking, and eyeblossom resonance (`src/world/creaking_gaze_ai.zig`).
 450. [x] **Resin Masonry** — Resin clump extrusion, hardening, brick crafting, and masonry architecture (`src/world/resin_masonry.zig`).
 
+## Crafter Automation
+
+456. [x] **Crafter Redstone Automation & 9-Slot Pulsed Crafting Grid** — Toggleable disabled slots, hopper priority insertion, 2x2/3x3 shaped recipes, rising-edge pulse crafting with cooldown, directional item ejection, safe failure feedback, and comparator output (`src/world/crafter_automation.zig`).
+
