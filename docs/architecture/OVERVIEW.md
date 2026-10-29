@@ -77,6 +77,14 @@ Module tests run through standalone targets registered in `build.zig`. Run with:
 zig build test --summary all
 ```
 
+### Blaze artillery
+
+`src/world/blaze_fireball_artillery.zig` contains the standalone Blaze
+attributes, hover motion, orbit and particle data, fireball volley timing and
+impact results, drop rules, and fortress spawner activation rules. Its
+standalone test target is registered in `build.zig`; callers own applying
+rendering, entity damage, and block ignition events to live world state.
+
 ## Water ticks
 
 `main.zig` dispatches `fluid_wash.step` every 0.4 seconds. The step scans the
