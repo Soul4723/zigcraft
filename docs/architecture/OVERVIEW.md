@@ -94,6 +94,18 @@ is registered as a standalone test target. The existing entity/rendering
 owners apply movement and visual state to live Guardians and apply emitted
 damage and drops.
 
+### End City monument layout
+
+`src/world/end_city_layout.zig` defines a deterministic End City as seven
+non-overlapping bounded tower, connector, bridge, and vault regions. Its
+`blockAt` query exposes the Purpur, End Stone Brick, iron bar, chest, and End
+Rod palette without mutating world storage. Sentry placement validates each
+support block and reserves two sentries for opposing vault thresholds. The
+vault loot generator uses an explicit seed and bounded chest entries with
+high-level diamond equipment enchantments. The module is registered as a
+standalone test target; runtime owners still apply the returned geometry,
+entities, and inventory contents.
+
 ## Water ticks
 
 `main.zig` dispatches `fluid_wash.step` every 0.4 seconds. The step scans the

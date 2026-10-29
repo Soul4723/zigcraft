@@ -617,3 +617,7 @@ Rough priority order. Completed milestones marked **[x]**.
 508. [x] **Guardian Laser & Spikes** — Charged tracking laser, swimming movement, spikes, and retaliation (`src/world/guardian_laser_spikes.zig`).
 509. [x] **Elder Guardian Curse** — Monument entry Mining Fatigue, curse events, defeat drops, and apex vault (`src/world/elder_guardian_curse.zig`).
 510. [x] **Nether Portal Scaling** — 1:8 coordinate conversion, destination selection, frame generation, and transit cooldown (`src/world/nether_portal_scaling.zig`).
+
+## End City Generation
+
+518. [x] **End City Monument Generation & Shulker Sentry Layout** — Non-overlapping multi-tier Purpur towers, elevated skyway bridges, End Rod spires, a barred two-chest loot vault, 4–8 validated sentries with threshold coverage, and deterministic enchanted vault loot (`src/world/end_city_layout.zig`). Live block placement, entity spawning, and inventory application remain with runtime owners.

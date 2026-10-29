@@ -1,6 +1,15 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 418, Phase 8: Milestones 501–510)
+Last updated: 2026-10-29 (Session 419, Milestone 518)
+
+Milestone 518 adds `src/world/end_city_layout.zig`: a seven-region, non-
+overlapping End City with a 7x7 Purpur entrance tower, ascending Purpur/End
+Stone tower tiers, elevated bridges and End Rod spires; a barred two-chest
+vault; validated 4–8 Shulker sentry anchors with guaranteed vault threshold
+coverage; and deterministic, bounded high-tier vault loot. Its 36 focused
+tests pass. The module is registered as a standalone test target; live block
+placement, entity spawning, and inventory application remain runtime-owner
+work.
 
 Wave 23 integration completes Milestones 501–510. All ten domain modules are
 registered once as standalone test targets, imported into `main.zig`, and
