@@ -514,3 +514,7 @@ Rough priority order. Completed milestones marked **[x]**.
 439. [x] **Specialized Furnace Smelting** — Blast furnace and smoker 2× cook speed, 2× fuel burn rate, item filtering, and comparator signal math (`src/world/specialized_furnace_smelting.zig`).
 440. [x] **Tripwire Hook Circuit** — 40-block tension span, entity collision detection, shears defusal, and snap pulse mechanics (`src/world/tripwire_hook_circuit.zig`).
 
+## Additional Dynamics Milestone
+
+452. [x] **Trial Spawner Dynamics & Player-Count Scaling** — 14-block player detection, survival/adventure scaling, timed mob spawning and caps, reward ejection per participant, 36000-tick cooldown, Trial Omen transformation, and ominous hazards/loot (`src/world/trial_spawner_dynamics.zig`).
+

@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-28 (Session 386)
+Last updated: 2026-10-29 (Session 387)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 7428 passing unit tests across 431 build/test steps
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 7662 passing unit tests across 439 build/test steps
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -78,8 +78,8 @@ Last updated: 2026-10-28 (Session 386)
 - ItemTypes 501–510 cover Bone Block, Calcite, Smooth Basalt, Rooted Dirt, Hanging Roots, Big Dripleaf, Spore Blossom, Awkward Potion, Potion of Invisibility, and Clock. Metadata and six 2x2 recipes are covered; `BlockId` remains unchanged at 255.
 
 ## Active State
-- Main branch stable (Phase 8: Milestones 43-440)
-- All tests passing (7428/7428 tests across 431 build/test steps)
+- Main branch stable (Phase 8: Milestones 43-440); Milestone 452 is implemented on its feature branch
+- All tests passing (7662/7662 tests across 439 build/test steps)
 - Remote and local branches pruned clean
 
 

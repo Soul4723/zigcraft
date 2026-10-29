@@ -299,3 +299,12 @@ shards, lodestone trackers, composter catalysts, pyrometallurgy nozzles, and
 tripwire tension gauges. Inventory metadata defines names, colors, stack limits,
 and six 2x2 recipes. `BlockId` remains capped at 255.
 
+### Trial spawner dynamics
+
+`trial_spawner_dynamics.zig` is a self-contained stateful domain module. It
+accepts nearby player snapshots and emits activation, mob spawn, ominous hazard,
+and reward ejection events for a world/entity system to consume. It keeps its
+own small `ItemType` enum with the established inventory numeric IDs so the
+module remains directly testable with `zig test src/world/trial_spawner_dynamics.zig`.
+Runtime world/entity wiring remains with the systems consuming these events.
+
