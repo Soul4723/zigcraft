@@ -552,3 +552,5 @@ Rough priority order. Completed milestones marked **[x]**.
 468. [x] **Warden Agitation & Sonic Boom** — 500 HP health pool, agitation tiers, emergence, calm burrowing, and unmitigated sonic boom beam (`src/world/warden_sonic_boom.zig`).
 469. [x] **Recovery Compass Echo Shard Metallurgy** — 8-echo-shard crafting, death coordinate lock, interdimensional spin, and jewel-bearing needle kinematics (`src/world/recovery_compass_echo.zig`).
 470. [x] **Archaeology Brush & Excavation** — Brush crafting, suspicious sand/gravel 4-stage excavation, decay recovery, and artifact extraction (`src/world/archaeology_brush_excavation.zig`).
+
+478. [x] **Witch Potion Throwing AI & Raid Healing Mechanics** — 26.0 HP max health, 85% magic resistance, poison immunity, 32-tick defensive drinking, offensive splash attacks, and village raid medic healing (`src/world/witch_potion_combat.zig`).
