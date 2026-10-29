@@ -98,6 +98,7 @@ pub fn build(b: *std.Build) void {
         "src/world/trial_chamber_generation.zig",
         "src/world/ominous_bottle_omen.zig",
         "src/world/froglight_predation.zig",
+        "src/world/deepslate_mineralogy.zig",
         "src/world/vault_loot_dispenser.zig",
         "src/world/trial_alchemy.zig",
         "src/world/bundle_pouch.zig",
