@@ -429,3 +429,25 @@ second. The module returns events and block data so world/entity owners can
 apply rendering and voxel edits without coupling fight rules to the renderer
 or chunk manager. Its dragon egg item tag mirrors `ItemType.dragon_egg` (152)
 while keeping the standalone module within Zig's source-module import boundary.
+
+### Wave 22 domain modules
+
+Milestones 491–500 provide standalone rules in `copper_horn_acoustics.zig`,
+`sculk_bloom_geometry.zig`, `camel_step_dash.zig`,
+`bookshelf_secret_latch.zig`, `brushing_visual_particles.zig`,
+`trial_vault_reset.zig`, `mace_aerial_combos.zig`,
+`crafter_factory_clocking.zig`, `copper_bulb_display.zig`, and
+`ender_dragon_arena_fight.zig`. Each is registered once as a standalone test
+target in `build.zig`. `main.zig` imports these modules and queries
+representative deterministic rules from the frame loop; the Ender Dragon arena
+state advances at 20 ticks per second. Modules expose state and events while
+existing world, entity, rendering, and inventory owners apply mutations.
+
+Wave 22 adds ItemTypes 608–617 for the Copper Horn Instrument, Sculk Bloom Core,
+Camel Dash Saddle, Secret Bookshelf Mechanism, Brush Plume Fiber, Vault Reset
+Token, Mace Combo Catalyst, Factory Clock Regulator, Copper Bulb Display Module,
+and Dragon Fountain Essence. Item metadata defines display names, RGBA colors,
+and configured stack limits. Six two-ingredient 2x2 recipes are handled by
+`Inventory.updateCrafting()`. `copper_horn` remains the ingredient item at 607;
+`vault_reset_token` uses its requested Wave 22 output ID 613. `BlockId` remains
+within the existing 8-bit capacity.

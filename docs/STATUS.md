@@ -1,6 +1,12 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 409, Milestone 500)
+Last updated: 2026-10-29 (Session 410, Phase 8: Milestones 491–500)
+
+Wave 22 integration completes Milestones 491–500. All ten domain modules are
+registered once as standalone tests, imported into `main.zig`, and queried each
+frame. ItemTypes 608–617 define the Wave 22 materials with RGBA colors, display
+names, stack limits, and six 2x2 recipes. `BlockId` remains within its 8-bit
+capacity. Verification passes 10,278 tests across 551 build/test steps.
 
 Milestone 500 adds a 200 HP Ender Dragon arena fight with four combat phases, fireballs and breath, 10-crystal healing tethers, perch projectile immunity, a 200-tick death sequence, 12,000 XP reward, and central End portal/Dragon Egg activation data in `src/world/ender_dragon_arena_fight.zig` (44 focused tests). The module is registered as a standalone test target and advanced at 20 ticks per second from the frame loop; it returns events for world rendering and block mutation owners.
 
@@ -22,7 +28,7 @@ Last updated: 2026-10-29 (Session 390)
 
 ## What Works
 - Standalone sea turtle lifecycle rules: seagrass breeding, home-beach egg laying/incubation, baby maturation scute drops, five-scute helmet recipe matching, and water-breathing refresh logic (29 focused tests)
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 9349 passing unit tests across 511 build/test steps
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 10,278 passing unit tests across 551 build/test steps
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -97,8 +103,8 @@ Last updated: 2026-10-29 (Session 390)
 - ItemTypes 501–510 cover Bone Block, Calcite, Smooth Basalt, Rooted Dirt, Hanging Roots, Big Dripleaf, Spore Blossom, Awkward Potion, Potion of Invisibility, and Clock. Metadata and six 2x2 recipes are covered; `BlockId` remains unchanged at 255.
 
 ## Active State
-- Main branch stable (Phase 8: Milestones 471–480)
-- All tests passing (9349/9349 tests across 511 build/test steps)
+- Main branch stable (Phase 8: Milestones 491–500)
+- All tests passing (10,278/10,278 tests across 551 build/test steps)
 - Remote and local branches pruned clean
 
 
@@ -155,6 +161,12 @@ Last updated: 2026-10-29 (Session 390)
 - ItemTypes 596–605 define the ten requested materials with display names, RGBA colors, and configured stack limits. Six 2x2 recipes create the barter token, brute armband, strider harness, fungus spores, reinforced lead, and berry basket. The test checks IDs, stack sizes, names, color channels, recipe outputs, and `BlockId` capacity.
 - `gold_ingot` did not exist in `ItemType`; it is now declared as ingredient ID 606 with normal stack behavior, name, and color.
 - Verification: `ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache ZIG_LOCAL_CACHE_DIR=/tmp/zig-local-cache zig build` passes; `ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache ZIG_LOCAL_CACHE_DIR=/tmp/zig-local-cache zig build test --summary all` passes 9727/9727 tests across 531 build/test steps.
+
+## Wave 22 Integration (Milestones 491–500)
+- Integrated copper horn acoustics, sculk bloom geometry, camel dash movement, bookshelf secret latches, brushing particles, trial vault reset rules, mace aerial combos, crafter factory clocking, copper bulb display decoding, and the Ender Dragon arena fight.
+- All ten modules are registered once for standalone tests and queried from the frame loop. The copper bulb display was the only domain missing its import and query; the other nine already had representative hooks.
+- ItemTypes 608–617 add Copper Horn Instrument, Sculk Bloom Core, Camel Dash Saddle, Secret Bookshelf Mechanism, Brush Plume Fiber, Vault Reset Token, Mace Combo Catalyst, Factory Clock Regulator, Copper Bulb Display Module, and Dragon Fountain Essence. Inventory metadata defines names, RGBA colors, and stack limits; six 2x2 recipes are covered by the Wave 22 inventory test. `BlockId` remains capped at 255.
+- `ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache ZIG_LOCAL_CACHE_DIR=/tmp/zig-local-cache zig build` passes; `zig build test --summary all` passes 10,278/10,278 tests across 551 build/test steps.
 
 ## Milestone 471 — Trial Chambers Spawner Ominous Potion Spawning & Projectile Traps
 - Added standalone `src/world/trial_chamber_traps.zig` with 8-second (160 ticks) ambient hazard timer, random hazard selection (ceiling projectile drop vs lingering cloud 3-5 blocks above player head), 6 lingering potion payload types (poison, slowness, weaving, oozing, infested, wind_charged), cloud physical dynamics (3.0m radius, -0.5m shrink per affliction, 600 ticks / 30s timeout, spherical affliction), ceiling downward projectile ejection ([3]f32{0.0, -0.6, 0.0}), 3.5m wind charge burst with copper door/trapdoor toggling and knockback, and fire charge ground ignition.

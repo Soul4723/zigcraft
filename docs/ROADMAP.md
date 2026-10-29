@@ -581,3 +581,16 @@ Rough priority order. Completed milestones marked **[x]**.
 492. [x] **Sculk Catalyst XP Bloom Propagation Geometry** — Radius-8 3D shell propagation through connected stone, dirt, deepslate, and tuff; charge decay, exposed-face vein masks, 85/15 cardinal/diagonal branch rolls, and 20-tick light animation (\`src/world/sculk_bloom_geometry.zig\`).
 498. [x] **Crafter Pulsed Automation Sorting & Redstone Factory Clocking** — Two/eight-game-tick pulse clocks, rising-edge crafting with a four-tick delay, round-robin hopper slot filling and backpressure, comparator fullness, and an ore-to-ingot-to-iron-block factory throughput simulation (\`src/world/crafter_factory_clocking.zig\`).
 500. [x] **Ender Dragon Multi-Phase Arena Fight & Exit Portal Activation** — 200 HP boss bar, circling/strafing/perching/charging states, fireball and Dragon's Breath attacks, 10 End Crystal tethers with healing and explosion recoil, a 200-tick defeat animation, 12,000 XP, and the central End Portal/Dragon Egg (\`src/world/ender_dragon_arena_fight.zig\`).
+
+## Wave 22 Integration (Milestones 491–500)
+
+491. [x] **Copper Horn Acoustics** — Pitch-register selection, 256-block sound range, frequency-10 sculk events, cooldown, and vibrato (\`src/world/copper_horn_acoustics.zig\`).
+492. [x] **Sculk Bloom Geometry** — Radius-8 3D bloom propagation, substrate conversion, exposed-face veins, branch probabilities, and bloom lighting (\`src/world/sculk_bloom_geometry.zig\`).
+493. [x] **Camel Step & Dash** — 1.5-block step height, two-block ravine stride, dash charge, and 12-block surge kinematics (\`src/world/camel_step_dash.zig\`).
+494. [x] **Bookshelf Secret Latch** — Six-slot combination input, comparator latch, and piston door transition timing (\`src/world/bookshelf_secret_latch.zig\`).
+495. [x] **Brushing Visual Particles** — Four-stage excavation plume particles, interruption decay, and brush-hand audio modulation (\`src/world/brushing_visual_particles.zig\`).
+496. [x] **Trial Vault Reset** — Per-player vault unlock state, reset-token drops, loot ejection, and item dispersion (\`src/world/trial_vault_reset.zig\`).
+497. [x] **Mace Aerial Combos** — Chained smash timing, combo damage multipliers, and radial kinetic launch effects (\`src/world/mace_aerial_combos.zig\`).
+498. [x] **Crafter Factory Clocking** — Redstone-tick pulse clocks, rising-edge crafting, round-robin hopper feed, backpressure, and factory throughput (\`src/world/crafter_factory_clocking.zig\`).
+499. [x] **Copper Bulb Display** — BCD digit decoding and compact copper bulb segment layouts (\`src/world/copper_bulb_display.zig\`).
+500. [x] **Ender Dragon Arena Fight** — Four-phase arena combat, crystal healing, fireball/breath attacks, defeat sequence, XP reward, and End exit portal activation (\`src/world/ender_dragon_arena_fight.zig\`).
