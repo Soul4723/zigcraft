@@ -1,5 +1,17 @@
 # Project Status
 
+Last updated: 2026-10-29 (Session 415, Milestone 508)
+
+Milestone 508 adds `src/world/guardian_laser_spikes.zig`, a standalone Guardian
+domain model with 30 HP, smooth 2.4 m/s swimming, awkward land hops and a
+half-second suffocation pulse, a visible-target 60-tick laser with 15m
+acquisition, 16m tracking, line-of-sight cancellation and difficulty-scaled
+unmitigated magic damage, plus twelve orange retractable spikes and 2 HP
+thorns retaliation. Prismarine Shards, Prismarine Crystals, and Raw Cod are
+exposed as drops. The module is registered as a standalone test target; its
+events leave rendering and live entity damage application with their existing
+owners. All 39 focused tests pass.
+
 Last updated: 2026-10-29 (Session 412, Milestone 505)
 
 Milestone 505 adds \`src/world/wither_boss_phases.zig\`, a standalone Wither
