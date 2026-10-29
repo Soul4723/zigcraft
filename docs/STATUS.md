@@ -1,5 +1,31 @@
 # Project Status
 
+Last updated: 2026-10-29 (Session 428, Phase 8: Milestone 531)
+
+Milestone 531 adds `src/world/creaking_damage_link.zig`: Creaking mob entity
+invulnerability (`is_invulnerable = true`, health never decreases, 0.0 damage taken
+from direct melee, arrow, trident, or explosion strikes), 3D trajectory calculation
+and resonant orange/amber resin particle beam linking puppet to bound Creaking Heart,
+heart damage redirection (1.0 HP per strike, 2.0 HP axe bonus, 5.0 HP max health),
+heart destruction and immediate dissolution of all linked puppets with
+`SoundEffect.creaking_crumble`, 40-particle wood/resin bursts, 0 XP, and 0 item drops,
+plus nocturnal activation (ticks 13,000..23,000 or skylight <= 7) with 32m single-puppet
+spawning and dawn dormancy dissolution. All 48 unit tests pass; full test suite
+passes 12,011/12,011 tests across 613 steps.
+
+## Milestone 531 — Creaking Heart Damage Link & Invulnerability Particles
+
+- Added standalone `src/world/creaking_damage_link.zig` implementing:
+  - Creaking mob entity complete invulnerability (`is_invulnerable = true`) against direct attacks (melee, arrows, tridents, explosions, fire, fall, magic) dealing 0.0 effective damage.
+  - Resonant particle damage link: 3D trajectory calculation connecting puppet hit coordinate to Creaking Heart center, emitting orange/amber resin trail particles (`resin_trail_particles`, 8..32 count scaling with distance).
+  - Creaking Heart damage redirection: standard strikes deal 1.0 HP (heart max health 5.0 HP); axe strikes deal 2.0 HP bonus damage.
+  - Heart destruction & puppet dissolution: reaching 0 HP or direct block breaking immediately dissolves all linked puppets (`is_dissolved = true`, `is_alive = false`), emits `SoundEffect.creaking_crumble`, spawns 40 crumbling debris particles (20 wood + 20 resin), and drops strictly 0 XP and 0 mob items.
+  - Nocturnal activation & dawn dormancy: active during game ticks 13,000..23,000 or skylight <= 7; allows spawning 1 puppet within 32m tether radius; transitions to dormant at dawn, dissolving active puppets.
+- Registered `src/world/creaking_damage_link.zig` in `build.zig` and connected representative query hook in `src/main.zig`.
+- Verification: 48/48 focused tests passed; `zig build test` passed 12,011/12,011 tests.
+
+---
+
 Last updated: 2026-10-29 (Session 420, Phase 8: Milestones 511–520)
 
 Wave 24 integration completes Milestones 511–520. All ten domain modules are
