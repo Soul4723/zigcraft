@@ -146,6 +146,7 @@ pub const ItemKind = enum {
     bone_meal,
     shears,
     carved_pumpkin,
+    dragon_head,
     leather_helmet,
     iron_helmet,
     golden_helmet,
@@ -183,6 +184,7 @@ pub const ItemKind = enum {
             .golden_helmet,
             .diamond_helmet,
             .netherite_helmet,
+            .dragon_head,
             .leather_chestplate,
             .iron_chestplate,
             .golden_chestplate,
@@ -468,6 +470,7 @@ pub const LivingEntity = struct {
             .golden_helmet,
             .diamond_helmet,
             .netherite_helmet,
+            .dragon_head,
             => .head,
 
             .leather_chestplate,
@@ -1811,6 +1814,16 @@ test "16: DispenserActuationBehavior: armor, carved pumpkin, and elytra equip di
             try std.testing.expectEqual(ItemKind.netherite_boots, entity.feet_slot.?.kind);
         }
     }
+}
+
+test "dragon head is recognized as headwear and equips into the head slot" {
+    var entity = LivingEntity.init(.player);
+    const head = ItemStack.init(.dragon_head, 1);
+
+    try std.testing.expect(ItemKind.dragon_head.isArmorOrHeadwearOrElytra());
+    try std.testing.expectEqual(EquipmentSlot.head, LivingEntity.getEquipSlot(.dragon_head).?);
+    try std.testing.expect(entity.equip(head));
+    try std.testing.expectEqual(ItemKind.dragon_head, entity.head_slot.?.kind);
 }
 
 test "17: DispenserActuationBehavior: armor equip fails and drops raw item when slot already occupied" {
