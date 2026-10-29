@@ -173,6 +173,7 @@ pub fn build(b: *std.Build) void {
         "src/world/wither_skeleton_effect.zig",
         "src/world/ender_dragon_fight.zig",
         "src/world/ender_dragon_arena_fight.zig",
+        "src/world/dragon_respawn_ritual.zig",
         "src/world/villager_curing.zig",
         "src/world/piston_adhesion.zig",
         "src/world/fishing_treasure.zig",

@@ -1,5 +1,25 @@
 # Project Status
 
+Last updated: 2026-10-29 (Session 419, Milestone 520)
+
+Milestone 520 adds the standalone Ender Dragon respawn ritual state machine in
+`src/world/dragon_respawn_ritual.zig`. Four exact cardinal fountain placements
+start a 600-tick sequence with magenta charging beams, ten sequential pillar
+crystal regens, purple apex convergence, an expanding emergence sphere, a
+power-12 completion burst, four consumed fountain crystals, exit portal air
+blocks, and a respawned 200 HP dragon. The module is registered for standalone
+tests and advanced at 20 ticks per second; visual effects, block mutations,
+and live dragon replacement remain caller-applied events. All 40 focused
+ritual tests pass.
+
+## Wave 24 (Milestone 520)
+
+- Added the four-crystal Ender Dragon respawn ritual and caller-applied events.
+- Verification: the ritual module passes all 40 of its tests (162 total when
+  including the imported block module tests).
+
+---
+
 Last updated: 2026-10-29 (Session 418, Phase 8: Milestones 501–510)
 
 Wave 23 integration completes Milestones 501–510. All ten domain modules are

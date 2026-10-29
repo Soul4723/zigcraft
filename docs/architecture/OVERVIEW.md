@@ -439,6 +439,12 @@ entity mutation remain with their existing owners.
 
 ### Ender Dragon arena fight
 
+`src/world/dragon_respawn_ritual.zig` owns the four-cardinal-crystal ritual
+trigger, 600-tick phase schedule, pillar crystal regeneration, beam/sphere
+visual events, dragon respawn result, and exit portal block state. The main
+loop advances its deterministic state at 20 ticks per second; callers own
+applying the returned events to rendering, entities, and world blocks.
+
 `ender_dragon_arena_fight.zig` owns the Ender Dragon's arena phase machine,
 attack events, crystal tether/healing rules, death animation timing, and exit
 portal/egg activation data. `main.zig` advances this state at 20 ticks per
