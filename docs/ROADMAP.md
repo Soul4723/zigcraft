@@ -634,3 +634,7 @@ Rough priority order. Completed milestones marked **[x]**.
 518. [x] **End City Layout** — Frame-loop procedural layout query (`src/world/end_city_layout.zig`).
 519. [x] **End Ship Vault** — Frame-loop ship generation query (`src/world/end_ship_vault.zig`).
 520. [x] **Dragon Respawn Ritual** — Existing 20 Hz ritual tick; integration checked through session build and full tests (`src/world/dragon_respawn_ritual.zig`).
+
+## Wave 25 Domain Modules
+
+525. [x] **Trial Spawner Waves & Dynamic Ominous Potion Hazards** — Dynamic player count scaling ($N = \lfloor\text{base} \times (1 + 0.5(P-1))\rfloor$ for total wave size and simultaneous cap) within 14m radius; Ominous Trial Spawner transformation via Trial Omen effect; enchanted Chainmail/Iron armor (Protection I) and weapon (Sharpness I) equipment; 160-tick (8.0s) periodic hazard timer dropping lingering potion clouds (Poison, Slowness, Weaving, Oozing, Infested, Wind Charged) or downward projectile drops (Fire Charges, Wind Charges) directly above players; loot bundle ejection with 50% Trial Key and 30% Ominous Key drop chances; and 36,000-tick (30-minute) cooldown lock venting grey smoke particles (`src/world/trial_spawner_waves.zig`).
