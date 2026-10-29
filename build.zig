@@ -68,6 +68,7 @@ pub fn build(b: *std.Build) void {
         "src/world/dripstone.zig",
         "src/world/lush_caves.zig",
         "src/world/totem.zig",
+        "src/world/totem_undying_resurrection.zig",
         "src/world/ice_physics.zig",
         "src/world/scaffolding.zig",
         "src/world/alchemy_buffs.zig",
