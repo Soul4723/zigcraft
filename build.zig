@@ -139,6 +139,7 @@ pub fn build(b: *std.Build) void {
         "src/world/piglin_bastion.zig",
         "src/world/piglin_brute_bastion.zig",
         "src/world/piglin_bartering_economy.zig",
+        "src/world/zombified_piglin_swarm.zig",
         "src/world/charged_creeper.zig",
         "src/world/swamp_witch.zig",
         "src/world/witch_potion_combat.zig",

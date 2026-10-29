@@ -569,3 +569,5 @@ Rough priority order. Completed milestones marked **[x]**.
 ## Wave 21 Integration (Milestones 481–490)
 
 481. [x] **Piglin Bartering & Gold Ingot Economy** — Gold armor pacification, hostility triggers, 6.0s (120-tick) inspection phase, ground pickup (<3.5m), and bartered Nether loot dispensing with upward pop velocity (`src/world/piglin_bartering_economy.zig`).
+482. [x] **Piglin Brute & Bastion Defense Tactics** — 50.0 HP health pool, golden arm band, blind eye, gold immunity, 16m bastion alarm coordination, and overworld zombification (`src/world/piglin_brute_bastion.zig`).
+483. [x] **Zombified Piglin Neutrality & Group Alarm Swarm** — Natural neutrality, 40m group alarm swarm propagation, 400–799 ticks anger cycle, 4.35 m/s sprint boost, 16m continuous pursuit re-aggro, undead fire/lava immunity, 10% reinforcement summoning, and defeat drops (`src/world/zombified_piglin_swarm.zig`).
