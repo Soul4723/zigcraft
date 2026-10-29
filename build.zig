@@ -84,6 +84,7 @@ pub fn build(b: *std.Build) void {
         "src/world/calibrated_sculk_resonance.zig",
         "src/world/frog.zig",
         "src/world/goat_horn.zig",
+        "src/world/goat_horn_acoustics.zig",
         "src/world/cherry_grove.zig",
         "src/world/chiseled_bookshelf.zig",
         "src/world/hanging_sign.zig",

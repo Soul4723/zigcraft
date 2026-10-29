@@ -115,3 +115,8 @@ Last updated: 2026-10-29 (Session 388)
 - All ten modules are registered once as standalone test targets in `build.zig`, imported in `main.zig`, and queried through representative frame-loop hooks. Existing world/entity systems retain mutation ownership.
 - ItemTypes 565–574 add the ten Wave 18 materials with display names, RGBA colors, stack limits, and six 2x2 recipes. Metadata and recipes are covered by an inventory unit test; `BlockId` remains capped at 255.
 - Verification: `zig build` passes; `zig build test --summary all` passes 8407/8407 tests across 471 build/test steps.
+
+## Milestone 464 — Goat Horn Acoustics
+- Added standalone `src/world/goat_horn_acoustics.zig` with all eight canonical horn variants, 256-block propagation and attenuation, 140-tick cooldown, directional expanding sonic cone data, frequency-10 sculk vibration, screamer call/spawn/cadence, ram windup/charge, and two-side horn shedding.
+- Module is registered in `build.zig` for isolated tests. Gameplay systems can consume the returned wave, particle, and horn-drop data; live entity/player dispatch remains an integration point.
+- Verification: the standalone module test passes 40/40; `zig build` passes.
