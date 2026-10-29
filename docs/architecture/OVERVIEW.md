@@ -519,6 +519,14 @@ all ten and queries representative rules each frame. The modules return
 deterministic state, values, and events; existing world, entity, rendering,
 audio, and inventory owners remain responsible for applying runtime effects.
 
+### Shulker shell defense
+
+`shulker_shell_defense.zig` models six-face attachment, peek height, closed
+shell armor and projectile deflection, fire/lava immunity, teleport chance and
+solid-face selection within eight blocks, and Looting-scaled shell drops. It is
+a standalone test target; live entity damage, teleport movement, and drop
+spawning remain with runtime owners.
+
 Wave 23 adds ItemTypes 618–627 with display names, RGBA colors, and configured
 stack limits. Six two-ingredient 2x2 recipes are handled by
 `Inventory.updateCrafting()`: Blaze Artillery Core, Magma Cream Catalyst,

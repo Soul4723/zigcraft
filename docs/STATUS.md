@@ -1,6 +1,13 @@
 # Project Status
 
-Last updated: 2026-10-29 (Session 418, Phase 8: Milestones 501–510)
+Last updated: 2026-10-29 (Session 419, Milestone 513)
+
+Milestone 513 adds standalone Shulker shell defense rules and 39 focused tests.
+Six-face attachment, clamped peek state, closed-shell armor/projectile/fire/lava
+defense, deterministic 25% teleport reaction, and Looting-scaled shell drops
+are implemented in `src/world/shulker_shell_defense.zig` and registered in the
+standalone test runner. The game loop does not yet apply these rules to live
+Shulker entities.
 
 Wave 23 integration completes Milestones 501–510. All ten domain modules are
 registered once as standalone test targets, imported into `main.zig`, and

@@ -617,3 +617,7 @@ Rough priority order. Completed milestones marked **[x]**.
 508. [x] **Guardian Laser & Spikes** — Charged tracking laser, swimming movement, spikes, and retaliation (`src/world/guardian_laser_spikes.zig`).
 509. [x] **Elder Guardian Curse** — Monument entry Mining Fatigue, curse events, defeat drops, and apex vault (`src/world/elder_guardian_curse.zig`).
 510. [x] **Nether Portal Scaling** — 1:8 coordinate conversion, destination selection, frame generation, and transit cooldown (`src/world/nether_portal_scaling.zig`).
+
+## Wave 24 Domain Modules
+
+513. [x] **Shulker Peek & Shell Defense Armor Mechanics** — Six-face attachment, closed-shell 20 armor points and projectile deflection, peek vulnerability, fire/lava immunity, damage-triggered 25% teleport within eight blocks, and 50% Looting-scaled shell drops with five XP (`src/world/shulker_shell_defense.zig`).
