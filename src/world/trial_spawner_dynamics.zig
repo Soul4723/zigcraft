@@ -14,6 +14,7 @@ pub const ItemType = enum(u16) {
     enchanted_golden_apple = 379,
     trial_key = 376,
     ominous_trial_key = 416,
+    vault_reset_token = 608,
 };
 
 pub const DETECTION_RADIUS: f32 = 14.0;
@@ -24,6 +25,7 @@ pub const COOLDOWN_TICKS: u32 = 36_000;
 pub const HAZARD_INTERVAL_TICKS: u32 = 160;
 pub const STANDARD_KEY_CHANCE: f32 = 0.50;
 pub const OMINOUS_KEY_CHANCE: f32 = 0.30;
+pub const OMINOUS_RESET_TOKEN_CHANCE: f32 = 0.05;
 
 pub const State = enum { inactive, waiting_for_players, active, waiting_for_reward_ejection, cooldown };
 pub const PlayerMode = enum { survival, adventure, creative, spectator };
@@ -79,6 +81,7 @@ pub const RewardEjection = struct {
     bundles: u32,
     item: ItemType,
     key_item: ?ItemType,
+    reset_token_item: ?ItemType = null,
     position: [3]f32,
     velocity: [3]f32,
 };
@@ -233,6 +236,11 @@ pub const TrialSpawner = struct {
     }
 
     pub fn ejectRewards(self: *TrialSpawner, reward_roll: f32, key_roll: f32) ?RewardEjection {
+        return self.ejectRewardsWithTokenRoll(reward_roll, key_roll, 1.0);
+    }
+
+    /// `reset_token_roll` independently gives ominous spawners a 5% reset-token chance.
+    pub fn ejectRewardsWithTokenRoll(self: *TrialSpawner, reward_roll: f32, key_roll: f32, reset_token_roll: f32) ?RewardEjection {
         if (self.state != .waiting_for_reward_ejection) return null;
         const reward = rewardForRoll(self.is_ominous, reward_roll, key_roll);
         const key: ?ItemType = if (reward.key_dropped)
@@ -248,6 +256,7 @@ pub const TrialSpawner = struct {
             .bundles = 1,
             .item = reward.item,
             .key_item = key,
+            .reset_token_item = if (self.is_ominous and reset_token_roll < OMINOUS_RESET_TOKEN_CHANCE) .vault_reset_token else null,
             .position = .{ self.position[0], self.position[1] + 1.0, self.position[2] },
             .velocity = .{ 0.0, 0.4, 0.0 },
         };
@@ -559,4 +568,22 @@ test "an ominous reward key roll above threshold drops no key" {
     spawner.state = .waiting_for_reward_ejection;
     spawner.is_ominous = true;
     try std.testing.expect(spawner.ejectRewards(0.5, 0.31).?.key_item == null);
+}
+
+test "ominous trial spawner independently ejects vault reset token on five percent roll" {
+    var spawner = TrialSpawner.init(0, 0, 0);
+    spawner.state = .waiting_for_reward_ejection;
+    spawner.is_ominous = true;
+    const reward = spawner.ejectRewardsWithTokenRoll(0.5, 0.9, 0.049).?;
+    try std.testing.expectEqual(ItemType.vault_reset_token, reward.reset_token_item.?);
+}
+
+test "standard trial spawner and ominous rolls outside five percent never eject reset token" {
+    var normal = TrialSpawner.init(0, 0, 0);
+    normal.state = .waiting_for_reward_ejection;
+    try std.testing.expect(normal.ejectRewardsWithTokenRoll(0.5, 0.9, 0.0).?.reset_token_item == null);
+    var ominous = TrialSpawner.init(0, 0, 0);
+    ominous.state = .waiting_for_reward_ejection;
+    ominous.is_ominous = true;
+    try std.testing.expect(ominous.ejectRewardsWithTokenRoll(0.5, 0.9, 0.05).?.reset_token_item == null);
 }
