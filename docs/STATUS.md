@@ -568,3 +568,11 @@ Last updated: 2026-10-29 (Session 390)
   - `mace` + `breeze_rod` -> `mace_velocity_impact_relic`
   - `crafter` + `iron_ingot` -> `crafter_pulsed_grid_controller`
 - Verification: 611/611 build test steps succeeded, 11,963/11,963 tests passed cleanly.
+
+## Milestone 533 — Eyeblossom Day/Night Bloom & Bee Poison Dynamics
+- Added standalone `src/world/eyeblossom_bloom_toxicity.zig` implementing:
+  - Closed (daytime, light > 7) vs. Open (nighttime, light <= 7, 0.6 emissive eye glow, orange ambient particles) state machine with `SoundEffect.eyeblossom_open` and `SoundEffect.eyeblossom_close` transition cues.
+  - Safe bee pollination on Closed Eyeblossom vs. 10.0s poison damage (1.0 HP/s) and permanent agitation on Open Eyeblossom.
+  - Suspicious Stew crafting synergy: Closed Eyeblossom yields Speed I (10s), Open Eyeblossom yields Blindness I (10s).
+- Registered in `build.zig` test runner and connected representative frame-loop query in `src/main.zig`.
+- Verification: 52/52 tests in `src/world/eyeblossom_bloom_toxicity.zig` passed; `zig build` and `zig build test` passed cleanly.
