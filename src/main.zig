@@ -200,6 +200,7 @@ const breeze_wind_charge_mod = @import("world/breeze_wind_charge.zig");
 const crafter_automation_mod = @import("world/crafter_automation.zig");
 const trial_chamber_generation_mod = @import("world/trial_chamber_generation.zig");
 const ominous_bottle_omen_mod = @import("world/ominous_bottle_omen.zig");
+const froglight_predation_mod = @import("world/froglight_predation.zig");
 
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
@@ -1034,6 +1035,7 @@ pub fn main() !void {
         _ = crafter_automation_mod.slot_count;
         _ = trial_chamber_generation_mod.FOOTPRINT_X;
         _ = ominous_bottle_omen_mod.amplifierForTier(.tier_1);
+        _ = froglight_predation_mod.nativeVariant(.swamp);
         _ = enchanting_grindstone_mod.computeEnchantSlotOffers(0);
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);
