@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Last updated: 2026-10-17 (Session 381)
+Last updated: 2026-10-29 (Session 387)
 
 ## Project Structure
 
@@ -298,4 +298,20 @@ frosted ice shards, soul speed talismans, swift sneak boots trims, respawn ancho
 shards, lodestone trackers, composter catalysts, pyrometallurgy nozzles, and
 tripwire tension gauges. Inventory metadata defines names, colors, stack limits,
 and six 2x2 recipes. `BlockId` remains capped at 255.
+
+### Wave 17 domain modules
+
+Milestones 441–450 add `sculk_catalyst_bloom.zig`, `sculk_shrieker_warning.zig`,
+`calibrated_sculk_resonance.zig`, `chiseled_bookshelf_storage.zig`,
+`hanging_sign_mechanics.zig`, `camel_mount_kinematics.zig`,
+`decorated_pot_storage.zig`, `creaking_heart_puppet.zig`, `creaking_gaze_ai.zig`,
+and `resin_masonry.zig`. Each has a standalone test target and is imported by
+`main.zig`, which queries representative deterministic domain rules each frame;
+world and entity mutation stays with existing owners.
+
+Wave 17 adds ItemTypes 553–562 for sculk, shrieker, calibrated sensor,
+bookshelf, hanging sign, camel, decorated pot, Creaking, eyeblossom, and resin
+materials. Inventory metadata includes names, RGBA colors, stack limits, and six
+2x2 recipes. `wooden_slab` and `stone_bricks` ingredient types occupy 563–564.
+`BlockId` remains capped at 255.
 

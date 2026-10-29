@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-10-28 (Session 386)
+Last updated: 2026-10-29 (Session 387)
 
 ## What Works
-- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 7428 passing unit tests across 431 build/test steps
+- Zig 0.16.0 build system (`zig build`, `zig build run`, `zig build test`) with 7946 passing unit tests across 451 build/test steps
 - Window creation, input handling, OpenGL 3.3 Core Profile context via GLFW
 - Procedural sky dome with day/night orbital lighting and dynamic twilight
 - First-person camera with mouse look, sprint, jumping, and ladder climbing
@@ -78,8 +78,8 @@ Last updated: 2026-10-28 (Session 386)
 - ItemTypes 501–510 cover Bone Block, Calcite, Smooth Basalt, Rooted Dirt, Hanging Roots, Big Dripleaf, Spore Blossom, Awkward Potion, Potion of Invisibility, and Clock. Metadata and six 2x2 recipes are covered; `BlockId` remains unchanged at 255.
 
 ## Active State
-- Main branch stable (Phase 8: Milestones 43-440)
-- All tests passing (7428/7428 tests across 431 build/test steps)
+- Main branch stable (Phase 8: Milestones 43-450)
+- All tests passing (7946/7946 tests across 451 build/test steps)
 - Remote and local branches pruned clean
 
 
@@ -104,4 +104,9 @@ Last updated: 2026-10-28 (Session 386)
 - Milestones 431–440 are integrated on `main`: Target Block Projectile Detection, Lightning Redstone Deflection, Frost Walker Ice Crystallization, Soul Speed Kinematics, Swift Sneak Crouch Kinematics, Respawn Anchor Charge & Nether Spawning, Lodestone Compass Tracking, Composter Biofuel & Bone Meal Pipeline, Specialized Furnace Smelting, and Tripwire Hook Circuit.
 - All ten Wave 16 world modules have standalone test targets in `build.zig`, imports, and lightweight representative frame-loop hooks in `main.zig`.
 - ItemTypes 543–552 add target block core, lightning deflector, frosted ice shard, soul speed talisman, swift sneak boots trim, respawn anchor shard, lodestone tracker, composter catalyst, pyrometallurgy nozzle, and tripwire tension gauge with metadata and six 2x2 recipes. `BlockId` remains unchanged at 255.
+
+## Wave 17 Integration
+- Milestones 441–450 are integrated: Sculk Catalyst Bloom, Sculk Shrieker Warning, Calibrated Sculk Resonance, Chiseled Bookshelf Storage, Hanging Sign Mechanics, Camel Mount Kinematics, Decorated Pot Storage, Creaking Heart Puppet, Creaking Gaze AI, and Resin Masonry.
+- All ten Wave 17 modules have standalone test targets and are imported in `main.zig`; the frame loop queries representative domain rules while existing world/entity systems retain mutation ownership.
+- ItemTypes 553–562 add sculk bloom catalyst, shrieker alarm core, calibrated sensor tuner, chiseled bookshelf slot, hanging chain mount, camel bridle saddle, decorated pot motif, creaking heart core, eyeblossom resin bloom, and resin brick masonry. Their RGBA metadata, stack limits, and six 2x2 recipes are tested; `wooden_slab` and `stone_bricks` are ingredient ItemTypes 563–564. `BlockId` remains capped at 255.
 

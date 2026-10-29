@@ -181,6 +181,15 @@ const composter_biofuel_mod = @import("world/composter_biofuel.zig");
 const specialized_furnace_smelting_mod = @import("world/specialized_furnace_smelting.zig");
 const tripwire_hook_circuit_mod = @import("world/tripwire_hook_circuit.zig");
 const creaking_heart_puppet_mod = @import("world/creaking_heart_puppet.zig");
+const sculk_catalyst_bloom_mod = @import("world/sculk_catalyst_bloom.zig");
+const sculk_shrieker_warning_mod = @import("world/sculk_shrieker_warning.zig");
+const calibrated_sculk_resonance_mod = @import("world/calibrated_sculk_resonance.zig");
+const chiseled_bookshelf_storage_mod = @import("world/chiseled_bookshelf_storage.zig");
+const hanging_sign_mechanics_mod = @import("world/hanging_sign_mechanics.zig");
+const camel_mount_kinematics_mod = @import("world/camel_mount_kinematics.zig");
+const decorated_pot_storage_mod = @import("world/decorated_pot_storage.zig");
+const creaking_gaze_ai_mod = @import("world/creaking_gaze_ai.zig");
+const resin_masonry_mod = @import("world/resin_masonry.zig");
 
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
@@ -991,6 +1000,16 @@ pub fn main() !void {
         _ = specialized_furnace_smelting_mod.SPECIALIZED_FURNACE_COOK_TICKS;
         _ = tripwire_hook_circuit_mod.max_distance_between_hooks;
         _ = creaking_heart_puppet_mod.MAX_TETHER_RADIUS;
+        // Wave 17 representative frame-loop hooks keep new domain rules queryable.
+        _ = sculk_catalyst_bloom_mod.catalyst_radius;
+        _ = sculk_shrieker_warning_mod.MAX_WARNING_LEVEL;
+        _ = calibrated_sculk_resonance_mod.matchesFilter(8, 8);
+        _ = chiseled_bookshelf_storage_mod.total_slots;
+        _ = hanging_sign_mechanics_mod.crafting_yield;
+        _ = camel_mount_kinematics_mod.camel_step_height;
+        _ = decorated_pot_storage_mod.wobble_duration_seconds;
+        _ = creaking_gaze_ai_mod.fov_dot_threshold;
+        _ = resin_masonry_mod.MAX_RESIN_LAYERS;
         _ = enchanting_grindstone_mod.computeEnchantSlotOffers(0);
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);

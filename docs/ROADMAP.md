@@ -514,3 +514,16 @@ Rough priority order. Completed milestones marked **[x]**.
 439. [x] **Specialized Furnace Smelting** — Blast furnace and smoker 2× cook speed, 2× fuel burn rate, item filtering, and comparator signal math (`src/world/specialized_furnace_smelting.zig`).
 440. [x] **Tripwire Hook Circuit** — 40-block tension span, entity collision detection, shears defusal, and snap pulse mechanics (`src/world/tripwire_hook_circuit.zig`).
 
+## Wave 17 Integration (Milestones 441–450)
+
+441. [x] **Sculk Catalyst Bloom** — Mob XP charge conversion, sculk bloom propagation, and substrate conversion (`src/world/sculk_catalyst_bloom.zig`).
+442. [x] **Sculk Shrieker Warning** — Warning tiers, decay, darkness aura, and Warden summoning (`src/world/sculk_shrieker_warning.zig`).
+443. [x] **Calibrated Sculk Resonance** — Frequency filtering, sensor timing, and amethyst resonance chains (`src/world/calibrated_sculk_resonance.zig`).
+444. [x] **Chiseled Bookshelf Storage** — Six-slot book storage, face UV targeting, and comparator output (`src/world/chiseled_bookshelf_storage.zig`).
+445. [x] **Hanging Sign Mechanics** — Three mount configurations, dual-sided text, dye/glow ink, and waxing (`src/world/hanging_sign_mechanics.zig`).
+446. [x] **Camel Mount Kinematics** — Dual seating, 1.5-block step height, ravine stride, dash charge, and posture state (`src/world/camel_mount_kinematics.zig`).
+447. [x] **Decorated Pot Storage** — Four-facet sherd assembly, single-stack storage, wobble, and shattering (`src/world/decorated_pot_storage.zig`).
+448. [x] **Creaking Heart Puppet** — Nocturnal puppet link, gaze freeze, damage redirection, and resin extrusion (`src/world/creaking_heart_puppet.zig`).
+449. [x] **Creaking Gaze AI** — 45-degree gaze freeze, line-of-sight stalking, and eyeblossom resonance (`src/world/creaking_gaze_ai.zig`).
+450. [x] **Resin Masonry** — Resin clump extrusion, hardening, brick crafting, and masonry architecture (`src/world/resin_masonry.zig`).
+
