@@ -231,6 +231,7 @@ pub fn build(b: *std.Build) void {
         "src/world/end_crystal_mechanics.zig",
         "src/world/boat_watercraft.zig",
         "src/world/lead_leash_mechanics.zig",
+        "src/world/lead_tension_physics.zig",
         "src/world/bed_sleep_mechanics.zig",
         "src/world/igneous_stone_masonry.zig",
         "src/world/glazed_terracotta_mosaic.zig",

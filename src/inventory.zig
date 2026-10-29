@@ -2970,6 +2970,25 @@ pub const Inventory = struct {
             if (!s.isEmpty()) non_empty += 1;
         }
 
+        // Lead: four String + one Slimeball -> two Leads. Stacks allow the
+        // five ingredients to fit in the player's 2x2 crafting grid.
+        var lead_string_total: u16 = 0;
+        var lead_slimeball_total: u16 = 0;
+        var lead_ingredients_only = true;
+        for (self.craft_grid) |slot| {
+            if (slot.isEmpty()) continue;
+            switch (slot.item) {
+                .string => lead_string_total += slot.count,
+                .slimeball => lead_slimeball_total += slot.count,
+                else => lead_ingredients_only = false,
+            }
+        }
+        const has_lead_batch = @min(lead_string_total / 4, lead_slimeball_total) > 0;
+        if (lead_ingredients_only and has_lead_batch) {
+            self.craft_output = .{ .item = .lead, .count = 2 };
+            return;
+        }
+
         if (wave20CraftingRecipe(self.craft_grid)) |output| {
             self.craft_output = output;
             return;
@@ -6152,20 +6171,6 @@ pub const Inventory = struct {
             }
         }
 
-        // Recipe 82: Lead: 1 Wool/Vines + 1 Stick (non_empty == 2) OR 1 Wool/Vines + 3 Sticks (non_empty == 4)
-        if (non_empty == 2) {
-            var string_fiber_count: u8 = 0;
-            var stick_count: u8 = 0;
-            for (self.craft_grid) |sl| {
-                if (sl.item == .wool or sl.item == .weeping_vines or sl.item == .twisting_vines) string_fiber_count += 1;
-                if (sl.item == .stick) stick_count += 1;
-            }
-            if (string_fiber_count == 1 and stick_count == 1) {
-                self.craft_output = .{ .item = .lead, .count = 1 };
-                return;
-            }
-        }
-
         // Recipe 78: Jukebox: 1 Gold Nugget / Nether Star / Nether Quartz + 2..3 Wood Planks -> 1 Jukebox
         if (non_empty >= 3 and non_empty <= 4) {
             var core_count: u8 = 0;
@@ -6912,10 +6917,25 @@ pub const Inventory = struct {
             cursor.* = out;
         }
 
-        // Decrement inputs
-        for (&self.craft_grid) |*slot| {
-            if (!slot.isEmpty()) {
-                slot.decrement(1);
+        // Lead recipe consumes four strings and one slimeball per batch.
+        if (out.item == .lead) {
+            var strings_to_consume: u16 = 4;
+            var slimeballs_to_consume: u16 = 1;
+            for (&self.craft_grid) |*slot| {
+                if (slot.item == .string and strings_to_consume > 0) {
+                    const consumed: u8 = @intCast(@min(strings_to_consume, slot.count));
+                    slot.decrement(consumed);
+                    strings_to_consume -= consumed;
+                } else if (slot.item == .slimeball and slimeballs_to_consume > 0) {
+                    const consumed: u8 = @intCast(@min(slimeballs_to_consume, slot.count));
+                    slot.decrement(consumed);
+                    slimeballs_to_consume -= consumed;
+                }
+            }
+        } else {
+            // Other recipes consume one item from each non-empty ingredient slot.
+            for (&self.craft_grid) |*slot| {
+                if (!slot.isEmpty()) slot.decrement(1);
             }
         }
 
@@ -8578,19 +8598,19 @@ test "oak fence and lead item roundtrip, properties, and Recipes 81 and 82" {
     try std.testing.expectEqual(inv.craft_output.item, .oak_fence);
     try std.testing.expectEqual(inv.craft_output.count, 2);
 
-    // Recipe 82: 1 Wool + 1 Stick -> 1 Lead
-    inv.craft_grid[0] = .{ .item = .wool, .count = 1 };
-    inv.craft_grid[1] = .{ .item = .stick, .count = 1 };
+    // Recipe 82: 4 String + 1 Slimeball -> 2 Leads
+    inv.craft_grid[0] = .{ .item = .string, .count = 4 };
+    inv.craft_grid[1] = .{ .item = .slimeball, .count = 1 };
     inv.craft_grid[2].clear();
+    inv.craft_grid[3].clear();
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .lead);
-    try std.testing.expectEqual(inv.craft_output.count, 1);
-
-    // Also craftable with weeping vines
-    inv.craft_grid[0] = .{ .item = .weeping_vines, .count = 1 };
-    inv.updateCrafting();
-    try std.testing.expectEqual(inv.craft_output.item, .lead);
-    try std.testing.expectEqual(inv.craft_output.count, 1);
+    try std.testing.expectEqual(inv.craft_output.count, 2);
+    var cursor = ItemStack{};
+    try std.testing.expect(inv.takeCraftResult(&cursor));
+    try std.testing.expectEqual(@as(u8, 2), cursor.count);
+    try std.testing.expect(inv.craft_grid[0].isEmpty());
+    try std.testing.expect(inv.craft_grid[1].isEmpty());
 
     try std.testing.expectEqual(ItemType.oak_fence.toBlockId().?, .oak_fence);
     try std.testing.expectEqual(ItemType.fromBlockId(.oak_fence), .oak_fence);

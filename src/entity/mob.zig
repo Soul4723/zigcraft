@@ -813,7 +813,7 @@ pub fn applyLeashTension(mob_pos: *math.Vec3, mob_vel: *math.Vec3, anchor_pos: m
     // If beyond slack distance (3.0m), apply elastic spring tension
     if (dist_sq > 9.0) {
         const dist = @sqrt(dist_sq);
-        const pull = (dist - 3.0) * 2.8;
+        const pull = ((dist - 3.0) / 10.0) * 0.6;
         mob_vel.x += (dx / dist) * pull * dt;
         mob_vel.y += (dy / dist) * pull * dt;
         mob_vel.z += (dz / dist) * pull * dt;
@@ -835,7 +835,7 @@ test "mob leash tension and break distance" {
     const anchor_taut = math.Vec3.init(5.0, 0.0, 0.0);
     const broke_taut = applyLeashTension(&pos, &vel, anchor_taut, 0.05);
     try std.testing.expect(!broke_taut);
-    try std.testing.expect(vel.x > 0.1);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.006), vel.x, 0.0001);
 
     // Snapped leash (> 10.0m) -> returns true (broken)
     const anchor_far = math.Vec3.init(12.0, 0.0, 0.0);

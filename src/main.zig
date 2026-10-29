@@ -152,6 +152,7 @@ const rail_network_switching_mod = @import("world/rail_network_switching.zig");
 const end_crystal_mechanics_mod = @import("world/end_crystal_mechanics.zig");
 const boat_watercraft_mod = @import("world/boat_watercraft.zig");
 const lead_leash_mechanics_mod = @import("world/lead_leash_mechanics.zig");
+const lead_tension_physics_mod = @import("world/lead_tension_physics.zig");
 const bed_sleep_mechanics_mod = @import("world/bed_sleep_mechanics.zig");
 const igneous_stone_masonry_mod = @import("world/igneous_stone_masonry.zig");
 const glazed_terracotta_mosaic_mod = @import("world/glazed_terracotta_mosaic.zig");
@@ -999,6 +1000,7 @@ pub fn main() !void {
         _ = end_crystal_mechanics_mod.craftEndCrystal(7, 1, 1);
         _ = boat_watercraft_mod.craftChestBoat(1, 1);
         _ = lead_leash_mechanics_mod.computeLeashPullForce(7.0);
+        _ = lead_tension_physics_mod.resolveTension(.{}, .{ .x = 7.0 });
         _ = bed_sleep_mechanics_mod.canSleepAtTime(13000, false, false);
         // Wave 14 representative frame-loop hooks keep new domain rules queryable.
         _ = igneous_stone_masonry_mod.craftDioriteFromQuartz(1, 1);
