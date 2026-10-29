@@ -419,3 +419,14 @@ Last updated: 2026-10-29 (Session 390)
   - 30-minute (36,000-tick) cooldown lock venting grey smoke particles.
 - Registered in `build.zig` test runner and connected representative frame-loop queries in `src/main.zig`.
 - Verification: 47/47 tests in `src/world/trial_spawner_waves.zig` passed; `zig build` and `zig build test` passed cleanly (11,638/11,638 tests).
+
+## Milestone 527 — Vault & Ominous Vault Multi-Player Key Unlocking & Reset Tokens
+- Added standalone `src/world/vault_multiplayer_reset.zig` implementing:
+  - Standard Vault unlocked with Standard Trial Key (`trial_key`), dispenses standard trial rewards (diamonds, emeralds, iron ingots, golden apples, breeze rods, food).
+  - Ominous Vault unlocked with Ominous Trial Key (`ominous_trial_key`), dispenses exclusive ominous rewards (Heavy Core 2.2% chance, Flow/Bolt armor trims, Wind Burst enchanted books, Flow banner pattern).
+  - Per-Player Lock Tracking: maintains up to 64 independent player unlock IDs (`unlocked_players`); player-specific display preview rendering spinning showcase items only to eligible players; already unlocked players see a dark keyhole and cannot insert keys.
+  - Single Vault Reset Token consumption clears an individual player's lock (`resetPlayerLock(player_id)`), returning `.reset` and allowing that player to unlock the vault again.
+  - Item Ejection Physics: ejects 3 to 6 items upward with velocity $v_y \in [0.35, 0.55]$ m/s and randomized radial horizontal dispersion covering all $2\pi$ radians.
+  - Redstone Comparator Integration: outputs signal strength 15 for the nearest eligible player, 0 if the nearest player has unlocked, and 0 when no players are in range.
+- Registered in `build.zig` test runner and connected representative frame-loop queries in `src/main.zig`.
+- Verification: 37/37 tests in `src/world/vault_multiplayer_reset.zig` passed; `zig build` and `zig build test` passed cleanly (11,742/11,742 tests).
