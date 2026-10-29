@@ -1,5 +1,16 @@
 # Project Status
 
+Last updated: 2026-10-29 (Session 418, Milestone 511)
+
+Milestone 511 adds `src/world/chorus_teleport_purpur.zig` with chorus food
+restoration (including full hunger), 16-attempt radius-8 3D safe landing
+selection, fall reset and teleport effect data, 200-tick Chorus Fruit smelting,
+and shaped Purpur block/pillar/slab/stair recipe descriptors. The player use
+path now checks solid ground and two clear non-fluid blocks before teleporting;
+regular furnaces produce Popped Chorus Fruit. All 33 focused module tests pass.
+Purpur slab and stair block/item registration and live crafting-grid handling
+remain unimplemented; their recipes currently exist as standalone domain data.
+
 Last updated: 2026-10-29 (Session 416, Milestone 509)
 
 Milestone 509 adds `src/world/elder_guardian_curse.zig`: 80 HP/2.8m/1.8 m/s

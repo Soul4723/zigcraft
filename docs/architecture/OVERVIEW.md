@@ -505,3 +505,12 @@ tick-based entity transit and cooldown rules. It is registered as a standalone
 test target. The live game loop and world owner remain responsible for changing
 dimensions, validating candidate site safety against loaded terrain, and
 applying generated frame blocks.
+
+### Chorus Fruit teleportation and Purpur recipe rules
+
+`chorus_teleport_purpur.zig` contains food restoration, bounded safe-destination
+selection, teleport effect metadata, smelting data, and shaped Purpur recipe
+descriptors. The frame loop performs world block checks and applies successful
+player movement/effects; `specialized_furnace_smelting.zig` owns the regular
+furnace recipe. Purpur slab and stair runtime block/item integration is not yet
+present.
