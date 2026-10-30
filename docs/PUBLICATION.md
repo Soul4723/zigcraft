@@ -38,6 +38,9 @@ new main to verify the server-created commit too.
   messages and changed files, and runs Gitleaks on all refs.
 - CI runs the content check on tracked files and Gitleaks on reachable
   history, plus metadata, messages and changed files in new commits.
+  On PRs, metadata checks use the proposed head; build and content checks
+  use the merged tree. GitHub's temporary merge identity is not proposed
+  commit metadata. Actual merged commits are checked again on main.
 - Before publishing PR descriptions or other text, use `--text <file>` and
   Gitleaks on that file as CONTRIBUTING shows.
 
