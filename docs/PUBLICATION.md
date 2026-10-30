@@ -1,0 +1,67 @@
+# Public content
+
+Everything in this repository, its commits and its pull requests can become
+public. Keep them about the project.
+
+## What stays out
+
+- Credentials, tokens and keys, including test credentials. Local secrets go
+  in the ignored `SECRETS.local.md`.
+- Personal context: names, home-directory paths, machine names, private
+  email addresses, account details.
+- Text of private conversations or prompts.
+- Local artifacts: saves, caches, build output.
+
+## Checks
+
+`bash scripts/setup.sh` installs the pinned compiler and scanner, turns on the Git hooks and sets a project identity
+(`Zigcraft contributors` with a GitHub noreply address).
+
+GitHub creates squash commits itself, outside the hooks. Use the explicit
+noreply author email in CONTRIBUTING's merge command, and inspect the merged
+commit's author and committer. GitHub chooses the account display name;
+local Git settings do not change it.
+The merging account must use a simple public account label or the project
+label accepted by `valid_identity`. Verify this before its first automated
+merge; do not silently change a person's account profile or weaken the
+check. After merging, run the commit check from the checked base through
+new main to verify the server-created commit too.
+
+- The pre-commit hook runs `python3 scripts/check_public_content.py --staged`
+  on the staged files, checks the commit identity, and runs Gitleaks on
+  staged changes.
+- The commit-message hook checks private content and credentials in messages.
+- The pre-push hook blocks pushes to `main`, checks new commit identities,
+  messages and changed files, and runs Gitleaks on all refs.
+- CI runs the content check on tracked files and Gitleaks on reachable
+  history, plus metadata, messages and changed files in new commits.
+- Before publishing PR descriptions or other text, use `--text <file>` and
+  Gitleaks on that file as CONTRIBUTING shows.
+
+The content check looks for home-directory paths, personal email addresses,
+private keys, private or generated file names, binary files and unusual Git
+file modes. Gitleaks looks for credentials. Neither recognizes every kind of
+personal context, so read your own diff and pull request text too. Changing
+what the content check allows needs a narrow change to the script and its
+tests in `scripts/test_public_content.py`.
+
+## Existing history
+
+Deleting a file or changing the Git identity affects only new commits. Commits
+from before the cleanup carry their original author metadata and include a
+local home-directory path that later commits removed. One pull request body
+contained the same path; it has been edited, but GitHub can keep earlier
+versions of edited text. Rewriting branches does not remove copies held in
+pull requests or elsewhere. Changing repository visibility is a separate
+decision, not routine work.
+
+## A suspected leak
+
+1. Stop the push or merge.
+2. If it is a credential, revoke it first.
+3. Remove the private content from the change and check the branch's earlier
+   commits.
+4. If it reached GitHub, check the related pull requests, comments and
+   Actions logs too.
+5. Report the category and location only. Do not copy the private value into
+   an issue, comment or commit.

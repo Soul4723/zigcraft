@@ -1,0 +1,4 @@
+title = "Zigcraft secret scanning"
+
+[extend]
+useDefault = true

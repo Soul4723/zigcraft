@@ -111,7 +111,7 @@ pub const HarvestOutcome = struct {
     drop_count: usize = 0,
     intact_pot: ?DecoratedPot = null,
 
-    pub fn getDrops(self: HarvestOutcome) []const PotDrop {
+    pub fn getDrops(self: *const HarvestOutcome) []const PotDrop {
         return self.drops[0..self.drop_count];
     }
 };

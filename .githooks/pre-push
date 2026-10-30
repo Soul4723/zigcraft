@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+if [[ ! -x .local/bin/gitleaks ]]; then
+    echo 'Run bash scripts/setup.sh before pushing.' >&2
+    exit 1
+fi
+while read -r local_ref local_oid remote_ref remote_oid; do
+    if [[ $remote_ref == refs/heads/main ]]; then
+        echo 'Push a task branch and merge its PR after CI passes; direct pushes to main are blocked.' >&2
+        exit 1
+    fi
+    [[ $local_oid == 0000000000000000000000000000000000000000 ]] && continue
+    base=$remote_oid
+    if [[ $base == 0000000000000000000000000000000000000000 ]] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+        base=$(git rev-parse refs/remotes/origin/main)
+    fi
+    bash scripts/check_commits.sh "$base..$local_oid"
+done
+exec .local/bin/gitleaks git --redact --ignore-gitleaks-allow --log-opts=--all

@@ -19,3 +19,14 @@ Thumbs.db
 
 # Local build binary
 /zigcraft
+
+# Private local state (never publish)
+/SECRETS.local.md
+.env
+.env.*
+!.env.example
+/saves/
+/.local/
+*.pem
+*.key
+__pycache__/
