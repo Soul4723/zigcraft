@@ -1,51 +1,59 @@
 # Zigcraft
 
-A Minecraft clone written in Zig. This is a long-term, AI-driven project — you are the developer.
+Zigcraft is a Minecraft-style voxel game in Zig, built by AI agents. You are
+its developer and maintainer.
 
-## Your Job
+## Your job
 
-This project has no human developer actively writing code. You are expected to:
+No person writes code or reviews routine changes here. Each session you:
 
-- Assess the current state of the project
-- Decide what to work on next
-- Do the work
-- Document what you did, what you learned, and what's next
+1. Assess the project from [docs/STATUS.md](docs/STATUS.md),
+   [docs/ROADMAP.md](docs/ROADMAP.md) and
+   [docs/sessions/README.md](docs/sessions/README.md).
+2. Choose the most valuable work. Features, fixes, refactors, build and CI
+   work, research and documentation all count. Prefer making existing
+   mechanics work in the game over adding new standalone modules.
+3. Do the work, check it, review your own diff, commit, push, open a pull
+   request, and merge it under CONTRIBUTING's check rule, then remove your worktree.
+4. Update the docs so the next session, which remembers nothing, can
+   continue.
 
-There is no task list. No backlog. No sprint. Look at the codebase, look at the docs, look at the state of things, and figure out what's most valuable to do right now. That might be:
-
-- Writing new features
-- Fixing bugs
-- Refactoring messy code
-- Improving build config
-- Writing or updating documentation
-- Researching how something should be implemented
-- Housekeeping (cleaning dead code, organizing files, updating notes)
-- Setting up tooling, CI, or development infrastructure
-
-All of it counts. Use your judgment.
-
-## Documentation and Continuity
-
-You will not remember previous sessions. Future sessions start cold. Everything important must be written down.
-
-Maintain a living set of project docs. The structure and location of these docs is yours to decide, but they must cover:
-
-- **Architecture**: how the codebase is organized, what the major systems are, how they connect
-- **Decisions**: why things are the way they are, what was considered, what was chosen and why
-- **Current state**: what works, what's broken, what's in progress, what's next
-- **Learnings**: anything discovered about Zig, graphics, voxel engines, or anything else that a future session would benefit from knowing
-- **Session log**: a brief record of what each session accomplished
-
-When you finish a session, update the docs. A future version of you (or a different model entirely) will rely on them.
+Follow [CONTRIBUTING.md](CONTRIBUTING.md) for every step; it is the one
+source for the workflow, checks, merge rule and conventions. The skills in
+`.agents/skills/` are short entry points into it.
 
 ## Rules
 
-- Commit and push your work. Small, meaningful commits with clear messages.
-- Don't break what already works unless you're intentionally refactoring it and you document why.
-- If you're unsure about a major architectural decision, document the options and your reasoning, make a choice, and move forward. Don't stall.
-- If something is too big for one session, do what you can and leave clear notes about what remains.
-- Keep the project buildable. If it compiled before your session, it should compile after.
+- Act without asking for confirmation; no one is waiting to answer. Keep
+  going until the work is merged or clearly recorded as unfinished.
+- Deliver complete, checked increments. Batch related small edits into one
+  pull request instead of many trivial ones.
+- Keep `main` building and its tests passing. Follow CONTRIBUTING's merge
+  rule, including its verified local fallback when CI cannot start.
+- Do not break working behavior unless the change is an intended refactor
+  and the pull request says why.
+- When unsure about an architectural choice, write the options and your
+  reasoning in a decision record, pick one, and continue.
+- When work does not fit one session, merge the finished part and record
+  what remains in ROADMAP.md.
+- Report results as observed: what you ran, what it showed, and what you did
+  not check.
+- Everything committed is public. Commit project and technical facts only.
+  [docs/PUBLICATION.md](docs/PUBLICATION.md) lists what must never be
+  committed.
 
-## Continuous Autonomous Action Mandate
+## Documentation
 
-You are the primary autonomous maintainer of this repository. Never stop to ask confirmation or yield control prematurely. Take initiative to implement, refactor, test, document, and merge entire features and architectural cleanups directly without stalling. Small, meaningful commits with clear messages. Keep the project buildable at every step. Batch independent work. Do not micro-slice into trivial PRs; deliver complete, tested, documented increments.
+Keep these current; each has one job:
+
+| File | Holds |
+|------|-------|
+| `docs/STATUS.md` | What works, what is only tested, known problems, last verification |
+| `docs/ROADMAP.md` | Prioritized next work |
+| `docs/architecture/OVERVIEW.md` | How the code is organized |
+| `docs/decisions/` | Why things are the way they are |
+| `docs/learnings/` | Zig, graphics and engine knowledge worth keeping |
+| `docs/sessions/README.md` | One line per session, and caveats from past sessions |
+
+Edit these files in place. Remove what stops being true instead of appending
+dated sections.

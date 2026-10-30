@@ -99,28 +99,6 @@ pub fn setUniformVec3Array(program: c.GLuint, name: [:0]const u8, values: []cons
     c.glUniform3fv(loc, @intCast(values.len), @ptrCast(values.ptr));
 }
 
-/// Default shader sources for a colored triangle with MVP transform.
-pub const default_vert: [:0]const u8 =
-\\#version 330 core
-\\layout (location = 0) in vec3 aPos;
-\\layout (location = 1) in vec3 aColor;
-\\uniform mat4 u_mvp;
-\\out vec3 vertexColor;
-\\void main() {
-\\    gl_Position = u_mvp * vec4(aPos, 1.0);
-\\    vertexColor = aColor;
-\\}
-;
-
-pub const default_frag: [:0]const u8 =
-\\#version 330 core
-\\in vec3 vertexColor;
-\\out vec4 FragColor;
-\\void main() {
-\\    FragColor = vec4(vertexColor, 1.0);
-\\}
-;
-
 /// Chunk shader sources for textured rendering with MVP transform and per-vertex Ambient Occlusion.
 /// Vertex layout: position (loc 0), normal (loc 1), tex_coord (loc 2), ao (loc 3).
 pub const chunk_vert: [:0]const u8 =

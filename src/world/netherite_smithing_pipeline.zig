@@ -743,7 +743,7 @@ pub const EquipmentItem = struct {
         self.custom_name_len = @intCast(len);
     }
 
-    pub fn getName(self: EquipmentItem) ?[]const u8 {
+    pub fn getName(self: *const EquipmentItem) ?[]const u8 {
         if (self.custom_name_len == 0 or self.custom_name == null) return null;
         return self.custom_name.?[0..self.custom_name_len];
     }

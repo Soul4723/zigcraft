@@ -1,55 +1,16 @@
 ---
 name: session-end
-description: End-of-session checklist. Run at the end of every session to commit work, document findings, and prepare for the next session.
+description: Use at the end of every Zigcraft session, to commit, merge and hand over.
 ---
 
-Every session ends here. Do not skip any step.
+Follow [CONTRIBUTING.md](../../../CONTRIBUTING.md) steps 6 and 7:
 
-## Steps
+1. Update the docs listed in CONTRIBUTING, including one line in
+   `docs/sessions/README.md`.
+2. Commit named paths. Let the hooks run; fix what they report.
+3. Push, open the pull request, and apply step 7's merge rule to its exact
+   head, including the verified local fallback if hosted jobs cannot start.
+4. If it cannot be merged, comment on the pull request why it is waiting.
 
-### 1. Verify everything builds and tests pass
-```bash
-zig build          # compiles
-zig build test     # all tests pass
-```
-If either fails, fix it before committing.
-
-### 2. Commit all work
-```bash
-git add -A
-git status          # double-check what you are committing
-git diff --cached --stat
-git commit -m "<type>: <description>"
-git push -u origin <branch>
-```
-Commit types: feat, fix, refactor, docs, build, test
-Multiple logical changes = multiple commits. Each must build and test.
-
-### 3. Open a PR (or update existing one)
-```bash
-gh pr create --title "<type>: <title>" --body-file /tmp/pr_body.md --base main
-# If merging immediately:
-# gh pr merge --squash --delete-branch
-```
-Or if PR exists, push updates it automatically.
-
-### 4. Write a session log
-Create `docs/sessions/NNN.md` with:
-- Date
-- Goal
-- What was done
-- Blockers/issues
-- Next session should pick up
-
-### 5. Update docs
-- `docs/STATUS.md` if project state changed
-- `docs/architecture/OVERVIEW.md` if structure changed
-- `docs/decisions/NNN.md` for new decisions
-- `docs/learnings/` for things future sessions should know
-
-### 6. Final verification
-- git status clean
-- pushed to remote
-- PR open (if applicable)
-- Session log exists
-- No temp files in repo
+Done when the pull request is merged or has a comment saying why it waits, the
+worktree is clean, and the session line is written.

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+if [[ ! -x .local/bin/gitleaks ]]; then
+    echo 'Run bash scripts/setup.sh before committing.' >&2
+    exit 1
+fi
+python3 - "$1" <<'PY'
+from pathlib import Path
+import sys
+from scripts.check_public_content import findings
+errors = list(findings('commit-message', Path(sys.argv[1]).read_bytes()))
+for line, category in errors:
+    print(f'commit-message:{line}: {category}', file=sys.stderr)
+sys.exit(bool(errors))
+PY
+.local/bin/gitleaks stdin --redact --ignore-gitleaks-allow < "$1"

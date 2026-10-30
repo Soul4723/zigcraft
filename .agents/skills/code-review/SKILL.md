@@ -1,46 +1,14 @@
 ---
 name: code-review
-description: >-
-  Review changes on the current branch before opening a PR.
+description: Use before opening or merging a Zigcraft pull request.
 ---
 
-## Run this before opening any PR
+1. Run `bash scripts/check.sh`; it must pass.
+2. Read the whole diff against `origin/main` and go through the checklist in
+   [CONTRIBUTING.md](../../../CONTRIBUTING.md) step 5.
+3. For each `_ = module.fn(...)` line, new module or new item in the diff,
+   find where its result or side effects change the game. If there is none, connect it or
+   remove it.
+4. Fix every problem found, then run step 1 again.
 
-### 1. Get the diff
-
-```bash
-git diff main...HEAD
-git log main..HEAD --oneline
-```
-
-### 2. Automated checks (all must pass)
-
-```bash
-zig build          # compiles?
-zig build test     # tests pass?
-```
-
-### 3. Manual checklist
-
-Go through each changed file:
-
-- [ ] No commented-out code
-- [ ] No `@panic` calls (use `return error.*` instead)
-- [ ] No hardcoded paths
-- [ ] No TODO/FIXME without a matching GitHub issue
-- [ ] Error messages are descriptive
-- [ ] Functions under 50 lines
-- [ ] File under 300 lines
-- [ ] C interop follows project pattern (`const c = @cImport(...)`)
-- [ ] New public APIs have doc comments
-
-### 4. Check scope
-
-- Does the change match the branch name / issue?
-- Did you accidentally change files unrelated to your task?
-- Did you accidentally break an existing feature?
-
-### 5. Report
-
-List any issues found. Fix must-fix items before opening the PR.
-Note should-fix items in the PR description.
+Done when the check passes after the last fix and every checklist item holds.

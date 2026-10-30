@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+python3 scripts/check_public_content.py --staged
+python3 - <<'PY'
+import subprocess
+import sys
+from scripts.check_public_content import valid_identity
+for kind in ('GIT_AUTHOR_IDENT', 'GIT_COMMITTER_IDENT'):
+    identity = subprocess.check_output(['git', 'var', kind], text=True)
+    name, rest = identity.rsplit(' <', 1)
+    email = rest.split('>', 1)[0]
+    if not valid_identity(name, email):
+        sys.exit('Use a public account name and GitHub noreply email; bash scripts/setup.sh configures a project identity.')
+PY
+if [[ ! -x .local/bin/gitleaks ]]; then
+    echo 'Run bash scripts/setup.sh before committing.' >&2
+    exit 1
+fi
+exec .local/bin/gitleaks git --pre-commit --staged --redact --ignore-gitleaks-allow
