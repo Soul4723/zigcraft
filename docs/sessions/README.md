@@ -7,6 +7,10 @@ belong in the pull request description, not in a separate file.
 
 ## Recent sessions
 
+- 2026-10-30: Public final pass. Added Gemini and Claude entry points that
+  import AGENTS.md, enabled required hosted checks and native secret/push
+  protection, removed the obsolete local merge fallback, and clarified
+  external-PR handling and parallel-session descriptions.
 - 2026-10-30: Triaged all 67 remaining legacy PRs: 65 superseded, two
   disconnected proposals declined with their code retained in closed PRs.
   Removed 72 remote branches and one local branch. Retained historical

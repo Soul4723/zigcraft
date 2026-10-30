@@ -14,9 +14,8 @@ When an item is done, delete it here and update STATUS.md.
 
 ## 1. Restore a trusted baseline
 
-- Hosted CI has been externally blocked since 2026-10-10. Use CONTRIBUTING's
-  verified local fallback while jobs cannot start; restore hosted checks
-  when the service becomes available.
+- Required hosted checks protect `main`. Diagnose failed checks before
+  adding work; leave externally blocked PRs open and take another task.
 - Play the game and record in STATUS.md what works in the first minutes:
   spawn, mining, placing, crafting, mobs, a portal trip. The last run only
   checked that the game starts. If no display is available, record that
