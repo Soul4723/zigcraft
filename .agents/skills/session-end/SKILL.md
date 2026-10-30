@@ -9,8 +9,9 @@ Follow [CONTRIBUTING.md](../../../CONTRIBUTING.md) steps 6 and 7:
    `docs/sessions/README.md`.
 2. Commit named paths. Let the hooks run; fix what they report.
 3. Push, open the pull request, and apply step 7's merge rule to its exact
-   head, including the verified local fallback if hosted jobs cannot start.
-4. If it cannot be merged, comment on the pull request why it is waiting.
+   head. Both required hosted checks must pass before merging.
+4. If it cannot be merged, record the blocker in the PR description.
 
-Done when the pull request is merged or has a comment saying why it waits, the
-worktree is clean, and the session line is written.
+Done when the PR is merged and its task worktree removed, or its blocker
+is recorded and unfinished work is committed and pushed. The session line
+must be written in either case.

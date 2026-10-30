@@ -77,7 +77,8 @@ class PublicContentTests(unittest.TestCase):
         for name in ("SECRETS.local.md", ".env", ".env.production", "key.pem",
                      "key.key", "saves/world.txt", ".local/state.txt",
                      ".zig-cache/cache.txt", "zig-out/game", "build/file",
-                     ".aws/credentials", ".netrc", "id_ed25519"):
+                     ".aws/credentials", ".netrc", "id_ed25519",
+                     "CLAUDE.local.md", ".claude/settings.local.json"):
             with self.subTest(name=name):
                 self.put(name, "placeholder\n")
                 self.git("add", "-f", "--", name)

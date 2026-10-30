@@ -30,3 +30,7 @@ Thumbs.db
 *.pem
 *.key
 __pycache__/
+
+# Agent-specific local context and permissions
+CLAUDE.local.md
+.claude/settings.local.json

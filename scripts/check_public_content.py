@@ -39,7 +39,7 @@ DENIED_DIRS = {
     "zig-out", "node_modules", "build", "dist", ".aws", ".ssh", ".gnupg",
 }
 DENIED_NAMES = {
-    "secrets.local.md", ".env", ".netrc", "_netrc", ".npmrc", ".pypirc",
+    "secrets.local.md", "claude.local.md", ".env", ".netrc", "_netrc", ".npmrc", ".pypirc",
     "credentials", "credentials.json", "service-account.json", "id_rsa",
     "id_dsa", "id_ecdsa", "id_ed25519",
 }
@@ -49,6 +49,7 @@ def filename_category(path):
     parts = path.lower().split("/")
     name = parts[-1]
     if (any(part in DENIED_DIRS for part in parts[:-1]) or name in DENIED_NAMES
+            or parts[-2:] == [".claude", "settings.local.json"]
             or name.endswith((".pem", ".key", ".p12", ".pfx", ".pyc"))
             or (name.startswith(".env.") and name != ".env.example")):
         return "private or generated filename"

@@ -10,6 +10,9 @@ public. Keep them about the project.
 - Personal context: names, home-directory paths, machine names, private
   email addresses, account details.
 - Text of private conversations or prompts.
+- Local agent context and settings (`CLAUDE.local.md` and
+  `.claude/settings.local.json`). These are ignored and blocked if forced
+  into the Git index; shared project entry points remain tracked.
 - Local artifacts: saves, caches, build output.
 
 ## Checks
@@ -38,6 +41,9 @@ new main to verify the server-created commit too.
   messages and changed files, and runs Gitleaks on all refs.
 - CI runs the content check on tracked files and Gitleaks on reachable
   history, plus metadata, messages and changed files in new commits.
+  On PRs, metadata checks use the proposed head; build and content checks
+  use the merged tree. GitHub's temporary merge identity is not proposed
+  commit metadata. Actual merged commits are checked again on main.
 - Before publishing PR descriptions or other text, use `--text <file>` and
   Gitleaks on that file as CONTRIBUTING shows.
 
@@ -64,8 +70,16 @@ The 2026-10-30 audit found no credential matches in reachable Git history
 and no private conversation content in the inspected files. Earlier Actions
 logs were checked where available; 135 downloads returned HTTP 404 and could
 not be inspected. These are bounded checks, not proof that every historical
-surface is free of private content. Recheck hosted CI and main's required
-status checks when changing visibility; local hooks are not server enforcement.
+surface is free of private content.
+
+## Public repository protections
+
+The repository is public. GitHub secret scanning and push protection are
+enabled in addition to the local hooks and CI scans. Main requires a PR,
+an up-to-date branch, and passing `build-and-test` and `public-content`
+checks, including for administrators. Force pushes and deletion of main are
+blocked. Human review approval is not required; agents still review their
+own diffs before merging. Local checks cannot bypass these protections.
 
 ## A suspected leak
 
