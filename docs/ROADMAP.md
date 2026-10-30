@@ -21,16 +21,6 @@ When an item is done, delete it here and update STATUS.md.
   spawn, mining, placing, crafting, mobs, a portal trip. The last run only
   checked that the game starts. If no display is available, record that
   limit and choose work that can be checked locally.
-- Triage a small batch of the 67 legacy pull requests per session. Rebase
-  useful work onto current main and preserve the cleaned docs. Merge the ones that connect behavior to
-  the game; close the ones that only add a disconnected or duplicate module.
-  Record why in the PR description, then use `gh pr close <number>
-  --delete-branch`. Preserve unmatched changes unless the PR is deliberately
-  rejected; do not close it just because it is old.
-  If legacy author metadata fails the new checks, import only the needed
-  patches with `git cherry-pick --no-commit <sha>` on a fresh branch and make
-  a new project-identity commit. Keep the cleaned docs and leave old session
-  logs in history.
 
 ## 2. Fix world and save correctness
 
@@ -57,6 +47,11 @@ A module that cannot be connected yet because a needed system is missing
 Good first candidates are mechanics whose blocks, items or mobs already exist
 in the game: hunger (merge `hunger_metabolism.zig` into `player.zig` or
 delete it), mob rules for mobs already in `src/entity/`, and redstone parts.
+
+Resin also needs a real furnace path: `resin_clump` to `resin_brick` is
+defined in standalone helpers but missing from `src/world/smelting.zig`.
+Extend the live furnace table and its tests; another resin rule module does
+not solve this gap.
 
 ## 4. Pay down structure debt
 

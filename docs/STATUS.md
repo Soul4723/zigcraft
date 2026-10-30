@@ -100,10 +100,19 @@ Other overlaps:
 - `src/main.zig` is 7,105 lines; `main()` alone runs from line 363 to the
   end. `src/inventory.zig` is 12,972 lines.
 
-## In progress
+## Legacy pull request triage
 
-On 2026-10-30, 67 pull requests were open after pull requests already
-covered by `main` were closed. Most add more standalone world modules, and
-many overlap modules already on `main`. Check them against the
-[roadmap](ROADMAP.md) before merging; close the ones that only add another
-disconnected module.
+All 67 remaining legacy PRs were reviewed against `5d1db0d` on 2026-10-30.
+65 were closed as superseded: their implementations and applicable runtime
+changes were already on `main`. Later fixes and current item IDs were kept.
+
+[Pale moss #362](https://github.com/Soul4723/zigcraft/pull/362) and
+[resin masonry #363](https://github.com/Soul4723/zigcraft/pull/363) were not
+adopted: they add isolated rule models without playable integration. Their
+code and checked head SHAs remain in the closed PRs. Every closed PR has a
+disposition note with source evidence.
+
+No legacy PR remains open. The 67 PR branches, five source-identical orphan
+branches and one superseded local branch were removed. Closing the PRs did
+not connect the existing standalone modules to gameplay; the
+[roadmap](ROADMAP.md) still prioritizes that work.

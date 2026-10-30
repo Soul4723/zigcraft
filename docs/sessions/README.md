@@ -7,6 +7,10 @@ belong in the pull request description, not in a separate file.
 
 ## Recent sessions
 
+- 2026-10-30: Triaged all 67 remaining legacy PRs: 65 superseded, two
+  disconnected proposals declined with their code retained in closed PRs.
+  Removed 72 remote branches and one local branch. Retained historical
+  emails and paths; refreshed publication checks and the roadmap.
 - 2026-10-30: Public cleanup. Rewrote the README, workflow and status docs;
   added pinned tools, commit/content checks, hooks, the MIT license and a
   publication guide; removed the bootstrap mesh renderer and corrected

@@ -181,7 +181,7 @@ pub const DeathTriggerResult = struct {
     cobwebs: u8 = 0,
     wind_burst: bool = false,
 
-    // Aliases matching prompt naming
+    // Aliases for spawn counts
     slimes_to_spawn: u8 = 0,
     cobwebs_to_spawn: u8 = 0,
 

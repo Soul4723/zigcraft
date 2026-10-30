@@ -356,7 +356,7 @@ pub const BasaltGenerator = struct {
     }
 };
 
-/// Top-level canFormBasalt as requested in prompt.
+/// Check the block conditions required for basalt formation.
 pub fn canFormBasalt(
     has_flowing_lava: bool,
     below_is_soul_soil: bool,
