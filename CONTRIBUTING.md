@@ -162,7 +162,8 @@ Merge only when every check for that head commit has passed, and pin the
 merge to that commit:
 
 ```bash
-gh pr merge <number> --squash --match-head-commit <headRefOid> --author-email zigcraft@users.noreply.github.com
+merge_email=$(gh api user --jq '(.id|tostring) + "+" + .login + "@users.noreply.github.com"')
+gh pr merge <number> --squash --match-head-commit <headRefOid> --author-email "$merge_email"
 ```
 
 Verify the PR is merged. GitHub deletes its remote branch. From another

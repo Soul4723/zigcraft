@@ -21,6 +21,9 @@ GitHub creates squash commits itself, outside the hooks. Use the explicit
 noreply author email in CONTRIBUTING's merge command, and inspect the merged
 commit's author and committer. GitHub chooses the account display name;
 local Git settings do not change it.
+The merge email must belong to the authenticated GitHub account. A synthetic
+project noreply address works for local Git commits but GitHub rejects it as
+a squash author address.
 The merging account must use a simple public account label or the project
 label accepted by `valid_identity`. Verify this before its first automated
 merge; do not silently change a person's account profile or weaken the
