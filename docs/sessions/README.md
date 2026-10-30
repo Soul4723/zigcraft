@@ -11,7 +11,8 @@ belong in the pull request description, not in a separate file.
   import AGENTS.md, enabled required hosted checks and native secret/push
   protection, removed the obsolete local merge fallback, and clarified
   external-PR handling and parallel-session descriptions. Corrected CI's
-  metadata range to exclude GitHub's temporary PR merge identity.
+  metadata range to exclude GitHub's temporary PR merge identity, and
+  blocked local agent context/settings from publication.
 - 2026-10-30: Triaged all 67 remaining legacy PRs: 65 superseded, two
   disconnected proposals declined with their code retained in closed PRs.
   Removed 72 remote branches and one local branch. Retained historical

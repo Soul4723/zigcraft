@@ -10,6 +10,9 @@ public. Keep them about the project.
 - Personal context: names, home-directory paths, machine names, private
   email addresses, account details.
 - Text of private conversations or prompts.
+- Local agent context and settings (`CLAUDE.local.md` and
+  `.claude/settings.local.json`). These are ignored and blocked if forced
+  into the Git index; shared project entry points remain tracked.
 - Local artifacts: saves, caches, build output.
 
 ## Checks
