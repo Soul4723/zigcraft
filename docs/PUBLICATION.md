@@ -55,8 +55,17 @@ from before the cleanup carry their original author metadata and include a
 local home-directory path that later commits removed. One pull request body
 contained the same path; it has been edited, but GitHub can keep earlier
 versions of edited text. Rewriting branches does not remove copies held in
-pull requests or elsewhere. Changing repository visibility is a separate
-decision, not routine work.
+pull requests or elsewhere. Historical contributor email addresses and local
+file paths are retained; they do not by themselves block publication. This
+does not permit credentials, private conversations or account details.
+Changing repository visibility is a separate decision, not routine work.
+
+The 2026-10-30 audit found no credential matches in reachable Git history
+and no private conversation content in the inspected files. Earlier Actions
+logs were checked where available; 135 downloads returned HTTP 404 and could
+not be inspected. These are bounded checks, not proof that every historical
+surface is free of private content. Recheck hosted CI and main's required
+status checks when changing visibility; local hooks are not server enforcement.
 
 ## A suspected leak
 
