@@ -1104,6 +1104,7 @@ test "block jobs load rejects i32 max and min sprout y without arithmetic panic"
     try std.testing.expectEqual(@as(usize, 77), out.sprout_count);
 }
 
+// Loader and decision-contract coverage: verifies that corrupt existing files return error rather than mutating state, providing static verification of the main.zig startup abort contract (not executed main or interactive gameplay run).
 test "corrupt existing block jobs file aborts startup before interactive changes" {
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
