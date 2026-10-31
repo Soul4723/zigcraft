@@ -48,8 +48,6 @@ in the game: mob rules for mobs already in `src/entity/`, and redstone parts.
 - Move subsystems out of `main()` in `src/main.zig` into modules that own
   their state, starting with redstone, fluids, projectiles and dimension
   travel. Keep behavior unchanged and covered by tests.
-- Split `src/inventory.zig` into item definitions, recipes and inventory
-  logic.
 - Show important feedback on screen instead of only in the terminal.
 
 ## 5. Systems that unlock blocked mechanics

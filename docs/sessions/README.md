@@ -7,6 +7,7 @@ belong in the pull request description, not in a separate file.
 
 ## Recent sessions
 
+- 2026-10-31: Split inventory item definitions, recipe resolution and container logic into focused modules, preserving the original rules and test suite.
 - 2026-10-31: Added natural Pale Oak hearts and F-key nighttime resin collection, protected active heart cooldowns, and removed five disconnected duplicate modules.
 - 2026-10-31: Persisted player position, dimension, vitals, inventory, crafting grid, cursor stack, selected slot and tool wear in root-level player.bin across dimensions.
 - 2026-10-31: Consolidated hunger exhaustion into Player, wired Left Control

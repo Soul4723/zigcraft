@@ -102,7 +102,8 @@ Other overlaps:
 - `BlockId` is a `u8` and uses all 256 values. New blocks need a wider ID or
   a different block-state scheme first.
 - `src/main.zig` is 7,105 lines; `main()` alone runs from line 363 to the
-  end. `src/inventory.zig` is 12,972 lines.
+  end. `src/inventory.zig` was split into `items.zig`, `recipes.zig`,
+  `inventory.zig` (~250 lines), and `inventory_test.zig`.
 
 ## Legacy pull request triage
 

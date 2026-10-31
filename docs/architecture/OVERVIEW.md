@@ -15,7 +15,9 @@ src/
   chunk_manager.zig  loaded chunks, streaming, generation, saving, block access
   chunk_renderer.zig GPU buffers and draw call for one chunk mesh
   player.zig         player physics, vitals (health, hunger, oxygen) and status timers
-  inventory.zig      item types, item metadata, inventory slots, 2×2 recipes, mob types
+  items.zig          item types, stack types, item metadata, block drops, mob loot
+  recipes.zig        2×2 recipe resolution and recipe helpers
+  inventory.zig      inventory slots, hotbar, crafting state, and re-exports
   camera.zig, math.zig, frustum.zig, pick.zig, sky.zig
   renderer/          shader, procedural texture atlas, HUD and inventory UI,
                      particles, block highlight, toast messages

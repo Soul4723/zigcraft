@@ -345,7 +345,10 @@ pub fn build(b: *std.Build) void {
         "src/audio/audio.zig",
         "src/entity/pathfind.zig",
         "src/entity.zig",
+        "src/items.zig",
+        "src/recipes.zig",
         "src/inventory.zig",
+        "src/inventory_test.zig",
     };
 
     for (test_files) |test_file| {
