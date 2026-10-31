@@ -360,6 +360,27 @@ fn getFootstepSound(block: block_mod.BlockId) audio_mod.synth.SoundType {
     };
 }
 
+fn syncRedstoneSnapshots(repeaters: []const cache_mod.Repeater, red_torches: []const cache_mod.RedTorch) void {
+    var snap: [64][4]i32 = undefined;
+    var sn: usize = 0;
+    for (repeaters) |rep| {
+        if (sn >= snap.len) break;
+        snap[sn] = .{ rep.x, rep.y, rep.z, rep.stage };
+        sn += 1;
+    }
+    chunk_manager_mod.ChunkManager.setStageSnapshot(snap[0..sn]);
+    var bsnap: [64][4]i32 = undefined;
+    var bn: usize = 0;
+    for (red_torches) |bt| {
+        if (bn >= bsnap.len) break;
+        if (bt.burnout > 0.0) {
+            bsnap[bn] = .{ bt.x, bt.y, bt.z, @intFromFloat(bt.burnout) };
+            bn += 1;
+        }
+    }
+    chunk_manager_mod.ChunkManager.setBurnoutSnapshot(bsnap[0..bn]);
+}
+
 pub fn main() !void {
     std.debug.print("zigcraft v0.0.8\n", .{});
 
@@ -1427,58 +1448,74 @@ pub fn main() !void {
                 particles.spawnGlowstoneShimmer(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 2);
             }
             if (end_portal_transit.tick(in_end_portal, dt)) {
-                // Dimension warp between Overworld and The End!
-                if (end_portal_transit.current_dim == .the_end) {
-                    manager.is_end = true;
-                    manager.is_nether = false;
-                    // Spawn on obsidian arrival platform at (0, 11, 0)
-                    player.pos = math.Vec3.init(0.5, 11.2, 0.5);
-                    player.vel_y = 0.0;
+                const target_dim: chunk_manager_mod.Dimension = if (end_portal_transit.current_dim == .the_end) .the_end else .overworld;
+                const dest_pos = if (end_portal_transit.current_dim == .the_end)
+                    math.Vec3.init(0.5, 11.2, 0.5)
+                else
+                    player.spawn_point;
 
-                    // Spawn boss: Ender Dragon soaring above the central End Island if not already present
-                    var dragon_exists = false;
-                    for (mob_manager.mobs.items) |m| {
-                        if (m.mob_type == .ender_dragon) {
-                            dragon_exists = true;
-                            break;
-                        }
-                    }
-                    if (!dragon_exists) {
-                        try mob_manager.spawnMob(.ender_dragon, 0.0, 16.0, 12.0);
-                        audio.play(.dragon_roar, 1.0);
-                        std.debug.print("Ender Dragon boss spawned in The End (200 HP)!\n", .{});
-                    }
-                    // Spawn End Ship Shulker Guard on the outer island vessel
-                    var shulker_exists = false;
-                    for (mob_manager.mobs.items) |m| {
-                        if (m.mob_type == .shulker) {
-                            shulker_exists = true;
-                            break;
-                        }
-                    }
-                    if (!shulker_exists) {
-                        try mob_manager.spawnMob(.shulker, 84.5, 13.0, 0.5);
-                        std.debug.print("End Ship Shulker guard stationed on vessel!\n", .{});
-                    }
-                } else {
-                    manager.is_end = false;
-                    // Return to Overworld spawn point
-                    player.pos = player.spawn_point;
+                syncRedstoneSnapshots(repeaters[0..repeater_count], red_torches[0..red_torch_count]);
+
+                var switched = true;
+                manager.switchDimension(target_dim, dest_pos.x, dest_pos.z, false) catch |err| switch (err) {
+                    error.ChunkSaveFailed, error.SidecarSaveFailed => {
+                        switched = false;
+                        end_portal_transit.current_dim = if (end_portal_transit.current_dim == .the_end) .overworld else .the_end;
+                        chunk_retry_timer = 1.0;
+                        std.debug.print("dimension transit paused: {s}; unsaved chunks retained\n", .{@errorName(err)});
+                    },
+                    else => return err,
+                };
+
+                if (switched) {
+                    player.pos = dest_pos;
                     player.vel_y = 0.0;
+                    plate_count = 0;
+                    wire_count = 0;
+                    repeater_count = 0;
+                    lamp_count = 0;
+                    red_torch_count = 0;
+                    known_stage_count = 0;
+
+                    if (end_portal_transit.current_dim == .the_end) {
+                        var dragon_exists = false;
+                        for (mob_manager.mobs.items) |m| {
+                            if (m.mob_type == .ender_dragon) {
+                                dragon_exists = true;
+                                break;
+                            }
+                        }
+                        if (!dragon_exists) {
+                            try mob_manager.spawnMob(.ender_dragon, 0.0, 16.0, 12.0);
+                            audio.play(.dragon_roar, 1.0);
+                            std.debug.print("Ender Dragon boss spawned in The End (200 HP)!\n", .{});
+                        }
+                        var shulker_exists = false;
+                        for (mob_manager.mobs.items) |m| {
+                            if (m.mob_type == .shulker) {
+                                shulker_exists = true;
+                                break;
+                            }
+                        }
+                        if (!shulker_exists) {
+                            try mob_manager.spawnMob(.shulker, 84.5, 13.0, 0.5);
+                            std.debug.print("End Ship Shulker guard stationed on vessel!\n", .{});
+                        }
+                    }
+                    portal_flash_timer = 1.0;
+                    particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 1.0, player.pos.z }, 32);
+                    particles.spawnPortalVortex(.{ player.pos.x, player.pos.y + 0.9, player.pos.z }, 1.4, 24, 0.0);
+                    audio.play(.portal_warp, 1.0);
+                    audio.play(.mob_teleport, 0.9);
+                    toast.timer = 3.0;
+                    toast.color = if (manager.is_end) .{ 0.82, 0.20, 0.96 } else .{ 0.20, 0.80, 0.35 };
+                    std.debug.print("dimension transit: warped to {s} at ({d:.1}, {d:.1}, {d:.1})\n", .{
+                        @tagName(end_portal_transit.current_dim),
+                        player.pos.x,
+                        player.pos.y,
+                        player.pos.z,
+                    });
                 }
-                portal_flash_timer = 1.0;
-                particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 1.0, player.pos.z }, 32);
-                particles.spawnPortalVortex(.{ player.pos.x, player.pos.y + 0.9, player.pos.z }, 1.4, 24, 0.0);
-                audio.play(.portal_warp, 1.0);
-                audio.play(.mob_teleport, 0.9);
-                toast.timer = 3.0;
-                toast.color = if (manager.is_end) .{ 0.82, 0.20, 0.96 } else .{ 0.20, 0.80, 0.35 };
-                std.debug.print("dimension transit: warped to {s} at ({d:.1}, {d:.1}, {d:.1})\n", .{
-                    @tagName(end_portal_transit.current_dim),
-                    player.pos.x,
-                    player.pos.y,
-                    player.pos.z,
-                });
             }
 
             // Check if player is standing inside a nether portal block
@@ -1491,14 +1528,14 @@ pub fn main() !void {
                 particles.spawnPortalVortex(.{ player.pos.x, player.pos.y + 0.9, player.pos.z }, ring_radius, 4, @floatCast(current_time));
             }
             if (portal_transit.tick(in_portal, dt)) {
-                // Dimension warp triggered!
                 const from_dim: portal_mod.Dimension = if (portal_transit.current_dim == .nether) .overworld else .nether;
-                // Query linked portal in target destination dimension
+                var dest_pos = player.pos;
+                var matched_linked: ?PortalTarget = null;
                 if (portal_mod.findLinkedPortal(portal_targets[0..portal_target_count], from_dim, player.pos.x, player.pos.y, player.pos.z, portal_mod.PORTAL_LINK_SEARCH_RADIUS)) |linked| {
-                    player.pos.x = @as(f32, @floatFromInt(linked.x)) + 0.5;
-                    player.pos.y = @as(f32, @floatFromInt(linked.y)) + 0.1;
-                    player.pos.z = @as(f32, @floatFromInt(linked.z)) + 0.5;
-                    std.debug.print("linked portal matched at ({d},{d},{d})\n", .{ linked.x, linked.y, linked.z });
+                    dest_pos.x = @as(f32, @floatFromInt(linked.x)) + 0.5;
+                    dest_pos.y = @as(f32, @floatFromInt(linked.y)) + 0.1;
+                    dest_pos.z = @as(f32, @floatFromInt(linked.z)) + 0.5;
+                    matched_linked = linked;
                 } else {
                     const warp_target = portal_mod.PortalTransitState.calculateWarpPosition(
                         from_dim,
@@ -1506,20 +1543,46 @@ pub fn main() !void {
                         player.pos.y,
                         player.pos.z,
                     );
-                    player.pos.x = warp_target[0];
-                    player.pos.z = warp_target[2];
+                    dest_pos.x = warp_target[0];
+                    dest_pos.z = warp_target[2];
                 }
-                manager.is_nether = (portal_transit.current_dim == .nether);
-                portal_flash_timer = 1.0;
-                // Burst effects and audio warp
-                particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 1.0, player.pos.z }, 24);
-                audio.play(.portal_warp, 1.0);
-                std.debug.print("dimension transit: warped to {s} at ({d:.1}, {d:.1}, {d:.1})\n", .{
-                    @tagName(portal_transit.current_dim),
-                    player.pos.x,
-                    player.pos.y,
-                    player.pos.z,
-                });
+
+                syncRedstoneSnapshots(repeaters[0..repeater_count], red_torches[0..red_torch_count]);
+
+                const target_dim: chunk_manager_mod.Dimension = if (portal_transit.current_dim == .nether) .nether else .overworld;
+
+                var switched = true;
+                manager.switchDimension(target_dim, dest_pos.x, dest_pos.z, false) catch |err| switch (err) {
+                    error.ChunkSaveFailed, error.SidecarSaveFailed => {
+                        switched = false;
+                        portal_transit.current_dim = from_dim;
+                        chunk_retry_timer = 1.0;
+                        std.debug.print("dimension transit paused: {s}; unsaved chunks retained\n", .{@errorName(err)});
+                    },
+                    else => return err,
+                };
+
+                if (switched) {
+                    player.pos = dest_pos;
+                    plate_count = 0;
+                    wire_count = 0;
+                    repeater_count = 0;
+                    lamp_count = 0;
+                    red_torch_count = 0;
+                    known_stage_count = 0;
+                    if (matched_linked) |linked| {
+                        std.debug.print("linked portal matched at ({d},{d},{d})\n", .{ linked.x, linked.y, linked.z });
+                    }
+                    portal_flash_timer = 1.0;
+                    particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 1.0, player.pos.z }, 24);
+                    audio.play(.portal_warp, 1.0);
+                    std.debug.print("dimension transit: warped to {s} at ({d:.1}, {d:.1}, {d:.1})\n", .{
+                        @tagName(portal_transit.current_dim),
+                        player.pos.x,
+                        player.pos.y,
+                        player.pos.z,
+                    });
+                }
             }
 
             // In The End dimension: emit ambient purple void shimmer and portal drift
@@ -2007,67 +2070,7 @@ pub fn main() !void {
         // are re-derived from block ids; only repeater delay timers persist in session.
         // Throttled to every 4th frame: ~50k block reads/frame average.
         if (frame_count % 4 == 0) {
-            {
-                var snap: [64][4]i32 = undefined;
-                var sn: usize = 0;
-                for (repeaters[0..repeater_count]) |rep| {
-                    if (sn >= snap.len) break;
-                    snap[sn] = .{ rep.x, rep.y, rep.z, rep.stage };
-                    sn += 1;
-                }
-                chunk_manager_mod.ChunkManager.setStageSnapshot(snap[0..sn]);
-                var bsnap: [64][4]i32 = undefined;
-                var bn: usize = 0;
-                for (red_torches[0..red_torch_count]) |bt| {
-                    if (bn >= bsnap.len) break;
-                    if (bt.burnout > 0.0) {
-                        bsnap[bn] = .{ bt.x, bt.y, bt.z, @intFromFloat(bt.burnout) };
-                        bn += 1;
-                    }
-                }
-                chunk_manager_mod.ChunkManager.setBurnoutSnapshot(bsnap[0..bn]);
-            }
-            // Apply persisted repeater stages for newly seen chunks
-            var stage_iter = manager.chunks.iterator();
-            while (stage_iter.next()) |entry| {
-                const scx = entry.key_ptr.x;
-                const scz = entry.key_ptr.z;
-                var known = false;
-                for (known_stage_chunks[0..known_stage_count]) |kc| {
-                    if (kc.x == scx and kc.z == scz) {
-                        known = true;
-                        break;
-                    }
-                }
-                if (!known) {
-                    if (known_stage_count < known_stage_chunks.len) {
-                        known_stage_chunks[known_stage_count] = .{ .x = scx, .z = scz };
-                        known_stage_count += 1;
-                    }
-                    var burned = [_][4]i32{.{ 0, 0, 0, 0 }} ** 64;
-                    const nburned = manager.loadBurnout(scx, scz, &burned);
-                    var bi: usize = 0;
-                    while (bi < nburned) : (bi += 1) {
-                        for (red_torches[0..red_torch_count]) |*rt| {
-                            if (rt.x == burned[bi][0] and rt.y == burned[bi][1] and rt.z == burned[bi][2]) {
-                                rt.burnout = @floatFromInt(burned[bi][3]);
-                                break;
-                            }
-                        }
-                    }
-                    var staged = [_][4]i32{.{ 0, 0, 0, 0 }} ** 64;
-                    const nstaged = manager.loadStages(scx, scz, &staged);
-                    var si: usize = 0;
-                    while (si < nstaged) : (si += 1) {
-                        for (repeaters[0..repeater_count]) |*rep| {
-                            if (rep.x == staged[si][0] and rep.y == staged[si][1] and rep.z == staged[si][2]) {
-                                rep.stage = @intCast(staged[si][3] & 3);
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
+            syncRedstoneSnapshots(repeaters[0..repeater_count], red_torches[0..red_torch_count]);
             var rs_iter = manager.chunks.iterator();
             while (rs_iter.next()) |entry| {
                 const rcx = entry.key_ptr.x;
@@ -2148,6 +2151,59 @@ pub fn main() !void {
                                     }
                                 },
                                 else => {},
+                            }
+                        }
+                    }
+                }
+            }
+            // Prune unloaded chunks from known_stage_chunks and apply persisted sidecars for newly loaded chunks
+            {
+                var kci: usize = 0;
+                while (kci < known_stage_count) {
+                    const kc = known_stage_chunks[kci];
+                    if (!manager.chunks.contains(.{ .x = kc.x, .z = kc.z })) {
+                        known_stage_chunks[kci] = known_stage_chunks[known_stage_count - 1];
+                        known_stage_count -= 1;
+                    } else {
+                        kci += 1;
+                    }
+                }
+            }
+            var stage_iter = manager.chunks.iterator();
+            while (stage_iter.next()) |entry| {
+                const scx = entry.key_ptr.x;
+                const scz = entry.key_ptr.z;
+                var known = false;
+                for (known_stage_chunks[0..known_stage_count]) |kc| {
+                    if (kc.x == scx and kc.z == scz) {
+                        known = true;
+                        break;
+                    }
+                }
+                if (!known) {
+                    if (known_stage_count < known_stage_chunks.len) {
+                        known_stage_chunks[known_stage_count] = .{ .x = scx, .z = scz };
+                        known_stage_count += 1;
+                    }
+                    var burned = [_][4]i32{.{ 0, 0, 0, 0 }} ** 64;
+                    const nburned = manager.loadBurnout(scx, scz, &burned);
+                    var bi: usize = 0;
+                    while (bi < nburned) : (bi += 1) {
+                        for (red_torches[0..red_torch_count]) |*rt| {
+                            if (rt.x == burned[bi][0] and rt.y == burned[bi][1] and rt.z == burned[bi][2]) {
+                                rt.burnout = @floatFromInt(burned[bi][3]);
+                                break;
+                            }
+                        }
+                    }
+                    var staged = [_][4]i32{.{ 0, 0, 0, 0 }} ** 64;
+                    const nstaged = manager.loadStages(scx, scz, &staged);
+                    var si: usize = 0;
+                    while (si < nstaged) : (si += 1) {
+                        for (repeaters[0..repeater_count]) |*rep| {
+                            if (rep.x == staged[si][0] and rep.y == staged[si][1] and rep.z == staged[si][2]) {
+                                rep.stage = @intCast(staged[si][3] & 3);
+                                break;
                             }
                         }
                     }

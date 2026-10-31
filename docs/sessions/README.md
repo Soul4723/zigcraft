@@ -7,6 +7,7 @@ belong in the pull request description, not in a separate file.
 
 ## Recent sessions
 
+- 2026-10-31: Isolated dimension save namespaces (Overworld in root, Nether and The End in subdirectories), added ChunkManager dimension switching with chunk flushing and headless mesh bypass, and wired portal transit.
 - 2026-10-30: Public final pass. Added Gemini and Claude entry points that
   import AGENTS.md, enabled required hosted checks and native secret/push
   protection, removed the obsolete local merge fallback, and clarified

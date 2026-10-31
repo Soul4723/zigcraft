@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-30.
+Last updated: 2026-10-31.
 
 The project has far more rule modules than game. The next work makes
 existing mechanics real in the game and removes duplicates. Adding another
@@ -23,8 +23,6 @@ When an item is done, delete it here and update STATUS.md.
 
 ## 2. Fix world and save correctness
 
-- Give each dimension its own save namespace, for example a subdirectory of
-  `saves/` per dimension, and keep loading existing Overworld saves.
 - Save the player position, health and inventory.
 - Save furnace jobs and growing saplings, or document why they reset.
 

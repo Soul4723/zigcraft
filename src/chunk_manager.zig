@@ -8,6 +8,7 @@ const chunk_renderer_mod = @import("chunk_renderer.zig");
 const frustum_mod = @import("frustum.zig");
 const math = @import("math.zig");
 const persistence_mod = @import("world/persistence.zig");
+pub const Dimension = persistence_mod.Dimension;
 
 pub const ChunkCoord = struct {
     x: i32,
@@ -53,8 +54,12 @@ pub const ChunkManager = struct {
     is_nether: bool = false,
     is_end: bool = false,
     persistence: persistence_mod.Persistence,
+    enable_gpu_mesh: bool = true,
 
-    pub fn init(allocator: std.mem.Allocator, radius: i32, center_cx: i32, center_cz: i32, seed: u64, save_dir: [:0]const u8) !ChunkManager {
+    /// Initialize ChunkManager with explicit GPU mesh rendering options.
+    /// When `enable_gpu_mesh` is false, meshing and renderer allocation are bypassed,
+    /// enabling headless unit tests without an active OpenGL context.
+    pub fn initWithOptions(allocator: std.mem.Allocator, radius: i32, center_cx: i32, center_cz: i32, seed: u64, save_dir: [:0]const u8, enable_gpu_mesh: bool) !ChunkManager {
         var self = ChunkManager{
             .allocator = allocator,
             .chunks = std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80).init(allocator),
@@ -65,11 +70,55 @@ pub const ChunkManager = struct {
             .is_nether = false,
             .is_end = false,
             .persistence = persistence_mod.Persistence.init(save_dir),
+            .enable_gpu_mesh = enable_gpu_mesh,
         };
         errdefer self.deinit();
 
         try self.syncToCenter(center_cx, center_cz, true);
         return self;
+    }
+
+    /// Initialize ChunkManager with GPU meshing enabled.
+    pub fn init(allocator: std.mem.Allocator, radius: i32, center_cx: i32, center_cz: i32, seed: u64, save_dir: [:0]const u8) !ChunkManager {
+        return initWithOptions(allocator, radius, center_cx, center_cz, seed, save_dir, true);
+    }
+
+    /// Return the currently active dimension.
+    pub fn currentDimension(self: *const ChunkManager) persistence_mod.Dimension {
+        if (self.is_end) return .the_end;
+        if (self.is_nether) return .nether;
+        return .overworld;
+    }
+
+    /// Switch active dimension, saving modified chunks from the current dimension,
+    /// releasing chunk renderers, clearing chunk cache, updating persistence namespace,
+    /// and reloading/generating chunks around (player_x, player_z).
+    pub fn switchDimension(self: *ChunkManager, dim: persistence_mod.Dimension, player_x: f32, player_z: f32, mesh_all: bool) !void {
+        const center_cx = @as(i32, @intFromFloat(@floor(player_x / 16.0)));
+        const center_cz = @as(i32, @intFromFloat(@floor(player_z / 16.0)));
+        if (self.currentDimension() != dim) {
+            var save_iter = self.chunks.iterator();
+            while (save_iter.next()) |entry| {
+                if (entry.value_ptr.modified) {
+                    try self.saveModified(entry.key_ptr.*, &entry.value_ptr.chunk);
+                    entry.value_ptr.modified = false;
+                }
+            }
+            var clean_iter = self.chunks.iterator();
+            while (clean_iter.next()) |entry| {
+                if (entry.value_ptr.renderer) |*r| {
+                    r.deinit();
+                    entry.value_ptr.renderer = null;
+                }
+            }
+            self.chunks.clearRetainingCapacity();
+            stageSnapshotLen = 0;
+            burnoutSnapshotLen = 0;
+            self.is_nether = (dim == .nether);
+            self.is_end = (dim == .the_end);
+            self.persistence = self.persistence.withDimension(dim);
+        }
+        try self.syncToCenter(center_cx, center_cz, mesh_all);
     }
 
     pub fn deinit(self: *ChunkManager) void {
@@ -140,25 +189,27 @@ pub const ChunkManager = struct {
         }
 
         // 3. Mesh dirty chunks (budgeted per frame unless mesh_all)
-        const budget: usize = if (mesh_all) std.math.maxInt(usize) else 4;
-        var meshed: usize = 0;
-        var r_iter = self.chunks.iterator();
-        while (r_iter.next()) |entry| {
-            if (meshed >= budget) break;
-            if (!entry.value_ptr.dirty) continue;
+        if (self.enable_gpu_mesh) {
+            const budget: usize = if (mesh_all) std.math.maxInt(usize) else 4;
+            var meshed: usize = 0;
+            var r_iter = self.chunks.iterator();
+            while (r_iter.next()) |entry| {
+                if (meshed >= budget) break;
+                if (!entry.value_ptr.dirty) continue;
 
-            const coord = entry.key_ptr.*;
-            var nbs = self.neighborsFor(coord.x, coord.z);
-            var cpu_mesh = try chunk_mesh_mod.generateMesh(self.allocator, &entry.value_ptr.chunk, &nbs);
-            defer cpu_mesh.deinit(self.allocator);
+                const coord = entry.key_ptr.*;
+                var nbs = self.neighborsFor(coord.x, coord.z);
+                var cpu_mesh = try chunk_mesh_mod.generateMesh(self.allocator, &entry.value_ptr.chunk, &nbs);
+                defer cpu_mesh.deinit(self.allocator);
 
-            if (entry.value_ptr.renderer) |*r| {
-                r.remesh(&cpu_mesh);
-            } else {
-                entry.value_ptr.renderer = try chunk_renderer_mod.ChunkRenderer.init(self.allocator, &cpu_mesh);
+                if (entry.value_ptr.renderer) |*r| {
+                    r.remesh(&cpu_mesh);
+                } else {
+                    entry.value_ptr.renderer = try chunk_renderer_mod.ChunkRenderer.init(self.allocator, &cpu_mesh);
+                }
+                entry.value_ptr.dirty = false;
+                meshed += 1;
             }
-            entry.value_ptr.dirty = false;
-            meshed += 1;
         }
     }
 
@@ -260,6 +311,7 @@ pub const ChunkManager = struct {
 
     /// Remesh a single chunk by coordinate.
     pub fn remeshChunk(self: *ChunkManager, cx: i32, cz: i32) !void {
+        if (!self.enable_gpu_mesh) return;
         const entry = self.chunks.getPtr(.{ .x = cx, .z = cz }) orelse return;
         var nbs = self.neighborsFor(cx, cz);
         var cpu_mesh = try chunk_mesh_mod.generateMesh(self.allocator, &entry.chunk, &nbs);
@@ -508,6 +560,107 @@ test "streaming retains modified chunk when chunk or sidecar save fails" {
         try std.testing.expect(retained.modified);
         try std.testing.expectEqual(block_mod.BlockId.wood, retained.chunk.getBlock(1, 2, 3));
         // Clear only test data so teardown does not deliberately retry a failed save.
+        retained.modified = false;
+    }
+}
+
+test "switchDimension isolates per-dimension chunk and sidecar edits across portals" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var path_buf: [256:0]u8 = undefined;
+    const test_dir = try std.fmt.bufPrintZ(&path_buf, ".zig-cache/tmp/{s}", .{tmp.sub_path});
+
+    defer {
+        ChunkManager.stageSnapshotLen = 0;
+        ChunkManager.burnoutSnapshotLen = 0;
+    }
+
+    var mgr = try ChunkManager.initWithOptions(std.testing.allocator, 1, 0, 0, 42, test_dir, false);
+    defer mgr.deinit();
+
+    try std.testing.expectEqual(persistence_mod.Dimension.overworld, mgr.currentDimension());
+
+    _ = mgr.setBlockWorld(0, 5, 0, .diamond_block);
+    ChunkManager.setStageSnapshot(&.{.{ 2, 5, 2, 3 }});
+    ChunkManager.setBurnoutSnapshot(&.{.{ 3, 5, 3, 12 }});
+    try std.testing.expectEqual(block_mod.BlockId.diamond_block, mgr.getBlockWorld(0, 5, 0));
+
+    try mgr.switchDimension(.nether, 0.5, 0.5, false);
+    try std.testing.expectEqual(persistence_mod.Dimension.nether, mgr.currentDimension());
+    try std.testing.expect(mgr.getBlockWorld(0, 5, 0) != .diamond_block);
+    try std.testing.expectEqual(@as(usize, 0), ChunkManager.stageSnapshotLen);
+
+    _ = mgr.setBlockWorld(0, 5, 0, .gold_block);
+    ChunkManager.setStageSnapshot(&.{.{ 2, 5, 2, 1 }});
+    ChunkManager.setBurnoutSnapshot(&.{.{ 3, 5, 3, 25 }});
+    try std.testing.expectEqual(block_mod.BlockId.gold_block, mgr.getBlockWorld(0, 5, 0));
+
+    try mgr.switchDimension(.the_end, 0.5, 0.5, false);
+    try std.testing.expectEqual(persistence_mod.Dimension.the_end, mgr.currentDimension());
+    try std.testing.expect(mgr.getBlockWorld(0, 5, 0) != .gold_block);
+    try std.testing.expect(mgr.getBlockWorld(0, 5, 0) != .diamond_block);
+
+    _ = mgr.setBlockWorld(0, 5, 0, .emerald_block);
+    try std.testing.expectEqual(block_mod.BlockId.emerald_block, mgr.getBlockWorld(0, 5, 0));
+
+    try mgr.switchDimension(.overworld, 0.5, 0.5, false);
+    try std.testing.expectEqual(persistence_mod.Dimension.overworld, mgr.currentDimension());
+    try std.testing.expectEqual(block_mod.BlockId.diamond_block, mgr.getBlockWorld(0, 5, 0));
+    var stages: [8][4]i32 = undefined;
+    try std.testing.expectEqual(@as(usize, 1), mgr.loadStages(0, 0, &stages));
+    try std.testing.expectEqual([4]i32{ 2, 5, 2, 3 }, stages[0]);
+    var burnouts: [8][4]i32 = undefined;
+    try std.testing.expectEqual(@as(usize, 1), mgr.loadBurnout(0, 0, &burnouts));
+    try std.testing.expectEqual([4]i32{ 3, 5, 3, 12 }, burnouts[0]);
+
+    try mgr.switchDimension(.nether, 0.5, 0.5, false);
+    try std.testing.expectEqual(persistence_mod.Dimension.nether, mgr.currentDimension());
+    try std.testing.expectEqual(block_mod.BlockId.gold_block, mgr.getBlockWorld(0, 5, 0));
+    try std.testing.expectEqual(@as(usize, 1), mgr.loadStages(0, 0, &stages));
+    try std.testing.expectEqual([4]i32{ 2, 5, 2, 1 }, stages[0]);
+    try std.testing.expectEqual(@as(usize, 1), mgr.loadBurnout(0, 0, &burnouts));
+    try std.testing.expectEqual([4]i32{ 3, 5, 3, 25 }, burnouts[0]);
+
+    try mgr.switchDimension(.the_end, 0.5, 0.5, false);
+    try std.testing.expectEqual(persistence_mod.Dimension.the_end, mgr.currentDimension());
+    try std.testing.expectEqual(block_mod.BlockId.emerald_block, mgr.getBlockWorld(0, 5, 0));
+    try std.testing.expectEqual(@as(usize, 0), mgr.loadStages(0, 0, &stages));
+}
+
+test "switchDimension retains current dimension and modified chunks when save fails" {
+    const cases = [_]struct { path: []const u8, err: anyerror }{
+        .{ .path = "c_0_0.bin", .err = error.ChunkSaveFailed },
+        .{ .path = "c_0_0.rsp", .err = error.SidecarSaveFailed },
+        .{ .path = "c_0_0.rtb", .err = error.SidecarSaveFailed },
+    };
+    for (cases) |case| {
+        var tmp = std.testing.tmpDir(.{});
+        defer tmp.cleanup();
+        try tmp.dir.createDir(std.testing.io, case.path, .default_dir);
+        var path_buf: [256:0]u8 = undefined;
+        const dir = try std.fmt.bufPrintZ(&path_buf, ".zig-cache/tmp/{s}", .{tmp.sub_path});
+        var mgr = ChunkManager{
+            .allocator = std.testing.allocator,
+            .chunks = std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80).init(std.testing.allocator),
+            .radius = 0,
+            .terrain = terrain_mod.TerrainGenerator.init(0),
+            .nether = terrain_mod.NetherGenerator.init(0),
+            .end = terrain_mod.EndGenerator.init(0),
+            .is_nether = false,
+            .is_end = false,
+            .persistence = persistence_mod.Persistence.init(dir),
+            .enable_gpu_mesh = false,
+        };
+        defer mgr.deinit();
+        var ch = Chunk.init();
+        ch.setBlock(1, 2, 3, .wood);
+        try mgr.chunks.put(.{ .x = 0, .z = 0 }, .{ .chunk = ch, .renderer = null, .dirty = false, .modified = true });
+        try std.testing.expectError(case.err, mgr.switchDimension(.nether, 0.5, 0.5, false));
+        try std.testing.expectEqual(persistence_mod.Dimension.overworld, mgr.currentDimension());
+        try std.testing.expectEqual(@as(usize, 1), mgr.loadedChunkCount());
+        const retained = mgr.chunks.getPtr(.{ .x = 0, .z = 0 }).?;
+        try std.testing.expect(retained.modified);
+        try std.testing.expectEqual(block_mod.BlockId.wood, retained.chunk.getBlock(1, 2, 3));
         retained.modified = false;
     }
 }
