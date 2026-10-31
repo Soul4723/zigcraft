@@ -218,7 +218,6 @@ pub fn build(b: *std.Build) void {
         "src/world/stronghold_triangulation.zig",
         "src/world/mushroom_island.zig",
         "src/world/weather_lightning.zig",
-        "src/world/hunger_metabolism.zig",
         "src/world/experience_orbs.zig",
         "src/world/melee_sweep_crit.zig",
         "src/world/skeleton_variants.zig",

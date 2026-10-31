@@ -127,7 +127,6 @@ const temple_traps_mod = @import("world/temple_traps.zig");
 const stronghold_triangulation_mod = @import("world/stronghold_triangulation.zig");
 const mushroom_island_mod = @import("world/mushroom_island.zig");
 const weather_lightning_mod = @import("world/weather_lightning.zig");
-const hunger_metabolism_mod = @import("world/hunger_metabolism.zig");
 const experience_orbs_mod = @import("world/experience_orbs.zig");
 const melee_sweep_crit_mod = @import("world/melee_sweep_crit.zig");
 const skeleton_variants_mod = @import("world/skeleton_variants.zig");
@@ -631,7 +630,6 @@ pub fn main() !void {
         .result = stronghold_triangulation_mod.throwEyeOfEnder(.{ 0.0, 64.0, 0.0 }, .{ 64.0, 40.0, 64.0 }, 1),
     };
     var active_mooshroom = mushroom_island_mod.MooshroomState{};
-    var active_metabolism = hunger_metabolism_mod.MetabolismState{};
     var active_melee_elapsed: f32 = 0.0;
     var active_skeleton_freeze = skeleton_variants_mod.SkeletonFreezeConversionState{};
     var active_zombie_submersion = zombie_conversions_mod.ZombieSubmersionState{ .variant = .desert_husk };
@@ -800,9 +798,12 @@ pub fn main() !void {
         const is_blocking = !inventory_open and (c.glfwGetMouseButton(window, c.GLFW_MOUSE_BUTTON_RIGHT) == c.GLFW_PRESS) and inventory.slots[selected_slot].item == .shield;
         const walk_vecs = player_mod.computeWalkVectors(cam.front());
         const is_loading_crossbow = !inventory_open and (c.glfwGetMouseButton(window, c.GLFW_MOUSE_BUTTON_RIGHT) == c.GLFW_PRESS) and inventory.slots[selected_slot].item == .crossbow and !crossbow_loaded;
-        const walk_speed: f32 = if (is_blocking or is_loading_crossbow) 6.0 * combat_mod.shield_blocking_speed_mult else 6.0;
         const key_w = c.glfwGetKey(window, c.GLFW_KEY_W) == c.GLFW_PRESS;
         const key_s = c.glfwGetKey(window, c.GLFW_KEY_S) == c.GLFW_PRESS;
+        const key_ctrl = !inventory_open and (c.glfwGetKey(window, c.GLFW_KEY_LEFT_CONTROL) == c.GLFW_PRESS);
+        player.updateSprint(key_ctrl, key_w and !key_s, is_blocking or is_loading_crossbow);
+        const base_walk_speed: f32 = if (is_blocking or is_loading_crossbow) 6.0 * combat_mod.shield_blocking_speed_mult else 6.0;
+        const walk_speed = base_walk_speed * (if (player.is_sprinting) player_mod.Player.sprint_speed_mult else 1.0);
         const key_d = c.glfwGetKey(window, c.GLFW_KEY_D) == c.GLFW_PRESS;
         const key_a = c.glfwGetKey(window, c.GLFW_KEY_A) == c.GLFW_PRESS;
         const norm_wish = player_mod.computeWishDirection(walk_vecs, key_w, key_s, key_d, key_a, inventory_open);
@@ -999,7 +1000,6 @@ pub fn main() !void {
         _ = mushroom_island_mod.canHostileMobSpawnInMushroomFields(true, false);
         _ = weather_lightning_mod.resolveBiomePrecipitation(0.8, 64, active_weather);
         _ = weather_lightning_mod.canPlayerSleepInBed(active_weather, 18_000, false);
-        _ = hunger_metabolism_mod.tickMetabolismAndHealing(&active_metabolism, player.health, 20.0, .normal, dt);
         _ = experience_orbs_mod.xpRequiredForNextLevel(0);
         _ = experience_orbs_mod.clumpNearbyXpOrbs(3, 1, 5, 0.1);
         active_melee_elapsed += dt;
@@ -3380,6 +3380,7 @@ pub fn main() !void {
                 const hit_mob_opt = if (!bartered and !sheared_sheep and !leashed_mob and left and mob_hit_cooldown <= 0.0) mob_manager.tryHitMobDmg(cam.position, dir, combat_mod.melee_range, hit_dmg) else null;
                 if (!bartered) {
                 if (hit_mob_opt) |hit_mob| {
+                    player.addActivityExhaustion(.attack_melee);
                     mob_hit_cooldown = combat_mod.melee_cooldown;
                     if (held_weapon == .mace and mace_smash_kinematics_mod.isSmashAttack(fall_blocks)) {
                         player.vel_y = 0.0;
@@ -3479,6 +3480,7 @@ pub fn main() !void {
                         }
                         if (mine.done(need)) {
                             mine.reset();
+                            player.addActivityExhaustion(.mine_block);
                             if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .air)) {
                                 audio.play(.break_block, 0.7);
                                 const drop_col = inventory_mod.ItemType.fromBlockId(broken_block).getColor();

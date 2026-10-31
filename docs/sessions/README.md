@@ -7,6 +7,8 @@ belong in the pull request description, not in a separate file.
 
 ## Recent sessions
 
+- 2026-10-31: Consolidated hunger exhaustion into Player, wired Left Control
+  sprinting and activity exhaustion, and removed duplicate hunger_metabolism.zig.
 - 2026-10-31: Connected standard furnace smelting from resin clumps to resin
   bricks and removed the raw-clump crafting shortcut; in-world resin drops
   remain unconnected.

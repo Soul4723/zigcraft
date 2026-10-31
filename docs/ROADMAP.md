@@ -42,8 +42,7 @@ A module that cannot be connected yet because a needed system is missing
 `main.zig` and is listed under that system below.
 
 Good first candidates are mechanics whose blocks, items or mobs already exist
-in the game: hunger (merge `hunger_metabolism.zig` into `player.zig` or
-delete it), mob rules for mobs already in `src/entity/`, and redstone parts.
+in the game: mob rules for mobs already in `src/entity/`, and redstone parts.
 
 Connect in-world `resin_clump` drops from active Creaking Hearts so players can
 obtain clumps to feed the live `resin_clump` to `resin_brick` furnace recipe.
