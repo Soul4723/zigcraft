@@ -42,6 +42,8 @@ pub const Terracotta: u16 = 327;
 pub const BrickItem: u16 = 328;
 pub const Potato: u16 = 342;
 pub const BakedPotato: u16 = 343;
+pub const ResinClump: u16 = 411;
+pub const ResinBrick: u16 = 412;
 pub const None: u16 = 0;
 
 pub fn smeltResult(input: u16) u16 {
@@ -62,6 +64,7 @@ pub fn smeltResult(input: u16) u16 {
         RawCopper, CopperOre => CopperIngot,
         CobbledDeepslate => Deepslate,
         ClayBall => BrickItem,
+        ResinClump => ResinBrick,
         ClayBlock => Terracotta,
         Potato => BakedPotato,
         else => None,
@@ -80,6 +83,8 @@ test "smelting recipes" {
     try std.testing.expectEqual(smeltResult(AncientDebris), NetheriteScrap);
     try std.testing.expectEqual(smeltResult(ChorusFruit), PoppedChorusFruit);
     try std.testing.expectEqual(smeltResult(WetSponge), Sponge);
+    try std.testing.expectEqual(smeltResult(ResinClump), ResinBrick);
+    try std.testing.expectEqual(smeltResult(ResinBrick), None);
     try std.testing.expectEqual(smeltResult(RawCod), CookedCod);
     try std.testing.expectEqual(smeltResult(RawSalmon), CookedSalmon);
     try std.testing.expectEqual(smeltResult(Kelp), DriedKelp);
@@ -94,6 +99,8 @@ test "smeltable check" {
     try std.testing.expect(isSmeltable(AncientDebris));
     try std.testing.expect(isSmeltable(ChorusFruit));
     try std.testing.expect(isSmeltable(WetSponge));
+    try std.testing.expect(isSmeltable(ResinClump));
+    try std.testing.expect(!isSmeltable(ResinBrick));
     try std.testing.expect(isSmeltable(RawCod));
     try std.testing.expect(!isSmeltable(None));
 }
@@ -159,6 +166,23 @@ test "tickJob progress and completion" {
     try std.testing.expectEqual(@as(f32, 0.0), t);
 }
 
+test "tickJob smelts resin clump in a standard furnace" {
+    var t: f32 = 0.0;
+    var fuel: u8 = 1;
+    var input: u16 = ResinClump;
+
+    const progress = tickJob(&t, &fuel, &input, 9.0);
+    try std.testing.expectEqual(@as(?u16, null), progress.done_item);
+    try std.testing.expect(!progress.fuel_consumed);
+    try std.testing.expectEqual(@as(f32, 9.0), t);
+
+    const done = tickJob(&t, &fuel, &input, 1.0);
+    try std.testing.expectEqual(@as(?u16, ResinBrick), done.done_item);
+    try std.testing.expect(done.fuel_consumed);
+    try std.testing.expectEqual(@as(u8, 0), fuel);
+    try std.testing.expectEqual(None, input);
+}
+
 pub const FeedAction = enum {
     add_fuel,
     set_input,
@@ -183,6 +207,18 @@ pub const smoker_time: f32 = 5.0;
 
 pub fn isFoodItem(input: u16) bool {
     return input == RawPork or input == RawMutton or input == ChorusFruit or input == RawCod or input == RawSalmon or input == Kelp or input == Potato;
+}
+
+test "resin clumps are not smoker food" {
+    try std.testing.expect(!isFoodItem(ResinClump));
+    var t: f32 = 0.0;
+    var fuel: u8 = 1;
+    var input: u16 = ResinClump;
+    const outcome = tickSmokerJob(&t, &fuel, &input, smoker_time);
+    try std.testing.expectEqual(@as(?u16, null), outcome.done_item);
+    try std.testing.expect(!outcome.fuel_consumed);
+    try std.testing.expectEqual(@as(u8, 1), fuel);
+    try std.testing.expectEqual(ResinClump, input);
 }
 
 pub fn tickSmokerJob(t: *f32, fuel: *u8, input: *u16, dt: f32) SmeltTickOutcome {
@@ -240,6 +276,18 @@ pub const blast_furnace_time: f32 = 5.0;
 
 pub fn isOreItem(input: u16) bool {
     return input == IronOre or input == AncientDebris or input == Sand or input == GoldOre or input == DiamondOre or input == EmeraldOre or input == RawCopper or input == CopperOre;
+}
+
+test "resin clumps are not blast furnace ores" {
+    try std.testing.expect(!isOreItem(ResinClump));
+    var t: f32 = 0.0;
+    var fuel: u8 = 1;
+    var input: u16 = ResinClump;
+    const outcome = tickBlastFurnaceJob(&t, &fuel, &input, blast_furnace_time);
+    try std.testing.expectEqual(@as(?u16, null), outcome.done_item);
+    try std.testing.expect(!outcome.fuel_consumed);
+    try std.testing.expectEqual(@as(u8, 1), fuel);
+    try std.testing.expectEqual(ResinClump, input);
 }
 
 pub fn tickBlastFurnaceJob(t: *f32, fuel: *u8, input: *u16, dt: f32) SmeltTickOutcome {

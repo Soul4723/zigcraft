@@ -1,5 +1,6 @@
 const std = @import("std");
 const block_mod = @import("world/block.zig");
+const smelting = @import("world/smelting.zig");
 pub const BlockId = block_mod.BlockId;
 
 pub const ItemType = enum(u16) {
@@ -4125,7 +4126,7 @@ pub const Inventory = struct {
         if (non_empty == 4) {
             var rsb_c: u8 = 0;
             for (self.craft_grid) |sl| {
-                if (sl.item == .resin_brick or sl.item == .resin_clump) rsb_c += 1;
+                if (sl.item == .resin_brick) rsb_c += 1;
             }
             if (rsb_c == 4) {
                 self.craft_output = .{ .item = .resin_bricks, .count = 1 };
@@ -11980,6 +11981,13 @@ test "milestones 293-298 item roundtrips, properties, and recipes" {
     try std.testing.expectEqual(inv.craft_output.item, .resin_bricks);
     try std.testing.expectEqual(inv.craft_output.count, 1);
 
+    inv.craft_grid[0] = .{ .item = .resin_clump, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .resin_clump, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .resin_clump, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .resin_clump, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.none, inv.craft_output.item);
+
     // Recipe 296: Creaking Heart
     inv.craft_grid[0] = .{ .item = .pale_oak_log, .count = 1 };
     inv.craft_grid[1] = .{ .item = .resin_bricks, .count = 1 };
@@ -11988,6 +11996,36 @@ test "milestones 293-298 item roundtrips, properties, and recipes" {
     inv.updateCrafting();
     try std.testing.expectEqual(inv.craft_output.item, .creaking_heart);
     try std.testing.expectEqual(inv.craft_output.count, 1);
+}
+
+test "resin furnace item IDs match inventory items and recipe 295 crafting" {
+    try std.testing.expectEqual(@as(u16, @intFromEnum(ItemType.resin_clump)), smelting.ResinClump);
+    try std.testing.expectEqual(@as(u16, @intFromEnum(ItemType.resin_brick)), smelting.ResinBrick);
+    try std.testing.expectEqual(@as(u16, 411), smelting.ResinClump);
+    try std.testing.expectEqual(@as(u16, 412), smelting.ResinBrick);
+
+    var inv = Inventory.init();
+    inv.craft_grid[0] = .{ .item = .resin_brick, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .resin_brick, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .resin_brick, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .resin_brick, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.resin_bricks, inv.craft_output.item);
+    try std.testing.expectEqual(@as(u8, 1), inv.craft_output.count);
+
+    inv.craft_grid[0] = .{ .item = .resin_clump, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .resin_clump, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .resin_clump, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .resin_clump, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.none, inv.craft_output.item);
+
+    inv.craft_grid[0] = .{ .item = .resin_brick, .count = 1 };
+    inv.craft_grid[1] = .{ .item = .resin_brick, .count = 1 };
+    inv.craft_grid[2] = .{ .item = .resin_clump, .count = 1 };
+    inv.craft_grid[3] = .{ .item = .resin_clump, .count = 1 };
+    inv.updateCrafting();
+    try std.testing.expectEqual(ItemType.none, inv.craft_output.item);
 }
 
 test "Milestones 299-304 items, block roundtrips, and recipes 297-304" {
