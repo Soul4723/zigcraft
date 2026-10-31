@@ -14,6 +14,13 @@ pub const MAGIC = [4]u8{ 'Z', 'C', 'H', 'K' };
 pub const VERSION: u32 = 2;
 pub const VERSION_LEVELS: u32 = 2;
 
+/// Dimensions supported by the game engine, mapping to separate save namespaces.
+pub const Dimension = enum(u8) {
+    overworld = 0,
+    nether = 1,
+    the_end = 2,
+};
+
 pub const ChunkHeader = extern struct {
     magic: [4]u8,
     version: u32,
@@ -23,17 +30,52 @@ pub const ChunkHeader = extern struct {
 
 pub const Persistence = struct {
     dir_path: [:0]const u8,
+    dimension: Dimension = .overworld,
 
+    /// Initialize persistence for the Overworld dimension by default.
     pub fn init(dir_path: [:0]const u8) Persistence {
-        return .{ .dir_path = dir_path };
+        return .{ .dir_path = dir_path, .dimension = .overworld };
+    }
+
+    /// Initialize persistence for a specific dimension.
+    pub fn initForDimension(dir_path: [:0]const u8, dimension: Dimension) Persistence {
+        return .{ .dir_path = dir_path, .dimension = dimension };
+    }
+
+    /// Return a copy of persistence configured for the specified dimension.
+    pub fn withDimension(self: Persistence, dimension: Dimension) Persistence {
+        return .{ .dir_path = self.dir_path, .dimension = dimension };
     }
 
     fn ensureDir(self: Persistence) void {
         _ = c.mkdir(self.dir_path.ptr, 0o755);
+        switch (self.dimension) {
+            .overworld => {},
+            .nether => {
+                var dir_buf: [256:0]u8 = undefined;
+                if (std.fmt.bufPrintZ(&dir_buf, "{s}/nether", .{self.dir_path})) |sub| {
+                    _ = c.mkdir(sub.ptr, 0o755);
+                } else |_| {}
+            },
+            .the_end => {
+                var dir_buf: [256:0]u8 = undefined;
+                if (std.fmt.bufPrintZ(&dir_buf, "{s}/the_end", .{self.dir_path})) |sub| {
+                    _ = c.mkdir(sub.ptr, 0o755);
+                } else |_| {}
+            },
+        }
+    }
+
+    fn makePathWithExt(self: Persistence, buf: *[256:0]u8, cx: i32, cz: i32, ext: []const u8) ![:0]const u8 {
+        return switch (self.dimension) {
+            .overworld => std.fmt.bufPrintZ(buf, "{s}/c_{d}_{d}.{s}", .{ self.dir_path, cx, cz, ext }),
+            .nether => std.fmt.bufPrintZ(buf, "{s}/nether/c_{d}_{d}.{s}", .{ self.dir_path, cx, cz, ext }),
+            .the_end => std.fmt.bufPrintZ(buf, "{s}/the_end/c_{d}_{d}.{s}", .{ self.dir_path, cx, cz, ext }),
+        };
     }
 
     fn makePath(self: Persistence, buf: *[256:0]u8, cx: i32, cz: i32) ![:0]const u8 {
-        return try std.fmt.bufPrintZ(buf, "{s}/c_{d}_{d}.bin", .{ self.dir_path, cx, cz });
+        return self.makePathWithExt(buf, cx, cz, "bin");
     }
 
     /// Try loading a saved chunk from disk. Returns true if file exists and was loaded.
@@ -78,7 +120,7 @@ pub const Persistence = struct {
     pub fn saveRepeaterStages(self: Persistence, cx: i32, cz: i32, stages: []const [4]u8) bool {
         self.ensureDir();
         var path_buf: [256:0]u8 = undefined;
-        const file_path = std.fmt.bufPrintZ(&path_buf, "{s}/c_{d}_{d}.rsp", .{ self.dir_path, cx, cz }) catch return false;
+        const file_path = self.makePathWithExt(&path_buf, cx, cz, "rsp") catch return false;
         const count: u8 = @intCast(@min(stages.len, 64));
         return writeAtomic(file_path, &.{ std.mem.asBytes(&count), std.mem.sliceAsBytes(stages[0..count]) });
     }
@@ -86,11 +128,8 @@ pub const Persistence = struct {
     /// Load repeater stages sidecar into `out` (each [lx,y,lz,stage]); returns count.
     pub fn loadRepeaterStages(self: Persistence, cx: i32, cz: i32, out: *[][4]u8) usize {
         var path_buf: [256:0]u8 = undefined;
-        const file_path = self.makePath(&path_buf, cx, cz) catch return 0;
-        _ = file_path;
-        var rpath: [256:0]u8 = undefined;
-        const rp = std.fmt.bufPrintZ(&rpath, "{s}/c_{d}_{d}.rsp", .{ self.dir_path, cx, cz }) catch return 0;
-        const f = c.fopen(rp.ptr, "rb") orelse return 0;
+        const file_path = self.makePathWithExt(&path_buf, cx, cz, "rsp") catch return 0;
+        const f = c.fopen(file_path.ptr, "rb") orelse return 0;
         defer _ = c.fclose(f);
         var count: u8 = 0;
         if (c.fread(&count, 1, 1, f) != 1) return 0;
@@ -104,16 +143,16 @@ pub const Persistence = struct {
     pub fn saveTorchBurnout(self: Persistence, cx: i32, cz: i32, items: []const [4]u8) bool {
         self.ensureDir();
         var path_buf: [256:0]u8 = undefined;
-        const file_path = std.fmt.bufPrintZ(&path_buf, "{s}/c_{d}_{d}.rtb", .{ self.dir_path, cx, cz }) catch return false;
+        const file_path = self.makePathWithExt(&path_buf, cx, cz, "rtb") catch return false;
         const count: u8 = @intCast(@min(items.len, 64));
         return writeAtomic(file_path, &.{ std.mem.asBytes(&count), std.mem.sliceAsBytes(items[0..count]) });
     }
 
     /// Load torch burnout sidecar into `out`; returns count.
     pub fn loadTorchBurnout(self: Persistence, cx: i32, cz: i32, out: *[][4]u8) usize {
-        var rpath: [256:0]u8 = undefined;
-        const rp = std.fmt.bufPrintZ(&rpath, "{s}/c_{d}_{d}.rtb", .{ self.dir_path, cx, cz }) catch return 0;
-        const f = c.fopen(rp.ptr, "rb") orelse return 0;
+        var path_buf: [256:0]u8 = undefined;
+        const file_path = self.makePathWithExt(&path_buf, cx, cz, "rtb") catch return 0;
+        const f = c.fopen(file_path.ptr, "rb") orelse return 0;
         defer _ = c.fclose(f);
         var count: u8 = 0;
         if (c.fread(&count, 1, 1, f) != 1) return 0;

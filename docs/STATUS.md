@@ -1,6 +1,6 @@
 # Status
 
-Last updated: 2026-10-30.
+Last updated: 2026-10-31.
 
 This page is the current state of the project. Replace lines that stop being
 true; do not append a new dated section per session. Older status text is in
@@ -42,8 +42,9 @@ These systems are driven by input or the frame loop in `src/main.zig` and
 - Nether portal and End portal travel, with dimension-specific terrain, sky
   and fog.
 - Day and night cycle, sleeping, particles, procedural sound through ALSA.
-- Chunk saving under `saves/` (blocks, water levels, repeater delays, torch
-  burnout).
+- Chunk saving under `saves/` with per-dimension namespaces (blocks, water
+  levels, repeater delays, torch burnout; Overworld in root, Nether and The
+  End in subdirectories).
 
 Much in-game feedback is printed to the terminal: `src/main.zig` has about
 300 `std.debug.print` calls.
@@ -91,9 +92,6 @@ Other overlaps:
 ## Known problems
 
 - The world is 16 blocks tall: chunks are 16×16×16 and there is one layer.
-- All dimensions share one set of save files keyed by chunk x and z, so a
-  saved chunk from one dimension loads in place of another dimension's
-  terrain at the same coordinates.
 - The player, inventory, furnace jobs and growing saplings are not saved.
 - `BlockId` is a `u8` and uses all 256 values. New blocks need a wider ID or
   a different block-state scheme first.

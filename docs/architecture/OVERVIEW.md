@@ -1,6 +1,6 @@
 # Architecture overview
 
-Last updated: 2026-10-30.
+Last updated: 2026-10-31.
 
 This page explains how the code is organized and how the parts connect.
 What works and what does not is in [STATUS.md](../STATUS.md).
@@ -56,8 +56,10 @@ Capacities and lookup helpers for those arrays are in
 - `world/chunk_mesh.zig` builds greedy-meshed vertices with ambient
   occlusion; `chunk_renderer.zig` uploads and draws them.
 - `world/persistence.zig` writes one binary file per chunk, plus sidecar
-  files for repeater delays and torch burnout. `ChunkManager` saves a chunk
-  when it unloads or when the game exits.
+  files for repeater delays and torch burnout, keeping Overworld files in
+  `saves/` and Nether and End files in `saves/nether/` and `saves/the_end/`.
+  `ChunkManager` saves modified chunks when they unload, when a portal
+  switches dimensions, or when the game exits.
 
 ## Rule modules
 
