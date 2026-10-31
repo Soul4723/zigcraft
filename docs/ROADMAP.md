@@ -45,10 +45,8 @@ Good first candidates are mechanics whose blocks, items or mobs already exist
 in the game: hunger (merge `hunger_metabolism.zig` into `player.zig` or
 delete it), mob rules for mobs already in `src/entity/`, and redstone parts.
 
-Resin also needs a real furnace path: `resin_clump` to `resin_brick` is
-defined in standalone helpers but missing from `src/world/smelting.zig`.
-Extend the live furnace table and its tests; another resin rule module does
-not solve this gap.
+Connect in-world `resin_clump` drops from active Creaking Hearts so players can
+obtain clumps to feed the live `resin_clump` to `resin_brick` furnace recipe.
 
 ## 4. Pay down structure debt
 

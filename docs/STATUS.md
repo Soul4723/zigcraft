@@ -32,7 +32,8 @@ These systems are driven by input or the frame loop in `src/main.zig` and
 - Player physics: gravity, collision, jumping, swimming, ladders, fall damage,
   suffocation, drowning, health and hunger shown on the HUD.
 - 24-slot inventory with a 6-slot hotbar, a 2×2 crafting grid, chests and
-  furnaces.
+  furnaces. Furnaces smelt `resin_clump` to `resin_brick`; in-world
+  `resin_clump` extrusion remains unconnected.
 - Mobs from `src/entity/`: 25 types (for example sheep, pigs, wolves, zombies,
   skeletons, creepers, endermen, piglins, blazes, guardians and the Ender
   Dragon), with spawn rules, simple AI, pathfinding and box-model rendering.
