@@ -23,7 +23,6 @@ When an item is done, delete it here and update STATUS.md.
 
 ## 2. Fix world and save correctness
 
-- Save the player position, health and inventory.
 - Save furnace jobs and growing saplings, or document why they reset.
 
 ## 3. Connect or remove disconnected modules

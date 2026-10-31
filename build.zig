@@ -343,6 +343,7 @@ pub fn build(b: *std.Build) void {
         "src/renderer/particles.zig",
         "src/camera.zig",
         "src/player.zig",
+        "src/player_save.zig",
         "src/sky.zig",
         "src/math.zig",
         "src/audio/synth.zig",

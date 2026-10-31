@@ -328,3 +328,165 @@ test "per-dimension save namespaces isolate overworld nether and the_end without
     try std.testing.expectEqual(@as(usize, 1), p_end_with.loadTorchBurnout(0, 0, &burnout_slice));
     try std.testing.expectEqual(burnout_end[0], burnout_buf[0]);
 }
+
+test "player save and load roundtrip across dimensions" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var path_buf: [256:0]u8 = undefined;
+    const test_dir = try std.fmt.bufPrintZ(&path_buf, ".zig-cache/tmp/{s}", .{tmp.sub_path});
+
+    const p_ow = Persistence.initForDimension(test_dir, .overworld);
+    const p_nether = Persistence.initForDimension(test_dir, .nether);
+    const p_end = Persistence.initForDimension(test_dir, .the_end);
+
+    var src = persistence_mod.PlayerSaveData{
+        .pos = .{ 10.5, 20.0, -15.25 },
+        .vel_y = -0.5,
+        .spawn_point = .{ 0.0, 15.0, 0.0 },
+        .yaw = 1.25,
+        .pitch = -0.4,
+        .dimension = .nether,
+        .health = 18.5,
+        .hunger = 15.0,
+        .saturation = 4.0,
+        .oxygen = 12.0,
+        .selected_slot = 3,
+        .tool_wear = .{ 10, 20, 0, 0, 5, 0 },
+    };
+    src.slots[0] = .{ .item_id = 12, .count = 32 };
+    src.slots[5] = .{ .item_id = 3, .count = 1 };
+    src.craft_grid[1] = .{ .item_id = 5, .count = 4 };
+
+    // Save using Overworld persistence
+    try std.testing.expect(p_ow.savePlayer(&src));
+
+    // Verify player.bin is in the root test_dir, not nether/ or the_end/
+    var f = try tmp.dir.openFile(std.testing.io, "player.bin", .{});
+    f.close(std.testing.io);
+    try std.testing.expectError(error.FileNotFound, tmp.dir.openFile(std.testing.io, "nether/player.bin", .{}));
+    try std.testing.expectError(error.FileNotFound, tmp.dir.openFile(std.testing.io, "the_end/player.bin", .{}));
+
+    // Load using Nether persistence
+    var dst_nether: persistence_mod.PlayerSaveData = undefined;
+    try std.testing.expect(p_nether.loadPlayer(&dst_nether));
+    try std.testing.expectEqual(src.pos, dst_nether.pos);
+    try std.testing.expectEqual(src.vel_y, dst_nether.vel_y);
+    try std.testing.expectEqual(src.spawn_point, dst_nether.spawn_point);
+    try std.testing.expectEqual(src.yaw, dst_nether.yaw);
+    try std.testing.expectEqual(src.pitch, dst_nether.pitch);
+    try std.testing.expectEqual(persistence_mod.Dimension.nether, dst_nether.dimension);
+    try std.testing.expectEqual(src.health, dst_nether.health);
+    try std.testing.expectEqual(src.hunger, dst_nether.hunger);
+    try std.testing.expectEqual(src.saturation, dst_nether.saturation);
+    try std.testing.expectEqual(src.oxygen, dst_nether.oxygen);
+    try std.testing.expectEqual(src.selected_slot, dst_nether.selected_slot);
+    try std.testing.expectEqual(src.tool_wear, dst_nether.tool_wear);
+    try std.testing.expectEqual(src.slots[0], dst_nether.slots[0]);
+    try std.testing.expectEqual(src.slots[5], dst_nether.slots[5]);
+    try std.testing.expectEqual(src.craft_grid[1], dst_nether.craft_grid[1]);
+
+    // Save updated state using Nether persistence
+    src.dimension = .the_end;
+    src.health = 12.0;
+    try std.testing.expect(p_nether.savePlayer(&src));
+
+    // Load using End persistence
+    var dst_end: persistence_mod.PlayerSaveData = undefined;
+    try std.testing.expect(p_end.loadPlayer(&dst_end));
+    try std.testing.expectEqual(persistence_mod.Dimension.the_end, dst_end.dimension);
+    try std.testing.expectEqual(@as(f32, 12.0), dst_end.health);
+}
+
+test "player load handles missing, truncated, bad magic/version, invalid dimension, NaN, and inaccessible path" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var path_buf: [256:0]u8 = undefined;
+    const test_dir = try std.fmt.bufPrintZ(&path_buf, ".zig-cache/tmp/{s}", .{tmp.sub_path});
+    const p = Persistence.init(test_dir);
+
+    var out: persistence_mod.PlayerSaveData = undefined;
+
+    // 1. Missing file
+    try std.testing.expect(!p.loadPlayer(&out));
+
+    // Valid data template
+    const valid = persistence_mod.PlayerSaveData{
+        .pos = .{ 1.0, 2.0, 3.0 },
+        .spawn_point = .{ 0.0, 0.0, 0.0 },
+        .yaw = 0.5,
+        .pitch = -0.2,
+    };
+    try std.testing.expect(p.savePlayer(&valid));
+
+    try std.testing.expectEqual(@as(usize, 161), persistence_mod.PLAYER_SAVE_SIZE);
+
+    // Read valid binary payload and verify exact file length (no unread trailing bytes)
+    var probe_bytes: [persistence_mod.PLAYER_SAVE_SIZE + 8]u8 = undefined;
+    const f = try tmp.dir.openFile(std.testing.io, "player.bin", .{});
+    const read_len = try f.readPositionalAll(std.testing.io, &probe_bytes, 0);
+    f.close(std.testing.io);
+    try std.testing.expectEqual(persistence_mod.PLAYER_SAVE_SIZE, read_len);
+    const valid_bytes = probe_bytes[0..persistence_mod.PLAYER_SAVE_SIZE].*;
+
+    // Confirm valid_bytes itself loads cleanly before mutating individual fields
+    try tmp.dir.writeFile(std.testing.io, .{ .sub_path = "player.bin", .data = &valid_bytes });
+    try std.testing.expect(p.loadPlayer(&out));
+
+    // 2. Truncated file (fewer bytes than expected)
+    try tmp.dir.writeFile(std.testing.io, .{ .sub_path = "player.bin", .data = valid_bytes[0..100] });
+    try std.testing.expect(!p.loadPlayer(&out));
+
+    // Oversized file (extra trailing byte)
+    var oversized: [persistence_mod.PLAYER_SAVE_SIZE + 1]u8 = undefined;
+    @memcpy(oversized[0..persistence_mod.PLAYER_SAVE_SIZE], &valid_bytes);
+    oversized[persistence_mod.PLAYER_SAVE_SIZE] = 0xFF;
+    try tmp.dir.writeFile(std.testing.io, .{ .sub_path = "player.bin", .data = &oversized });
+    try std.testing.expect(!p.loadPlayer(&out));
+
+    // 3. Bad magic
+    var bad_magic = valid_bytes;
+    bad_magic[0] = 'X';
+    try tmp.dir.writeFile(std.testing.io, .{ .sub_path = "player.bin", .data = &bad_magic });
+    try std.testing.expect(!p.loadPlayer(&out));
+
+    // 4. Bad version
+    var bad_version = valid_bytes;
+    bad_version[4] = 99; // version is at byte offset 4
+    try tmp.dir.writeFile(std.testing.io, .{ .sub_path = "player.bin", .data = &bad_version });
+    try std.testing.expect(!p.loadPlayer(&out));
+
+    // 5. Invalid dimension tag
+    // offset of dimension byte:
+    // 4 (magic) + 4 (version) + 12 (pos) + 4 (vel_y) + 12 (spawn_point) + 8 (yaw, pitch) = 44
+    var bad_dim = valid_bytes;
+    bad_dim[44] = 50; // invalid dimension tag (not 0, 1, or 2)
+    try tmp.dir.writeFile(std.testing.io, .{ .sub_path = "player.bin", .data = &bad_dim });
+    try std.testing.expect(!p.loadPlayer(&out));
+
+    // 6. NaN float rejection (must return false without mutating out)
+    // Put NaN in pos[0] (bytes 8..12)
+    var nan_bytes = valid_bytes;
+    const nan_u32: u32 = 0x7FC00000;
+    std.mem.writeInt(u32, nan_bytes[8..12], nan_u32, .little);
+    try tmp.dir.writeFile(std.testing.io, .{ .sub_path = "player.bin", .data = &nan_bytes });
+
+    out = valid;
+    out.pos[0] = 42.0;
+    try std.testing.expect(!p.loadPlayer(&out));
+    // Verify out was not mutated
+    try std.testing.expectEqual(@as(f32, 42.0), out.pos[0]);
+
+    // Infinity float rejection
+    var inf_bytes = valid_bytes;
+    const inf_u32: u32 = 0x7F800000;
+    std.mem.writeInt(u32, inf_bytes[8..12], inf_u32, .little);
+    try tmp.dir.writeFile(std.testing.io, .{ .sub_path = "player.bin", .data = &inf_bytes });
+    try std.testing.expect(!p.loadPlayer(&out));
+    try std.testing.expectEqual(@as(f32, 42.0), out.pos[0]);
+
+    // 7. Inaccessible path failure
+    const bad_dir = ".zig-cache/tmp/nonexistent_persistence_path/nested";
+    const p_bad = Persistence.init(bad_dir);
+    try std.testing.expect(!p_bad.savePlayer(&valid));
+    try std.testing.expect(!p_bad.loadPlayer(&out));
+}

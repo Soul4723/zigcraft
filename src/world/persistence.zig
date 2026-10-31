@@ -13,6 +13,20 @@ const c = @cImport({
 pub const MAGIC = [4]u8{ 'Z', 'C', 'H', 'K' };
 pub const VERSION: u32 = 2;
 pub const VERSION_LEVELS: u32 = 2;
+pub const PLAYER_MAGIC = [4]u8{ 'Z', 'P', 'L', 'Y' };
+pub const PLAYER_VERSION: u32 = 1;
+pub const PLAYER_SAVE_SIZE: usize = 4 + 4 + 3 * 4 + 4 + 3 * 4 + 2 * 4 + 1 + 4 * 4 + 1 + 6 * 2 + 24 * 3 + 4 * 3 + 3;
+
+pub const SavedSlot = struct { item_id: u16 = 0, count: u8 = 0 };
+pub const PlayerSaveData = struct {
+    pos: [3]f32, vel_y: f32 = 0.0, spawn_point: [3]f32, yaw: f32, pitch: f32,
+    dimension: Dimension = .overworld, health: f32 = 20.0, hunger: f32 = 20.0,
+    saturation: f32 = 5.0, oxygen: f32 = 15.0, selected_slot: u8 = 0,
+    tool_wear: [6]u16 = [_]u16{0} ** 6,
+    slots: [24]SavedSlot = [_]SavedSlot{.{}} ** 24,
+    craft_grid: [4]SavedSlot = [_]SavedSlot{.{}} ** 4,
+    cursor_stack: SavedSlot = .{},
+};
 
 /// Dimensions supported by the game engine, mapping to separate save namespaces.
 pub const Dimension = enum(u8) {
@@ -45,6 +59,71 @@ pub const Persistence = struct {
     /// Return a copy of persistence configured for the specified dimension.
     pub fn withDimension(self: Persistence, dimension: Dimension) Persistence {
         return .{ .dir_path = self.dir_path, .dimension = dimension };
+    }
+
+    /// Atomically save player state in the shared root save directory.
+    pub fn savePlayer(self: Persistence, data: *const PlayerSaveData) bool {
+        _ = c.mkdir(self.dir_path.ptr, 0o755);
+        var path_buf: [256:0]u8 = undefined;
+        const path = std.fmt.bufPrintZ(&path_buf, "{s}/player.bin", .{self.dir_path}) catch return false;
+        var bytes: [PLAYER_SAVE_SIZE]u8 = undefined;
+        var i: usize = 0;
+        inline for (PLAYER_MAGIC) |b| { bytes[i] = b; i += 1; }
+        putInt(&bytes, &i, PLAYER_VERSION);
+        inline for (data.pos) |v| putFloat(&bytes, &i, v);
+        putFloat(&bytes, &i, data.vel_y);
+        inline for (data.spawn_point) |v| putFloat(&bytes, &i, v);
+        putFloat(&bytes, &i, data.yaw); putFloat(&bytes, &i, data.pitch);
+        bytes[i] = @intFromEnum(data.dimension); i += 1;
+        putFloat(&bytes, &i, data.health); putFloat(&bytes, &i, data.hunger);
+        putFloat(&bytes, &i, data.saturation); putFloat(&bytes, &i, data.oxygen);
+        bytes[i] = data.selected_slot; i += 1;
+        for (data.tool_wear) |v| putInt(&bytes, &i, v);
+        for (data.slots) |slot| { putInt(&bytes, &i, slot.item_id); bytes[i] = slot.count; i += 1; }
+        for (data.craft_grid) |slot| { putInt(&bytes, &i, slot.item_id); bytes[i] = slot.count; i += 1; }
+        putInt(&bytes, &i, data.cursor_stack.item_id); bytes[i] = data.cursor_stack.count; i += 1;
+        std.debug.assert(i == PLAYER_SAVE_SIZE);
+        return writeAtomic(path, &.{bytes[0..i]});
+    }
+
+    /// Load and validate player state without changing `out` on failure.
+    pub fn loadPlayer(self: Persistence, out: *PlayerSaveData) bool {
+        var path_buf: [256:0]u8 = undefined;
+        const path = std.fmt.bufPrintZ(&path_buf, "{s}/player.bin", .{self.dir_path}) catch return false;
+        const f = c.fopen(path.ptr, "rb") orelse return false;
+        defer _ = c.fclose(f);
+        var bytes: [PLAYER_SAVE_SIZE]u8 = undefined;
+        if (c.fread(&bytes, 1, bytes.len, f) != bytes.len or c.fgetc(f) != -1 or !decodePlayerBytes(&bytes, out)) {
+            std.debug.print("invalid player save ignored; starting with defaults\n", .{});
+            return false;
+        }
+        return true;
+    }
+
+    fn decodePlayerBytes(bytes: *const [PLAYER_SAVE_SIZE]u8, out: *PlayerSaveData) bool {
+        if (!std.mem.eql(u8, bytes[0..4], &PLAYER_MAGIC)) return false;
+        var i: usize = 4;
+        if (getInt(u32, bytes, &i) != PLAYER_VERSION) return false;
+        var value: PlayerSaveData = undefined;
+        inline for (0..3) |n| value.pos[n] = getFloat(bytes, &i);
+        value.vel_y = getFloat(bytes, &i);
+        inline for (0..3) |n| value.spawn_point[n] = getFloat(bytes, &i);
+        value.yaw = getFloat(bytes, &i); value.pitch = getFloat(bytes, &i);
+        const dim = bytes[i]; i += 1;
+        value.dimension = std.enums.fromInt(Dimension, dim) orelse return false;
+        value.health = getFloat(bytes, &i); value.hunger = getFloat(bytes, &i);
+        value.saturation = getFloat(bytes, &i); value.oxygen = getFloat(bytes, &i);
+        value.selected_slot = bytes[i]; i += 1;
+        for (&value.tool_wear) |*v| v.* = getInt(u16, bytes, &i);
+        for (&value.slots) |*slot| { slot.item_id = getInt(u16, bytes, &i); slot.count = bytes[i]; i += 1; }
+        for (&value.craft_grid) |*slot| { slot.item_id = getInt(u16, bytes, &i); slot.count = bytes[i]; i += 1; }
+        value.cursor_stack = .{ .item_id = getInt(u16, bytes, &i), .count = bytes[i] }; i += 1;
+        std.debug.assert(i == PLAYER_SAVE_SIZE);
+        inline for (value.pos) |v| { if (!std.math.isFinite(v)) return false; }
+        inline for (value.spawn_point) |v| { if (!std.math.isFinite(v)) return false; }
+        inline for (.{ value.vel_y, value.yaw, value.pitch, value.health, value.hunger, value.saturation, value.oxygen }) |v| { if (!std.math.isFinite(v)) return false; }
+        out.* = value;
+        return true;
     }
 
     fn ensureDir(self: Persistence) void {
@@ -202,4 +281,27 @@ fn writeAtomic(path: [:0]const u8, parts: []const []const u8) bool {
     closed = true;
     if (close_result != 0) return false;
     return c.rename(temp.ptr, path.ptr) == 0;
+}
+
+fn putInt(bytes: []u8, index: *usize, value: anytype) void {
+    const T = @TypeOf(value);
+    std.mem.writeInt(T, bytes[index.*..][0..@sizeOf(T)], value, .little);
+    index.* += @sizeOf(T);
+}
+
+fn putFloat(bytes: []u8, index: *usize, value: f32) void {
+    std.mem.writeInt(u32, bytes[index.*..][0..4], @as(u32, @bitCast(value)), .little);
+    index.* += 4;
+}
+
+fn getInt(comptime T: type, bytes: []const u8, index: *usize) T {
+    const val = std.mem.readInt(T, bytes[index.*..][0..@sizeOf(T)], .little);
+    index.* += @sizeOf(T);
+    return val;
+}
+
+fn getFloat(bytes: []const u8, index: *usize) f32 {
+    const bits = std.mem.readInt(u32, bytes[index.*..][0..4], .little);
+    index.* += 4;
+    return @bitCast(bits);
 }
