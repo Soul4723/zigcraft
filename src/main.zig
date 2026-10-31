@@ -8,6 +8,7 @@ const proj_mod = @import("world/projectile.zig");
 const smelt_mod = @import("world/smelting.zig");
 const boom_mod = @import("world/explosives.zig");
 const sapling_mod = @import("world/sapling.zig");
+const block_jobs_mod = @import("world/block_jobs.zig");
 const farming_mod = @import("world/farming.zig");
 const trading_mod = @import("world/trading.zig");
 const apiary_mod = @import("world/apiary.zig");
@@ -536,6 +537,20 @@ pub fn main() !void {
     var chest_count: usize = 0;
     var sprouts: [sapling_mod.sprout_cap]sapling_mod.Sprout = undefined;
     var sprout_count: usize = 0;
+    {
+        var initial_jobs = block_jobs_mod.BlockJobsData{};
+        const load_res = manager.persistence.loadBlockJobs(&initial_jobs);
+        switch (load_res) {
+            .ok => {
+                block_jobs_mod.applyBlockJobs(&initial_jobs, &furnaces, &furnace_count, &smokers, &smoker_count, &blast_furnaces, &blast_furnace_count, &sprouts, &sprout_count);
+            },
+            .absent => {},
+            .corrupt => {
+                std.debug.print("fatal: block jobs save file for dimension {s} is corrupt/unreadable; aborting startup to preserve durable file\n", .{@tagName(manager.currentDimension())});
+                return error.CorruptBlockJobsSave;
+            },
+        }
+    }
     var warts: [sapling_mod.sprout_cap]WartCrop = undefined;
     var wart_count: usize = 0;
     var wheat_crops: [farming_mod.max_crops]farming_mod.WheatCrop = undefined;
@@ -1458,6 +1473,26 @@ pub fn main() !void {
 
                 syncRedstoneSnapshots(repeaters[0..repeater_count], red_torches[0..red_torch_count]);
 
+                // Preflight target job load/validation into temporary state before committing switch
+                var staged_target_jobs = block_jobs_mod.BlockJobsData{};
+                const target_persistence = manager.persistence.withDimension(target_dim);
+                const target_load_res = target_persistence.loadBlockJobs(&staged_target_jobs);
+                if (target_load_res == .corrupt) {
+                    end_portal_transit.current_dim = if (end_portal_transit.current_dim == .the_end) .overworld else .the_end;
+                    chunk_retry_timer = 1.0;
+                    std.debug.print("dimension transit aborted: target dimension {s} block jobs save is corrupt/unreadable; source state and position preserved\n", .{@tagName(target_dim)});
+                    continue;
+                }
+
+                // Save source dimension block jobs before switching
+                const source_jobs = block_jobs_mod.captureBlockJobs(&furnaces, furnace_count, &smokers, smoker_count, &blast_furnaces, blast_furnace_count, &sprouts, sprout_count);
+                if (!manager.persistence.saveBlockJobs(&source_jobs)) {
+                    end_portal_transit.current_dim = if (end_portal_transit.current_dim == .the_end) .overworld else .the_end;
+                    chunk_retry_timer = 1.0;
+                    std.debug.print("dimension transit paused: block jobs save failed; unsaved jobs retained\n", .{});
+                    continue;
+                }
+
                 var switched = true;
                 manager.switchDimension(target_dim, dest_pos.x, dest_pos.z, false) catch |err| switch (err) {
                     error.ChunkSaveFailed, error.SidecarSaveFailed => {
@@ -1479,6 +1514,8 @@ pub fn main() !void {
                     lamp_count = 0;
                     red_torch_count = 0;
                     known_stage_count = 0;
+
+                    block_jobs_mod.applyBlockJobs(&staged_target_jobs, &furnaces, &furnace_count, &smokers, &smoker_count, &blast_furnaces, &blast_furnace_count, &sprouts, &sprout_count);
 
                     if (end_portal_transit.current_dim == .the_end) {
                         var dragon_exists = false;
@@ -1554,6 +1591,26 @@ pub fn main() !void {
 
                 const target_dim: chunk_manager_mod.Dimension = if (portal_transit.current_dim == .nether) .nether else .overworld;
 
+                // Preflight target job load/validation into temporary state before committing switch
+                var staged_target_jobs = block_jobs_mod.BlockJobsData{};
+                const target_persistence = manager.persistence.withDimension(target_dim);
+                const target_load_res = target_persistence.loadBlockJobs(&staged_target_jobs);
+                if (target_load_res == .corrupt) {
+                    portal_transit.current_dim = from_dim;
+                    chunk_retry_timer = 1.0;
+                    std.debug.print("dimension transit aborted: target dimension {s} block jobs save is corrupt/unreadable; source state and position preserved\n", .{@tagName(target_dim)});
+                    continue;
+                }
+
+                // Save source dimension block jobs before switching
+                const source_jobs = block_jobs_mod.captureBlockJobs(&furnaces, furnace_count, &smokers, smoker_count, &blast_furnaces, blast_furnace_count, &sprouts, sprout_count);
+                if (!manager.persistence.saveBlockJobs(&source_jobs)) {
+                    portal_transit.current_dim = from_dim;
+                    chunk_retry_timer = 1.0;
+                    std.debug.print("dimension transit paused: block jobs save failed; unsaved jobs retained\n", .{});
+                    continue;
+                }
+
                 var switched = true;
                 manager.switchDimension(target_dim, dest_pos.x, dest_pos.z, false) catch |err| switch (err) {
                     error.ChunkSaveFailed, error.SidecarSaveFailed => {
@@ -1574,6 +1631,9 @@ pub fn main() !void {
                     lamp_count = 0;
                     red_torch_count = 0;
                     known_stage_count = 0;
+
+                    block_jobs_mod.applyBlockJobs(&staged_target_jobs, &furnaces, &furnace_count, &smokers, &smoker_count, &blast_furnaces, &blast_furnace_count, &sprouts, &sprout_count);
+
                     if (matched_linked) |linked| {
                         std.debug.print("linked portal matched at ({d},{d},{d})\n", .{ linked.x, linked.y, linked.z });
                     }
@@ -2637,11 +2697,23 @@ pub fn main() !void {
         // Grow planted sprouts after 30s into 4-high trees with canopy
         var si: usize = 0;
         while (si < sprout_count) {
+            const sx = sprouts[si].x;
+            const sy = sprouts[si].y;
+            const sz = sprouts[si].z;
+            if (!manager.isBlockLoaded(sx, sy, sz)) {
+                si += 1;
+                continue;
+            }
+            if (manager.getBlockWorld(sx, sy, sz) != .wood) {
+                cache_mod.swapRemove(&sprouts, &sprout_count, si);
+                continue;
+            }
             sprouts[si].t += dt;
             if (sapling_mod.isReady(sprouts[si].t)) {
-                const sx = sprouts[si].x;
-                const sy = sprouts[si].y;
-                const sz = sprouts[si].z;
+                if (!block_jobs_mod.isCanopyLoaded(&manager, sx, sy, sz)) {
+                    si += 1;
+                    continue;
+                }
                 for (sapling_mod.tree_structure) |tb| {
                     if (manager.getBlockWorld(sx + tb.dx, sy + tb.dy, sz + tb.dz) == .air) {
                         _ = try manager.editAndRemesh(sx + tb.dx, sy + tb.dy, sz + tb.dz, tb.block);
@@ -4098,6 +4170,10 @@ pub fn main() !void {
             var smk_i: usize = 0;
             while (smk_i < smoker_count) {
                 const s = &smokers[smk_i];
+                if (!manager.isBlockLoaded(s.x, s.y, s.z)) {
+                    smk_i += 1;
+                    continue;
+                }
                 if (manager.getBlockWorld(s.x, s.y, s.z) != .smoker) {
                     cache_mod.swapRemove(&smokers, &smoker_count, smk_i);
                     continue;
@@ -4123,6 +4199,10 @@ pub fn main() !void {
             var bfi: usize = 0;
             while (bfi < blast_furnace_count) {
                 const bf = &blast_furnaces[bfi];
+                if (!manager.isBlockLoaded(bf.x, bf.y, bf.z)) {
+                    bfi += 1;
+                    continue;
+                }
                 if (manager.getBlockWorld(bf.x, bf.y, bf.z) != .blast_furnace) {
                     cache_mod.swapRemove(&blast_furnaces, &blast_furnace_count, bfi);
                     continue;
@@ -4148,6 +4228,10 @@ pub fn main() !void {
             var fi: usize = 0;
             while (fi < furnace_count) {
                 const f = &furnaces[fi];
+                if (!manager.isBlockLoaded(f.x, f.y, f.z)) {
+                    fi += 1;
+                    continue;
+                }
                 if (manager.getBlockWorld(f.x, f.y, f.z) != .furnace) {
                     cache_mod.swapRemove(&furnaces, &furnace_count, fi);
                     continue;
@@ -7182,6 +7266,12 @@ pub fn main() !void {
         }
     }
 
+    {
+        const jobs_data = block_jobs_mod.captureBlockJobs(&furnaces, furnace_count, &smokers, smoker_count, &blast_furnaces, blast_furnace_count, &sprouts, sprout_count);
+        if (!manager.persistence.saveBlockJobs(&jobs_data)) {
+            std.debug.print("block jobs save failed during shutdown\n", .{});
+        }
+    }
     savePlayerState(manager, &player, &cam, &inventory, cursor_stack, selected_slot, &tool_wear);
     std.debug.print("shutting down\n", .{});
 }

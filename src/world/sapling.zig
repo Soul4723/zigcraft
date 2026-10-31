@@ -105,3 +105,17 @@ test "nether wart growth timing" {
     try std.testing.expect(isWartReady(60.0));
     try std.testing.expect(isWartReady(120.0));
 }
+
+pub fn findSprout(sprouts: []const Sprout, count: usize, x: i32, y: i32, z: i32) ?usize {
+    var i: usize = 0;
+    while (i < count and i < sprouts.len) : (i += 1) {
+        if (sprouts[i].x == x and sprouts[i].y == y and sprouts[i].z == z) return i;
+    }
+    return null;
+}
+
+test "findSprout lookup" {
+    const s = [_]Sprout{.{ .x = 1, .y = 2, .z = 3, .t = 4.0 }};
+    try std.testing.expectEqual(@as(?usize, 0), findSprout(&s, 1, 1, 2, 3));
+    try std.testing.expectEqual(@as(?usize, null), findSprout(&s, 1, 9, 9, 9));
+}

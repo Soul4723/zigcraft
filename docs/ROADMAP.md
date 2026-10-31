@@ -23,7 +23,7 @@ When an item is done, delete it here and update STATUS.md.
 
 ## 2. Fix world and save correctness
 
-- Save furnace jobs and growing saplings, or document why they reset.
+- Save placed container contents (chests, shulker boxes) across quit/restart and portal dimension switches, isolating container caches by dimension.
 
 ## 3. Connect or remove disconnected modules
 
