@@ -17,6 +17,7 @@ belong in the pull request description, not in a separate file.
 - 2026-11-02: Persisted four-slot chest and shulker caches by dimension, including emptied fortress loot, enforced item stack limits, and cleaned destroyed container cache entries; hopper and dropper caches remain unsaved and not dimension-isolated.
 - 2026-10-31: Persisted furnace, smoker, blast-furnace jobs and growing saplings in per-dimension block_jobs.bin files with offline/unloaded pausing, preflight transit rollback, and ENOENT missing-file checks.
 - 2026-10-31: Corrected CONTRIBUTING documentation on Zig 0.16 lazy test collection, documented semantic analysis rules and minimal fixtures in learnings, and confirmed explicit test_files registration policy.
+- 2026-10-31: Connected playable Creaking entity runtime to natural Creaking Hearts with gaze freeze, DDA occlusion, invulnerable puppet hit resin drops, and dimension cleanup.
 - 2026-10-31: Split inventory item definitions, recipe resolution and container logic into focused modules, preserving the original rules and test suite.
 - 2026-10-31: Added natural Pale Oak hearts and F-key nighttime resin collection, protected active heart cooldowns, and removed five disconnected duplicate modules.
 - 2026-10-31: Persisted player position, dimension, vitals, inventory, crafting grid, cursor stack, selected slot and tool wear in root-level player.bin across dimensions.

@@ -2608,7 +2608,7 @@ pub fn canHarvestBlock(held: ItemType, block: BlockId) bool {
         held == .wooden_hoe or held == .stone_hoe or held == .golden_hoe or held == .iron_hoe or held == .diamond_hoe or held == .netherite_hoe or held == .shears;
 }
 
-pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, cave_spider, skeleton, zombie, creeper, enderman, ender_dragon, shulker, endermite, turtle, drowned, phantom, guardian, elder_guardian, dolphin, slime };
+pub const MobType = enum { sheep, pig, wolf, emberbeast, wither_skeleton, piglin, piglin_brute, blaze, target_dummy, spider, cave_spider, skeleton, zombie, creeper, enderman, ender_dragon, shulker, endermite, turtle, drowned, phantom, guardian, elder_guardian, dolphin, slime, creaking };
 
 pub fn getMobMeatDrop(mob_type: MobType) ItemType {
     return switch (mob_type) {
@@ -2635,6 +2635,7 @@ pub fn getMobMeatDrop(mob_type: MobType) ItemType {
         .creeper => .gunpowder,
         .enderman => .ender_pearl,
         .ender_dragon => .end_crystal,
+        .creaking => .resin_clump,
     };
 }
 
@@ -2843,4 +2844,8 @@ test "ItemType block roundtrips, ItemStack operations, and getBlockDrops" {
     try std.testing.expectEqual(@as(usize, 2), n);
     try std.testing.expectEqual(drops[0].item, ItemType.blackstone);
     try std.testing.expectEqual(drops[1].item, ItemType.gold_nugget);
+}
+
+test "MobType creaking meat drop yields resin clump" {
+    try std.testing.expectEqual(ItemType.resin_clump, getMobMeatDrop(.creaking));
 }

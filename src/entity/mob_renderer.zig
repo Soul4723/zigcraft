@@ -830,6 +830,30 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
             // 4. Right Eye: 0.12 x 0.12 x 0.05 at (0.2, 0.52, 0.41)
             try appendBox(allocator, verts, inds, math.Vec3.init(0.2, 0.52, 0.41), math.Vec3.init(0.12, 0.12, 0.05), mob.yaw, mob.pos, uv_eye, uv_eye);
         },
+
+        .creaking => {
+            const uv_bark = texture.getTileUV(1, 1);
+            const uv_eye = texture.getTileUV(7, 6);
+            const limb_swing = if (mob.is_frozen) @as(f32, 0.0) else leg_swing;
+
+            // 1. Torso: 0.44 x 0.90 x 0.30 at (0, 1.45, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 1.45, 0), math.Vec3.init(0.44, 0.90, 0.30), mob.yaw, mob.pos, uv_bark, uv_bark);
+
+            // 2. Head with glowing Creaking Heart face: 0.36 x 0.38 x 0.36 at (0, 2.15 + head_bob_y, 0)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 2.15 + head_bob_y, 0), math.Vec3.init(0.36, 0.38, 0.36), mob.yaw, mob.pos, uv_eye, uv_bark);
+
+            // 3. Spindly left arm: 0.12 x 1.10 x 0.12 at (-0.30, 1.40, limb_swing)
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.30, 1.40, limb_swing), math.Vec3.init(0.12, 1.10, 0.12), mob.yaw, mob.pos, uv_bark, uv_bark);
+
+            // 4. Spindly right arm: 0.12 x 1.10 x 0.12 at (0.30, 1.40, -limb_swing)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.30, 1.40, -limb_swing), math.Vec3.init(0.12, 1.10, 0.12), mob.yaw, mob.pos, uv_bark, uv_bark);
+
+            // 5. Tall left leg: 0.14 x 1.00 x 0.14 at (-0.14, 0.50, limb_swing)
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.14, 0.50, limb_swing), math.Vec3.init(0.14, 1.00, 0.14), mob.yaw, mob.pos, uv_bark, uv_bark);
+
+            // 6. Tall right leg: 0.14 x 1.00 x 0.14 at (0.14, 0.50, -limb_swing)
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.14, 0.50, -limb_swing), math.Vec3.init(0.14, 1.00, 0.14), mob.yaw, mob.pos, uv_bark, uv_bark);
+        },
     }
 
     if (mob.isGlowing()) {
@@ -1057,4 +1081,16 @@ test "slime mob mesh generation" {
     // 4 boxes * 24 = 96 verts, * 36 = 144 indices
     try std.testing.expectEqual(@as(usize, 96), verts.items.len);
     try std.testing.expectEqual(@as(usize, 144), inds.items.len);
+}
+
+test "creaking mob mesh generation" {
+    var verts = std.ArrayList(MobVertex).empty;
+    defer verts.deinit(std.testing.allocator);
+    var inds = std.ArrayList(u32).empty;
+    defer inds.deinit(std.testing.allocator);
+
+    const creaking = mob_mod.Mob.init(.creaking, 0, 0, 0);
+    try appendMobMesh(std.testing.allocator, &verts, &inds, creaking);
+    try std.testing.expectEqual(@as(usize, 144), verts.items.len);
+    try std.testing.expectEqual(@as(usize, 216), inds.items.len);
 }

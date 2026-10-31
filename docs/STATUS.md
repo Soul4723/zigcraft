@@ -38,9 +38,9 @@ These systems are driven by input or the frame loop in `src/main.zig` and
   that yield `resin_clump` items when interacted with using F at night (and
   drop bonus clumps when harvested with a tool while sandwiched), feeding the live `resin_clump` -> `resin_brick` furnace
   recipe.
-- Mobs from `src/entity/`: 25 types (for example sheep, pigs, wolves, zombies,
-  skeletons, creepers, endermen, piglins, blazes, guardians and the Ender
-  Dragon), with spawn rules, simple AI, pathfinding and box-model rendering.
+- Mobs from `src/entity/`: 26 types (including sheep, pigs, wolves, zombies,
+  skeletons, creepers, endermen, piglins, blazes, guardians, the Ender
+  Dragon, and the nocturnal Creaking puppet entity), with spawn rules, simple AI, pathfinding and box-model rendering. Sandwiched Creaking Hearts spawn at most one Creaking at night within 32m, freezing under unobstructed gaze via DDA occlusion, dealing contact damage, and extruding resin on hit via shared cooldown.
 - Redstone: wire with 15-block falloff, torches, repeaters, levers, pressure
   plates, lamps and iron doors, plus dispensers, droppers and hoppers.
 - TNT, falling sand, water flow with levels, water washing away redstone. Player explosion damage reaches its maximum at the blast center with finite upward knockback and zero horizontal push there.
@@ -96,8 +96,7 @@ Several mechanics have more than one module, written by different sessions:
 
 Other overlaps:
 
-- `pale_garden` has Creaking Heart resin extrusion connected while full
-  Creaking mob entity spawning remains unconnected.
+- `pale_garden` Creaking Heart resin extrusion and Creaking mob entity runtime are connected to live gameplay; dynamic thunderstorm weather activation remains deferred while weather simulation is static clear sky.
 - Mob rule modules (guardian, blaze, warden and others) do not drive the mobs
   in `src/entity/`, which have their own stats and AI.
 - Some modules describe 3×3 recipes, but the inventory only has a 2×2 grid.
