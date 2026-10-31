@@ -379,6 +379,110 @@ pub fn isCreakingFrozenByGaze(
     return dot >= cos_fov_threshold;
 }
 
+/// Checks if the straight line between from_pos and to_pos is unobstructed by any occluding blocks.
+/// Uses Amanatides & Woo 3D DDA voxel stepping.
+/// is_occluding is called with voxel coordinates (x, y, z) for every traversed intermediate cell.
+/// Returns true if unobstructed, false if an occluding cell blocks line of sight.
+pub fn isLineOfSightClear(
+    from_pos: [3]f32,
+    to_pos: [3]f32,
+    is_occluding: *const fn (x: i32, y: i32, z: i32) bool,
+) bool {
+    const dx = to_pos[0] - from_pos[0];
+    const dy = to_pos[1] - from_pos[1];
+    const dz = to_pos[2] - from_pos[2];
+    const dist_sq = dx * dx + dy * dy + dz * dz;
+    if (dist_sq <= 0.0001) return true;
+    const total_dist = @sqrt(dist_sq);
+
+    const dir_x = dx / total_dist;
+    const dir_y = dy / total_dist;
+    const dir_z = dz / total_dist;
+
+    var x: i32 = @intFromFloat(@floor(from_pos[0]));
+    var y: i32 = @intFromFloat(@floor(from_pos[1]));
+    var z: i32 = @intFromFloat(@floor(from_pos[2]));
+
+    const target_x: i32 = @intFromFloat(@floor(to_pos[0]));
+    const target_y: i32 = @intFromFloat(@floor(to_pos[1]));
+    const target_z: i32 = @intFromFloat(@floor(to_pos[2]));
+
+    if (x == target_x and y == target_y and z == target_z) return true;
+
+    const step_x: i32 = if (dir_x > 0) 1 else if (dir_x < 0) -1 else 0;
+    const step_y: i32 = if (dir_y > 0) 1 else if (dir_y < 0) -1 else 0;
+    const step_z: i32 = if (dir_z > 0) 1 else if (dir_z < 0) -1 else 0;
+
+    const t_delta_x: f32 = if (dir_x != 0) @abs(1.0 / dir_x) else std.math.inf(f32);
+    const t_delta_y: f32 = if (dir_y != 0) @abs(1.0 / dir_y) else std.math.inf(f32);
+    const t_delta_z: f32 = if (dir_z != 0) @abs(1.0 / dir_z) else std.math.inf(f32);
+
+    var t_max_x: f32 = if (dir_x != 0)
+        (if (step_x > 0) (@as(f32, @floatFromInt(x + 1)) - from_pos[0]) else (from_pos[0] - @as(f32, @floatFromInt(x)))) * t_delta_x
+    else
+        std.math.inf(f32);
+    var t_max_y: f32 = if (dir_y != 0)
+        (if (step_y > 0) (@as(f32, @floatFromInt(y + 1)) - from_pos[1]) else (from_pos[1] - @as(f32, @floatFromInt(y)))) * t_delta_y
+    else
+        std.math.inf(f32);
+    var t_max_z: f32 = if (dir_z != 0)
+        (if (step_z > 0) (@as(f32, @floatFromInt(z + 1)) - from_pos[2]) else (from_pos[2] - @as(f32, @floatFromInt(z)))) * t_delta_z
+    else
+        std.math.inf(f32);
+
+    var t: f32 = 0.0;
+    while (t < total_dist) {
+        if (t_max_x < t_max_y and t_max_x < t_max_z) {
+            x += step_x;
+            t = t_max_x;
+            t_max_x += t_delta_x;
+        } else if (t_max_y < t_max_z) {
+            y += step_y;
+            t = t_max_y;
+            t_max_y += t_delta_y;
+        } else {
+            z += step_z;
+            t = t_max_z;
+            t_max_z += t_delta_z;
+        }
+
+        if (x == target_x and y == target_y and z == target_z) return true;
+        if (t >= total_dist) return true;
+
+        if (is_occluding(x, y, z)) return false;
+    }
+
+    return true;
+}
+
+/// Evaluates if a Creaking puppet is actively frozen by the player direct gaze.
+/// Freezes only when within the player FOV cone and unobstructed by occluding blocks.
+pub fn isCreakingObserved(
+    creaking_pos: [3]f32,
+    creaking_height: f32,
+    player_eye_pos: [3]f32,
+    player_look_dir: [3]f32,
+    cos_fov_threshold: f32,
+    wearing_carved_pumpkin: bool,
+    is_occluding: ?*const fn (x: i32, y: i32, z: i32) bool,
+) bool {
+    if (!isCreakingFrozenByGaze(creaking_pos, player_eye_pos, player_look_dir, cos_fov_threshold, wearing_carved_pumpkin)) {
+        return false;
+    }
+
+    if (is_occluding) |occ| {
+        const target_eye = [3]f32{
+            creaking_pos[0],
+            creaking_pos[1] + creaking_height * 0.8,
+            creaking_pos[2],
+        };
+        return isLineOfSightClear(player_eye_pos, target_eye, occ);
+    }
+
+    return true;
+}
+
+
 /// Result of hitting a Creaking puppet.
 pub const CreakingHitResult = struct {
     particle_trail_count: u8,
@@ -1045,4 +1149,63 @@ test "full heart tracker retains every active cooldown" {
     }
     tracker.tickSeconds(5.0);
     try std.testing.expectEqual(ExtrudeStatus.extruded, tracker.tryExtrudeResin(.{ 99, 5, 0 }, .pale_oak_log, .pale_oak_log, true, false).status);
+}
+
+test "isLineOfSightClear unobstructed and occluded raycast" {
+    const ClearWorld = struct {
+        fn occ(_: i32, _: i32, _: i32) bool {
+            return false;
+        }
+    };
+    const BlockedWorld = struct {
+        fn occ(x: i32, y: i32, z: i32) bool {
+            // Wall at z = 3
+            return x == 0 and y >= 0 and y <= 3 and z == 3;
+        }
+    };
+
+    const eye = [3]f32{ 0.5, 1.6, 0.5 };
+    const target = [3]f32{ 0.5, 1.6, 6.5 };
+
+    // Clear world has unobstructed sight
+    try std.testing.expect(isLineOfSightClear(eye, target, ClearWorld.occ));
+
+    // Blocked world with wall at z=3 obstructs sight
+    try std.testing.expect(!isLineOfSightClear(eye, target, BlockedWorld.occ));
+
+    // When target is before the wall (z = 2.0), sight is unobstructed
+    const near_target = [3]f32{ 0.5, 1.6, 2.0 };
+    try std.testing.expect(isLineOfSightClear(eye, near_target, BlockedWorld.occ));
+}
+
+test "isCreakingObserved handles gaze, occlusion, looking away, and pumpkin" {
+    const BlockedWorld = struct {
+        fn occ(x: i32, y: i32, z: i32) bool {
+            _ = y;
+            return x == 0 and z == 3; // Opaque obstacle at z=3
+        }
+    };
+    const ClearWorld = struct {
+        fn occ(_: i32, _: i32, _: i32) bool {
+            return false;
+        }
+    };
+
+    const player_eye = [3]f32{ 0.5, 1.6, 0.5 };
+    const player_look_forward = [3]f32{ 0.0, 0.0, 1.0 };
+    const player_look_away = [3]f32{ 0.0, 0.0, -1.0 };
+    const creaking_pos = [3]f32{ 0.5, 0.0, 5.5 }; // z=5.5, eye ~ 2.16
+    const cos_fov = 0.7071;
+
+    // Looking directly with unobstructed line of sight -> frozen!
+    try std.testing.expect(isCreakingObserved(creaking_pos, 2.7, player_eye, player_look_forward, cos_fov, false, ClearWorld.occ));
+
+    // Looking away -> not frozen!
+    try std.testing.expect(!isCreakingObserved(creaking_pos, 2.7, player_eye, player_look_away, cos_fov, false, ClearWorld.occ));
+
+    // Looking directly but hidden behind wall at z=3 -> not frozen!
+    try std.testing.expect(!isCreakingObserved(creaking_pos, 2.7, player_eye, player_look_forward, cos_fov, false, BlockedWorld.occ));
+
+    // Wearing carved pumpkin -> not frozen even with clear sight!
+    try std.testing.expect(!isCreakingObserved(creaking_pos, 2.7, player_eye, player_look_forward, cos_fov, true, ClearWorld.occ));
 }

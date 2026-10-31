@@ -42,6 +42,8 @@ pub const Mob = struct {
     glow_timer: f32 = 0.0,
     leashed_to_player: bool = false,
     fence_post: ?struct { x: i32, y: i32, z: i32 } = null,
+    creaking_heart_pos: ?[3]i32 = null,
+    is_frozen: bool = false,
     fuse_timer: f32 = 0.0,
     is_primed: bool = false,
     is_sheared: bool = false,
@@ -84,7 +86,7 @@ pub const Mob = struct {
             .guardian => 0.8,
             .elder_guardian => 1.4,
             .dolphin => 0.9,
-            .slime => 0.8,
+            .slime, .creaking => 0.8,
         };
         const h: f32 = switch (mob_type) {
             .sheep => 0.9,
@@ -110,6 +112,7 @@ pub const Mob = struct {
             .elder_guardian => 1.4,
             .dolphin => 0.6,
             .slime => 0.8,
+            .creaking => 2.7,
         };
         const spd: f32 = switch (mob_type) {
             .sheep => 1.4,
@@ -137,6 +140,7 @@ pub const Mob = struct {
             .elder_guardian => 0.3,
             .dolphin => 0.4,
             .slime => 2.0,
+            .creaking => 3.2,
         };
         return .{
             .mob_type = mob_type,
@@ -152,7 +156,7 @@ pub const Mob = struct {
             .anim_time = 0.0,
             .change_dir_timer = 2.0,
             .wants_sound = false,
-            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze or mob_type == .enderman or mob_type == .phantom or mob_type == .wither_skeleton) 20 else if (mob_type == .piglin_brute or mob_type == .drowned) 15 else if (mob_type == .ender_dragon) 200 else if (mob_type == .elder_guardian) 80 else if (mob_type == .target_dummy) 50 else if (mob_type == .shulker or mob_type == .turtle or mob_type == .guardian) 30 else if (mob_type == .spider or mob_type == .endermite) 8 else if (mob_type == .cave_spider) 6 else if (mob_type == .skeleton or mob_type == .zombie or mob_type == .creeper or mob_type == .dolphin) 10 else if (mob_type == .slime) 16 else if (mob_type == .piglin) 10 else 3,
+            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze or mob_type == .enderman or mob_type == .phantom or mob_type == .wither_skeleton) 20 else if (mob_type == .piglin_brute or mob_type == .drowned) 15 else if (mob_type == .ender_dragon) 200 else if (mob_type == .elder_guardian) 80 else if (mob_type == .target_dummy) 50 else if (mob_type == .shulker or mob_type == .turtle or mob_type == .guardian) 30 else if (mob_type == .spider or mob_type == .endermite) 8 else if (mob_type == .cave_spider) 6 else if (mob_type == .skeleton or mob_type == .zombie or mob_type == .creeper or mob_type == .dolphin) 10 else if (mob_type == .slime) 16 else if (mob_type == .piglin) 10 else if (mob_type == .creaking) 1 else 3,
             .in_water = false,
             .in_bubble_column = false,
             .in_whirlpool = false,
@@ -181,6 +185,20 @@ pub const Mob = struct {
             self.walk_timer = 0.0;
             self.vel.x = 0.0;
             self.vel.z = 0.0;
+            return;
+        }
+
+        if (self.mob_type == .creaking and self.is_frozen) {
+            self.walk_timer = 0.0;
+            self.vel.x = 0.0;
+            self.vel.z = 0.0;
+            if (!self.on_ground) {
+                self.vel.y -= 25.0 * clamped_dt;
+                if (self.vel.y < -30.0) self.vel.y = -30.0;
+                var dummy_v = self.vel.y;
+                self.pos.y = collideAxis(self.pos, self.width * 0.5, self.height, solid, self.vel.y * clamped_dt, .y, &dummy_v, &self.on_ground);
+                self.vel.y = dummy_v;
+            }
             return;
         }
 
@@ -390,6 +408,13 @@ pub const Mob = struct {
 
     /// Apply punch/weapon knockback and damage. Returns true when health reaches 0.
     pub fn takeHitDmg(self: *Mob, from_dir: math.Vec3, dmg: u8) bool {
+        if (self.mob_type == .creaking) {
+            self.vel.y = 4.0;
+            self.vel.x = from_dir.x * 3.0;
+            self.vel.z = from_dir.z * 3.0;
+            self.on_ground = false;
+            return false;
+        }
         self.health = if (self.health > dmg) self.health - dmg else 0;
         self.vel.y = 5.0;
         self.vel.x = from_dir.x * 4.0;
@@ -407,6 +432,7 @@ pub const Mob = struct {
     /// Apply contact burn damage with 1-second damage tick interval.
     /// Returns true if mob dies.
     pub fn applyBurnTick(self: *Mob, dt: f32) bool {
+        if (self.mob_type == .creaking) return false;
         self.burn_timer += dt;
         if (self.burn_timer >= 1.0) {
             self.burn_timer = 0.0;
@@ -648,6 +674,7 @@ pub fn getSound(mob_type: MobType) ?@import("../audio/synth.zig").SoundType {
         .guardian, .elder_guardian => .mob_roar,
         .dolphin => .mob_baa,
         .slime => .mob_growl,
+        .creaking => .step_wood,
     };
 }
 
@@ -1083,4 +1110,35 @@ test "sheep shearing mechanics and wool regrow cycle" {
     // Non-sheep cannot be sheared
     var wolf = Mob.init(.wolf, 0, 0, 0);
     try std.testing.expect(wolf.shear() == null);
+}
+
+test "creaking mob properties, invulnerability, and freeze behavior" {
+    var c_mob = Mob.init(.creaking, 10.0, 5.0, 10.0);
+    try std.testing.expectEqual(c_mob.mob_type, .creaking);
+    try std.testing.expectEqual(c_mob.width, 0.8);
+    try std.testing.expectEqual(c_mob.height, 2.7);
+    try std.testing.expectEqual(c_mob.walk_speed, 3.2);
+    try std.testing.expectEqual(c_mob.health, 1);
+    try std.testing.expectEqual(getSound(.creaking), .step_wood);
+
+    // Hitting Creaking deals 0 direct damage, does not kill it
+    const died = c_mob.takeHitDmg(math.Vec3.init(0, 0, 1), 50);
+    try std.testing.expect(!died);
+    try std.testing.expectEqual(c_mob.health, 1);
+    try std.testing.expect(c_mob.vel.z > 0.0);
+
+    // Freeze behavior stops horizontal movement
+    c_mob.is_frozen = true;
+    c_mob.walk_timer = 2.0;
+    c_mob.vel.x = 2.0;
+    c_mob.vel.z = 2.0;
+    const Mock = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return true; }
+        fn fluid(_: i32, _: i32, _: i32) bool { return false; }
+    };
+    var rng = std.Random.DefaultPrng.init(42);
+    c_mob.tick(Mock.solid, Mock.fluid, 0.05, &rng);
+    try std.testing.expectEqual(c_mob.walk_timer, 0.0);
+    try std.testing.expectEqual(c_mob.vel.x, 0.0);
+    try std.testing.expectEqual(c_mob.vel.z, 0.0);
 }
