@@ -2,6 +2,12 @@ const std = @import("std");
 const math = @import("math.zig");
 
 pub const Player = struct {
+    pub const sprint_min_hunger: f32 = 6.0;
+    pub const sprint_speed_mult: f32 = 1.3;
+    pub const swim_exhaustion_per_meter: f32 = 0.01;
+    pub const sprint_exhaustion_per_meter: f32 = 0.10;
+    pub const ExhaustionActivity = enum { sprint_jump, jump, attack_melee, take_damage, mine_block };
+
     pos: math.Vec3, // feet position
     vel_y: f32,
     on_ground: bool,
@@ -11,6 +17,8 @@ pub const Player = struct {
     health: f32,
     hunger: f32,
     saturation: f32,
+    exhaustion: f32 = 0.0,
+    is_sprinting: bool = false,
     spawn_point: math.Vec3,
     regen_timer: f32,
     in_water: bool,
@@ -43,6 +51,43 @@ pub const Player = struct {
     riptide_timer: f32 = 0.0,
     lodestone_target: ?math.Vec3 = null,
 
+    /// Returns whether the player's hunger permits sprinting.
+    pub fn canSprint(self: Player) bool {
+        return self.hunger > Player.sprint_min_hunger;
+    }
+
+    /// Updates sprint state from input, movement direction, and gameplay restrictions.
+    pub fn updateSprint(self: *Player, wants_sprint: bool, moving_forward: bool, inhibited: bool) void {
+        const state_inhibited = self.in_cobweb or self.in_boat or self.in_minecart or self.is_gliding or self.isRiptiding();
+        self.is_sprinting = wants_sprint and moving_forward and !inhibited and !state_inhibited and self.canSprint();
+    }
+
+    /// Adds exhaustion and consumes saturation before hunger at each four-point threshold.
+    pub fn addExhaustion(self: *Player, amount: f32) void {
+        self.saturation = @max(0.0, @min(self.saturation, self.hunger));
+        if (amount > 0.0) self.exhaustion += amount;
+        while (self.exhaustion >= 4.0) {
+            self.exhaustion -= 4.0;
+            if (self.saturation > 0.0) {
+                self.saturation = @max(0.0, self.saturation - 1.0);
+            } else {
+                self.hunger = @max(0.0, self.hunger - 1.0);
+            }
+        }
+        self.saturation = @max(0.0, @min(self.saturation, self.hunger));
+        if (!self.canSprint()) self.is_sprinting = false;
+    }
+
+    /// Adds the standard exhaustion amount for a gameplay activity.
+    pub fn addActivityExhaustion(self: *Player, activity: Player.ExhaustionActivity) void {
+        self.addExhaustion(switch (activity) {
+            .sprint_jump => 0.20,
+            .jump => 0.05,
+            .attack_melee, .take_damage => 0.10,
+            .mine_block => 0.005,
+        });
+    }
+
     pub fn resetInsomnia(self: *Player) void {
         self.insomnia_timer = 0.0;
         self.slow_falling_timer = 0.0;
@@ -64,6 +109,8 @@ pub const Player = struct {
             .health = 20.0,
             .hunger = 20.0,
             .saturation = 5.0,
+            .exhaustion = 0.0,
+            .is_sprinting = false,
             .spawn_point = math.Vec3.init(x, y, z),
             .regen_timer = 0.0,
             .in_water = false,
@@ -143,6 +190,8 @@ pub const Player = struct {
         self.health = 20.0;
         self.hunger = 20.0;
         self.saturation = 5.0;
+        self.exhaustion = 0.0;
+        self.is_sprinting = false;
         self.regen_timer = 0.0;
         self.wither_timer = 0.0;
         self.hunger_debuff_timer = 0.0;
@@ -313,6 +362,8 @@ pub const Player = struct {
         }
         const active_hunger_drain = hunger_drain + (if (self.hunger_debuff_timer > 0.0) hunger_debuff_drain_bonus else 0.0);
         self.hunger = @max(0.0, self.hunger - dt * active_hunger_drain);
+        self.saturation = @max(0.0, @min(self.saturation, self.hunger));
+        if (!self.canSprint()) self.is_sprinting = false;
         if (!debuffed and self.hunger > heal_hunger_threshold and self.health < 20.0) {
             self.health = @min(20.0, self.health + dt * passive_heal_rate);
         } else if (self.hunger <= 0.0 and self.health > 0.0) {
@@ -403,9 +454,19 @@ pub const Player = struct {
         self.pos.x = moveAxis(self.pos, self.radius, self.height, solid, effective_move_x, .x);
         self.pos.z = moveAxis(self.pos, self.radius, self.height, solid, effective_move_z, .z);
 
+        const dx = self.pos.x - old_x;
+        const dz = self.pos.z - old_z;
+        const horiz_dist = @sqrt(dx * dx + dz * dz);
+        const has_move_input = (move_x != 0.0 or move_z != 0.0);
+        if (horiz_dist > 0.0 and !self.in_boat and !self.in_minecart) {
+            if (self.in_water) {
+                if (has_move_input) self.addExhaustion(horiz_dist * swim_exhaustion_per_meter);
+            } else if (self.is_sprinting and has_move_input) {
+                self.addExhaustion(horiz_dist * sprint_exhaustion_per_meter);
+            }
+        }
+
         if (self.on_ground) {
-            const dx = self.pos.x - old_x;
-            const dz = self.pos.z - old_z;
             self.distance_walked += @sqrt(dx * dx + dz * dz);
         }
 
@@ -450,12 +511,14 @@ pub const Player = struct {
         } else if (self.hasSlowFalling()) {
             // Slow falling status: clamp terminal descent speed to gentle float (-2.0 m/s) and allow jump
             if (jump and self.on_ground) {
+                self.addActivityExhaustion(if (self.is_sprinting) .sprint_jump else .jump);
                 self.vel_y = 8.0;
                 self.on_ground = false;
             }
             self.vel_y = @max(-2.0, self.vel_y - 12.0 * clamped_dt);
         } else {
             if (jump and self.on_ground) {
+                self.addActivityExhaustion(if (self.is_sprinting) .sprint_jump else .jump);
                 self.vel_y = 8.0;
                 self.on_ground = false;
             }
@@ -482,7 +545,10 @@ pub const Player = struct {
                 self.on_ground = false;
             } else {
                 const dmg = fallDamageOnSurface(fall_speed, is_hay);
-                if (dmg > 0.0) self.health = @max(0.0, self.health - dmg);
+                if (dmg > 0.0) {
+                    self.health = @max(0.0, self.health - dmg);
+                    self.addActivityExhaustion(.take_damage);
+                }
             }
         }
     }
@@ -654,6 +720,127 @@ test "player walking updates distance_walked" {
     p.on_ground = true;
     p.tick(&testSolid, 1.0, 0, false, 0.016);
     try std.testing.expect(p.distance_walked > 0.0);
+}
+
+test "sprinting requires hunger above six and is disabled at threshold" {
+    var p = Player.init(0.5, 1.0, 0.5);
+    p.hunger = 6.0;
+    try std.testing.expect(!p.canSprint());
+    p.hunger = 6.1;
+    try std.testing.expect(p.canSprint());
+    p.is_sprinting = true;
+    p.hunger = 6.0;
+    p.tickVitals(0.0);
+    try std.testing.expect(!p.is_sprinting);
+}
+
+test "sprint input requires forward movement, permission, and no inhibition" {
+    var p = Player.init(0.5, 1.0, 0.5);
+    p.updateSprint(true, true, false);
+    try std.testing.expect(p.is_sprinting);
+    p.updateSprint(false, true, false);
+    try std.testing.expect(!p.is_sprinting);
+    p.updateSprint(true, false, false);
+    try std.testing.expect(!p.is_sprinting);
+    p.updateSprint(true, true, true);
+    try std.testing.expect(!p.is_sprinting);
+    p.hunger = 6.0;
+    p.updateSprint(true, true, false);
+    try std.testing.expect(!p.is_sprinting);
+}
+
+test "activity exhaustion adds standard amounts and rolls saturation into hunger" {
+    var p = Player.init(0.5, 1.0, 0.5);
+    p.saturation = 5.0;
+    p.addActivityExhaustion(.attack_melee);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.10), p.exhaustion, 0.0001);
+
+    // Jump adds 0.05, reaching 4.0 threshold -> drains saturation first, hunger unchanged
+    p.exhaustion = 3.95;
+    p.addActivityExhaustion(.jump);
+    try std.testing.expectApproxEqAbs(@as(f32, 20.0), p.hunger, 0.0001);
+    try std.testing.expectApproxEqAbs(@as(f32, 4.0), p.saturation, 0.0001);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.0), p.exhaustion, 0.0001);
+
+    // When saturation reaches 0.0, rollover drains hunger
+    p.saturation = 0.0;
+    p.exhaustion = 3.95;
+    p.addActivityExhaustion(.jump);
+    try std.testing.expectApproxEqAbs(@as(f32, 19.0), p.hunger, 0.0001);
+    try std.testing.expectEqual(@as(f32, 0.0), p.saturation);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.0), p.exhaustion, 0.0001);
+}
+
+test "exhaustion handles multiple rollovers and clamps saturation to hunger" {
+    var p = Player.init(0.5, 1.0, 0.5);
+    p.hunger = 3.0;
+    p.saturation = 12.0; // Clamped to hunger (3.0)
+    p.exhaustion = 8.0; // Two rollovers
+    p.addExhaustion(0.0);
+    // Rollovers drain 1.0 saturation each: 3.0 -> 2.0 -> 1.0; hunger stays 3.0
+    try std.testing.expectApproxEqAbs(@as(f32, 3.0), p.hunger, 0.0001);
+    try std.testing.expectEqual(@as(f32, 1.0), p.saturation);
+    try std.testing.expectEqual(@as(f32, 0.0), p.exhaustion);
+
+    // Multi-rollover when saturation empties: drains saturation then hunger
+    p.hunger = 3.0;
+    p.saturation = 1.0;
+    p.exhaustion = 8.0;
+    p.addExhaustion(0.0);
+    // 1st rollover drains saturation 1.0 -> 0.0; 2nd rollover drains hunger 3.0 -> 2.0
+    try std.testing.expectApproxEqAbs(@as(f32, 2.0), p.hunger, 0.0001);
+    try std.testing.expectEqual(@as(f32, 0.0), p.saturation);
+    try std.testing.expectEqual(@as(f32, 0.0), p.exhaustion);
+}
+
+test "jump and horizontal sprint or swim movement add exhaustion" {
+    var normal = Player.init(0.5, 1.0, 0.5);
+    normal.on_ground = true;
+    normal.tickPhysicsCustom(testSolid, null, null, null, null, 0.0, 0.0, true, 0.05);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.05), normal.exhaustion, 0.0001);
+
+    var sprint_jump = Player.init(0.5, 1.0, 0.5);
+    sprint_jump.on_ground = true;
+    sprint_jump.is_sprinting = true;
+    sprint_jump.tickPhysicsCustom(testSolid, null, null, null, null, 0.0, 0.0, true, 0.05);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.20), sprint_jump.exhaustion, 0.0001);
+
+    var sprint = Player.init(0.5, 1.0, 0.5);
+    sprint.on_ground = true;
+    sprint.is_sprinting = true;
+    sprint.tickPhysicsCustom(testSolid, null, null, null, null, 1.0, 0.0, false, 0.05);
+    try std.testing.expect(sprint.exhaustion > 0.0);
+
+    const WaterMock = struct {
+        fn fluid(_: i32, _: i32, _: i32) bool {
+            return true;
+        }
+    };
+    var swimmer = Player.init(0.5, 1.0, 0.5);
+    swimmer.tickPhysicsCustom(testSolid, null, WaterMock.fluid, null, null, 1.0, 0.0, false, 0.05);
+    try std.testing.expect(swimmer.exhaustion > 0.0);
+
+    var boat_rider = Player.init(0.5, 1.0, 0.5);
+    boat_rider.in_boat = true;
+    boat_rider.tickPhysicsCustom(testSolid, null, WaterMock.fluid, null, null, 1.0, 0.0, false, 0.05);
+    try std.testing.expectEqual(@as(f32, 0.0), boat_rider.exhaustion);
+
+    var glider = Player.init(0.5, 5.0, 0.5);
+    glider.is_gliding = true;
+    glider.updateSprint(true, true, false);
+    try std.testing.expect(!glider.is_sprinting);
+
+    var riptider = Player.init(0.5, 5.0, 0.5);
+    riptider.launchRiptide();
+    riptider.updateSprint(true, true, false);
+    try std.testing.expect(!riptider.is_sprinting);
+
+    var faller = Player.init(0.5, 1.05, 0.5);
+    faller.on_ground = false;
+    faller.vel_y = -18.0;
+    faller.tickPhysicsCustom(testSolid, null, null, null, null, 0.0, 0.0, false, 0.05);
+    try std.testing.expect(faller.health < 20.0);
+    try std.testing.expectApproxEqAbs(@as(f32, 0.10), faller.exhaustion, 0.0001);
 }
 
 test "player eat restores hunger" {
