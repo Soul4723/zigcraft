@@ -274,9 +274,16 @@ that `zig env` prints) and [docs/learnings/zig-0.16-changes.md](docs/learnings/z
   target rooted at `src/world/foo.zig` cannot `@import("../bar.zig")`
   ("import of file outside module path"). Keep files that import each other
   in one directory, or pass callbacks and duck-typed parameters.
-- **Imported files' tests are not collected.** `b.addTest` on the executable
-  module runs only the test blocks in `src/main.zig`. Each file with tests
-  needs its own entry in `test_files` in `build.zig`.
+- **Test collection and explicit registration policy.** `b.addTest` on the
+  executable module runs zero tests because `src/main.zig` has no `test` or
+  top-level `comptime` blocks referencing other modules, and the test runner
+  replaces `main()`. Zig 0.16 collects tests via lazy semantic analysis
+  rooted at top-level `test` and `comptime` blocks: tests in same-module
+  imported files are collected only when referenced declarations are analyzed
+  (module boundaries added via `addImport` do not collect tests, and tests
+  inside unreferenced nested containers are skipped). As project policy for
+  reliable coverage, each file with tests must still be listed in `test_files`
+  in `build.zig` so test discovery does not depend on import reachability.
 - **Each `@cImport` makes distinct opaque types.** A `*c.GLFWwindow` from one
   file is a different type in another file. Do GLFW calls in the file that
   owns the window and pass plain values such as `c_int` key codes, which are
