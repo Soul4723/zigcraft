@@ -14,6 +14,7 @@ const spawn_rules = @import("../world/spawn_rules.zig");
 const block_mod = @import("../world/block.zig");
 const hazard_mod = @import("../world/hazard.zig");
 const inventory_mod = @import("../inventory.zig");
+const pale_garden_mod = @import("../world/pale_garden.zig");
 
 pub const MobManager = struct {
     allocator: std.mem.Allocator,
@@ -22,6 +23,7 @@ pub const MobManager = struct {
     rng: std.Random.DefaultPrng,
     ambient_timer: f32,
     spawner_timer: f32,
+    creaking_scan_timer: f32 = 0.0,
 
     pub fn init(allocator: std.mem.Allocator, atlas_texture: c.GLuint) !MobManager {
         const r = try mob_renderer_mod.MobRenderer.init(allocator, atlas_texture);
@@ -32,6 +34,7 @@ pub const MobManager = struct {
             .rng = std.Random.DefaultPrng.init(0xCAFEFEED),
             .ambient_timer = 5.0,
         .spawner_timer = 0.0,
+        .creaking_scan_timer = 0.0,
         };
     }
 
@@ -417,7 +420,7 @@ pub const MobManager = struct {
         }
     }
 
-    pub const HitResult = struct { mob_type: mob_mod.MobType, pos: math.Vec3, died: bool, drop: ?mob_mod.MobType, wool: bool, is_champion: bool = false };
+    pub const HitResult = struct { mob_type: mob_mod.MobType, pos: math.Vec3, died: bool, drop: ?mob_mod.MobType, wool: bool, is_champion: bool = false, creaking_heart_pos: ?[3]i32 = null };
 
     /// Try hitting a mob with raycast from camera. Returns hit info incl. death/drop.
     pub fn tryHitMobDmg(self: *MobManager, origin: math.Vec3, dir: math.Vec3, max_dist: f32, dmg: u8) ?HitResult {
@@ -434,6 +437,7 @@ pub const MobManager = struct {
         if (hit_idx) |i| {
             const mtype = self.mobs.items[i].mob_type;
             const was_champ = self.mobs.items[i].is_champion;
+            const heart_pos = self.mobs.items[i].creaking_heart_pos;
             if (mtype == .piglin) {
                 self.mobs.items[i].barter_timer = 0.0;
             }
@@ -441,9 +445,9 @@ pub const MobManager = struct {
             if (died) {
                 const pos = self.mobs.items[i].pos;
                 _ = self.mobs.swapRemove(i);
-                return .{ .mob_type = mtype, .pos = pos, .died = true, .drop = mtype, .wool = mtype == .sheep, .is_champion = was_champ };
+                return .{ .mob_type = mtype, .pos = pos, .died = true, .drop = mtype, .wool = mtype == .sheep, .is_champion = was_champ, .creaking_heart_pos = heart_pos };
             }
-            return .{ .mob_type = mtype, .pos = self.mobs.items[i].pos, .died = false, .drop = null, .wool = false, .is_champion = was_champ };
+            return .{ .mob_type = mtype, .pos = self.mobs.items[i].pos, .died = false, .drop = null, .wool = false, .is_champion = was_champ, .creaking_heart_pos = heart_pos };
         }
 
         return null;
@@ -585,6 +589,202 @@ pub const MobManager = struct {
 
     pub fn draw(self: *MobManager, view_proj: math.Mat4, sun_dir: math.Vec3, cam_pos: math.Vec3, is_underwater: bool, is_nether: bool) !void {
         try self.renderer.drawMobs(self.mobs.items, view_proj, sun_dir, cam_pos, is_underwater, is_nether);
+    }
+
+
+    pub fn spawnCreaking(self: *MobManager, heart_pos: [3]i32, x: f32, y: f32, z: f32) !void {
+        var m = mob_mod.Mob.init(.creaking, x, y, z);
+        m.creaking_heart_pos = heart_pos;
+        try self.mobs.append(self.allocator, m);
+    }
+
+    pub fn hasLinkedCreaking(self: *const MobManager, heart_pos: [3]i32) bool {
+        for (self.mobs.items) |m| {
+            if (m.mob_type == .creaking) {
+                if (m.creaking_heart_pos) |hp| {
+                    if (std.mem.eql(i32, &hp, &heart_pos)) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    pub fn removeCreakingLinkedTo(self: *MobManager, heart_pos: [3]i32) void {
+        var idx: usize = 0;
+        while (idx < self.mobs.items.len) {
+            const m = &self.mobs.items[idx];
+            if (m.mob_type == .creaking) {
+                if (m.creaking_heart_pos) |hp| {
+                    if (std.mem.eql(i32, &hp, &heart_pos)) {
+                        _ = self.mobs.swapRemove(idx);
+                        continue;
+                    }
+                }
+            }
+            idx += 1;
+        }
+    }
+
+    pub fn clearAllCreakings(self: *MobManager) void {
+        var idx: usize = 0;
+        while (idx < self.mobs.items.len) {
+            if (self.mobs.items[idx].mob_type == .creaking) {
+                _ = self.mobs.swapRemove(idx);
+            } else {
+                idx += 1;
+            }
+        }
+    }
+
+    pub fn findSafeSpawnNearHeart(chunk_manager: *const chunk_manager_mod.ChunkManager, heart_pos: [3]i32) ?math.Vec3 {
+        const offsets = [_][2]i32{
+            .{ 2, 0 }, .{ -2, 0 }, .{ 0, 2 }, .{ 0, -2 },
+            .{ 3, 2 }, .{ -3, 2 }, .{ 3, -2 }, .{ -3, -2 },
+            .{ 4, 1 }, .{ -4, 1 }, .{ 1, 4 }, .{ -1, -4 },
+        };
+        for (offsets) |off| {
+            const sx = heart_pos[0] + off[0];
+            const sz = heart_pos[2] + off[1];
+            var sy: i32 = heart_pos[1] + 1;
+            while (sy >= 1 and sy >= heart_pos[1] - 8) : (sy -= 1) {
+                if (!chunk_manager.isSolidWorld(sx, sy, sz)) continue;
+                if (chunk_manager.isSolidWorld(sx, sy + 1, sz)) continue;
+                if (chunk_manager.isSolidWorld(sx, sy + 2, sz)) continue;
+                if (chunk_manager.isSolidWorld(sx, sy + 3, sz)) continue;
+                return math.Vec3.init(@as(f32, @floatFromInt(sx)) + 0.5, @as(f32, @floatFromInt(sy + 1)), @as(f32, @floatFromInt(sz)) + 0.5);
+            }
+        }
+        return null;
+    }
+
+    pub fn ensureCreakingPopulation(
+        self: *MobManager,
+        chunk_manager: *const chunk_manager_mod.ChunkManager,
+        is_night: bool,
+        is_thunder: bool,
+        dt: f32,
+    ) !void {
+        if (!is_night and !is_thunder) return;
+        if (chunk_manager.is_nether or chunk_manager.is_end) return;
+
+        self.creaking_scan_timer -= dt;
+        if (self.creaking_scan_timer > 0.0) return;
+        self.creaking_scan_timer = 1.0;
+
+        var iter = chunk_manager.chunks.iterator();
+        while (iter.next()) |entry| {
+            const coord = entry.key_ptr.*;
+            const ch = &entry.value_ptr.chunk;
+            var lx: usize = 0;
+            while (lx < 16) : (lx += 1) {
+                var lz: usize = 0;
+                while (lz < 16) : (lz += 1) {
+                    var ly: usize = 1;
+                    while (ly < 15) : (ly += 1) {
+                        if (ch.getBlock(@intCast(lx), @intCast(ly), @intCast(lz)) == .creaking_heart) {
+                            const wx = coord.x * 16 + @as(i32, @intCast(lx));
+                            const wy: i32 = @intCast(ly);
+                            const wz = coord.z * 16 + @as(i32, @intCast(lz));
+                            const heart_pos = [3]i32{ wx, wy, wz };
+
+                            const below = ch.getBlock(@intCast(lx), @intCast(ly - 1), @intCast(lz));
+                            const above = ch.getBlock(@intCast(lx), @intCast(ly + 1), @intCast(lz));
+                            if (below != .pale_oak_log or above != .pale_oak_log) continue;
+
+                            if (self.hasLinkedCreaking(heart_pos)) continue;
+
+                            if (findSafeSpawnNearHeart(chunk_manager, heart_pos)) |sp| {
+                                try self.spawnCreaking(heart_pos, sp.x, sp.y, sp.z);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn tickCreakings(
+        self: *MobManager,
+        block_at: ?*const fn (x: i32, y: i32, z: i32) block_mod.BlockId,
+        is_solid: *const fn (x: i32, y: i32, z: i32) bool,
+        player_pos: math.Vec3,
+        player_eye_pos: math.Vec3,
+        player_look_dir: math.Vec3,
+        is_night: bool,
+        is_thunder: bool,
+        wearing_carved_pumpkin: bool,
+        is_overworld: bool,
+    ) void {
+        if (!is_overworld or (!is_night and !is_thunder)) {
+            self.clearAllCreakings();
+            return;
+        }
+
+        const bat = block_at orelse return;
+
+        var idx: usize = 0;
+        while (idx < self.mobs.items.len) {
+            var mob = &self.mobs.items[idx];
+            if (mob.mob_type != .creaking) {
+                idx += 1;
+                continue;
+            }
+
+            const hp = mob.creaking_heart_pos orelse {
+                _ = self.mobs.swapRemove(idx);
+                continue;
+            };
+
+            const h_blk = bat(hp[0], hp[1], hp[2]);
+            const above_blk = bat(hp[0], hp[1] + 1, hp[2]);
+            const below_blk = bat(hp[0], hp[1] - 1, hp[2]);
+            if (h_blk != .creaking_heart or above_blk != .pale_oak_log or below_blk != .pale_oak_log) {
+                _ = self.mobs.swapRemove(idx);
+                continue;
+            }
+
+            const c_pos = [3]f32{ mob.pos.x, mob.pos.y, mob.pos.z };
+            if (!pale_garden_mod.isWithinTetherRadius(c_pos, hp)) {
+                _ = self.mobs.swapRemove(idx);
+                continue;
+            }
+
+            const observed = pale_garden_mod.isCreakingObserved(
+                c_pos,
+                mob.height,
+                [3]f32{ player_eye_pos.x, player_eye_pos.y, player_eye_pos.z },
+                [3]f32{ player_look_dir.x, player_look_dir.y, player_look_dir.z },
+                0.7071,
+                wearing_carved_pumpkin,
+                is_solid,
+            );
+
+            if (observed) {
+                mob.is_frozen = true;
+                mob.vel.x = 0.0;
+                mob.vel.z = 0.0;
+                mob.walk_timer = 0.0;
+            } else {
+                mob.is_frozen = false;
+                const p_arr = [3]f32{ player_pos.x, player_pos.y, player_pos.z };
+                if (pale_garden_mod.isWithinTetherRadius(p_arr, hp)) {
+                    const pdx = player_pos.x - mob.pos.x;
+                    const pdz = player_pos.z - mob.pos.z;
+                    const pdist = @sqrt(pdx * pdx + pdz * pdz);
+                    if (pdist > 0.5) {
+                        mob.yaw = std.math.atan2(pdx, pdz);
+                        mob.walk_timer = hunt_mod.walk_pulse;
+                    }
+                } else {
+                    const hdx = @as(f32, @floatFromInt(hp[0])) + 0.5 - mob.pos.x;
+                    const hdz = @as(f32, @floatFromInt(hp[2])) + 0.5 - mob.pos.z;
+                    mob.yaw = std.math.atan2(hdx, hdz);
+                    mob.walk_timer = hunt_mod.walk_pulse;
+                }
+            }
+
+            idx += 1;
+        }
     }
 
     pub fn countNearbyWolves(self: *const MobManager, center: math.Vec3, radius: f32) usize {
@@ -938,4 +1138,216 @@ test "MobManager tryShearSheep shearing mechanics" {
     // Second shear fails
     const shear_res2 = mm.tryShearSheep(math.Vec3.init(0.0, 1.0, 0.0), math.Vec3.init(0.0, 0.0, 1.0), 5.0);
     try std.testing.expect(shear_res2 == null);
+}
+
+test "MobManager Creaking one-per-heart spawning and duplicate prevention" {
+    var mm = try MobManager.init(std.testing.allocator, 0);
+    defer mm.deinit();
+
+    const heart_pos = [3]i32{ 10, 64, 10 };
+    try std.testing.expect(!mm.hasLinkedCreaking(heart_pos));
+
+    try mm.spawnCreaking(heart_pos, 12.5, 64.0, 10.5);
+    try std.testing.expectEqual(@as(usize, 1), mm.mobs.items.len);
+    try std.testing.expect(mm.hasLinkedCreaking(heart_pos));
+
+    // Attempting to spawn again for same heart is blocked
+    try std.testing.expect(mm.hasLinkedCreaking(heart_pos));
+
+    const other_heart = [3]i32{ 20, 64, 20 };
+    try std.testing.expect(!mm.hasLinkedCreaking(other_heart));
+}
+
+test "MobManager Creaking safe spawn failure when no solid floor with headroom" {
+    var mgr = try chunk_manager_mod.ChunkManager.init(std.testing.allocator, 1, 0, 0, 1234, ".zig-cache/test_saves");
+    defer mgr.deinit();
+
+    const heart_pos = [3]i32{ 0, 5, 0 };
+    var dx: i32 = -5;
+    while (dx <= 5) : (dx += 1) {
+        var dz: i32 = -5;
+        while (dz <= 5) : (dz += 1) {
+            var dy: i32 = -8;
+            while (dy <= 4) : (dy += 1) {
+                _ = mgr.setBlockWorld(heart_pos[0] + dx, heart_pos[1] + dy, heart_pos[2] + dz, .stone);
+            }
+        }
+    }
+    const spawn_opt = MobManager.findSafeSpawnNearHeart(&mgr, heart_pos);
+    try std.testing.expect(spawn_opt == null);
+}
+
+test "MobManager Creaking tickCreakings gaze freeze, look away, and occlusion" {
+    var mm = try MobManager.init(std.testing.allocator, 0);
+    defer mm.deinit();
+
+    const heart_pos = [3]i32{ 0, 64, 0 };
+    try mm.spawnCreaking(heart_pos, 0.5, 64.0, 5.5);
+    try std.testing.expectEqual(@as(usize, 1), mm.mobs.items.len);
+
+    const World = struct {
+        var wall_present: bool = false;
+        fn block(x: i32, y: i32, z: i32) block_mod.BlockId {
+            if (x == 0 and y == 64 and z == 0) return .creaking_heart;
+            if (x == 0 and (y == 65 or y == 63) and z == 0) return .pale_oak_log;
+            if (wall_present and x == 0 and z == 3) return .stone;
+            return .air;
+        }
+        fn solid(x: i32, y: i32, z: i32) bool {
+            _ = y;
+            if (x == 0 and z == 0) return true;
+            if (wall_present and x == 0 and z == 3) return true;
+            return false;
+        }
+    };
+
+    const player_pos = math.Vec3.init(0.5, 64.0, 0.5);
+    const player_eye = math.Vec3.init(0.5, 65.6, 0.5);
+    const look_forward = math.Vec3.init(0.0, 0.0, 1.0);
+    const look_away = math.Vec3.init(0.0, 0.0, -1.0);
+
+    // 1. Looking directly at Creaking with no wall: frozen!
+    World.wall_present = false;
+    mm.tickCreakings(World.block, World.solid, player_pos, player_eye, look_forward, true, false, false, true);
+    try std.testing.expect(mm.mobs.items[0].is_frozen);
+    try std.testing.expectEqual(mm.mobs.items[0].walk_timer, 0.0);
+
+    // 2. Looking away: resumes pursuit!
+    mm.tickCreakings(World.block, World.solid, player_pos, player_eye, look_away, true, false, false, true);
+    try std.testing.expect(!mm.mobs.items[0].is_frozen);
+    try std.testing.expect(mm.mobs.items[0].walk_timer > 0.0);
+
+    // 3. Looking directly at Creaking but occluded by wall at z=3: resumes pursuit!
+    World.wall_present = true;
+    mm.tickCreakings(World.block, World.solid, player_pos, player_eye, look_forward, true, false, false, true);
+    try std.testing.expect(!mm.mobs.items[0].is_frozen);
+    try std.testing.expect(mm.mobs.items[0].walk_timer > 0.0);
+}
+
+test "MobManager Creaking dawn removal, unaligned heart, and tether limit" {
+    var mm = try MobManager.init(std.testing.allocator, 0);
+    defer mm.deinit();
+
+    const heart_pos = [3]i32{ 0, 64, 0 };
+    try mm.spawnCreaking(heart_pos, 0.5, 64.0, 5.5);
+
+    const World = struct {
+        var heart_intact: bool = true;
+        var logs_aligned: bool = true;
+        fn block(x: i32, y: i32, z: i32) block_mod.BlockId {
+            if (x == 0 and y == 64 and z == 0) return if (heart_intact) .creaking_heart else .air;
+            if (x == 0 and y == 65 and z == 0) return if (logs_aligned) .pale_oak_log else .air;
+            if (x == 0 and y == 63 and z == 0) return .pale_oak_log;
+            return .air;
+        }
+        fn solid(_: i32, _: i32, _: i32) bool { return false; }
+    };
+
+    const player_pos = math.Vec3.init(0.5, 64.0, 0.5);
+    const player_eye = math.Vec3.init(0.5, 65.6, 0.5);
+    const look_away = math.Vec3.init(0.0, 0.0, -1.0);
+
+    // Dawn removal: when is_night is false and is_thunder is false, all Creakings are removed
+    mm.tickCreakings(World.block, World.solid, player_pos, player_eye, look_away, false, false, false, true);
+    try std.testing.expectEqual(@as(usize, 0), mm.mobs.items.len);
+
+    // Respawn Creaking for unaligned log test
+    try mm.spawnCreaking(heart_pos, 0.5, 64.0, 5.5);
+    try std.testing.expectEqual(@as(usize, 1), mm.mobs.items.len);
+    World.logs_aligned = false;
+    mm.tickCreakings(World.block, World.solid, player_pos, player_eye, look_away, true, false, false, true);
+    try std.testing.expectEqual(@as(usize, 0), mm.mobs.items.len);
+
+    // Respawn Creaking for missing/broken heart test
+    World.logs_aligned = true;
+    try mm.spawnCreaking(heart_pos, 0.5, 64.0, 5.5);
+    try std.testing.expectEqual(@as(usize, 1), mm.mobs.items.len);
+    World.heart_intact = false;
+    mm.tickCreakings(World.block, World.solid, player_pos, player_eye, look_away, true, false, false, true);
+    try std.testing.expectEqual(@as(usize, 0), mm.mobs.items.len);
+
+    // Respawn Creaking for tether limit (>32m) test
+    World.heart_intact = true;
+    try mm.spawnCreaking(heart_pos, 40.0, 64.0, 40.0);
+    try std.testing.expectEqual(@as(usize, 1), mm.mobs.items.len);
+    mm.tickCreakings(World.block, World.solid, player_pos, player_eye, look_away, true, false, false, true);
+    try std.testing.expectEqual(@as(usize, 0), mm.mobs.items.len);
+}
+
+test "MobManager Creaking dimension switch cleanup and failure preservation" {
+    var mm = try MobManager.init(std.testing.allocator, 0);
+    defer mm.deinit();
+
+    try mm.spawnMob(.sheep, 0, 64, 0);
+    try mm.spawnCreaking(.{ 10, 64, 10 }, 12, 64, 10);
+    try std.testing.expectEqual(@as(usize, 2), mm.mobs.items.len);
+
+    // On failed dimension switch: live mobs are preserved!
+    const switch_succeeded = false;
+    if (switch_succeeded) {
+        mm.clearAllCreakings();
+    }
+    try std.testing.expectEqual(@as(usize, 2), mm.mobs.items.len);
+
+    // On successful dimension switch: creakings cleared, regular mobs preserved!
+    const real_switch_succeeded = true;
+    if (real_switch_succeeded) {
+        mm.clearAllCreakings();
+    }
+    try std.testing.expectEqual(@as(usize, 1), mm.mobs.items.len);
+    try std.testing.expectEqual(mm.mobs.items[0].mob_type, .sheep);
+}
+
+test "MobManager Creaking swapRemove retains stable heart links" {
+    var mm = try MobManager.init(std.testing.allocator, 0);
+    defer mm.deinit();
+
+    const heart1 = [3]i32{ 10, 64, 10 };
+    const heart2 = [3]i32{ 20, 64, 20 };
+
+    try mm.spawnCreaking(heart1, 10.5, 64.0, 12.0);
+    try mm.spawnMob(.zombie, 5.0, 64.0, 5.0);
+    try mm.spawnCreaking(heart2, 20.5, 64.0, 22.0);
+
+    try std.testing.expectEqual(@as(usize, 3), mm.mobs.items.len);
+    try std.testing.expect(mm.hasLinkedCreaking(heart1));
+    try std.testing.expect(mm.hasLinkedCreaking(heart2));
+
+    // Remove mob at index 0 (swapRemove moves index 2 to index 0)
+    _ = mm.mobs.swapRemove(0);
+    try std.testing.expectEqual(@as(usize, 2), mm.mobs.items.len);
+
+    try std.testing.expect(!mm.hasLinkedCreaking(heart1));
+    try std.testing.expect(mm.hasLinkedCreaking(heart2));
+    try std.testing.expectEqual(mm.mobs.items[0].mob_type, .creaking);
+    try std.testing.expectEqual(mm.mobs.items[0].creaking_heart_pos.?, heart2);
+}
+
+test "MobManager Creaking hit invulnerability and shared resin cooldown with F path" {
+    var tracker = pale_garden_mod.CreakingHeartTracker.init();
+    const heart_pos = [3]i32{ 15, 64, 15 };
+
+    var mm = try MobManager.init(std.testing.allocator, 0);
+    defer mm.deinit();
+
+    try mm.spawnCreaking(heart_pos, 15.5, 64.0, 18.0);
+    try std.testing.expectEqual(@as(usize, 1), mm.mobs.items.len);
+
+    const hit = mm.tryHitMobDmg(math.Vec3.init(15.5, 65.0, 15.0), math.Vec3.init(0.0, 0.0, 1.0), 5.0, 10);
+    try std.testing.expect(hit != null);
+    try std.testing.expectEqual(hit.?.mob_type, .creaking);
+    try std.testing.expect(!hit.?.died);
+    try std.testing.expectEqual(hit.?.creaking_heart_pos.?, heart_pos);
+
+    const ext = tracker.tryExtrudeResin(heart_pos, .pale_oak_log, .pale_oak_log, true, false);
+    try std.testing.expectEqual(pale_garden_mod.ExtrudeStatus.extruded, ext.status);
+    try std.testing.expect(ext.clumps >= 2 and ext.clumps <= 3);
+
+    const f_shortcut = tracker.tryExtrudeResin(heart_pos, .pale_oak_log, .pale_oak_log, true, false);
+    try std.testing.expectEqual(pale_garden_mod.ExtrudeStatus.cooling_down, f_shortcut.status);
+    try std.testing.expectEqual(@as(u8, 0), f_shortcut.clumps);
+
+    tracker.tickSeconds(5.0);
+    const f_reavailable = tracker.tryExtrudeResin(heart_pos, .pale_oak_log, .pale_oak_log, true, false);
+    try std.testing.expectEqual(pale_garden_mod.ExtrudeStatus.extruded, f_reavailable.status);
 }

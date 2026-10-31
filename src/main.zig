@@ -1480,6 +1480,7 @@ pub fn main() !void {
                     red_torch_count = 0;
                     known_stage_count = 0;
 
+                    mob_manager.clearAllCreakings();
                     if (end_portal_transit.current_dim == .the_end) {
                         var dragon_exists = false;
                         for (mob_manager.mobs.items) |m| {
@@ -1574,6 +1575,7 @@ pub fn main() !void {
                     lamp_count = 0;
                     red_torch_count = 0;
                     known_stage_count = 0;
+                    mob_manager.clearAllCreakings();
                     if (matched_linked) |linked| {
                         std.debug.print("linked portal matched at ({d},{d},{d})\n", .{ linked.x, linked.y, linked.z });
                     }
@@ -2722,6 +2724,9 @@ pub fn main() !void {
         // Mob spawning and physics AI tick
         const is_night_spawn = @sin(world_time) <= 0.0;
         try mob_manager.ensureSpawnPopulation(&manager, player.pos.x, player.pos.z, is_night_spawn);
+        const is_overworld_spawn = !manager.is_nether and !manager.is_end;
+        try mob_manager.ensureCreakingPopulation(&manager, is_night_spawn, false, dt);
+        mob_manager.tickCreakings(&pickBlockWorld, &pickSolid, player.pos, cam.position, cam.front(), is_night_spawn, false, false, is_overworld_spawn);
 
         // Insomnia aerial night spawn: spawn Phantoms circling above insomniac players
         if (is_night_spawn and player.hasInsomnia() and mob_manager.mobs.items.len < 8 and !manager.is_nether and !manager.is_end) {
@@ -2868,7 +2873,8 @@ pub fn main() !void {
         if (wolf_bite_cooldown <= 0.0) {
             const held_gold = (inventory.slots[selected_slot].item == .gold_nugget or inventory.slots[selected_slot].item == .golden_apple or inventory.hasAnyGoldenItem());
             for (mob_manager.mobs.items) |*m| {
-                if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider and m.mob_type != .cave_spider and m.mob_type != .endermite and m.mob_type != .drowned and m.mob_type != .phantom and m.mob_type != .guardian and m.mob_type != .elder_guardian and m.mob_type != .slime) continue;
+                if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider and m.mob_type != .cave_spider and m.mob_type != .endermite and m.mob_type != .drowned and m.mob_type != .phantom and m.mob_type != .guardian and m.mob_type != .elder_guardian and m.mob_type != .slime and m.mob_type != .creaking) continue;
+                if (m.mob_type == .creaking and m.is_frozen) continue;
                 if (m.mob_type == .piglin and (held_gold or m.barter_timer > 0.0 or entity_mod.mob_manager.MobManager.isPiglinRepelled(m.pos, player.pos, held_warped_fungus, &pickBlockWorld) != null)) continue;
                 const bdx = m.pos.x - player.pos.x;
                 const bdz = m.pos.z - player.pos.z;
@@ -2933,6 +2939,12 @@ pub fn main() !void {
                             audio.play(.mob_roar, 0.9);
                             audio.play(.splash, 0.8);
                             std.debug.print("guardian laser beam struck player (dmg={d:.1}, hp={d:.1})\n", .{ g_dmg, player.health });
+                        } else if (m.mob_type == .creaking) {
+                            const ck_dmg = combat_mod.applyArmorReductionEveryTier(3.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
+                            player.health = @max(0.0, player.health - ck_dmg);
+                            audio.play(.step_wood, 0.9);
+                            audio.play(.hurt, 0.9);
+                            std.debug.print("creaking struck player (dmg={d:.1}, hp={d:.1})\n", .{ ck_dmg, player.health });
                         } else if (m.mob_type == .elder_guardian) {
                             // Elder Guardian boss laser beam: 6 damage + splash & heavy roar + Mining Fatigue affliction
                             const eg_dmg = combat_mod.applyArmorReductionEveryTier(6.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
@@ -3398,7 +3410,22 @@ pub fn main() !void {
                     const px: i32 = @intFromFloat(@floor(hit_mob.pos.x));
                     const py: i32 = @intFromFloat(@floor(hit_mob.pos.y));
                     const pz: i32 = @intFromFloat(@floor(hit_mob.pos.z));
-                    if (hit_mob.mob_type == .target_dummy) {
+                    if (hit_mob.mob_type == .creaking) {
+                        audio.playAt(.step_wood, .{ hit_mob.pos.x, hit_mob.pos.y, hit_mob.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 25.0);
+                        particles.spawnBlockDebris(px, py, pz, .{ 0.92, 0.48, 0.16 }, 16);
+                        if (hit_mob.creaking_heart_pos) |hp| {
+                            const above_blk = manager.getBlockWorld(hp[0], hp[1] + 1, hp[2]);
+                            const below_blk = manager.getBlockWorld(hp[0], hp[1] - 1, hp[2]);
+                            const is_night_now = !manager.is_nether and !manager.is_end and @sin(world_time) <= 0.0;
+                            const ext = creaking_hearts.tryExtrudeResin(hp, above_blk, below_blk, is_night_now, false);
+                            if (ext.clumps > 0) {
+                                _ = inventory.addItem(.resin_clump, ext.clumps);
+                                audio.play(.portal_hum, 0.95);
+                                particles.spawnBlockDebris(hp[0], hp[1], hp[2], .{ 0.92, 0.48, 0.16 }, 16);
+                                std.debug.print("Creaking puppet strike extruded {d} resin clumps from heart at ({d},{d},{d})!\n", .{ ext.clumps, hp[0], hp[1], hp[2] });
+                            }
+                        }
+                    } else if (hit_mob.mob_type == .target_dummy) {
                         // Target dummy practice feedback
                         audio.playAt(.step_wood, .{ hit_mob.pos.x, hit_mob.pos.y, hit_mob.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 30.0);
                         particles.spawnBlockDebris(px, py, pz, .{ 0.90, 0.80, 0.35 }, 12);
@@ -3490,6 +3517,7 @@ pub fn main() !void {
                             if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .air)) {
                                 if (broken_block == .creaking_heart) {
                                     creaking_hearts.onBroken(.{ hit.x, hit.y, hit.z });
+                                    mob_manager.removeCreakingLinkedTo(.{ hit.x, hit.y, hit.z });
                                 }
                                 audio.play(.break_block, 0.7);
                                 const drop_col = inventory_mod.ItemType.fromBlockId(broken_block).getColor();
