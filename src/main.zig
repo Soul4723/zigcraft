@@ -2700,13 +2700,16 @@ pub fn main() !void {
             const sx = sprouts[si].x;
             const sy = sprouts[si].y;
             const sz = sprouts[si].z;
-            if (!manager.isBlockLoaded(sx, sy, sz)) {
-                si += 1;
-                continue;
-            }
-            if (manager.getBlockWorld(sx, sy, sz) != .wood) {
-                cache_mod.swapRemove(&sprouts, &sprout_count, si);
-                continue;
+            switch (sapling_mod.evaluateSproutStatus(manager.isBlockLoaded(sx, sy, sz), manager.getBlockWorld(sx, sy, sz) == .wood)) {
+                .paused => {
+                    si += 1;
+                    continue;
+                },
+                .remove => {
+                    cache_mod.swapRemove(&sprouts, &sprout_count, si);
+                    continue;
+                },
+                .active => {},
             }
             sprouts[si].t += dt;
             if (sapling_mod.isReady(sprouts[si].t)) {
@@ -4170,13 +4173,16 @@ pub fn main() !void {
             var smk_i: usize = 0;
             while (smk_i < smoker_count) {
                 const s = &smokers[smk_i];
-                if (!manager.isBlockLoaded(s.x, s.y, s.z)) {
-                    smk_i += 1;
-                    continue;
-                }
-                if (manager.getBlockWorld(s.x, s.y, s.z) != .smoker) {
-                    cache_mod.swapRemove(&smokers, &smoker_count, smk_i);
-                    continue;
+                switch (smelt_mod.evaluateJobStatus(manager.isBlockLoaded(s.x, s.y, s.z), manager.getBlockWorld(s.x, s.y, s.z) == .smoker)) {
+                    .paused => {
+                        smk_i += 1;
+                        continue;
+                    },
+                    .remove => {
+                        cache_mod.swapRemove(&smokers, &smoker_count, smk_i);
+                        continue;
+                    },
+                    .active => {},
                 }
                 const outcome = smelt_mod.tickSmokerJob(&s.t, &s.fuel, &s.input, dt);
                 if (s.fuel > 0 and s.input != smelt_mod.None) {
@@ -4199,13 +4205,16 @@ pub fn main() !void {
             var bfi: usize = 0;
             while (bfi < blast_furnace_count) {
                 const bf = &blast_furnaces[bfi];
-                if (!manager.isBlockLoaded(bf.x, bf.y, bf.z)) {
-                    bfi += 1;
-                    continue;
-                }
-                if (manager.getBlockWorld(bf.x, bf.y, bf.z) != .blast_furnace) {
-                    cache_mod.swapRemove(&blast_furnaces, &blast_furnace_count, bfi);
-                    continue;
+                switch (smelt_mod.evaluateJobStatus(manager.isBlockLoaded(bf.x, bf.y, bf.z), manager.getBlockWorld(bf.x, bf.y, bf.z) == .blast_furnace)) {
+                    .paused => {
+                        bfi += 1;
+                        continue;
+                    },
+                    .remove => {
+                        cache_mod.swapRemove(&blast_furnaces, &blast_furnace_count, bfi);
+                        continue;
+                    },
+                    .active => {},
                 }
                 const outcome = smelt_mod.tickBlastFurnaceJob(&bf.t, &bf.fuel, &bf.input, dt);
                 if (bf.fuel > 0 and bf.input != smelt_mod.None) {
@@ -4228,13 +4237,16 @@ pub fn main() !void {
             var fi: usize = 0;
             while (fi < furnace_count) {
                 const f = &furnaces[fi];
-                if (!manager.isBlockLoaded(f.x, f.y, f.z)) {
-                    fi += 1;
-                    continue;
-                }
-                if (manager.getBlockWorld(f.x, f.y, f.z) != .furnace) {
-                    cache_mod.swapRemove(&furnaces, &furnace_count, fi);
-                    continue;
+                switch (smelt_mod.evaluateJobStatus(manager.isBlockLoaded(f.x, f.y, f.z), manager.getBlockWorld(f.x, f.y, f.z) == .furnace)) {
+                    .paused => {
+                        fi += 1;
+                        continue;
+                    },
+                    .remove => {
+                        cache_mod.swapRemove(&furnaces, &furnace_count, fi);
+                        continue;
+                    },
+                    .active => {},
                 }
                 const outcome = smelt_mod.tickJob(&f.t, &f.fuel, &f.input, dt);
                 if (outcome.done_item) |done_tag| {

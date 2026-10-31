@@ -83,6 +83,7 @@ pub fn applyBlockJobs(
     sprout_count.* = spc;
 }
 
+/// Validate that a furnace job has safe vertical coordinates (0..15), non-negative finite timer, and supported smeltable input tag.
 pub fn isValidFurnaceJob(job: *const smelt_mod.FurnaceJob) bool {
     if (job.y < 0 or job.y >= 16) return false;
     if (!std.math.isFinite(job.t) or job.t < 0.0 or job.t > 3600.0) return false;
@@ -90,6 +91,7 @@ pub fn isValidFurnaceJob(job: *const smelt_mod.FurnaceJob) bool {
     return true;
 }
 
+/// Validate that a smoker job has safe vertical coordinates (0..15), non-negative finite timer, and supported food input tag.
 pub fn isValidSmokerJob(job: *const smelt_mod.FurnaceJob) bool {
     if (job.y < 0 or job.y >= 16) return false;
     if (!std.math.isFinite(job.t) or job.t < 0.0 or job.t > 3600.0) return false;
@@ -97,6 +99,7 @@ pub fn isValidSmokerJob(job: *const smelt_mod.FurnaceJob) bool {
     return true;
 }
 
+/// Validate that a blast furnace job has safe vertical coordinates (0..15), non-negative finite timer, and supported ore input tag.
 pub fn isValidBlastFurnaceJob(job: *const smelt_mod.FurnaceJob) bool {
     if (job.y < 0 or job.y >= 16) return false;
     if (!std.math.isFinite(job.t) or job.t < 0.0 or job.t > 3600.0) return false;
@@ -104,14 +107,18 @@ pub fn isValidBlastFurnaceJob(job: *const smelt_mod.FurnaceJob) bool {
     return true;
 }
 
+/// Validate that a sprout has safe coordinates within world bounds (y in 0..13) and non-negative finite timer without arithmetic overflow.
 pub fn isValidSprout(sprout: *const sapling_mod.Sprout) bool {
-    if (sprout.y < 0 or sprout.y + 2 >= 16) return false;
+    if (sprout.y < 0 or sprout.y > 13) return false;
     if (!std.math.isFinite(sprout.t) or sprout.t < 0.0 or sprout.t > 3600.0) return false;
     return true;
 }
 
 /// Returns true if all blocks in the sapling tree canopy footprint are within loaded chunks.
 pub fn isCanopyLoaded(world: anytype, sx: i32, sy: i32, sz: i32) bool {
+    if (sy < 0 or sy > 13) return false;
+    if (sx <= std.math.minInt(i32) + 1 or sx >= std.math.maxInt(i32) - 1) return false;
+    if (sz <= std.math.minInt(i32) + 1 or sz >= std.math.maxInt(i32) - 1) return false;
     for (sapling_mod.tree_structure) |tb| {
         const by = sy + tb.dy;
         // Offsets beyond vertical bounds clip per established world height semantics
@@ -413,6 +420,28 @@ test "decode rejects count exceeding capacity" {
     std.mem.writeInt(u16, bad_count[9..11], 17, .little);
     try std.testing.expect(!decodeBlockJobs(bad_count[0..len], .the_end, &out));
     try std.testing.expectEqual(@as(usize, 77), out.furnace_count);
+}
+
+test "decode rejects sprout with i32 max or min y without arithmetic overflow panic" {
+    var data = BlockJobsData{};
+    data.sprout_count = 1;
+    data.sprouts[0] = .{ .x = 10, .y = 5, .z = 10, .t = 1.0 };
+    var buf: [MAX_SAVE_SIZE]u8 = undefined;
+    const len = try encodeBlockJobs(&data, .overworld, &buf);
+
+    var out = BlockJobsData{ .sprout_count = 99 };
+
+    // Mutate sprout y to std.math.maxInt(i32)
+    var max_y_buf = buf;
+    std.mem.writeInt(i32, max_y_buf[24..28], std.math.maxInt(i32), .little);
+    try std.testing.expect(!decodeBlockJobs(max_y_buf[0..len], .overworld, &out));
+    try std.testing.expectEqual(@as(usize, 99), out.sprout_count);
+
+    // Mutate sprout y to std.math.minInt(i32)
+    var min_y_buf = buf;
+    std.mem.writeInt(i32, min_y_buf[24..28], std.math.minInt(i32), .little);
+    try std.testing.expect(!decodeBlockJobs(min_y_buf[0..len], .overworld, &out));
+    try std.testing.expectEqual(@as(usize, 99), out.sprout_count);
 }
 
 test "decode rejects out of bounds coordinates" {

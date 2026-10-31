@@ -583,10 +583,19 @@ test "per-dimension save namespaces isolate block jobs across overworld nether a
     try std.testing.expectEqual(jobs_nether.blast_furnaces[0], loaded_nether.blast_furnaces[0]);
     try std.testing.expectEqual(@as(usize, 0), loaded_nether.sprout_count);
 
-    // The End has no file, loads as absent
-    var loaded_end = BlockJobsData{ .furnace_count = 50 };
-    try std.testing.expectEqual(persistence_mod.LoadJobsResult.absent, p_end.loadBlockJobs(&loaded_end));
-    try std.testing.expectEqual(@as(usize, 0), loaded_end.furnace_count);
+    // The End save and load roundtrip
+    var jobs_end = BlockJobsData{};
+    jobs_end.furnace_count = 1;
+    jobs_end.furnaces[0] = .{ .x = 10, .y = 4, .z = 10, .t = 1.0, .fuel = 1, .input = smelt_mod.ChorusFruit };
+    try std.testing.expect(p_end.saveBlockJobs(&jobs_end));
+
+    var f_end = try tmp.dir.openFile(std.testing.io, "the_end/block_jobs.bin", .{});
+    f_end.close(std.testing.io);
+
+    var loaded_end = BlockJobsData{};
+    try std.testing.expectEqual(persistence_mod.LoadJobsResult.ok, p_end.loadBlockJobs(&loaded_end));
+    try std.testing.expectEqual(@as(usize, 1), loaded_end.furnace_count);
+    try std.testing.expectEqual(jobs_end.furnaces[0], loaded_end.furnaces[0]);
 
     // Cross-dimension namespace enforcement: loading nether file with overworld persistence fails
     var cross_dir_buf: [256:0]u8 = undefined;
@@ -703,33 +712,46 @@ test "block jobs atomic save failure preserves prior durable file without leakin
     initial.furnaces[0] = .{ .x = 10, .y = 5, .z = 10, .t = 2.0, .fuel = 1, .input = smelt_mod.RawPork };
     try std.testing.expect(p.saveBlockJobs(&initial));
 
-    // Make parent directory or path unwritable to simulate atomic save failure
-    // We can simulate an invalid path by creating a directory where the destination file would be replaced
-    const sub_dir = try std.fmt.bufPrintZ(&path_buf, ".zig-cache/tmp/{s}/inaccessible", .{tmp.sub_path});
-    try tmp.dir.createDir(std.testing.io, "inaccessible", .default_dir);
-    try tmp.dir.createDir(std.testing.io, "inaccessible/block_jobs.bin", .default_dir);
+    // Capture initial durable file bytes on the exact same destination path
+    var initial_bytes: [block_jobs_mod.MAX_SAVE_SIZE]u8 = undefined;
+    const f_init = try tmp.dir.openFile(std.testing.io, "block_jobs.bin", .{});
+    const init_len = try f_init.readPositionalAll(std.testing.io, &initial_bytes, 0);
+    f_init.close(std.testing.io);
 
-    const p_fail = Persistence.init(sub_dir);
+    // Same-path failure fixture: revoke write permissions on test_dir (chmod 0o555)
+    // mkstemp in writeAtomic will fail with EACCES on the exact same destination directory
+    const c = @cImport({
+        @cInclude("sys/stat.h");
+    });
+    _ = c.chmod(test_dir.ptr, 0o555);
+    defer _ = c.chmod(test_dir.ptr, 0o755);
+
     var new_jobs = BlockJobsData{};
     new_jobs.furnace_count = 1;
     new_jobs.furnaces[0] = .{ .x = 99, .y = 5, .z = 99, .t = 8.0, .fuel = 2, .input = smelt_mod.IronOre };
 
-    // Save must fail cleanly and return false
-    try std.testing.expect(!p_fail.saveBlockJobs(&new_jobs));
+    // Save to the exact same path must fail and return false
+    try std.testing.expect(!p.saveBlockJobs(&new_jobs));
 
-    // Verify initial file in test_dir is still intact
-    var restored = BlockJobsData{};
-    try std.testing.expectEqual(persistence_mod.LoadJobsResult.ok, p.loadBlockJobs(&restored));
-    try std.testing.expectEqual(@as(usize, 1), restored.furnace_count);
-    try std.testing.expectEqual(initial.furnaces[0], restored.furnaces[0]);
+    // Restore permissions to inspect the directory
+    _ = c.chmod(test_dir.ptr, 0o755);
 
-    // Verify no temporary .XXXXXX files leaked in sub_dir
-    var sub_opened = try tmp.dir.openDir(std.testing.io, "inaccessible", .{ .iterate = true });
-    defer sub_opened.close(std.testing.io);
-    var iter = sub_opened.iterate();
+    // Assert exact same prior bytes on the same path survived
+    var after_bytes: [block_jobs_mod.MAX_SAVE_SIZE]u8 = undefined;
+    const f_after = try tmp.dir.openFile(std.testing.io, "block_jobs.bin", .{});
+    const after_len = try f_after.readPositionalAll(std.testing.io, &after_bytes, 0);
+    f_after.close(std.testing.io);
+    try std.testing.expectEqual(init_len, after_len);
+    try std.testing.expectEqualStrings(initial_bytes[0..init_len], after_bytes[0..after_len]);
+
+    // Assert no temporary .XXXXXX files leaked in test_dir
+    var iter = tmp.dir.iterate();
+    var file_count: usize = 0;
     while (try iter.next(std.testing.io)) |entry| {
         try std.testing.expectEqualStrings("block_jobs.bin", entry.name);
+        file_count += 1;
     }
+    try std.testing.expectEqual(@as(usize, 1), file_count);
 }
 
 test "source rollback and target load sequence keeps jobs coherent on save failure" {
@@ -860,17 +882,30 @@ test "unloaded chunks do not delete jobs or grow saplings into absent chunks" {
     // Case A: Chunk (0, 0) containing furnace (10, 5, 10) is UNLOADED (loaded_cx = 99)
     const world_unloaded = MockWorld{ .loaded_cx = 99, .loaded_cz = 99, .block_at_furnace = .furnace, .block_at_sprout = .wood };
 
-    // Simulating furnace loop with isBlockLoaded guard
+    // Direct test of production rule evaluateJobStatus
+    try std.testing.expectEqual(smelt_mod.JobAction.paused, smelt_mod.evaluateJobStatus(false, false));
+    try std.testing.expectEqual(smelt_mod.JobAction.remove, smelt_mod.evaluateJobStatus(true, false));
+    try std.testing.expectEqual(smelt_mod.JobAction.active, smelt_mod.evaluateJobStatus(true, true));
+
+    // Direct test of production rule evaluateSproutStatus
+    try std.testing.expectEqual(sapling_mod.SproutAction.paused, sapling_mod.evaluateSproutStatus(false, false));
+    try std.testing.expectEqual(sapling_mod.SproutAction.remove, sapling_mod.evaluateSproutStatus(true, false));
+    try std.testing.expectEqual(sapling_mod.SproutAction.active, sapling_mod.evaluateSproutStatus(true, true));
+
+    // Simulating furnace loop using production evaluateJobStatus rule
     var fi: usize = 0;
     while (fi < furnace_count) {
         const f = &furnaces[fi];
-        if (!world_unloaded.isBlockLoaded(f.x, f.y, f.z)) {
-            fi += 1;
-            continue;
-        }
-        if (world_unloaded.getBlockWorld(f.x, f.y, f.z) != .furnace) {
-            cache_mod.swapRemove(&furnaces, &furnace_count, fi);
-            continue;
+        switch (smelt_mod.evaluateJobStatus(world_unloaded.isBlockLoaded(f.x, f.y, f.z), world_unloaded.getBlockWorld(f.x, f.y, f.z) == .furnace)) {
+            .paused => {
+                fi += 1;
+                continue;
+            },
+            .remove => {
+                cache_mod.swapRemove(&furnaces, &furnace_count, fi);
+                continue;
+            },
+            .active => {},
         }
         _ = smelt_mod.tickJob(&f.t, &f.fuel, &f.input, 1.0);
         fi += 1;
@@ -879,17 +914,20 @@ test "unloaded chunks do not delete jobs or grow saplings into absent chunks" {
     try std.testing.expectEqual(@as(usize, 1), furnace_count);
     try std.testing.expectEqual(@as(f32, 4.0), furnaces[0].t);
 
-    // Simulating sprout loop with isBlockLoaded and isCanopyLoaded guards
+    // Simulating sprout loop using production evaluateSproutStatus rule
     var si: usize = 0;
     while (si < sprout_count) {
         const s = &sprouts[si];
-        if (!world_unloaded.isBlockLoaded(s.x, s.y, s.z)) {
-            si += 1;
-            continue;
-        }
-        if (world_unloaded.getBlockWorld(s.x, s.y, s.z) != .wood) {
-            cache_mod.swapRemove(&sprouts, &sprout_count, si);
-            continue;
+        switch (sapling_mod.evaluateSproutStatus(world_unloaded.isBlockLoaded(s.x, s.y, s.z), world_unloaded.getBlockWorld(s.x, s.y, s.z) == .wood)) {
+            .paused => {
+                si += 1;
+                continue;
+            },
+            .remove => {
+                cache_mod.swapRemove(&sprouts, &sprout_count, si);
+                continue;
+            },
+            .active => {},
         }
         if (sapling_mod.isReady(s.t)) {
             if (!block_jobs_mod.isCanopyLoaded(world_unloaded, s.x, s.y, s.z)) {
@@ -910,13 +948,16 @@ test "unloaded chunks do not delete jobs or grow saplings into absent chunks" {
     fi = 0;
     while (fi < furnace_count) {
         const f = &furnaces[fi];
-        if (!world_loaded.isBlockLoaded(f.x, f.y, f.z)) {
-            fi += 1;
-            continue;
-        }
-        if (world_loaded.getBlockWorld(f.x, f.y, f.z) != .furnace) {
-            cache_mod.swapRemove(&furnaces, &furnace_count, fi);
-            continue;
+        switch (smelt_mod.evaluateJobStatus(world_loaded.isBlockLoaded(f.x, f.y, f.z), world_loaded.getBlockWorld(f.x, f.y, f.z) == .furnace)) {
+            .paused => {
+                fi += 1;
+                continue;
+            },
+            .remove => {
+                cache_mod.swapRemove(&furnaces, &furnace_count, fi);
+                continue;
+            },
+            .active => {},
         }
         _ = smelt_mod.tickJob(&f.t, &f.fuel, &f.input, 1.0);
         fi += 1;
@@ -925,82 +966,142 @@ test "unloaded chunks do not delete jobs or grow saplings into absent chunks" {
     try std.testing.expectEqual(@as(f32, 5.0), furnaces[0].t);
 }
 
-test "elapsed furnace progress continues across save and reload toward single output" {
+test "elapsed job progress continues across save and reload toward single output" {
     var tmp = std.testing.tmpDir(.{});
     defer tmp.cleanup();
     var path_buf: [256:0]u8 = undefined;
     const test_dir = try std.fmt.bufPrintZ(&path_buf, ".zig-cache/tmp/{s}", .{tmp.sub_path});
     const p = Persistence.init(test_dir);
 
-    // Phase 1: Start job with RawPork and 1 fuel. Tick 6.0 seconds (smelt_time is 10.0s).
-    var t: f32 = 0.0;
-    var fuel: u8 = 1;
-    var input: u16 = smelt_mod.RawPork;
+    const Case = struct {
+        kind: enum { furnace, smoker, blast_furnace },
+        input: u16,
+        expected_output: u16,
+        total_time: f32,
+        part1_time: f32,
+        part2_time: f32,
+    };
+    const cases = [_]Case{
+        .{ .kind = .furnace, .input = smelt_mod.RawPork, .expected_output = smelt_mod.CookedPork, .total_time = 10.0, .part1_time = 6.0, .part2_time = 4.0 },
+        .{ .kind = .smoker, .input = smelt_mod.RawCod, .expected_output = smelt_mod.CookedCod, .total_time = 5.0, .part1_time = 3.0, .part2_time = 2.0 },
+        .{ .kind = .blast_furnace, .input = smelt_mod.IronOre, .expected_output = smelt_mod.IronIngot, .total_time = 5.0, .part1_time = 3.0, .part2_time = 2.0 },
+    };
 
-    const tick1 = smelt_mod.tickJob(&t, &fuel, &input, 6.0);
-    try std.testing.expectEqual(@as(?u16, null), tick1.done_item);
-    try std.testing.expect(!tick1.fuel_consumed);
-    try std.testing.expectEqual(@as(f32, 6.0), t);
-    try std.testing.expectEqual(@as(u8, 1), fuel);
-    try std.testing.expectEqual(smelt_mod.RawPork, input);
+    for (cases) |c_item| {
+        var t: f32 = 0.0;
+        var fuel: u8 = 1;
+        var input: u16 = c_item.input;
 
-    // Phase 2: Save to disk
-    var saved = BlockJobsData{};
-    saved.furnace_count = 1;
-    saved.furnaces[0] = .{ .x = 10, .y = 5, .z = 20, .t = t, .fuel = fuel, .input = input };
-    try std.testing.expect(p.saveBlockJobs(&saved));
+        const outcome1 = switch (c_item.kind) {
+            .furnace => smelt_mod.tickJob(&t, &fuel, &input, c_item.part1_time),
+            .smoker => smelt_mod.tickSmokerJob(&t, &fuel, &input, c_item.part1_time),
+            .blast_furnace => smelt_mod.tickBlastFurnaceJob(&t, &fuel, &input, c_item.part1_time),
+        };
+        try std.testing.expectEqual(@as(?u16, null), outcome1.done_item);
+        try std.testing.expect(!outcome1.fuel_consumed);
+        try std.testing.expectEqual(c_item.part1_time, t);
 
-    // Phase 3: Reload into new runtime session
-    var restored = BlockJobsData{};
-    try std.testing.expectEqual(persistence_mod.LoadJobsResult.ok, p.loadBlockJobs(&restored));
-    try std.testing.expectEqual(@as(usize, 1), restored.furnace_count);
-    var res_t = restored.furnaces[0].t;
-    var res_fuel = restored.furnaces[0].fuel;
-    var res_input = restored.furnaces[0].input;
-    try std.testing.expectEqual(@as(f32, 6.0), res_t);
-    try std.testing.expectEqual(@as(u8, 1), res_fuel);
-    try std.testing.expectEqual(smelt_mod.RawPork, res_input);
+        var saved = BlockJobsData{};
+        switch (c_item.kind) {
+            .furnace => {
+                saved.furnace_count = 1;
+                saved.furnaces[0] = .{ .x = 10, .y = 5, .z = 20, .t = t, .fuel = fuel, .input = input };
+            },
+            .smoker => {
+                saved.smoker_count = 1;
+                saved.smokers[0] = .{ .x = 10, .y = 5, .z = 20, .t = t, .fuel = fuel, .input = input };
+            },
+            .blast_furnace => {
+                saved.blast_furnace_count = 1;
+                saved.blast_furnaces[0] = .{ .x = 10, .y = 5, .z = 20, .t = t, .fuel = fuel, .input = input };
+            },
+        }
+        try std.testing.expect(p.saveBlockJobs(&saved));
 
-    // Phase 4: Resume ticking with remaining 4.0 seconds (total 10.0s)
-    const tick2 = smelt_mod.tickJob(&res_t, &res_fuel, &res_input, 4.0);
-    try std.testing.expectEqual(@as(?u16, smelt_mod.CookedPork), tick2.done_item);
-    try std.testing.expect(tick2.fuel_consumed);
-    try std.testing.expectEqual(@as(u8, 0), res_fuel);
-    try std.testing.expectEqual(smelt_mod.None, res_input);
-    try std.testing.expectEqual(@as(f32, 0.0), res_t);
+        var restored = BlockJobsData{};
+        try std.testing.expectEqual(persistence_mod.LoadJobsResult.ok, p.loadBlockJobs(&restored));
+        const res_job = switch (c_item.kind) {
+            .furnace => restored.furnaces[0],
+            .smoker => restored.smokers[0],
+            .blast_furnace => restored.blast_furnaces[0],
+        };
+        var res_t = res_job.t;
+        var res_fuel = res_job.fuel;
+        var res_input = res_job.input;
+        try std.testing.expectEqual(c_item.part1_time, res_t);
+        try std.testing.expectEqual(@as(u8, 1), res_fuel);
+        try std.testing.expectEqual(c_item.input, res_input);
 
-    // Further ticking does not duplicate output
-    const tick3 = smelt_mod.tickJob(&res_t, &res_fuel, &res_input, 10.0);
-    try std.testing.expectEqual(@as(?u16, null), tick3.done_item);
-    try std.testing.expect(!tick3.fuel_consumed);
+        const outcome2 = switch (c_item.kind) {
+            .furnace => smelt_mod.tickJob(&res_t, &res_fuel, &res_input, c_item.part2_time),
+            .smoker => smelt_mod.tickSmokerJob(&res_t, &res_fuel, &res_input, c_item.part2_time),
+            .blast_furnace => smelt_mod.tickBlastFurnaceJob(&res_t, &res_fuel, &res_input, c_item.part2_time),
+        };
+        try std.testing.expectEqual(@as(?u16, c_item.expected_output), outcome2.done_item);
+        try std.testing.expect(outcome2.fuel_consumed);
+        try std.testing.expectEqual(@as(u8, 0), res_fuel);
+        try std.testing.expectEqual(smelt_mod.None, res_input);
+        try std.testing.expectEqual(@as(f32, 0.0), res_t);
+
+        const outcome3 = switch (c_item.kind) {
+            .furnace => smelt_mod.tickJob(&res_t, &res_fuel, &res_input, 10.0),
+            .smoker => smelt_mod.tickSmokerJob(&res_t, &res_fuel, &res_input, 10.0),
+            .blast_furnace => smelt_mod.tickBlastFurnaceJob(&res_t, &res_fuel, &res_input, 10.0),
+        };
+        try std.testing.expectEqual(@as(?u16, null), outcome3.done_item);
+        try std.testing.expect(!outcome3.fuel_consumed);
+    }
 }
 
-test "regression test: unloaded chunk getBlockWorld air without isBlockLoaded check deletes furnace" {
-    // Unloaded chunk returns air
-    const block_from_unloaded_chunk: BlockId = .air;
+test "regression test: evaluateJobStatus pauses unloaded chunk whereas regressive block-only check removes it" {
+    const is_chunk_loaded = false;
+    const is_matching_block = false; // getBlockWorld returned .air
 
-    var furnaces = [_]smelt_mod.FurnaceJob{.{ .x = 100, .y = 5, .z = 100, .t = 4.0, .fuel = 1, .input = smelt_mod.RawPork }} ** smelt_mod.furnace_cap;
-    var furnace_count: usize = 1;
+    // Regressive rule without chunk-loaded awareness:
+    const regressive_action: smelt_mod.JobAction = if (is_matching_block) .active else .remove;
+    try std.testing.expectEqual(smelt_mod.JobAction.remove, regressive_action);
 
-    // Regressive logic: without checking isBlockLoaded, air != .furnace evaluates to true!
-    const is_broken_without_guard = (block_from_unloaded_chunk != .furnace);
-    try std.testing.expect(is_broken_without_guard); // In old code, this was true and called swapRemove!
+    // Production rule evaluateJobStatus:
+    const production_action = smelt_mod.evaluateJobStatus(is_chunk_loaded, is_matching_block);
+    try std.testing.expectEqual(smelt_mod.JobAction.paused, production_action);
 
-    // Proving the regression: old code would remove the job
-    var old_count = furnace_count;
-    if (is_broken_without_guard) {
-        cache_mod.swapRemove(&furnaces, &old_count, 0);
-    }
-    try std.testing.expectEqual(@as(usize, 0), old_count); // Lost job!
+    // Same for sapling sprout production rule:
+    const sprout_action = sapling_mod.evaluateSproutStatus(is_chunk_loaded, is_matching_block);
+    try std.testing.expectEqual(sapling_mod.SproutAction.paused, sprout_action);
+}
 
-    // Fixed logic: with isBlockLoaded guard, unloaded chunk is skipped and job is preserved
-    const chunk_loaded = false; // (100, 100) is unloaded
-    if (chunk_loaded) {
-        if (block_from_unloaded_chunk != .furnace) {
-            cache_mod.swapRemove(&furnaces, &furnace_count, 0);
-        }
-    }
-    try std.testing.expectEqual(@as(usize, 1), furnace_count); // Preserved!
+test "block jobs load rejects i32 max and min sprout y without arithmetic panic" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var path_buf: [256:0]u8 = undefined;
+    const test_dir = try std.fmt.bufPrintZ(&path_buf, ".zig-cache/tmp/{s}", .{tmp.sub_path});
+    const p = Persistence.init(test_dir);
+
+    var valid = BlockJobsData{};
+    valid.sprout_count = 1;
+    valid.sprouts[0] = .{ .x = 1, .y = 5, .z = 2, .t = 10.0 };
+    try std.testing.expect(p.saveBlockJobs(&valid));
+
+    var bytes_buf: [block_jobs_mod.MAX_SAVE_SIZE]u8 = undefined;
+    const f = try tmp.dir.openFile(std.testing.io, "block_jobs.bin", .{});
+    const len = try f.readPositionalAll(std.testing.io, &bytes_buf, 0);
+    f.close(std.testing.io);
+
+    var out = BlockJobsData{ .sprout_count = 77 };
+
+    // Set sprout y to std.math.maxInt(i32)
+    var max_y_bytes = bytes_buf;
+    std.mem.writeInt(i32, max_y_bytes[24..28], std.math.maxInt(i32), .little);
+    try tmp.dir.writeFile(std.testing.io, .{ .sub_path = "block_jobs.bin", .data = max_y_bytes[0..len] });
+    try std.testing.expectEqual(persistence_mod.LoadJobsResult.corrupt, p.loadBlockJobs(&out));
+    try std.testing.expectEqual(@as(usize, 77), out.sprout_count);
+
+    // Set sprout y to std.math.minInt(i32)
+    var min_y_bytes = bytes_buf;
+    std.mem.writeInt(i32, min_y_bytes[24..28], std.math.minInt(i32), .little);
+    try tmp.dir.writeFile(std.testing.io, .{ .sub_path = "block_jobs.bin", .data = min_y_bytes[0..len] });
+    try std.testing.expectEqual(persistence_mod.LoadJobsResult.corrupt, p.loadBlockJobs(&out));
+    try std.testing.expectEqual(@as(usize, 77), out.sprout_count);
 }
 
 test "corrupt existing block jobs file aborts startup before interactive changes" {

@@ -17,7 +17,7 @@ Furnaces, smokers, blast furnaces, and growing saplings lacked persistence acros
      - Overworld: `saves/block_jobs.bin`
      - Nether: `saves/nether/block_jobs.bin`
      - The End: `saves/the_end/block_jobs.bin`
-   - Files encode binary header magic `ZJOB`, version `1`, expected dimension tag, bounded counts (<= 16 each), coordinate bounds, finite non-negative timers, supported recipe inputs, and exact file length verification.
+   - Files encode binary header magic `ZJOB`, version `1`, expected dimension tag, bounded counts (<= 16 each), vertical coordinate bounds (0..15 for furnace jobs, 0..13 for sapling sprouts; full i32 range for x and z), finite non-negative timers, supported recipe inputs, and exact file length verification.
 
 3. **Atomic Replacement and Transit Rollback:**
    - Saves use POSIX `writeAtomic` (`mkstemp`, `fsync`, atomic `rename`) so write failures preserve prior durable state.
