@@ -110,7 +110,7 @@ pub fn isValidBlastFurnaceJob(job: *const smelt_mod.FurnaceJob) bool {
 /// Validate that a sprout has safe coordinates within world bounds (y in 0..13) and non-negative finite timer without arithmetic overflow.
 pub fn isValidSprout(sprout: *const sapling_mod.Sprout) bool {
     if (sprout.y < 0 or sprout.y > 13) return false;
-    if (!std.math.isFinite(sprout.t) or sprout.t < 0.0 or sprout.t > 3600.0) return false;
+    if (!std.math.isFinite(sprout.t) or sprout.t < 0.0) return false;
     return true;
 }
 

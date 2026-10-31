@@ -2711,7 +2711,9 @@ pub fn main() !void {
                 },
                 .active => {},
             }
-            sprouts[si].t += dt;
+            if (!sapling_mod.isReady(sprouts[si].t)) {
+                sprouts[si].t += dt;
+            }
             if (sapling_mod.isReady(sprouts[si].t)) {
                 if (!block_jobs_mod.isCanopyLoaded(&manager, sx, sy, sz)) {
                     si += 1;

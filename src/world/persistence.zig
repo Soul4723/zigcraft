@@ -286,7 +286,7 @@ pub const Persistence = struct {
     /// Load and validate dimension block entity jobs without changing `out` on corruption.
     pub fn loadBlockJobs(self: Persistence, out: *BlockJobsData) LoadJobsResult {
         var path_buf: [256:0]u8 = undefined;
-        const file_path = self.makeJobsPath(&path_buf) catch return .absent;
+        const file_path = self.makeJobsPath(&path_buf) catch return .corrupt;
         const f = c.fopen(file_path.ptr, "rb") orelse {
             const err = c.__errno_location().*;
             if (err == c.ENOENT) {

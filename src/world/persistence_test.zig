@@ -1134,3 +1134,32 @@ test "corrupt existing block jobs file aborts startup before interactive changes
     f.close(std.testing.io);
     try std.testing.expectEqualStrings("CORRUPT_BYTES", check_buf[0..len]);
 }
+
+test "sprout with t greater than 3600 persists and resumes single growth" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var path_buf: [256:0]u8 = undefined;
+    const test_dir = try std.fmt.bufPrintZ(&path_buf, ".zig-cache/tmp/{s}", .{tmp.sub_path});
+    const p = Persistence.init(test_dir);
+
+    // Sprout was ready but blocked by unloaded canopy chunk for 2 hours (t = 7200.0s)
+    var saved = BlockJobsData{};
+    saved.sprout_count = 1;
+    saved.sprouts[0] = .{ .x = 5, .y = 4, .z = 5, .t = 7200.0 };
+    try std.testing.expect(p.saveBlockJobs(&saved));
+
+    var restored = BlockJobsData{};
+    try std.testing.expectEqual(persistence_mod.LoadJobsResult.ok, p.loadBlockJobs(&restored));
+    try std.testing.expectEqual(@as(usize, 1), restored.sprout_count);
+    try std.testing.expectEqual(@as(f32, 7200.0), restored.sprouts[0].t);
+    try std.testing.expect(sapling_mod.isReady(restored.sprouts[0].t));
+}
+
+test "loadBlockJobs returns corrupt on path buffer construction failure" {
+    const long_dir: [256:0]u8 = @splat(0x78);
+    const p = Persistence.init(&long_dir);
+    var out = BlockJobsData{ .furnace_count = 88 };
+    // makeJobsPath fails because path buffer would overflow -> must return .corrupt, not .absent
+    try std.testing.expectEqual(persistence_mod.LoadJobsResult.corrupt, p.loadBlockJobs(&out));
+    try std.testing.expectEqual(@as(usize, 88), out.furnace_count);
+}
