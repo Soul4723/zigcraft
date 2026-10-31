@@ -11,6 +11,7 @@ What works and what does not is in [STATUS.md](../STATUS.md).
 build.zig            executable, `run` step, and the list of standalone test targets
 src/
   main.zig           window, input, frame loop, and most gameplay glue
+  player_save.zig    conversion between live player state and persisted data
   chunk_manager.zig  loaded chunks, streaming, generation, saving, block access
   chunk_renderer.zig GPU buffers and draw call for one chunk mesh
   player.zig         player physics, vitals (health, hunger, oxygen) and status timers
@@ -60,6 +61,10 @@ Capacities and lookup helpers for those arrays are in
   `saves/` and Nether and End files in `saves/nether/` and `saves/the_end/`.
   `ChunkManager` saves modified chunks when they unload, when a portal
   switches dimensions, or when the game exits.
+- Player state is encoded explicitly in little-endian form by
+  `world/persistence.zig` and saved atomically to root-level `player.bin`;
+  `player_save.zig` owns gameplay type conversion so dimension changes share
+  one position, inventory and vitals record.
 
 ## Rule modules
 

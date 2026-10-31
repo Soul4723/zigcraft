@@ -280,6 +280,8 @@ const portal_mod = @import("world/portal.zig");
 const summon_mod = @import("world/summon.zig");
 const compass_mod = @import("world/compass.zig");
 const std = @import("std");
+const player_save_mod = @import("player_save.zig");
+const persistence_mod = @import("world/persistence.zig");
 const c = @cImport({
     @cDefine("GL_GLEXT_PROTOTYPES", "1");
     @cInclude("GL/glcorearb.h");
@@ -418,17 +420,27 @@ pub fn main() !void {
     // Hide and capture cursor for first-person camera control
     c.glfwSetInputMode(window, c.GLFW_CURSOR, c.GLFW_CURSOR_DISABLED);
 
-    // Initial player position: center of world
+    var loaded_data = persistence_mod.PlayerSaveData{ .pos = .{ 24, 20, 24 }, .spawn_point = .{ 24, 20, 24 }, .yaw = -std.math.pi / 2.0 - 0.35, .pitch = -0.3 };
+    const player_loaded = persistence_mod.Persistence.init("saves").loadPlayer(&loaded_data);
+    // Initial player position: restored state or center of world.
     var player = player_mod.Player.init(24, 20, 24);
     var cam = camera_mod.Camera.init();
     cam.yaw = -std.math.pi / 2.0 - 0.35;
     cam.pitch = -0.3;
     cam.position = player.eyePos();
+    var inventory = inventory_mod.Inventory.init();
+    var cursor_stack = inventory_mod.ItemStack{};
+    var selected_slot: usize = 0;
+    var tool_wear = wear_mod.Wear{};
+    const loaded_dim = if (player_loaded)
+        player_save_mod.applyState(&loaded_data, &player, &cam, &inventory, &cursor_stack, &selected_slot, &tool_wear)
+    else
+        persistence_mod.Dimension.overworld;
 
     // World chunk manager: radius 3 (7x7 = 49 chunks streaming around player)
     const init_cx = @as(i32, @intFromFloat(@floor(player.pos.x / 16.0)));
     const init_cz = @as(i32, @intFromFloat(@floor(player.pos.z / 16.0)));
-    var manager = try chunk_manager_mod.ChunkManager.init(std.heap.page_allocator, 3, init_cx, init_cz, 1337, "saves");
+    var manager = try chunk_manager_mod.ChunkManager.initForDimension(std.heap.page_allocator, 3, init_cx, init_cz, 1337, "saves", loaded_dim, true);
     defer manager.deinit();
     pick_manager = &manager;
 
@@ -451,15 +463,15 @@ pub fn main() !void {
     defer c.glDeleteTextures(1, &atlas_texture);
     var mob_manager = try entity_mod.mob_manager.MobManager.init(std.heap.page_allocator, atlas_texture);
     defer mob_manager.deinit();
+    if (loaded_dim == .the_end) {
+        try mob_manager.spawnMob(.ender_dragon, 0.0, 16.0, 12.0);
+        try mob_manager.spawnMob(.shulker, 84.5, 13.0, 0.5);
+    }
 
     // Player Inventory & Crafting state
-    var inventory = inventory_mod.Inventory.init();
-    var cursor_stack = inventory_mod.ItemStack{};
     var inventory_open = false;
     var e_key_down = false;
-    var selected_slot: usize = 0;
     var mine = mining_mod.MineState{};
-    var tool_wear = wear_mod.Wear{};
 
     // Timing & Day/Night cycle
     var last_time = c.glfwGetTime();
@@ -742,8 +754,8 @@ pub fn main() !void {
     var burn_sizzle_cooldown: f32 = 0.0;
     var portal_ambient_timer: f32 = 0.0;
     var nether_ambient_timer: f32 = 0.0;
-    var portal_transit = portal_mod.PortalTransitState{};
-    var end_portal_transit = portal_mod.EndPortalTransitState{};
+    var portal_transit = portal_mod.PortalTransitState{ .current_dim = if (loaded_dim == .nether) .nether else .overworld };
+    var end_portal_transit = portal_mod.EndPortalTransitState{ .current_dim = if (loaded_dim == .the_end) .the_end else .overworld };
     var portal_flash_timer: f32 = 0.0;
     var chunk_retry_timer: f32 = 0.0;
     var world_time: f32 = 45.0; // Start at morning daylight
@@ -1470,6 +1482,7 @@ pub fn main() !void {
                 if (switched) {
                     player.pos = dest_pos;
                     player.vel_y = 0.0;
+                    savePlayerState(manager, &player, &cam, &inventory, cursor_stack, selected_slot, &tool_wear);
                     plate_count = 0;
                     wire_count = 0;
                     repeater_count = 0;
@@ -1519,7 +1532,7 @@ pub fn main() !void {
             }
 
             // Check if player is standing inside a nether portal block
-            const in_portal = (feet_b == .nether_portal or head_b == .nether_portal);
+            const in_portal = !manager.is_end and (feet_b == .nether_portal or head_b == .nether_portal);
             if (in_portal) {
                 // Emit continuous swirls and accelerating orbital vortex ring while charging transit
                 particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 2);
@@ -1564,6 +1577,7 @@ pub fn main() !void {
 
                 if (switched) {
                     player.pos = dest_pos;
+                    savePlayerState(manager, &player, &cam, &inventory, cursor_stack, selected_slot, &tool_wear);
                     plate_count = 0;
                     wire_count = 0;
                     repeater_count = 0;
@@ -7159,5 +7173,11 @@ pub fn main() !void {
         }
     }
 
+    savePlayerState(manager, &player, &cam, &inventory, cursor_stack, selected_slot, &tool_wear);
     std.debug.print("shutting down\n", .{});
+}
+
+fn savePlayerState(manager: anytype, player: anytype, cam: anytype, inventory: anytype, cursor_stack: anytype, selected_slot: usize, tool_wear: anytype) void {
+    const data = player_save_mod.captureState(player, cam, inventory, cursor_stack, selected_slot, tool_wear, manager.currentDimension());
+    if (!manager.persistence.savePlayer(&data)) std.debug.print("player save failed\n", .{});
 }
