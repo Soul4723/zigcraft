@@ -47,6 +47,9 @@ These systems are driven by input or the frame loop in `src/main.zig` and
 - Chunk saving under `saves/` with per-dimension namespaces (blocks, water
   levels, repeater delays, torch burnout; Overworld in root, Nether and The
   End in subdirectories).
+- Player position, velocity, spawn point, view, dimension, vitals, inventory,
+  crafting grid, selected hotbar slot and tool wear persist in root-level
+  `saves/player.bin` across dimensions.
 
 Much in-game feedback is printed to the terminal: `src/main.zig` has about
 300 `std.debug.print` calls.
@@ -92,7 +95,7 @@ Other overlaps:
 ## Known problems
 
 - The world is 16 blocks tall: chunks are 16×16×16 and there is one layer.
-- The player, inventory, furnace jobs and growing saplings are not saved.
+- Furnace jobs and growing saplings are not saved.
 - `BlockId` is a `u8` and uses all 256 values. New blocks need a wider ID or
   a different block-state scheme first.
 - `src/main.zig` is 7,105 lines; `main()` alone runs from line 363 to the

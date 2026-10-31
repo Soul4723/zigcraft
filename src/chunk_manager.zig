@@ -60,6 +60,11 @@ pub const ChunkManager = struct {
     /// When `enable_gpu_mesh` is false, meshing and renderer allocation are bypassed,
     /// enabling headless unit tests without an active OpenGL context.
     pub fn initWithOptions(allocator: std.mem.Allocator, radius: i32, center_cx: i32, center_cz: i32, seed: u64, save_dir: [:0]const u8, enable_gpu_mesh: bool) !ChunkManager {
+        return initForDimension(allocator, radius, center_cx, center_cz, seed, save_dir, .overworld, enable_gpu_mesh);
+    }
+
+    /// Initialize directly in a dimension before loading its chunks.
+    pub fn initForDimension(allocator: std.mem.Allocator, radius: i32, center_cx: i32, center_cz: i32, seed: u64, save_dir: [:0]const u8, dim: Dimension, enable_gpu_mesh: bool) !ChunkManager {
         var self = ChunkManager{
             .allocator = allocator,
             .chunks = std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80).init(allocator),
@@ -67,9 +72,9 @@ pub const ChunkManager = struct {
             .terrain = terrain_mod.TerrainGenerator.init(seed),
             .nether = terrain_mod.NetherGenerator.init(seed),
             .end = terrain_mod.EndGenerator.init(seed),
-            .is_nether = false,
-            .is_end = false,
-            .persistence = persistence_mod.Persistence.init(save_dir),
+            .is_nether = dim == .nether,
+            .is_end = dim == .the_end,
+            .persistence = persistence_mod.Persistence.initForDimension(save_dir, dim),
             .enable_gpu_mesh = enable_gpu_mesh,
         };
         errdefer self.deinit();
@@ -663,4 +668,40 @@ test "switchDimension retains current dimension and modified chunks when save fa
         try std.testing.expectEqual(block_mod.BlockId.wood, retained.chunk.getBlock(1, 2, 3));
         retained.modified = false;
     }
+}
+
+test "initForDimension starts directly in nether or the_end and loads saved dimension chunks" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var path_buf: [256:0]u8 = undefined;
+    const test_dir = try std.fmt.bufPrintZ(&path_buf, ".zig-cache/tmp/{s}", .{tmp.sub_path});
+
+    // Pre-save chunks in nether and the_end subdirectories
+    const p_nether = persistence_mod.Persistence.initForDimension(test_dir, .nether);
+    var nether_chunk = chunk_mod.Chunk.init();
+    nether_chunk.setBlock(2, 3, 4, .gold_block);
+    try std.testing.expect(p_nether.saveChunk(0, 0, &nether_chunk));
+
+    const p_end = persistence_mod.Persistence.initForDimension(test_dir, .the_end);
+    var end_chunk = chunk_mod.Chunk.init();
+    end_chunk.setBlock(2, 3, 4, .obsidian);
+    try std.testing.expect(p_end.saveChunk(0, 0, &end_chunk));
+
+    // Initialize ChunkManager directly in .nether with radius 0 around (0, 0)
+    var mgr_nether = try ChunkManager.initForDimension(std.testing.allocator, 0, 0, 0, 42, test_dir, .nether, false);
+    defer mgr_nether.deinit();
+
+    try std.testing.expectEqual(persistence_mod.Dimension.nether, mgr_nether.currentDimension());
+    try std.testing.expect(mgr_nether.is_nether);
+    try std.testing.expect(!mgr_nether.is_end);
+    try std.testing.expectEqual(block_mod.BlockId.gold_block, mgr_nether.getBlockWorld(2, 3, 4));
+
+    // Initialize ChunkManager directly in .the_end with radius 0 around (0, 0)
+    var mgr_end = try ChunkManager.initForDimension(std.testing.allocator, 0, 0, 0, 42, test_dir, .the_end, false);
+    defer mgr_end.deinit();
+
+    try std.testing.expectEqual(persistence_mod.Dimension.the_end, mgr_end.currentDimension());
+    try std.testing.expect(!mgr_end.is_nether);
+    try std.testing.expect(mgr_end.is_end);
+    try std.testing.expectEqual(block_mod.BlockId.obsidian, mgr_end.getBlockWorld(2, 3, 4));
 }
