@@ -7,6 +7,7 @@ belong in the pull request description, not in a separate file.
 
 ## Recent sessions
 
+- 2026-10-31: Corrected CONTRIBUTING documentation on Zig 0.16 lazy test collection, documented semantic analysis rules and minimal fixtures in learnings, and confirmed explicit test_files registration policy.
 - 2026-10-31: Split inventory item definitions, recipe resolution and container logic into focused modules, preserving the original rules and test suite.
 - 2026-10-31: Added natural Pale Oak hearts and F-key nighttime resin collection, protected active heart cooldowns, and removed five disconnected duplicate modules.
 - 2026-10-31: Persisted player position, dimension, vitals, inventory, crafting grid, cursor stack, selected slot and tool wear in root-level player.bin across dimensions.
@@ -66,8 +67,8 @@ The numbered logs are in Git history; find them with
 
 Still relevant; each line names the session that found it.
 
-- **Zig 0.16 test targets** (session 2): cross-directory imports, uncollected
-  tests and distinct `@cImport` types; see
+- **Zig 0.16 test targets** (session 2): cross-directory imports, lazy
+  semantic analysis test collection, and distinct `@cImport` types; see
   [CONTRIBUTING.md](../../CONTRIBUTING.md#zig-016-gotchas).
 - **GLEW fails on Wayland** (session 1): use `GL_GLEXT_PROTOTYPES` with
   `GL/glcorearb.h`.

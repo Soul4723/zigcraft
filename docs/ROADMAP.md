@@ -49,6 +49,12 @@ in the game: mob rules for mobs already in `src/entity/`, and redstone parts.
   their state, starting with redstone, fluids, projectiles and dimension
   travel. Keep behavior unchanged and covered by tests.
 - Show important feedback on screen instead of only in the terminal.
+- Test target aggregation: research showed Zig 0.16 collects tests across
+  same-module imports via lazy semantic analysis, causing per-file test roots
+  to duplicate shared module tests. Before any future test target aggregation
+  or grouping is considered, require automated proof of exact collected-case
+  identity equivalence against current per-target roots to prevent accidental
+  test case omission.
 
 ## 5. Systems that unlock blocked mechanics
 

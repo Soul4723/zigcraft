@@ -104,6 +104,10 @@ Other overlaps:
 - `src/main.zig` is 7,105 lines; `main()` alone runs from line 363 to the
   end. `src/inventory.zig` was split into `items.zig`, `recipes.zig`,
   `inventory.zig` (~250 lines), and `inventory_test.zig`.
+- `b.addTest` on `src/main.zig` executes zero tests because `main.zig` lacks test
+  or comptime blocks, not because imported tests cannot be collected. Per-file
+  test roots duplicate shared module tests (e.g. `block.zig`) via lazy Sema,
+  while explicit `test_files` entries remain project policy for complete coverage.
 
 ## Legacy pull request triage
 

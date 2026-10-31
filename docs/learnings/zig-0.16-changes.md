@@ -150,6 +150,59 @@ relatively stable but check the exact method signatures.
 - Test blocks: `test "name" { ... }` in any source file
 - The build.zig template uses `b.addTest(.{ .root_module = ... })`
 
+### Test Collection and Lazy Semantic Analysis
+
+Zig 0.16 unit test discovery is driven by lazy semantic analysis (Sema),
+rooted at:
+1. Top-level `test "..." { ... }` blocks in the root source file.
+2. Top-level `comptime { ... }` blocks in the root source file.
+
+The compiler registers `test` declarations into `builtin.test_functions`
+only for containers reached by semantic analysis:
+- **Same-module file imports:** When a root test or comptime block references
+  a function, type, value, or evaluates `_ = @import("file.zig")`, the imported
+  file is analyzed, and its top-level `test` declarations are collected.
+- **Executable roots (`main.zig`):** The test runner entry point replaces
+  `pub fn main()`. If `main.zig` has no `test` or top-level `comptime` blocks
+  referencing declarations, `main()` is never analyzed and zero tests from
+  its `@import`s are collected (`All 0 tests passed.`).
+- **Module boundaries:** Modules added via `b.createModule` and `addImport`
+  isolate unit tests; importing an external module does not pull its unit tests
+  into the consumer's test runner.
+- **Unreferenced nested containers:** Tests defined inside unreferenced structs
+  or unreferenced functions are not analyzed, even within the same file.
+
+#### Minimal Reproducible Example
+
+`target_lib.zig`:
+```zig
+const std = @import("std");
+pub fn helper() void {}
+test "lib test 1" { try std.testing.expect(true); }
+test "lib test 2" { try std.testing.expect(true); }
+```
+
+`root_call.zig`:
+```zig
+const std = @import("std");
+const lib = @import("target_lib.zig");
+test "root test" {
+    lib.helper();
+}
+```
+
+`root_unused.zig`:
+```zig
+const std = @import("std");
+const lib = @import("target_lib.zig");
+test "root test" {}
+```
+
+Observed results on Zig 0.16.0:
+- `zig test root_call.zig`: 3 passed (`root test`, `lib test 1`, `lib test 2`).
+- `zig test root_unused.zig`: 1 passed (`root test` only; `target_lib.zig` tests uncollected).
+- `zig test target_lib.zig`: 2 passed (`lib test 1`, `lib test 2`).
+
 ## Gotchas Discovered
 
 ### Fixed-width integer overflow in loops
