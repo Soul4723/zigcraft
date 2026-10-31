@@ -54,6 +54,12 @@ pub const TerrainGenerator = struct {
         return self.oreHash(wx, wy, wz, 0xA991E) % 23 == 0;
     }
 
+    /// Deterministic check whether a tree column (wx, wz) is a Pale Oak tree variant.
+    /// Returns true for approximately 8% of tree positions.
+    pub fn isPaleOakTree(self: TerrainGenerator, wx: i32, wz: i32) bool {
+        return lattice(self.seed ^ 0x5A1E_0A4C, wx, wz) < 0.08;
+    }
+
     /// Pseudo-random check if a tree trunk should spawn at world column (wx, wz).
     fn hasTree(self: TerrainGenerator, wx: i32, wz: i32) bool {
         // Pseudo-random hash
@@ -353,10 +359,19 @@ pub const TerrainGenerator = struct {
                 if (h > SEA_LEVEL + 1 and self.hasTree(wx, wz)) {
                     const trunk_h: usize = if (h + 6 < SIZE) 4 else 3;
                     if (h + trunk_h + 2 < SIZE) {
-                        // Wood trunk
+                        const is_pale_oak = self.isPaleOakTree(wx, wz) and trunk_h >= 3;
+                        // Wood or Pale Oak trunk with sandwiched Creaking Heart
                         var ty: usize = h + 1;
                         while (ty <= h + trunk_h) : (ty += 1) {
-                            chunk.setBlock(@intCast(lx), @intCast(ty), @intCast(lz), .wood);
+                            if (is_pale_oak) {
+                                if (ty == h + 2) {
+                                    chunk.setBlock(@intCast(lx), @intCast(ty), @intCast(lz), .creaking_heart);
+                                } else {
+                                    chunk.setBlock(@intCast(lx), @intCast(ty), @intCast(lz), .pale_oak_log);
+                                }
+                            } else {
+                                chunk.setBlock(@intCast(lx), @intCast(ty), @intCast(lz), .wood);
+                            }
                         }
 
                         // Spherical/rounded leaf crown around top of trunk
@@ -1801,4 +1816,69 @@ test "TerrainGenerator abandoned mineshaft corridors, rails, timber frames, and 
     try std.testing.expectEqual(BlockId.wood_planks, chunk.getBlock(4, 3, 0)); // wx=4, wy=3, wz=16
     try std.testing.expectEqual(BlockId.powered_rail, chunk.getBlock(4, 4, 0)); // wx=4, wy=4, wz=16
     try std.testing.expectEqual(BlockId.chest, chunk.getBlock(0, 4, 0)); // junction chest at wx=0, wy=4, wz=16
+}
+
+test "TerrainGenerator isPaleOakTree determinism and natural generation" {
+    const tg1 = TerrainGenerator.init(12345);
+    const tg2 = TerrainGenerator.init(12345);
+    const tg3 = TerrainGenerator.init(67890);
+
+    // Deterministic with same seed
+    try std.testing.expectEqual(tg1.isPaleOakTree(10, 20), tg2.isPaleOakTree(10, 20));
+    try std.testing.expectEqual(tg1.isPaleOakTree(-15, 42), tg2.isPaleOakTree(-15, 42));
+
+    // Seeds differ somewhere
+    var differ = false;
+    var sx: i32 = -50;
+    while (sx < 50) : (sx += 1) {
+        if (tg1.isPaleOakTree(sx, 0) != tg3.isPaleOakTree(sx, 0)) {
+            differ = true;
+            break;
+        }
+    }
+    try std.testing.expect(differ);
+
+    // Scan generated chunks over a region to prove regular .wood trees and
+    // Pale Oak trees with sandwiched .creaking_heart blocks generate
+    var regular_tree_count: usize = 0;
+    var pale_oak_tree_count: usize = 0;
+    var creaking_heart_count: usize = 0;
+
+    var cx: i32 = -6;
+    while (cx <= 6) : (cx += 1) {
+        var cz: i32 = -6;
+        while (cz <= 6) : (cz += 1) {
+            var chunk = Chunk.init();
+            tg1.generateChunk(&chunk, cx, cz);
+
+            var lz: usize = 0;
+            while (lz < SIZE) : (lz += 1) {
+                var lx: usize = 0;
+                while (lx < SIZE) : (lx += 1) {
+                    var ly: usize = 0;
+                    while (ly < SIZE) : (ly += 1) {
+                        const blk = chunk.getBlock(@intCast(lx), @intCast(ly), @intCast(lz));
+                        if (blk == .creaking_heart) {
+                            creaking_heart_count += 1;
+                            // Prove every generated creaking_heart has .pale_oak_log directly above and below
+                            try std.testing.expect(ly >= 1);
+                            try std.testing.expect(ly + 1 < SIZE);
+                            const below = chunk.getBlock(@intCast(lx), @intCast(ly - 1), @intCast(lz));
+                            const above = chunk.getBlock(@intCast(lx), @intCast(ly + 1), @intCast(lz));
+                            try std.testing.expectEqual(BlockId.pale_oak_log, below);
+                            try std.testing.expectEqual(BlockId.pale_oak_log, above);
+                        } else if (blk == .pale_oak_log) {
+                            pale_oak_tree_count += 1;
+                        } else if (blk == .wood) {
+                            regular_tree_count += 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    try std.testing.expect(regular_tree_count > 0);
+    try std.testing.expect(pale_oak_tree_count > 0);
+    try std.testing.expect(creaking_heart_count > 0);
 }

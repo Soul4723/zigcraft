@@ -213,7 +213,6 @@ const lodestone_compass_tracking_mod = @import("world/lodestone_compass_tracking
 const composter_biofuel_mod = @import("world/composter_biofuel.zig");
 const specialized_furnace_smelting_mod = @import("world/specialized_furnace_smelting.zig");
 const tripwire_hook_circuit_mod = @import("world/tripwire_hook_circuit.zig");
-const creaking_heart_puppet_mod = @import("world/creaking_heart_puppet.zig");
 const sculk_catalyst_bloom_mod = @import("world/sculk_catalyst_bloom.zig");
 const sculk_bloom_geometry_mod = @import("world/sculk_bloom_geometry.zig");
 const sculk_shrieker_warning_mod = @import("world/sculk_shrieker_warning.zig");
@@ -224,9 +223,6 @@ const hanging_sign_mechanics_mod = @import("world/hanging_sign_mechanics.zig");
 const camel_mount_kinematics_mod = @import("world/camel_mount_kinematics.zig");
 const camel_step_dash_mod = @import("world/camel_step_dash.zig");
 const decorated_pot_storage_mod = @import("world/decorated_pot_storage.zig");
-const creaking_gaze_ai_mod = @import("world/creaking_gaze_ai.zig");
-const creaking_damage_link_mod = @import("world/creaking_damage_link.zig");
-const resin_masonry_mod = @import("world/resin_masonry.zig");
 const mangrove_mud_architecture_mod = @import("world/mangrove_mud_architecture.zig");
 const chorus_teleport_purpur_mod = @import("world/chorus_teleport_purpur.zig");
 const sniffer_digging_flora_mod = @import("world/sniffer_digging_flora.zig");
@@ -269,7 +265,6 @@ const riptide_trident_kinematics_mod = @import("world/riptide_trident_kinematics
 const skeleton_trap_combat_mod = @import("world/skeleton_trap_combat.zig");
 const witch_potion_combat_mod = @import("world/witch_potion_combat.zig");
 const evoker_fangs_vex_mod = @import("world/evoker_fangs_vex.zig");
-const totem_undying_resurrection_mod = @import("world/totem_undying_resurrection.zig");
 
 const spawn_mod = @import("world/spawn_rules.zig");
 const cache_mod = @import("world/component_cache.zig");
@@ -565,7 +560,7 @@ pub fn main() !void {
     var active_decorated_pot = decorated_pot_mod.DecoratedPot.init();
     var active_chiseled_bookshelf = chiseled_bookshelf_mod.ChiseledBookshelf.init(0, 64, 0, .north);
     var active_hanging_sign = hanging_sign_mod.HangingSignText.init();
-    var creaking_heart = pale_garden_mod.CreakingHeartState.init(.{ 0, 64, 0 }, true);
+    var creaking_hearts = pale_garden_mod.CreakingHeartTracker.init();
     var active_petals_cluster = cherry_grove_mod.PinkPetalsCluster.init(0, 64, 0, 1, .north);
     var active_armadillo = armadillo_wolf_armor_mod.Armadillo.init();
     var active_wolf_armor = armadillo_wolf_armor_mod.WolfArmor.init();
@@ -887,7 +882,7 @@ pub fn main() !void {
         camel_mount.update(dt);
         active_decorated_pot.updateAnimation(dt);
         active_decorated_pot.tick();
-        creaking_heart.tick(1);
+        creaking_hearts.tickSeconds(dt);
         active_armadillo.tick(dt, false);
         _ = ominous_spawner.tickHazardTimer(dt);
         trial_alchemy_effects.tickEffects(dt);
@@ -1155,7 +1150,6 @@ pub fn main() !void {
         _ = specialized_furnace_smelting_mod.SPECIALIZED_FURNACE_COOK_TICKS;
         _ = chorus_teleport_purpur_mod.teleport_attempts;
         _ = tripwire_hook_circuit_mod.max_distance_between_hooks;
-        _ = creaking_heart_puppet_mod.MAX_TETHER_RADIUS;
         // Wave 17 representative frame-loop hooks keep new domain rules queryable.
         _ = sculk_catalyst_bloom_mod.catalyst_radius;
         _ = sculk_bloom_geometry_mod.BLOOM_TICKS;
@@ -1167,8 +1161,6 @@ pub fn main() !void {
         _ = camel_mount_kinematics_mod.camel_step_height;
         _ = camel_step_dash_mod.canStrideGap(2.0);
         _ = decorated_pot_storage_mod.wobble_duration_seconds;
-        _ = creaking_gaze_ai_mod.fov_dot_threshold;
-        _ = resin_masonry_mod.MAX_RESIN_LAYERS;
         _ = mangrove_mud_architecture_mod.generateRootCage(2, .{ false, false, false, false });
         // Wave 18 representative frame-loop hooks keep all ten domains queryable.
         _ = sniffer_digging_flora_mod.isSniffable(.dirt);
@@ -1213,7 +1205,6 @@ pub fn main() !void {
         _ = skeleton_trap_combat_mod.TRIGGER_DISTANCE;
         _ = witch_potion_combat_mod.witch_max_health;
         _ = evoker_fangs_vex_mod.EVOKER_MAX_HEALTH;
-        _ = totem_undying_resurrection_mod.RESURRECTION_HEALTH_HP;
         // Wave 22's remaining copper display domain hook; the other nine modules
         // already have representative queries in their existing wave sections.
         _ = copper_bulb_display_mod.decodeDigit(9);
@@ -1249,7 +1240,6 @@ pub fn main() !void {
         _ = crafter_pulsed_grid_mod.slot_count;
         _ = bogged_poison_harvest_mod.BOGGED_MAX_HEALTH;
         _ = ominous_bottle_matrix_mod.DRINKING_DURATION_TICKS;
-        _ = creaking_damage_link_mod.CREAKING_HEART_MAX_HEALTH;
         _ = eyeblossom_bloom_toxicity_mod.POISON_DURATION_TICKS;
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             _ = cf.tickOxidation(dt);
@@ -3495,7 +3485,12 @@ pub fn main() !void {
                         if (mine.done(need)) {
                             mine.reset();
                             player.addActivityExhaustion(.mine_block);
+                            const above_before = if (broken_block == .creaking_heart) manager.getBlockWorld(hit.x, hit.y + 1, hit.z) else .air;
+                            const below_before = if (broken_block == .creaking_heart) manager.getBlockWorld(hit.x, hit.y - 1, hit.z) else .air;
                             if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .air)) {
+                                if (broken_block == .creaking_heart) {
+                                    creaking_hearts.onBroken(.{ hit.x, hit.y, hit.z });
+                                }
                                 audio.play(.break_block, 0.7);
                                 const drop_col = inventory_mod.ItemType.fromBlockId(broken_block).getColor();
                                 particles.spawnBlockDebris(hit.x, hit.y, hit.z, .{ drop_col[0], drop_col[1], drop_col[2] }, 16);
@@ -3575,6 +3570,10 @@ pub fn main() !void {
                                     const drop_count = inventory_mod.getBlockDrops(broken_block, &drops_buf);
                                     for (drops_buf[0..drop_count]) |d| {
                                         _ = inventory.addItem(d.item, d.count);
+                                    }
+                                    if (broken_block == .creaking_heart) {
+                                        const bonus_clumps = pale_garden_mod.brokenHeartClumpCount(.{ hit.x, hit.y, hit.z }, above_before, below_before);
+                                        if (bonus_clumps > 0) _ = inventory.addItem(.resin_clump, bonus_clumps);
                                     }
                                     if (broken_block == .nether_wart and !isWartTracked(warts[0..wart_count], hit.x, hit.y, hit.z)) {
                                         _ = inventory.addItem(.nether_wart, sapling_mod.wart_mature_bonus);
@@ -5680,9 +5679,19 @@ pub fn main() !void {
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .creaking_heart) {
-                    audio.playAt(.portal_hum, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.95, 32.0);
-                    particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.88, 0.46, 0.22 }, 10);
-                    std.debug.print("Creaking Heart pulsing resonance (active={any}, puppet_linked={any})\n", .{ creaking_heart.is_active, creaking_heart.linked_creaking_id != null });
+                    const above_blk = manager.getBlockWorld(hit_f.x, hit_f.y + 1, hit_f.z);
+                    const below_blk = manager.getBlockWorld(hit_f.x, hit_f.y - 1, hit_f.z);
+                    const is_night_now = !manager.is_nether and !manager.is_end and @sin(world_time) <= 0.0;
+                    const ext = creaking_hearts.tryExtrudeResin(.{ hit_f.x, hit_f.y, hit_f.z }, above_blk, below_blk, is_night_now, false);
+                    if (ext.clumps > 0) {
+                        _ = inventory.addItem(.resin_clump, ext.clumps);
+                        audio.play(.portal_hum, 0.95);
+                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.92, 0.48, 0.16 }, 16);
+                        std.debug.print("Creaking Heart extruded {d} resin clumps!\n", .{ ext.clumps });
+                    } else {
+                        audio.play(.click_off, 0.4);
+                        std.debug.print("Creaking Heart did not extrude: {s}\n", .{ @tagName(ext.status) });
+                    }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .pink_petals) {
                     const held_slot = &inventory.slots[selected_slot];

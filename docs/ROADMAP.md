@@ -43,9 +43,6 @@ A module that cannot be connected yet because a needed system is missing
 Good first candidates are mechanics whose blocks, items or mobs already exist
 in the game: mob rules for mobs already in `src/entity/`, and redstone parts.
 
-Connect in-world `resin_clump` drops from active Creaking Hearts so players can
-obtain clumps to feed the live `resin_clump` to `resin_brick` furnace recipe.
-
 ## 4. Pay down structure debt
 
 - Move subsystems out of `main()` in `src/main.zig` into modules that own

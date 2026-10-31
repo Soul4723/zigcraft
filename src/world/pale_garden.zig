@@ -1,4 +1,6 @@
 const std = @import("std");
+const block_mod = @import("block.zig");
+pub const BlockId = block_mod.BlockId;
 
 /// Block identifiers specific to the Pale Garden biome and Resin masonry.
 pub const PaleGardenBlock = enum(u16) {
@@ -41,6 +43,155 @@ pub const creaking_max_tether_radius: f32 = 32.0;
 pub const creaking_max_tether_radius_sq: f32 = creaking_max_tether_radius * creaking_max_tether_radius; // 1024.0
 pub const resin_extrusion_cooldown_ticks: u32 = 100; // 5 seconds at 20 ticks/sec
 pub const resin_extrusion_cooldown_seconds: f32 = 5.0;
+
+/// Live world BlockId evaluation for Creaking Heart activation.
+/// Requires vertical sandwich between two Pale Oak Logs during night or thunderstorm.
+pub fn canActivateBlocks(above: BlockId, below: BlockId, is_night: bool, is_thunder: bool) bool {
+    return (above == .pale_oak_log and below == .pale_oak_log) and (is_night or is_thunder);
+}
+
+/// Deterministically yields 2 or 3 resin clumps based on heart world coordinates.
+pub fn extrusionClumpCount(pos: [3]i32) u8 {
+    const h = @as(u32, @bitCast(pos[0])) *% 31 +%
+        @as(u32, @bitCast(pos[1])) *% 17 +%
+        @as(u32, @bitCast(pos[2]));
+    return 2 + @as(u8, @intCast(h & 1));
+}
+
+/// When a vertically sandwiched Creaking Heart (above == .pale_oak_log and below == .pale_oak_log)
+/// is mined/broken (day or night), returns deterministic 1..3 bonus resin_clump count.
+/// Returns 0 when not sandwiched between .pale_oak_log.
+pub fn brokenHeartClumpCount(pos: [3]i32, above: BlockId, below: BlockId) u8 {
+    if (above != .pale_oak_log or below != .pale_oak_log) return 0;
+    const h = @as(u32, @bitCast(pos[0])) *% 37 +%
+        @as(u32, @bitCast(pos[1])) *% 19 +%
+        @as(u32, @bitCast(pos[2])) *% 7;
+    return 1 + @as(u8, @intCast(h % 3));
+}
+
+/// Status of a resin extrusion attempt from a Creaking Heart.
+pub const ExtrudeStatus = enum {
+    unaligned_logs,
+    dormant_daytime,
+    cooling_down,
+    tracker_full,
+    extruded,
+};
+
+/// Result of attempting to extrude resin from an in-world Creaking Heart.
+pub const ExtrudeOutcome = struct {
+    status: ExtrudeStatus,
+    clumps: u8,
+};
+
+/// Per-position cooldown tracker for active Creaking Hearts in the world.
+/// Fixed capacity (16 slots), zero heap allocation.
+pub const CreakingHeartTracker = struct {
+    pub const max_tracked: usize = 16;
+
+    pub const Slot = struct {
+        pos: [3]i32,
+        cooldown_sec: f32,
+        used: bool,
+    };
+
+    slots: [max_tracked]Slot,
+
+    /// Create an empty tracker with no active cooldowns.
+    pub fn init() CreakingHeartTracker {
+        return .{
+            .slots = [_]Slot{.{
+                .pos = .{ 0, 0, 0 },
+                .cooldown_sec = 0.0,
+                .used = false,
+            }} ** max_tracked,
+        };
+    }
+
+    /// Decrements active cooldown_sec by dt, freeing slots that reach 0.0.
+    pub fn tickSeconds(self: *CreakingHeartTracker, dt: f32) void {
+        const step = @max(0.0, dt);
+        for (&self.slots) |*slot| {
+            if (slot.used) {
+                slot.cooldown_sec -= step;
+                if (slot.cooldown_sec <= 0.0) {
+                    slot.cooldown_sec = 0.0;
+                    slot.used = false;
+                }
+            }
+        }
+    }
+
+    /// Clears any tracked cooldown slot at pos when a Creaking Heart is broken.
+    pub fn onBroken(self: *CreakingHeartTracker, pos: [3]i32) void {
+        for (&self.slots) |*slot| {
+            if (slot.used and std.mem.eql(i32, &slot.pos, &pos)) {
+                slot.used = false;
+                slot.cooldown_sec = 0.0;
+            }
+        }
+    }
+
+    /// Attempts to extrude resin from a Creaking Heart at pos.
+    /// Requires vertical pale_oak_log sandwich and nighttime or thunderstorm.
+    pub fn tryExtrudeResin(
+        self: *CreakingHeartTracker,
+        pos: [3]i32,
+        above: BlockId,
+        below: BlockId,
+        is_night: bool,
+        is_thunder: bool,
+    ) ExtrudeOutcome {
+        if (above != .pale_oak_log or below != .pale_oak_log) {
+            return .{ .status = .unaligned_logs, .clumps = 0 };
+        }
+        if (!is_night and !is_thunder) {
+            return .{ .status = .dormant_daytime, .clumps = 0 };
+        }
+
+        // Check if this position is actively cooling down
+        for (&self.slots) |*slot| {
+            if (slot.used and std.mem.eql(i32, &slot.pos, &pos)) {
+                if (slot.cooldown_sec > 0.0) {
+                    return .{ .status = .cooling_down, .clumps = 0 };
+                }
+            }
+        }
+
+        var target_slot: ?*Slot = null;
+
+        // 1. Existing slot matching pos (if cooldown expired)
+        for (&self.slots) |*slot| {
+            if (slot.used and std.mem.eql(i32, &slot.pos, &pos)) {
+                target_slot = slot;
+                break;
+            }
+        }
+
+        // 2. Unused slot
+        if (target_slot == null) {
+            for (&self.slots) |*slot| {
+                if (!slot.used) {
+                    target_slot = slot;
+                    break;
+                }
+            }
+        }
+
+        // Keep active cooldowns intact when all tracking slots are occupied.
+        if (target_slot == null) return .{ .status = .tracker_full, .clumps = 0 };
+
+        const slot = target_slot.?;
+        slot.pos = pos;
+        slot.cooldown_sec = resin_extrusion_cooldown_seconds;
+        slot.used = true;
+
+        return .{
+            .status = .extruded,
+            .clumps = extrusionClumpCount(pos),
+        };
+    }
+};
 
 /// Eyeblossom constants.
 pub const open_eyeblossom_light_level: u8 = 3;
@@ -794,4 +945,104 @@ test "Resin Masonry crafting slabs, stairs, walls, and chiseled resin bricks" {
     try std.testing.expectEqual(@as(?u32, 1), stonecutResinBlock(BlockOfResinBricksTag, ResinBrickStairsTag));
     try std.testing.expectEqual(@as(?u32, 1), stonecutResinBlock(BlockOfResinBricksTag, ResinBrickWallTag));
     try std.testing.expectEqual(@as(?u32, 1), stonecutResinBlock(BlockOfResinBricksTag, ChiseledResinBricksTag));
+}
+
+test "canActivateBlocks live BlockId sandwich and night/thunder rules" {
+    // Valid: pale_oak_log above and below at night
+    try std.testing.expect(canActivateBlocks(.pale_oak_log, .pale_oak_log, true, false));
+    // Valid: pale_oak_log above and below in thunder
+    try std.testing.expect(canActivateBlocks(.pale_oak_log, .pale_oak_log, false, true));
+
+    // Rejects other blocks
+    try std.testing.expect(!canActivateBlocks(.wood, .pale_oak_log, true, false));
+    try std.testing.expect(!canActivateBlocks(.cherry_log, .pale_oak_log, true, false));
+    try std.testing.expect(!canActivateBlocks(.air, .pale_oak_log, true, false));
+    try std.testing.expect(!canActivateBlocks(.pale_oak_log, .wood, true, false));
+    try std.testing.expect(!canActivateBlocks(.pale_oak_log, .cherry_log, true, false));
+    try std.testing.expect(!canActivateBlocks(.pale_oak_log, .air, true, false));
+
+    // Rejects daytime without thunder
+    try std.testing.expect(!canActivateBlocks(.pale_oak_log, .pale_oak_log, false, false));
+}
+
+test "CreakingHeartTracker extrusion cooldown and multi-heart tracking" {
+    var tracker = CreakingHeartTracker.init();
+    const pos1 = [3]i32{ 10, 64, 10 };
+    const pos2 = [3]i32{ 25, 64, 40 };
+
+    // Unaligned logs return unaligned_logs
+    const unaligned = tracker.tryExtrudeResin(pos1, .wood, .pale_oak_log, true, false);
+    try std.testing.expectEqual(ExtrudeStatus.unaligned_logs, unaligned.status);
+    try std.testing.expectEqual(@as(u8, 0), unaligned.clumps);
+
+    // Daytime returns dormant_daytime
+    const daytime = tracker.tryExtrudeResin(pos1, .pale_oak_log, .pale_oak_log, false, false);
+    try std.testing.expectEqual(ExtrudeStatus.dormant_daytime, daytime.status);
+    try std.testing.expectEqual(@as(u8, 0), daytime.clumps);
+
+    // Nighttime with aligned logs: successfully extrudes 2 or 3 clumps
+    const ext1 = tracker.tryExtrudeResin(pos1, .pale_oak_log, .pale_oak_log, true, false);
+    try std.testing.expectEqual(ExtrudeStatus.extruded, ext1.status);
+    try std.testing.expect(ext1.clumps == 2 or ext1.clumps == 3);
+    try std.testing.expectEqual(extrusionClumpCount(pos1), ext1.clumps);
+
+    // Immediate repeat extrusion on pos1 is blocked by cooldown
+    const repeat1 = tracker.tryExtrudeResin(pos1, .pale_oak_log, .pale_oak_log, true, false);
+    try std.testing.expectEqual(ExtrudeStatus.cooling_down, repeat1.status);
+    try std.testing.expectEqual(@as(u8, 0), repeat1.clumps);
+
+    // A second active heart at pos2 extrudes independently!
+    const ext2 = tracker.tryExtrudeResin(pos2, .pale_oak_log, .pale_oak_log, true, false);
+    try std.testing.expectEqual(ExtrudeStatus.extruded, ext2.status);
+    try std.testing.expect(ext2.clumps == 2 or ext2.clumps == 3);
+
+    // Advance 2.5s: pos1 still cooling down
+    tracker.tickSeconds(2.5);
+    try std.testing.expectEqual(ExtrudeStatus.cooling_down, tracker.tryExtrudeResin(pos1, .pale_oak_log, .pale_oak_log, true, false).status);
+
+    // Advance remaining 2.5s (total 5.0s): pos1 re-allows extrusion!
+    tracker.tickSeconds(2.5);
+    const re_ext1 = tracker.tryExtrudeResin(pos1, .pale_oak_log, .pale_oak_log, true, false);
+    try std.testing.expectEqual(ExtrudeStatus.extruded, re_ext1.status);
+    try std.testing.expectEqual(ext1.clumps, re_ext1.clumps);
+
+    // onBroken clears cooldown state immediately
+    tracker.onBroken(pos1);
+    // After break, can extrude again immediately if conditions are met
+    const after_break = tracker.tryExtrudeResin(pos1, .pale_oak_log, .pale_oak_log, true, false);
+    try std.testing.expectEqual(ExtrudeStatus.extruded, after_break.status);
+}
+
+test "brokenHeartClumpCount yields 1..3 bonus clumps when sandwiched and 0 otherwise" {
+    const pos = [3]i32{ 5, 12, 18 };
+
+    // Not sandwiched: returns 0
+    try std.testing.expectEqual(@as(u8, 0), brokenHeartClumpCount(pos, .wood, .pale_oak_log));
+    try std.testing.expectEqual(@as(u8, 0), brokenHeartClumpCount(pos, .pale_oak_log, .air));
+    try std.testing.expectEqual(@as(u8, 0), brokenHeartClumpCount(pos, .cherry_log, .cherry_log));
+
+    // Sandwiched: returns 1..3
+    const clumps = brokenHeartClumpCount(pos, .pale_oak_log, .pale_oak_log);
+    try std.testing.expect(clumps >= 1 and clumps <= 3);
+
+    // Deterministic with same pos
+    try std.testing.expectEqual(clumps, brokenHeartClumpCount(pos, .pale_oak_log, .pale_oak_log));
+}
+
+
+test "full heart tracker retains every active cooldown" {
+    var tracker = CreakingHeartTracker.init();
+    for (0..CreakingHeartTracker.max_tracked) |n| {
+        const pos = [3]i32{ @intCast(n), 5, 0 };
+        const result = tracker.tryExtrudeResin(pos, .pale_oak_log, .pale_oak_log, true, false);
+        try std.testing.expectEqual(ExtrudeStatus.extruded, result.status);
+    }
+    const overflow = tracker.tryExtrudeResin(.{ 99, 5, 0 }, .pale_oak_log, .pale_oak_log, true, false);
+    try std.testing.expectEqual(@as(u8, 0), overflow.clumps);
+    for (0..CreakingHeartTracker.max_tracked) |n| {
+        const pos = [3]i32{ @intCast(n), 5, 0 };
+        try std.testing.expectEqual(ExtrudeStatus.cooling_down, tracker.tryExtrudeResin(pos, .pale_oak_log, .pale_oak_log, true, false).status);
+    }
+    tracker.tickSeconds(5.0);
+    try std.testing.expectEqual(ExtrudeStatus.extruded, tracker.tryExtrudeResin(.{ 99, 5, 0 }, .pale_oak_log, .pale_oak_log, true, false).status);
 }
