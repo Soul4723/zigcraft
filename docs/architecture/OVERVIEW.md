@@ -67,6 +67,10 @@ Capacities and lookup helpers for those arrays are in
   `world/persistence.zig` and saved atomically to root-level `player.bin`;
   `player_save.zig` owns gameplay type conversion so dimension changes share
   one position, inventory and vitals record.
+- Block entity jobs (furnaces, smokers, blast furnaces, growing saplings) are
+  encoded in little-endian binary form by `world/block_jobs.zig` and saved
+  atomically to per-dimension `block_jobs.bin` files by `world/persistence.zig`;
+  offline dimension time and unloaded-chunk simulation are paused.
 
 ## Rule modules
 

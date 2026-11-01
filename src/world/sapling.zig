@@ -105,3 +105,23 @@ test "nether wart growth timing" {
     try std.testing.expect(isWartReady(60.0));
     try std.testing.expect(isWartReady(120.0));
 }
+
+pub const SproutAction = enum {
+    active,
+    paused,
+    remove,
+};
+
+/// Evaluate whether a sapling sprout should step growth, pause, or be removed.
+/// Unloaded chunks pause simulation to protect planted saplings.
+pub fn evaluateSproutStatus(is_chunk_loaded: bool, is_matching_trunk: bool) SproutAction {
+    if (!is_chunk_loaded) return .paused;
+    if (!is_matching_trunk) return .remove;
+    return .active;
+}
+
+test "evaluateSproutStatus unloaded chunk pauses and broken trunk removes" {
+    try std.testing.expectEqual(SproutAction.active, evaluateSproutStatus(true, true));
+    try std.testing.expectEqual(SproutAction.paused, evaluateSproutStatus(false, false));
+    try std.testing.expectEqual(SproutAction.remove, evaluateSproutStatus(true, false));
+}

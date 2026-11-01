@@ -260,6 +260,19 @@ pub const ChunkManager = struct {
     }
 
     /// World-space solid test. Checks loaded chunk at world coords.
+    /// Return true if chunk (cx, cz) is currently loaded.
+    pub fn isChunkLoaded(self: *const ChunkManager, cx: i32, cz: i32) bool {
+        return self.chunks.contains(.{ .x = cx, .z = cz });
+    }
+
+    /// Return true if the chunk containing world block (x, y, z) is currently loaded.
+    pub fn isBlockLoaded(self: *const ChunkManager, x: i32, y: i32, z: i32) bool {
+        if (y < 0 or y >= 16) return false;
+        const cx = @divFloor(x, 16);
+        const cz = @divFloor(z, 16);
+        return self.isChunkLoaded(cx, cz);
+    }
+
     pub fn isSolidWorld(self: *const ChunkManager, x: i32, y: i32, z: i32) bool {
         return self.getBlockWorld(x, y, z).is_solid();
     }
@@ -704,4 +717,34 @@ test "initForDimension starts directly in nether or the_end and loads saved dime
     try std.testing.expect(!mgr_end.is_nether);
     try std.testing.expect(mgr_end.is_end);
     try std.testing.expectEqual(block_mod.BlockId.obsidian, mgr_end.getBlockWorld(2, 3, 4));
+}
+
+test "isChunkLoaded and isBlockLoaded report loaded state accurately" {
+    var mgr = ChunkManager{
+        .allocator = std.testing.allocator,
+        .chunks = std.HashMap(ChunkCoord, LoadedChunk, ChunkCoordContext, 80).init(std.testing.allocator),
+        .radius = 1,
+        .terrain = terrain_mod.TerrainGenerator.init(0),
+        .nether = terrain_mod.NetherGenerator.init(0),
+        .end = terrain_mod.EndGenerator.init(0),
+        .is_nether = false,
+        .persistence = persistence_mod.Persistence.init(".zig-cache/test_mgr_loaded"),
+    };
+    defer mgr.deinit();
+
+    var ch = Chunk.init();
+    ch.setBlock(2, 5, 2, .furnace);
+    try mgr.chunks.put(.{ .x = 1, .z = 2 }, .{ .chunk = ch, .renderer = null, .dirty = false, .modified = false });
+
+    try std.testing.expect(mgr.isChunkLoaded(1, 2));
+    try std.testing.expect(!mgr.isChunkLoaded(0, 0));
+    try std.testing.expect(!mgr.isChunkLoaded(1, 3));
+
+    // World block at (1*16 + 2, 5, 2*16 + 2) = (18, 5, 34) is in chunk (1, 2)
+    try std.testing.expect(mgr.isBlockLoaded(18, 5, 34));
+    // World block at (0, 5, 0) is in chunk (0, 0) which is not loaded
+    try std.testing.expect(!mgr.isBlockLoaded(0, 5, 0));
+    // y out of range is not loaded
+    try std.testing.expect(!mgr.isBlockLoaded(18, -1, 34));
+    try std.testing.expect(!mgr.isBlockLoaded(18, 16, 34));
 }

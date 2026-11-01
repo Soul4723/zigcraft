@@ -340,3 +340,26 @@ test "tickBlastFurnaceJob high-speed ore smelting" {
     const r3 = tickBlastFurnaceJob(&t, &fuel, &input, 5.0);
     try std.testing.expectEqual(@as(?u16, null), r3.done_item);
 }
+
+pub const JobAction = enum {
+    active,
+    paused,
+    remove,
+};
+
+/// Evaluate whether a block entity job should step, pause, or be removed.
+/// Unloaded chunks pause simulation to prevent air lookups from destroying active jobs.
+pub fn evaluateJobStatus(is_chunk_loaded: bool, is_matching_block: bool) JobAction {
+    if (!is_chunk_loaded) return .paused;
+    if (!is_matching_block) return .remove;
+    return .active;
+}
+
+test "evaluateJobStatus unloaded chunk pauses and wrong block removes" {
+    // Loaded chunk with matching block -> active
+    try std.testing.expectEqual(JobAction.active, evaluateJobStatus(true, true));
+    // Unloaded chunk (even though getBlockWorld returns air/non-matching) -> paused!
+    try std.testing.expectEqual(JobAction.paused, evaluateJobStatus(false, false));
+    // Loaded chunk where block was mined/replaced -> remove
+    try std.testing.expectEqual(JobAction.remove, evaluateJobStatus(true, false));
+}

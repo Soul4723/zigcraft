@@ -1,5 +1,6 @@
 const std = @import("std");
 const chunk_mod = @import("chunk.zig");
+const block_jobs_mod = @import("block_jobs.zig");
 const Chunk = chunk_mod.Chunk;
 
 const c = @cImport({
@@ -8,6 +9,7 @@ const c = @cImport({
     @cInclude("sys/stat.h");
     @cInclude("sys/types.h");
     @cInclude("unistd.h");
+    @cInclude("errno.h");
 });
 
 pub const MAGIC = [4]u8{ 'Z', 'C', 'H', 'K' };
@@ -34,6 +36,12 @@ pub const Dimension = enum(u8) {
     nether = 1,
     the_end = 2,
 };
+
+pub const BlockJobsData = block_jobs_mod.BlockJobsData;
+pub const LoadJobsResult = block_jobs_mod.LoadJobsResult;
+pub const BLOCK_JOBS_MAGIC = block_jobs_mod.BLOCK_JOBS_MAGIC;
+pub const BLOCK_JOBS_VERSION = block_jobs_mod.BLOCK_JOBS_VERSION;
+pub const MAX_BLOCK_JOBS_SAVE_SIZE = block_jobs_mod.MAX_SAVE_SIZE;
 
 pub const ChunkHeader = extern struct {
     magic: [4]u8,
@@ -255,6 +263,54 @@ pub const Persistence = struct {
         };
 
         return writeAtomic(file_path, &.{ std.mem.asBytes(&header), std.mem.asBytes(&chunk.blocks), std.mem.asBytes(&chunk.levels) });
+    }
+
+    fn makeJobsPath(self: Persistence, buf: *[256:0]u8) ![:0]const u8 {
+        return switch (self.dimension) {
+            .overworld => std.fmt.bufPrintZ(buf, "{s}/block_jobs.bin", .{self.dir_path}),
+            .nether => std.fmt.bufPrintZ(buf, "{s}/nether/block_jobs.bin", .{self.dir_path}),
+            .the_end => std.fmt.bufPrintZ(buf, "{s}/the_end/block_jobs.bin", .{self.dir_path}),
+        };
+    }
+
+    /// Atomically save dimension block entity jobs. Ensures storage directory exists.
+    pub fn saveBlockJobs(self: Persistence, data: *const BlockJobsData) bool {
+        self.ensureDir();
+        var path_buf: [256:0]u8 = undefined;
+        const file_path = self.makeJobsPath(&path_buf) catch return false;
+        var bytes: [block_jobs_mod.MAX_SAVE_SIZE]u8 = undefined;
+        const len = block_jobs_mod.encodeBlockJobs(data, self.dimension, &bytes) catch return false;
+        return writeAtomic(file_path, &.{bytes[0..len]});
+    }
+
+    /// Load and validate dimension block entity jobs without changing `out` on corruption.
+    pub fn loadBlockJobs(self: Persistence, out: *BlockJobsData) LoadJobsResult {
+        var path_buf: [256:0]u8 = undefined;
+        const file_path = self.makeJobsPath(&path_buf) catch return .corrupt;
+        const f = c.fopen(file_path.ptr, "rb") orelse {
+            const err = c.__errno_location().*;
+            if (err == c.ENOENT) {
+                out.* = BlockJobsData{};
+                return .absent;
+            }
+            std.debug.print("unreadable block jobs save file at {s} (errno {d}); preserving durable file\n", .{ file_path, err });
+            return .corrupt;
+        };
+        defer _ = c.fclose(f);
+
+        var bytes: [block_jobs_mod.MAX_SAVE_SIZE + 1]u8 = undefined;
+        const read_count = c.fread(&bytes, 1, bytes.len, f);
+        if (read_count == 0 or read_count > block_jobs_mod.MAX_SAVE_SIZE or c.fgetc(f) != -1) {
+            std.debug.print("invalid block jobs save ignored; preserving durable file\n", .{});
+            return .corrupt;
+        }
+
+        if (!block_jobs_mod.decodeBlockJobs(bytes[0..read_count], self.dimension, out)) {
+            std.debug.print("invalid block jobs save ignored; preserving durable file\n", .{});
+            return .corrupt;
+        }
+
+        return .ok;
     }
 };
 

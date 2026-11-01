@@ -11,7 +11,7 @@ Git history.
 | Check | Last result |
 |-------|-------------|
 | CI on `main` | 2026-10-30: hosted jobs run again on the public repository. `build-and-test` and `public-content` are required for an up-to-date PR, including for administrators, with no human review approval required. See [current main runs](https://github.com/Soul4723/zigcraft/actions/workflows/ci.yml?query=branch%3Amain) for job results. |
-| Build and full test suite | 2026-10-30, Zig 0.16.0: build passed; 12,063 of 12,063 tests passed across 613 steps. Setup now pins the compiler locally; LLVM/LLD are selected for compatibility with recent Linux C runtime objects. |
+| Build and full test suite | 2026-10-31, Zig 0.16.0: build passed; 12,503 of 12,503 tests passed across 611 steps. Setup pins the compiler locally; LLVM/LLD are selected for compatibility with recent Linux C runtime objects. |
 | Running the game | 2026-10-30: the built executable initialized OpenGL and ran for 8 seconds before the smoke check stopped it. No crash was reported; gameplay was not checked. |
 
 Zig 0.17 cannot compile `build.zig` (`b.args` no longer exists). Use 0.16.0.
@@ -52,6 +52,10 @@ These systems are driven by input or the frame loop in `src/main.zig` and
 - Player position, velocity, spawn point, view, dimension, vitals, inventory,
   crafting grid, selected hotbar slot and tool wear persist in root-level
   `saves/player.bin` across dimensions.
+- Furnace, smoker, blast-furnace jobs and growing saplings persist in
+  per-dimension `block_jobs.bin` files across quit/restart and portal
+  switches; offline dimension and unloaded-chunk simulation are paused
+  without dropped items or duplicated outputs.
 
 Much in-game feedback is printed to the terminal: `src/main.zig` has about
 300 `std.debug.print` calls.
@@ -98,7 +102,7 @@ Other overlaps:
 ## Known problems
 
 - The world is 16 blocks tall: chunks are 16×16×16 and there is one layer.
-- Furnace jobs and growing saplings are not saved.
+- Placed container contents (chests, shulker boxes) are not saved to disk and use coordinate-only in-memory lookup without dimension keys; fortress loot reseeds lazily when entry is absent.
 - `BlockId` is a `u8` and uses all 256 values. New blocks need a wider ID or
   a different block-state scheme first.
 - `src/main.zig` is 7,105 lines; `main()` alone runs from line 363 to the

@@ -7,6 +7,7 @@ belong in the pull request description, not in a separate file.
 
 ## Recent sessions
 
+- 2026-10-31: Persisted furnace, smoker, blast-furnace jobs and growing saplings in per-dimension block_jobs.bin files with offline/unloaded pausing, preflight transit rollback, and ENOENT missing-file checks.
 - 2026-10-31: Corrected CONTRIBUTING documentation on Zig 0.16 lazy test collection, documented semantic analysis rules and minimal fixtures in learnings, and confirmed explicit test_files registration policy.
 - 2026-10-31: Split inventory item definitions, recipe resolution and container logic into focused modules, preserving the original rules and test suite.
 - 2026-10-31: Added natural Pale Oak hearts and F-key nighttime resin collection, protected active heart cooldowns, and removed five disconnected duplicate modules.
