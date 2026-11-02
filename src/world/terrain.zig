@@ -3,6 +3,7 @@ const chunk_mod = @import("chunk.zig");
 const Chunk = chunk_mod.Chunk;
 const SIZE = chunk_mod.SIZE;
 const BlockId = @import("block.zig").BlockId;
+const SurfaceFrame = @import("ruined_portal.zig").SurfaceFrame;
 
 /// Sea level for world water planes.
 pub const SEA_LEVEL: usize = 5;
@@ -267,6 +268,44 @@ pub const TerrainGenerator = struct {
         return .air;
     }
 
+    // One candidate site per 64-block region. All decisions use world coordinates,
+    // so a frame crossing a chunk boundary is identical in either generation order.
+    fn surfacePortal(self: TerrainGenerator, cell_x: i32, cell_z: i32) ?SurfaceFrame {
+        var attempt: i32 = 0;
+        while (attempt < 1024) : (attempt += 1) {
+            const hash = self.oreHash(cell_x, attempt, cell_z, 0x5077A1);
+            const x = cell_x * 64 + 4 + @as(i32, @intCast(hash % 56));
+            const z = cell_z * 64 + 4 + @as(i32, @intCast((hash >> 16) % 56));
+            const y: i32 = self.heightAt(x, z);
+            if (y < 7 or y > 11) continue;
+            var valid = true;
+            // Flat dry ground and a clear approach on both sides; reject trees
+            // whose canopy could cover the frame or its six interior cells.
+            var dx: i32 = -3;
+            while (dx <= 4 and valid) : (dx += 1) {
+                var dz: i32 = -4;
+                while (dz <= 4) : (dz += 1) {
+                    const wx = x + dx;
+                    const wz = z + dz;
+                    if (self.hasTree(wx, wz)) {
+                        valid = false;
+                        break;
+                    }
+                    if (dx >= -1 and dx <= 2 and dz >= -2 and dz <= 2) {
+                        if (self.heightAt(wx, wz) != y or
+                            self.getOceanMonumentBlock(wx, 1, wz) != null or
+                            self.getAbandonedMineshaftBlock(wx, 3, wz) != null) {
+                            valid = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (valid) return .{ .x = x, .y = y, .z = z };
+        }
+        return null;
+    }
+
     /// Fill chunk at world chunk coords (cx,cz) with terrain columns, water bodies, and trees.
     pub fn generateChunk(self: TerrainGenerator, chunk: *Chunk, cx: i32, cz: i32) void {
         // 1. Terrain base columns & water
@@ -406,6 +445,16 @@ pub const TerrainGenerator = struct {
                     }
                 }
             }
+        }
+
+        if (self.surfacePortal(@divFloor(cx, 4), @divFloor(cz, 4))) |frame| {
+            for (0..SIZE) |x| for (0..SIZE) |z| for (0..SIZE) |y| {
+                const wx = cx * 16 + @as(i32, @intCast(x));
+                const wz = cz * 16 + @as(i32, @intCast(z));
+                if (frame.blockAt(wx, @intCast(y), wz)) |block| {
+                    chunk.setBlock(@intCast(x), @intCast(y), @intCast(z), block);
+                }
+            };
         }
     }
 };
@@ -1881,4 +1930,108 @@ test "TerrainGenerator isPaleOakTree determinism and natural generation" {
     try std.testing.expect(regular_tree_count > 0);
     try std.testing.expect(pale_oak_tree_count > 0);
     try std.testing.expect(creaking_heart_count > 0);
+}
+
+test "generated surface remnants are usable across chunks" {
+    const portal = @import("portal.zig");
+    const World = struct {
+        var chunks: [9]Chunk = undefined;
+        var base_x: i32 = 0;
+        var base_z: i32 = 0;
+
+        fn get(x: i32, y: i32, z: i32) BlockId {
+            if (y < 0 or y >= 16) return .air;
+            const cx = @divFloor(x, 16) - base_x;
+            const cz = @divFloor(z, 16) - base_z;
+            if (cx < 0 or cx >= 3 or cz < 0 or cz >= 3) return .air;
+            return chunks[@intCast(cz * 3 + cx)].getBlock(@intCast(@mod(x, 16)), @intCast(y), @intCast(@mod(z, 16)));
+        }
+        fn set(_: *@This(), x: i32, y: i32, z: i32, block: BlockId) bool {
+            const cx = @divFloor(x, 16) - base_x;
+            const cz = @divFloor(z, 16) - base_z;
+            chunks[@intCast(cz * 3 + cx)].setBlock(@intCast(@mod(x, 16)), @intCast(y), @intCast(@mod(z, 16)), block);
+            return true;
+        }
+    };
+    const tg = TerrainGenerator.init(1337);
+    // The second site straddles a chunk boundary in negative coordinates.
+    for ([_][3]i32{ .{ 44, 7, 44 }, .{ -33, 7, -633 } }) |site| {
+        World.base_x = @divFloor(site[0], 16) - 1;
+        World.base_z = @divFloor(site[2], 16) - 1;
+        // Generate in reverse order to exercise independent chunk sampling.
+        var i: usize = 9;
+        while (i > 0) {
+            i -= 1;
+            World.chunks[i] = Chunk.init();
+            tg.generateChunk(&World.chunks[i], World.base_x + @as(i32, @intCast(i % 3)), World.base_z + @as(i32, @intCast(i / 3)));
+        }
+        for (0..9) |j| {
+            var again = Chunk.init();
+            tg.generateChunk(&again, World.base_x + @as(i32, @intCast(j % 3)), World.base_z + @as(i32, @intCast(j / 3)));
+            try std.testing.expectEqualDeep(World.chunks[j], again);
+        }
+        const x = site[0];
+        const y = site[1];
+        const z = site[2];
+        try std.testing.expect(y > 0 and y + 4 < SIZE);
+        for (0..2) |dx| for (1..4) |dy| {
+            try std.testing.expectEqual(BlockId.air, World.get(x + @as(i32, @intCast(dx)), y + @as(i32, @intCast(dy)), z));
+        };
+        for (0..2) |dx| for ([_]i32{ -1, 1 }) |dz| {
+            const wx = x + @as(i32, @intCast(dx));
+            try std.testing.expect(World.get(wx, y, z + dz) != .air);
+            try std.testing.expectEqual(BlockId.air, World.get(wx, y + 1, z + dz));
+            try std.testing.expectEqual(BlockId.air, World.get(wx, y + 2, z + dz));
+            try std.testing.expect(World.get(wx, 0, z + dz) != .air);
+        };
+        const frame = portal.detectPortalFrame(World.get, x, y + 1, z) orelse return error.MissingGeneratedFrame;
+        try std.testing.expectEqual(portal.PortalAxis.x_axis, frame.axis);
+        var world = World{};
+        try std.testing.expectEqual(@as(usize, 6), portal.activatePortalFrame(frame, &world, World.set));
+        try std.testing.expectEqual(BlockId.nether_portal, World.get(x, y + 1, z));
+        _ = World.set(&world, x, y, z, .air);
+        try std.testing.expect(portal.detectPortalFrame(World.get, x, y + 1, z) == null);
+    }
+}
+
+test "default spawn has a traversable route to the nearby remnant" {
+    const tg = TerrainGenerator.init(1337);
+    var chunks: [16]Chunk = undefined;
+    for (0..16) |i| {
+        chunks[i] = Chunk.init();
+        tg.generateChunk(&chunks[i], @intCast(i % 4), @intCast(i / 4));
+    }
+    const Map = struct {
+        fn walkable(cs: *const [16]Chunk, x: usize, z: usize, h: u4) bool {
+            if (h < 1 or h > 13) return false;
+            const c = &cs[(z / 16) * 4 + x / 16];
+            return c.getBlock(@intCast(x % 16), h, @intCast(z % 16)).is_solid() and
+                !c.getBlock(@intCast(x % 16), h + 1, @intCast(z % 16)).is_solid() and
+                !c.getBlock(@intCast(x % 16), h + 2, @intCast(z % 16)).is_solid();
+        }
+    };
+    var visited = [_]bool{false} ** 4096;
+    var queue: [4096]usize = undefined;
+    var head: usize = 0;
+    var tail: usize = 1;
+    queue[0] = 24 * 64 + 24;
+    visited[queue[0]] = true;
+    try std.testing.expect(Map.walkable(&chunks, 24, 24, tg.heightAt(24, 24)));
+    while (head < tail) : (head += 1) {
+        const x: i32 = @intCast(queue[head] % 64);
+        const z: i32 = @intCast(queue[head] / 64);
+        const h: i32 = tg.heightAt(x, z);
+        for ([_][2]i32{ .{ 1, 0 }, .{ -1, 0 }, .{ 0, 1 }, .{ 0, -1 } }) |offset| {
+            const nx = x + offset[0];
+            const nz = z + offset[1];
+            if (nx < 0 or nx >= 64 or nz < 0 or nz >= 64) continue;
+            const index: usize = @intCast(nz * 64 + nx);
+            const nh = tg.heightAt(nx, nz);
+            if (visited[index] or @abs(@as(i32, nh) - h) > 1 or !Map.walkable(&chunks, @intCast(nx), @intCast(nz), nh)) continue;
+            visited[index] = true;
+            queue[tail] = index;
+            tail += 1;
+        }
+    }
+    try std.testing.expect(visited[45 * 64 + 44]);
 }
