@@ -218,9 +218,10 @@ test "canCreateTorch limit" {
     try std.testing.expect(!canCreateTorch(32, 32));
 }
 
+/// Find a matching stack with room for one item, then an empty slot.
 pub fn findDepositSlot(slots: anytype, item: anytype) ?usize {
     for (slots, 0..) |s, i| {
-        if (s.item == item and s.count < 64) return i;
+        if (s.item == item and s.count < s.item.maxStackSize()) return i;
     }
     for (slots, 0..) |s, i| {
         if (s.isEmpty()) return i;
@@ -229,21 +230,25 @@ pub fn findDepositSlot(slots: anytype, item: anytype) ?usize {
 }
 
 test "findDepositSlot searches matching then empty" {
+    const Item = enum {
+        none, stone, dirt, wood,
+        pub fn maxStackSize(_: @This()) u8 { return 64; }
+    };
     const Slot = struct {
-        item: u8,
+        item: Item,
         count: u8,
         pub fn isEmpty(self: @This()) bool {
             return self.count == 0;
         }
     };
     var slots = [_]Slot{
-        .{ .item = 1, .count = 64 },
-        .{ .item = 2, .count = 10 },
-        .{ .item = 0, .count = 0 },
+        .{ .item = .stone, .count = 64 },
+        .{ .item = .dirt, .count = 10 },
+        .{ .item = .none, .count = 0 },
     };
-    try std.testing.expectEqual(@as(?usize, 1), findDepositSlot(&slots, @as(u8, 2)));
-    try std.testing.expectEqual(@as(?usize, 2), findDepositSlot(&slots, @as(u8, 1)));
-    try std.testing.expectEqual(@as(?usize, 2), findDepositSlot(&slots, @as(u8, 3)));
+    try std.testing.expectEqual(@as(?usize, 1), findDepositSlot(&slots, Item.dirt));
+    try std.testing.expectEqual(@as(?usize, 2), findDepositSlot(&slots, Item.stone));
+    try std.testing.expectEqual(@as(?usize, 2), findDepositSlot(&slots, Item.wood));
 }
 
 pub const brewing_stand_cap: usize = 32;

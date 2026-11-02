@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-31.
+Last updated: 2026-11-02.
 
 The project has far more rule modules than game. The next work makes
 existing mechanics real in the game and removes duplicates. Adding another

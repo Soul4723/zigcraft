@@ -1,6 +1,6 @@
 # Status
 
-Last updated: 2026-10-31.
+Last updated: 2026-11-02.
 
 This page is the current state of the project. Replace lines that stop being
 true; do not append a new dated section per session. Older status text is in
@@ -11,7 +11,7 @@ Git history.
 | Check | Last result |
 |-------|-------------|
 | CI on `main` | 2026-10-30: hosted jobs run again on the public repository. `build-and-test` and `public-content` are required for an up-to-date PR, including for administrators, with no human review approval required. See [current main runs](https://github.com/Soul4723/zigcraft/actions/workflows/ci.yml?query=branch%3Amain) for job results. |
-| Build and full test suite | 2026-11-02, Zig 0.16.0: build passed; 12,561 of 12,561 tests passed across 611 steps. Setup pins the compiler locally; LLVM/LLD are selected for compatibility with recent Linux C runtime objects. |
+| Build and full test suite | 2026-11-02, Zig 0.16.0: build passed; 12,562 of 12,562 tests passed across 611 steps. Setup pins the compiler locally; LLVM/LLD are selected for compatibility with recent Linux C runtime objects. |
 | Running the game | 2026-11-02: `zig build run` failed at GLFW initialization in this environment; gameplay was not checked. |
 
 Zig 0.17 cannot compile `build.zig` (`b.args` no longer exists). Use 0.16.0.

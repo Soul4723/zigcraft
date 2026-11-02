@@ -266,3 +266,22 @@ test "live container stacks survive dimension saves and reload" {
     try std.testing.expectEqual(.ok, p.loadContainers(&chests, &count));
     try std.testing.expectEqual(5, chests[found].items[slot].count);
 }
+
+test "container deposits respect tool stack limits and remain saveable" {
+    const cache = @import("world/component_cache.zig");
+    var slots = [_]inventory_mod.ItemStack{
+        .{ .item = .wooden_pickaxe, .count = 1 }, .{}, .{}, .{},
+    };
+    const target = cache.findDepositSlot(&slots, inventory_mod.ItemType.wooden_pickaxe).?;
+    try std.testing.expectEqual(@as(usize, 1), target);
+    slots[target] = .{ .item = .wooden_pickaxe, .count = 1 };
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var path_buf: [256:0]u8 = undefined;
+    const path = try std.fmt.bufPrintZ(&path_buf, ".zig-cache/tmp/{s}", .{tmp.sub_path});
+    const Chest = struct { x: i32, y: i32, z: i32, items: [4]inventory_mod.ItemStack };
+    const chests = [_]Chest{.{ .x = 1, .y = 2, .z = 3, .items = slots }};
+    try std.testing.expect(persistence_mod.Persistence.init(path).saveContainers(&chests));
+    slots = [_]inventory_mod.ItemStack{.{ .item = .wooden_pickaxe, .count = 1 }} ** 4;
+    try std.testing.expectEqual(@as(?usize, null), cache.findDepositSlot(&slots, inventory_mod.ItemType.wooden_pickaxe));
+}
