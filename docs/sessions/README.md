@@ -7,6 +7,7 @@ belong in the pull request description, not in a separate file.
 
 ## Recent sessions
 
+- 2026-11-02: Persisted dimension-isolated hopper/dropper inventories and cooldown/power state, paused unloaded automation, and kept items on failed insertion. Worker live restart checks passed; a portal playthrough was not performed.
 - 2026-11-02: Restored held-left timed mining while retaining press-only inventory, placement and melee actions. A fresh-build Xvfb run verified held mining, release, one placement, one inventory transfer and clean shutdown; crafting, mob combat and portal travel remain unchecked.
 - 2026-11-02: Cleared temporary effects, flight and stale contact flags on respawn; regression tests cover post-respawn vitals/physics and retained equipment/navigation facts. Interactive death/respawn was not checked.
 - 2026-11-02: Removed player blast-center immunity and kept center knockback finite; regression tests cover exact and near-center damage. In-game blasts were not observed.
@@ -32,12 +33,6 @@ belong in the pull request description, not in a separate file.
   disconnected proposals declined with their code retained in closed PRs.
   Removed 72 remote branches and one local branch. Retained historical
   emails and paths; refreshed publication checks and the roadmap.
-- 2026-10-30: Public cleanup. Rewrote the README, workflow and status docs;
-  added pinned tools, commit/content checks, hooks, the MIT license and a
-  publication guide; removed the bootstrap mesh renderer and corrected
-  three dangling slice accessors exposed by LLVM. Closed 31 integrated PRs
-  and removed 40 remote and 5 local redundant branches. Replaced numbered
-  logs `001.md` to `430.md` with this page.
 
 ## History
 

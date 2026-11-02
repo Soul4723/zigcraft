@@ -23,7 +23,7 @@ When an item is done, delete it here and update STATUS.md.
 
 ## 2. Fix world and save correctness
 
-- Persist and isolate hopper and dropper state by dimension; prevent item loss on failed dropper insertion and container break overflow.
+- Prevent item loss from container break overflow when the player inventory is full.
 
 ## 3. Connect or remove disconnected modules
 

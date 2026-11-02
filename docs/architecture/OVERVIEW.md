@@ -70,6 +70,7 @@ Capacities and lookup helpers for those arrays are in
 - The live chest/shulker cache is saved atomically as per-dimension
   `containers.bin` by `world/persistence.zig`; portal travel stages the target
   cache before replacing the source cache. Empty entries preserve opened loot.
+- `world/component_cache.zig` owns live hopper/dropper entries and item-transfer rules. `world/persistence.zig` saves their validated inventories and cooldown/power state atomically in per-dimension `automation.bin`, staging target state before either portal commits a switch.
 - Block entity jobs (furnaces, smokers, blast furnaces, growing saplings) are
   encoded in little-endian binary form by `world/block_jobs.zig` and saved
   atomically to per-dimension `block_jobs.bin` files by `world/persistence.zig`;
