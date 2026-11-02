@@ -688,7 +688,7 @@ pub fn main() !void {
     const RedTorch = cache_mod.RedTorch;
     var red_torches: [cache_mod.red_torch_cap]RedTorch = undefined;
     var red_torch_count: usize = 0;
-    const HopperState = struct { x: i32, y: i32, z: i32, cooldown: f32 = 0.0, items: [4]inventory_mod.ItemStack = undefined };
+    const HopperState = cache_mod.Hopper(inventory_mod.ItemStack);
     var hoppers: [32]HopperState = undefined;
     var hopper_count: usize = 0;
     const BrewingStandState = struct { x: i32, y: i32, z: i32, progress: f32 = 0.0, fuel: u8 = 0, wart: u8 = 0, spider_eyes: u8 = 0, fermented_eyes: u8 = 0, bottles: u8 = 0, potions: u8 = 0, poison_potions: u8 = 0, weakness_potions: u8 = 0 };
@@ -744,9 +744,14 @@ pub fn main() !void {
     const StonecutterState = struct { x: i32, y: i32, z: i32 };
     var stonecutters: [cache_mod.stonecutter_cap]StonecutterState = undefined;
     var stonecutter_count: usize = 0;
-    const DropperState = struct { x: i32, y: i32, z: i32, powered: bool = false, items: [4]inventory_mod.ItemStack = undefined, count: usize = 0 };
+    const DropperState = cache_mod.Dropper(inventory_mod.ItemStack);
     var droppers: [32]DropperState = undefined;
     var dropper_count: usize = 0;
+    if (manager.persistence.loadAutomation(&hoppers, &hopper_count, &droppers, &dropper_count) == .corrupt) {
+        std.debug.print("fatal: automation save is corrupt or unreadable\n", .{});
+        return error.CorruptAutomationSave;
+    }
+
     const DispenserState = struct { x: i32, y: i32, z: i32, powered: bool = false, ammo_count: u8 = 9 };
     var dispensers: [32]DispenserState = undefined;
     var dispenser_count: usize = 0;
@@ -1482,7 +1487,13 @@ pub fn main() !void {
                 const target_persistence = manager.persistence.withDimension(target_dim);
                 var target_chests: [cache_mod.chest_cap]Chest = undefined;
                 var target_chest_count: usize = 0;
-                if (target_persistence.loadContainers(&target_chests, &target_chest_count) == .corrupt or
+                var target_hoppers: [32]HopperState = undefined;
+                var target_hopper_count: usize = 0;
+                var target_droppers: [32]DropperState = undefined;
+                var target_dropper_count: usize = 0;
+
+                if (!manager.persistence.prepareAutomationTransit(target_persistence, hoppers[0..hopper_count], droppers[0..dropper_count], &target_hoppers, &target_hopper_count, &target_droppers, &target_dropper_count) or
+                    target_persistence.loadContainers(&target_chests, &target_chest_count) == .corrupt or
                     !manager.persistence.saveContainers(chests[0..chest_count])) {
                     end_portal_transit.current_dim = if (end_portal_transit.current_dim == .the_end) .overworld else .the_end;
                     chunk_retry_timer = 1.0;
@@ -1531,6 +1542,10 @@ pub fn main() !void {
 
                     @memcpy(chests[0..target_chest_count], target_chests[0..target_chest_count]);
                     chest_count = target_chest_count;
+                    @memcpy(hoppers[0..target_hopper_count], target_hoppers[0..target_hopper_count]);
+                    hopper_count = target_hopper_count;
+                    @memcpy(droppers[0..target_dropper_count], target_droppers[0..target_dropper_count]);
+                    dropper_count = target_dropper_count;
                     block_jobs_mod.applyBlockJobs(&staged_target_jobs, &furnaces, &furnace_count, &smokers, &smoker_count, &blast_furnaces, &blast_furnace_count, &sprouts, &sprout_count);
 
                     if (end_portal_transit.current_dim == .the_end) {
@@ -1612,7 +1627,13 @@ pub fn main() !void {
                 const target_persistence = manager.persistence.withDimension(target_dim);
                 var target_chests: [cache_mod.chest_cap]Chest = undefined;
                 var target_chest_count: usize = 0;
-                if (target_persistence.loadContainers(&target_chests, &target_chest_count) == .corrupt or
+                var target_hoppers: [32]HopperState = undefined;
+                var target_hopper_count: usize = 0;
+                var target_droppers: [32]DropperState = undefined;
+                var target_dropper_count: usize = 0;
+
+                if (!manager.persistence.prepareAutomationTransit(target_persistence, hoppers[0..hopper_count], droppers[0..dropper_count], &target_hoppers, &target_hopper_count, &target_droppers, &target_dropper_count) or
+                    target_persistence.loadContainers(&target_chests, &target_chest_count) == .corrupt or
                     !manager.persistence.saveContainers(chests[0..chest_count])) {
                     portal_transit.current_dim = from_dim;
                     chunk_retry_timer = 1.0;
@@ -1660,6 +1681,10 @@ pub fn main() !void {
 
                     @memcpy(chests[0..target_chest_count], target_chests[0..target_chest_count]);
                     chest_count = target_chest_count;
+                    @memcpy(hoppers[0..target_hopper_count], target_hoppers[0..target_hopper_count]);
+                    hopper_count = target_hopper_count;
+                    @memcpy(droppers[0..target_dropper_count], target_droppers[0..target_dropper_count]);
+                    dropper_count = target_dropper_count;
                     block_jobs_mod.applyBlockJobs(&staged_target_jobs, &furnaces, &furnace_count, &smokers, &smoker_count, &blast_furnaces, &blast_furnace_count, &sprouts, &sprout_count);
 
                     if (matched_linked) |linked| {
@@ -1861,6 +1886,7 @@ pub fn main() !void {
             var hpi: usize = 0;
             while (hpi < hopper_count) {
                 const hop = &hoppers[hpi];
+                if (!manager.isBlockLoaded(hop.x, hop.y, hop.z)) { hpi += 1; continue; }
                 const cur_b = manager.getBlockWorld(hop.x, hop.y, hop.z);
                 if (cur_b != .hopper) {
                     cache_mod.swapRemove(&hoppers, &hopper_count, hpi);
@@ -1886,7 +1912,7 @@ pub fn main() !void {
                                     if (!cs.isEmpty()) {
                                         // Try inserting into hopper slots
                                         for (&hop.items) |*hs| {
-                                            if (hs.item == cs.item and hs.count < 64) {
+                                            if (hs.item == cs.item and hs.count < hs.item.maxStackSize()) {
                                                 hs.count += 1;
                                                 cs.count -= 1;
                                                 if (cs.count == 0) cs.item = .none;
@@ -1960,6 +1986,7 @@ pub fn main() !void {
             var dpi: usize = 0;
             while (dpi < dropper_count) {
                 const drop = &droppers[dpi];
+                if (!manager.isBlockLoaded(drop.x, drop.y, drop.z)) { dpi += 1; continue; }
                 const cur_b = manager.getBlockWorld(drop.x, drop.y, drop.z);
                 if (cur_b != .dropper) {
                     cache_mod.swapRemove(&droppers, &dropper_count, dpi);
@@ -1980,8 +2007,7 @@ pub fn main() !void {
 
                     if (found_idx) |si| {
                         const dropped_item = drop.items[si].item;
-                        drop.items[si].count -= 1;
-                        if (drop.items[si].count == 0) drop.items[si].item = .none;
+                        var transferred = false;
 
                         // Target in front of dropper nozzle (north / -Z)
                         const front_x = drop.x;
@@ -1989,29 +2015,9 @@ pub fn main() !void {
                         const front_z = drop.z - 1;
                         const front_block = manager.getBlockWorld(front_x, front_y, front_z);
 
-                        if (front_block == .chest) {
-                            // Transfer directly into chest container if one exists at (front_x, front_y, front_z)
-                            var chest_found = false;
-                            for (chests[0..chest_count]) |*ch| {
-                                if (ch.x == front_x and ch.y == front_y and ch.z == front_z) {
-                                    for (&ch.items) |*cs| {
-                                        if (cs.item == dropped_item and cs.count < cs.item.maxStackSize()) {
-                                            cs.count += 1;
-                                            chest_found = true;
-                                            break;
-                                        } else if (cs.isEmpty()) {
-                                            cs.* = .{ .item = dropped_item, .count = 1 };
-                                            chest_found = true;
-                                            break;
-                                        }
-                                    }
-                                    break;
-                                }
-                            }
-                            audio.play(.click_on, 0.7);
-                            particles.spawnBlockDebris(front_x, front_y, front_z, .{ 0.8, 0.8, 0.8 }, 3);
-                            std.debug.print("dropper inserted {s} into chest\n", .{@tagName(dropped_item)});
-                        } else {
+                        if (front_block == .chest or front_block == .shulker_box) {
+                            transferred = cache_mod.dropperInsert(&drop.items[si], chests[0..chest_count], front_x, front_y, front_z);
+                        } else if (front_block == .air and manager.isBlockLoaded(front_x, front_y, front_z)) {
                             // Gentle item drop into world: adds directly to player inventory if within pickup range
                             const pdx = player.pos.x - (@as(f32, @floatFromInt(front_x)) + 0.5);
                             const pdy = player.pos.y - @as(f32, @floatFromInt(front_y));
@@ -2019,13 +2025,16 @@ pub fn main() !void {
                             const dist_sq = pdx * pdx + pdy * pdy + pdz * pdz;
 
                             if (dist_sq < 16.0) {
-                                _ = inventory.addItem(dropped_item, 1);
-                                audio.play(.click_on, 0.8);
-                            } else {
-                                audio.play(.click_off, 0.6);
+                                transferred = inventory.addItem(dropped_item, 1) == 0;
                             }
-                            particles.spawnBlockDebris(front_x, front_y, front_z, .{ 0.8, 0.8, 0.8 }, 4);
-                            std.debug.print("dropper dropped {s}\n", .{@tagName(dropped_item)});
+                        }
+                        if (transferred) {
+                            if (front_block == .air) drop.items[si].decrement(1);
+                            audio.play(.click_on, 0.7);
+                            particles.spawnBlockDebris(front_x, front_y, front_z, .{ 0.8, 0.8, 0.8 }, 3);
+                            std.debug.print("dropper transferred {s}\n", .{@tagName(dropped_item)});
+                        } else {
+                            audio.play(.click_off, 0.6);
                         }
                     } else {
                         audio.play(.click_off, 0.5);
@@ -3975,6 +3984,12 @@ pub fn main() !void {
                                             torches[torch_count] = .{ .x = px, .y = py, .z = pz };
                                             torch_count += 1;
                                         }
+                                        if (place_type == .hopper and cache_mod.findChest(&hoppers, hopper_count, px, py, pz) == null and hopper_count < hoppers.len) {
+                                            hoppers[hopper_count] = .{ .x = px, .y = py, .z = pz }; hopper_count += 1;
+                                        }
+                                        if (place_type == .dropper and cache_mod.findChest(&droppers, dropper_count, px, py, pz) == null and dropper_count < droppers.len) {
+                                            droppers[dropper_count] = .{ .x = px, .y = py, .z = pz }; dropper_count += 1;
+                                        }
                                         if (place_type == .chest or place_type == .shulker_box) {
                                             cache_mod.initPlacedChest(&chests, &chest_count, px, py, pz);
                                         }
@@ -5617,6 +5632,25 @@ pub fn main() !void {
                     audio.play(.place_block, 0.8);
                     std.debug.print("lit TNT fuse\n", .{});
                     flint_cooldown = interact_mod.flint_edge_cooldown;
+                } else if (target == .hopper or target == .dropper) {
+                    if (target == .hopper) {
+                        var idx = cache_mod.findChest(&hoppers, hopper_count, hit_f.x, hit_f.y, hit_f.z);
+                        if (idx == null and hopper_count < hoppers.len) {
+                            idx = hopper_count; hoppers[hopper_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z }; hopper_count += 1;
+                        }
+                        if (idx) |i| {
+                            if (cache_mod.interactAutomation(&hoppers[i].items, &inventory, selected_slot)) std.debug.print("hopper inventory changed\n", .{});
+                        }
+                    } else {
+                        var idx = cache_mod.findChest(&droppers, dropper_count, hit_f.x, hit_f.y, hit_f.z);
+                        if (idx == null and dropper_count < droppers.len) {
+                            idx = dropper_count; droppers[dropper_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z }; dropper_count += 1;
+                        }
+                        if (idx) |i| {
+                            if (cache_mod.interactAutomation(&droppers[i].items, &inventory, selected_slot)) std.debug.print("dropper inventory changed\n", .{});
+                        }
+                    }
+                    flint_cooldown = interact_mod.flint_feed_cooldown;
                 } else if (target == .chest or target == .shulker_box) {
                     var k_opt = cache_mod.findChest(&chests, chest_count, hit_f.x, hit_f.y, hit_f.z);
                     if (k_opt == null and cache_mod.canCreateChest(chest_count, chests.len)) {
@@ -7319,6 +7353,7 @@ pub fn main() !void {
             std.debug.print("block jobs save failed during shutdown\n", .{});
         }
     }
+    if (!manager.persistence.saveAutomation(hoppers[0..hopper_count], droppers[0..dropper_count])) std.debug.print("automation save failed during shutdown\n", .{});
     if (!manager.persistence.saveContainers(chests[0..chest_count])) std.debug.print("container save failed during shutdown\n", .{});
     savePlayerState(manager, &player, &cam, &inventory, cursor_stack, selected_slot, &tool_wear);
     std.debug.print("shutting down\n", .{});

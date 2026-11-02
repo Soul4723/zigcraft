@@ -339,6 +339,108 @@ pub const Persistence = struct {
         return .ok;
     }
 
+    fn makeAutomationPath(self: Persistence, buf: *[256:0]u8) ![:0]const u8 {
+        return switch (self.dimension) {
+            .overworld => std.fmt.bufPrintZ(buf, "{s}/automation.bin", .{self.dir_path}),
+            .nether => std.fmt.bufPrintZ(buf, "{s}/nether/automation.bin", .{self.dir_path}),
+            .the_end => std.fmt.bufPrintZ(buf, "{s}/the_end/automation.bin", .{self.dir_path}),
+        };
+    }
+
+    /// Save both automation caches atomically in their dimension namespace.
+    pub fn saveAutomation(self: Persistence, hoppers: anytype, droppers: anytype) bool {
+        if (hoppers.len > 32 or droppers.len > 32) return false;
+        for (hoppers) |hop| for (droppers) |drop| {
+            if (hop.x == drop.x and hop.y == drop.y and hop.z == drop.z) return false;
+        };
+        var bytes: [13 + 28 * 32 + 25 * 32]u8 = undefined;
+        @memcpy(bytes[0..4], "ZAUT");
+        var i: usize = 4;
+        putInt(&bytes, &i, @as(u32, 1));
+        bytes[i] = @intFromEnum(self.dimension); i += 1;
+        putInt(&bytes, &i, @as(u16, @intCast(hoppers.len)));
+        putInt(&bytes, &i, @as(u16, @intCast(droppers.len)));
+        inline for (.{hoppers, droppers}, 0..) |entries, kind| {
+            for (entries, 0..) |entry, idx| {
+                if (entry.y < 0 or entry.y >= 16) return false;
+                for (entries[0..idx]) |prev| if (prev.x == entry.x and prev.y == entry.y and prev.z == entry.z) { return false; };
+                for (entry.items) |slot| if ((slot.item == .none) != (slot.count == 0) or slot.count > slot.item.maxStackSize()) { return false; };
+                putInt(&bytes, &i, entry.x); putInt(&bytes, &i, entry.y); putInt(&bytes, &i, entry.z);
+                for (entry.items) |slot| {
+                    putInt(&bytes, &i, @as(u16, @intCast(@intFromEnum(slot.item))));
+                    bytes[i] = slot.count; i += 1;
+                }
+                if (kind == 0) {
+                    if (!std.math.isFinite(entry.cooldown) or entry.cooldown < 0 or entry.cooldown > 0.4) return false;
+                    putFloat(&bytes, &i, entry.cooldown);
+                } else {
+                    bytes[i] = @intFromBool(entry.powered); i += 1;
+                }
+            }
+        }
+        self.ensureDir();
+        var path_buf: [256:0]u8 = undefined;
+        const path = self.makeAutomationPath(&path_buf) catch return false;
+        return writeAtomic(path, &.{bytes[0..i]});
+    }
+
+    /// Validate and stage the entire automation file before replacing live caches.
+    pub fn loadAutomation(self: Persistence, hoppers: anytype, hopper_count: *usize, droppers: anytype, dropper_count: *usize) LoadJobsResult {
+        var path_buf: [256:0]u8 = undefined;
+        const path = self.makeAutomationPath(&path_buf) catch return .corrupt;
+        const f = c.fopen(path.ptr, "rb") orelse {
+            if (c.__errno_location().* == c.ENOENT) { hopper_count.* = 0; dropper_count.* = 0; return .absent; }
+            return .corrupt;
+        };
+        defer _ = c.fclose(f);
+        var bytes: [13 + 28 * 32 + 25 * 32 + 1]u8 = undefined;
+        const len = c.fread(&bytes, 1, bytes.len, f);
+        if (len < 13 or len >= bytes.len or c.fgetc(f) != -1 or c.ferror(f) != 0 or !std.mem.eql(u8, bytes[0..4], "ZAUT")) return .corrupt;
+        var i: usize = 4;
+        if (getInt(u32, &bytes, &i) != 1 or bytes[i] != @intFromEnum(self.dimension)) return .corrupt;
+        i += 1;
+        const hn = getInt(u16, &bytes, &i); const dn = getInt(u16, &bytes, &i);
+        if (hn > 32 or dn > 32 or hn > hoppers.len or dn > droppers.len or len != 13 + @as(usize, hn) * 28 + @as(usize, dn) * 25) return .corrupt;
+        var hs: @TypeOf(hoppers.*) = undefined;
+        var ds: @TypeOf(droppers.*) = undefined;
+        inline for (.{ .{ &hs, hn }, .{ &ds, dn } }, 0..) |pair, kind| {
+            const entries = pair[0]; const n = pair[1];
+            for (0..n) |idx| {
+                const x = getInt(i32, &bytes, &i); const y = getInt(i32, &bytes, &i); const z = getInt(i32, &bytes, &i);
+                if (y < 0 or y >= 16) return .corrupt;
+                for (entries[0..idx]) |prev| if (prev.x == x and prev.y == y and prev.z == z) { return .corrupt; };
+                entries[idx] = .{ .x = x, .y = y, .z = z };
+                for (&entries[idx].items) |*slot| {
+                    const id = getInt(u16, &bytes, &i);
+                    const item = std.enums.fromInt(@TypeOf(slot.item), id) orelse return .corrupt;
+                    const amount = bytes[i]; i += 1;
+                    if ((item == .none) != (amount == 0) or amount > item.maxStackSize()) return .corrupt;
+                    slot.* = .{ .item = item, .count = amount };
+                }
+                if (kind == 0) {
+                    const cooldown = getFloat(&bytes, &i);
+                    if (!std.math.isFinite(cooldown) or cooldown < 0 or cooldown > 0.4) return .corrupt;
+                    entries[idx].cooldown = cooldown;
+                } else {
+                    if (bytes[i] > 1) return .corrupt;
+                    entries[idx].powered = bytes[i] == 1; i += 1;
+                }
+            }
+        }
+        for (hs[0..hn]) |hop| for (ds[0..dn]) |drop| {
+            if (hop.x == drop.x and hop.y == drop.y and hop.z == drop.z) return .corrupt;
+        };
+        @memcpy(hoppers[0..hn], hs[0..hn]); hopper_count.* = hn;
+        @memcpy(droppers[0..dn], ds[0..dn]); dropper_count.* = dn;
+        return .ok;
+    }
+
+    /// Stage the target and save the source before a dimension switch.
+    pub fn prepareAutomationTransit(self: Persistence, target: Persistence, hoppers: anytype, droppers: anytype, target_hoppers: anytype, target_hopper_count: *usize, target_droppers: anytype, target_dropper_count: *usize) bool {
+        if (target.loadAutomation(target_hoppers, target_hopper_count, target_droppers, target_dropper_count) == .corrupt) return false;
+        return self.saveAutomation(hoppers, droppers);
+    }
+
     fn makeJobsPath(self: Persistence, buf: *[256:0]u8) ![:0]const u8 {
         return switch (self.dimension) {
             .overworld => std.fmt.bufPrintZ(buf, "{s}/block_jobs.bin", .{self.dir_path}),

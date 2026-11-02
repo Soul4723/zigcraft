@@ -5502,3 +5502,89 @@ test "Wave 25 item metadata and 2x2 recipes preserve BlockId capacity" {
         try std.testing.expectEqual(@as(u8, 1), inventory.craft_output.count);
     }
 }
+
+test "automation saves retain live inventories and isolate dimensions" {
+    const cache = @import("world/component_cache.zig");
+    const Persistence = @import("world/persistence.zig").Persistence;
+    const Hopper = cache.Hopper(ItemStack);
+    const Dropper = cache.Dropper(ItemStack);
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var path_buf: [256:0]u8 = undefined;
+    const path = try std.fmt.bufPrintZ(&path_buf, ".zig-cache/tmp/{s}", .{tmp.sub_path});
+    const over = Persistence.init(path);
+    const nether = over.withDimension(.nether);
+    var hs = [_]Hopper{.{ .x = 1, .y = 5, .z = -2, .cooldown = 0.2, .items = .{ .{ .item = .stone, .count = 12 }, .{}, .{}, .{} } }};
+    var ds = [_]Dropper{.{ .x = 2, .y = 5, .z = -2, .powered = true, .items = .{ .{ .item = .wood, .count = 3 }, .{}, .{}, .{} } }};
+    try std.testing.expect(over.saveAutomation(&hs, &ds));
+    var loaded_h: [32]Hopper = undefined;
+    var loaded_d: [32]Dropper = undefined;
+    var hn: usize = 7; var dn: usize = 7;
+    try std.testing.expectEqual(.absent, nether.loadAutomation(&loaded_h, &hn, &loaded_d, &dn));
+    try std.testing.expectEqual(0, hn); try std.testing.expectEqual(0, dn);
+    var other = [_]Hopper{.{ .x = 1, .y = 5, .z = -2, .items = .{ .{ .item = .stone, .count = 2 }, .{}, .{}, .{} } }};
+    try std.testing.expect(nether.saveAutomation(&other, ds[0..0]));
+    try std.testing.expectEqual(.ok, over.loadAutomation(&loaded_h, &hn, &loaded_d, &dn));
+    try std.testing.expectEqual(1, hn); try std.testing.expectEqual(1, dn);
+    try std.testing.expectEqualDeep(hs[0], loaded_h[0]); try std.testing.expectEqualDeep(ds[0], loaded_d[0]);
+    try std.testing.expectEqual(.ok, nether.loadAutomation(&loaded_h, &hn, &loaded_d, &dn));
+    try std.testing.expectEqualDeep(other[0], loaded_h[0]); try std.testing.expectEqual(0, dn);
+    try std.testing.expectEqual(.ok, over.loadAutomation(&loaded_h, &hn, &loaded_d, &dn));
+    try std.testing.expectEqualDeep(hs[0], loaded_h[0]); try std.testing.expectEqualDeep(ds[0], loaded_d[0]);
+    try tmp.dir.writeFile(std.testing.io, .{ .sub_path = "automation.bin", .data = "ZAUTbroken" });
+    try std.testing.expectEqual(.corrupt, over.loadAutomation(&loaded_h, &hn, &loaded_d, &dn));
+    try std.testing.expectEqualDeep(hs[0], loaded_h[0]); try std.testing.expectEqualDeep(ds[0], loaded_d[0]);
+    // Both portal callers use this preflight before changing dimension or live caches.
+    try std.testing.expect(!nether.prepareAutomationTransit(over, &other, ds[0..0], &loaded_h, &hn, &loaded_d, &dn));
+    try std.testing.expectEqualDeep(hs[0], loaded_h[0]);
+    try std.testing.expectEqualDeep(ds[0], loaded_d[0]);
+    const bad = Persistence.init("/dev/null/unwritable");
+    try std.testing.expect(!bad.prepareAutomationTransit(nether, &hs, &ds, &loaded_h, &hn, &loaded_d, &dn));
+    try std.testing.expectEqual(@as(u8, 12), hs[0].items[0].count);
+    try std.testing.expectEqual(@as(u8, 3), ds[0].items[0].count);
+}
+
+test "dropper transfer conserves items for empty and full destinations" {
+    const cache = @import("world/component_cache.zig");
+    const Chest = struct { x: i32, y: i32, z: i32, items: [4]ItemStack };
+    var chest = [_]Chest{.{ .x = 1, .y = 2, .z = 3, .items = [_]ItemStack{.{ .item = .stone, .count = 64 }} ** 4 }};
+    var source = ItemStack{ .item = .stone, .count = 2 };
+    try std.testing.expect(!cache.dropperInsert(&source, &chest, 9, 2, 3));
+    try std.testing.expect(!cache.dropperInsert(&source, &chest, 1, 2, 3));
+    try std.testing.expectEqual(2, source.count);
+    chest[0].items[0].clear();
+    try std.testing.expect(cache.dropperInsert(&source, &chest, 1, 2, 3));
+    try std.testing.expectEqual(1, source.count);
+    try std.testing.expectEqual(1, chest[0].items[0].count);
+    source.count = 2;
+    var full = [_]ItemStack{.{ .item = .stone, .count = 64 }} ** 4;
+    try std.testing.expect(!cache.transferOne(&source, &full));
+    try std.testing.expectEqual(2, source.count);
+    var empty = [_]ItemStack{.{}} ** 4;
+    try std.testing.expect(cache.transferOne(&source, &empty));
+    try std.testing.expectEqual(1, source.count);
+    try std.testing.expectEqual(1, empty[0].count);
+    try std.testing.expect(cache.transferOne(&source, &empty));
+    try std.testing.expect(source.isEmpty());
+    try std.testing.expectEqual(2, empty[0].count);
+    try std.testing.expect(!cache.transferOne(&source, &empty));
+    try std.testing.expectEqual(2, empty[0].count);
+}
+
+test "automation interaction preserves items when destination is full" {
+    const cache = @import("world/component_cache.zig");
+    var inv = Inventory.init();
+    for (&inv.slots) |*slot| slot.* = .{ .item = .stone, .count = 64 };
+    var slots = [_]ItemStack{.{ .item = .wooden_pickaxe, .count = 1 }, .{}, .{}, .{} };
+    try std.testing.expect(cache.interactAutomation(&slots, &inv, 0));
+    try std.testing.expectEqual(@as(u8, 63), inv.slots[0].count);
+    try std.testing.expectEqual(@as(u8, 1), slots[1].count);
+    inv.slots[0].clear();
+    try std.testing.expect(cache.interactAutomation(&slots, &inv, 0));
+    try std.testing.expectEqual(ItemType.wooden_pickaxe, inv.slots[0].item);
+    try std.testing.expect(slots[0].isEmpty());
+    slots = [_]ItemStack{.{ .item = .stone, .count = 64 }} ** 4;
+    try std.testing.expect(!cache.interactAutomation(&slots, &inv, 0));
+    try std.testing.expectEqual(@as(u8, 1), inv.slots[0].count);
+    try std.testing.expectEqual(@as(u8, 64), slots[1].count);
+}

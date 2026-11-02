@@ -472,3 +472,59 @@ test "findStonecutter helper" {
     try std.testing.expectEqual(findStonecutter(&scs, 1, 11, 13, 15), @as(?usize, 0));
     try std.testing.expectEqual(findStonecutter(&scs, 1, 0, 0, 0), @as(?usize, null));
 }
+
+/// Live four-slot hopper cache entry.
+pub fn Hopper(comptime Stack: type) type {
+    return struct { x: i32, y: i32, z: i32, cooldown: f32 = 0, items: [4]Stack = [_]Stack{.{}} ** 4 };
+}
+
+/// Live four-slot dropper cache entry.
+pub fn Dropper(comptime Stack: type) type {
+    return struct { x: i32, y: i32, z: i32, powered: bool = false, items: [4]Stack = [_]Stack{.{}} ** 4 };
+}
+
+/// Move one item only when the destination has room.
+pub fn transferOne(source: anytype, destination: anytype) bool {
+    if (source.isEmpty()) return false;
+    for (destination) |*slot| {
+        if (slot.item == source.item and slot.count < source.item.maxStackSize()) {
+            slot.count += 1; source.decrement(1); return true;
+        }
+    }
+    for (destination) |*slot| if (slot.isEmpty()) {
+        slot.* = .{ .item = source.item, .count = 1 }; source.decrement(1); return true;
+    };
+    return false;
+}
+
+/// Insert into a cached container at the nozzle; a missing or full cache keeps the item.
+pub fn dropperInsert(source: anytype, chests: anytype, x: i32, y: i32, z: i32) bool {
+    for (chests) |*chest| {
+        if (chest.x == x and chest.y == y and chest.z == z) return transferOne(source, &chest.items);
+    }
+    return false;
+}
+
+/// Deposit one held item or withdraw a stack without discarding overflow.
+pub fn interactAutomation(slots: anytype, inventory: anytype, selected_slot: usize) bool {
+    const held = &inventory.slots[selected_slot];
+    if (!held.isEmpty()) {
+        for (slots) |*slot| {
+            if (slot.item == held.item and slot.count < held.item.maxStackSize()) {
+                slot.count += 1; held.decrement(1); return true;
+            }
+        }
+        for (slots) |*slot| if (slot.isEmpty()) {
+            slot.* = .{ .item = held.item, .count = 1 }; held.decrement(1); return true;
+        };
+    } else {
+        for (slots) |*slot| if (!slot.isEmpty()) {
+            const remaining = inventory.addItem(slot.item, slot.count);
+            const changed = remaining < slot.count;
+            slot.count = remaining;
+            if (remaining == 0) slot.clear();
+            return changed;
+        };
+    }
+    return false;
+}
