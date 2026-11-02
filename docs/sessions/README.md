@@ -7,6 +7,7 @@ belong in the pull request description, not in a separate file.
 
 ## Recent sessions
 
+- 2026-11-02: Restored held-left timed mining while retaining press-only inventory, placement and melee actions. A fresh-build Xvfb run verified held mining, release, one placement, one inventory transfer and clean shutdown; crafting, mob combat and portal travel remain unchecked.
 - 2026-11-02: Cleared temporary effects, flight and stale contact flags on respawn; regression tests cover post-respawn vitals/physics and retained equipment/navigation facts. Interactive death/respawn was not checked.
 - 2026-11-02: Removed player blast-center immunity and kept center knockback finite; regression tests cover exact and near-center damage. In-game blasts were not observed.
 - 2026-11-02: Persisted four-slot chest and shulker caches by dimension, including emptied fortress loot, enforced item stack limits, and cleaned destroyed container cache entries; hopper and dropper caches remain unsaved and not dimension-isolated.
@@ -37,8 +38,6 @@ belong in the pull request description, not in a separate file.
   three dangling slice accessors exposed by LLVM. Closed 31 integrated PRs
   and removed 40 remote and 5 local redundant branches. Replaced numbered
   logs `001.md` to `430.md` with this page.
-- 2026-10-29, sessions 428 and 430: Creaking damage-link and eyeblossom rule
-  modules (milestones 531 and 533). No log exists for session 429.
 
 ## History
 

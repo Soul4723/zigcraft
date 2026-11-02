@@ -83,3 +83,33 @@ test "checkLeafBonuses check" {
     try std.testing.expectEqual(leafAppleDrop(0, 0, 0), b.apple);
     try std.testing.expectEqual(leafSaplingDrop(0, 0, 0), b.sapling);
 }
+
+/// Whether mouse dispatch should run for this frame.
+pub fn dispatchMouse(inventory_open: bool, left: bool, left_down: bool, right: bool, right_down: bool) bool {
+    return (left and (!inventory_open or !left_down)) or (right and !right_down);
+}
+
+test "mouse dispatch holds mining but keeps inventory and right actions edge-triggered" {
+    try std.testing.expect(dispatchMouse(false, true, false, false, false));
+    try std.testing.expect(dispatchMouse(false, true, true, false, false));
+    try std.testing.expect(!dispatchMouse(false, false, true, false, false));
+    try std.testing.expect(dispatchMouse(true, true, false, false, false));
+    try std.testing.expect(!dispatchMouse(true, true, true, false, false));
+    try std.testing.expect(dispatchMouse(false, false, false, true, false));
+    try std.testing.expect(!dispatchMouse(false, false, false, true, true));
+}
+
+test "retarget and release discard mining progress" {
+    var m = MineState{};
+    m.retarget(1, 1.0);
+    m.advance(0.6);
+    m.retarget(2, 1.0);
+    try std.testing.expectEqual(@as(f32, 0.0), m.progress);
+    m.advance(0.5);
+    try std.testing.expect(!m.done(1.0));
+    m.advance(0.5);
+    try std.testing.expect(m.done(1.0));
+    m.reset();
+    try std.testing.expect(!m.valid);
+    try std.testing.expectEqual(@as(f32, 0.0), m.progress);
+}

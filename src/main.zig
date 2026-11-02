@@ -3342,7 +3342,7 @@ pub fn main() !void {
         // Mouse click handling: In-game block editing or Inventory slot clicking
         const left = c.glfwGetMouseButton(window, c.GLFW_MOUSE_BUTTON_LEFT) == c.GLFW_PRESS;
         const right = c.glfwGetMouseButton(window, c.GLFW_MOUSE_BUTTON_RIGHT) == c.GLFW_PRESS;
-        if ((left and !left_down) or (right and !right_down)) {
+        if (mining_mod.dispatchMouse(inventory_open, left, left_down, right, right_down)) {
             if (inventory_open) {
                 // Handle slot interaction in inventory GUI
                 const slot_w: f32 = 0.055 / aspect;
@@ -3486,7 +3486,7 @@ pub fn main() !void {
                     }
                 }
 
-                const hit_mob_opt = if (!bartered and !sheared_sheep and !leashed_mob and left and mob_hit_cooldown <= 0.0) mob_manager.tryHitMobDmg(cam.position, dir, combat_mod.melee_range, hit_dmg) else null;
+                const hit_mob_opt = if (!bartered and !sheared_sheep and !leashed_mob and left and !left_down and mob_hit_cooldown <= 0.0) mob_manager.tryHitMobDmg(cam.position, dir, combat_mod.melee_range, hit_dmg) else null;
                 if (!bartered) {
                 if (hit_mob_opt) |hit_mob| {
                     player.addActivityExhaustion(.attack_melee);
@@ -3716,7 +3716,7 @@ pub fn main() !void {
                                 std.debug.print("destroyed {s} ({d},{d},{d})\n", .{ @tagName(broken_block), hit.x, hit.y, hit.z });
                             }
                         }
-                    } else if (inventory.slots[selected_slot].item == .eye_of_ender and manager.getBlockWorld(hit.x, hit.y, hit.z) == .end_portal_frame) {
+                    } else if (right and !right_down and inventory.slots[selected_slot].item == .eye_of_ender and manager.getBlockWorld(hit.x, hit.y, hit.z) == .end_portal_frame) {
                         if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .end_portal_frame_filled)) {
                             inventory.slots[selected_slot].decrement(1);
                             audio.play(.glowstone_chime, 0.95);
@@ -3752,7 +3752,7 @@ pub fn main() !void {
                                 std.debug.print("activated 3x3 End Portal altar at ({d},{d},{d})! (cells={d})\n", .{ altar.center_x, altar.center_y, altar.center_z, filled_portal_count });
                             }
                         }
-                    } else if (inventory.slots[selected_slot].item != .bow and inventory.slots[selected_slot].item != .crossbow and !is_blocking) {
+                    } else if (right and !right_down and inventory.slots[selected_slot].item != .bow and inventory.slots[selected_slot].item != .crossbow and !is_blocking) {
                         const px = hit.x + hit.nx;
                         const py = hit.y + hit.ny;
                         const pz = hit.z + hit.nz;
@@ -4125,11 +4125,13 @@ pub fn main() !void {
                             }
                         }
                     }
+                } else {
+                    mine.reset();
                 }
                 }
             }
         }
-        if (!left) {
+        if (!left or inventory_open) {
             mine.reset();
         }
         // Sleep on wool block at night: aim at wool + press B sets spawn, skips to dawn
