@@ -338,6 +338,7 @@ pub fn build(b: *std.Build) void {
         "src/renderer/toast.zig",
         "src/renderer/particles.zig",
         "src/camera.zig",
+        "src/window_size.zig",
         "src/player.zig",
         "src/player_save.zig",
         "src/sky.zig",

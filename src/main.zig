@@ -284,6 +284,7 @@ const c = @cImport({
     @cInclude("GLFW/glfw3.h");
 });
 const camera_mod = @import("camera.zig");
+const window_size_mod = @import("window_size.zig");
 const math = @import("math.zig");
 const chunk_manager_mod = @import("chunk_manager.zig");
 const pick_mod = @import("pick.zig");
@@ -790,6 +791,17 @@ pub fn main() !void {
     std.debug.print("ready. Dynamic chunks + AO + Day/Night Cycle + Audio. WASD move, mouse look, ESC close.\n", .{});
 
     while (c.glfwWindowShouldClose(window) == c.GLFW_FALSE) {
+        var size: window_size_mod.WindowSize = undefined;
+        c.glfwGetWindowSize(window, &size.width, &size.height);
+        c.glfwGetFramebufferSize(window, &size.framebuffer_width, &size.framebuffer_height);
+        const aspect = size.aspect() orelse {
+            c.glfwWaitEventsTimeout(0.1);
+            last_time = c.glfwGetTime();
+            first_mouse = true;
+            continue;
+        };
+        c.glViewport(0, 0, size.framebuffer_width, size.framebuffer_height);
+
         // Delta time
         const current_time = c.glfwGetTime();
         const dt: f32 = @floatCast(current_time - last_time);
@@ -3088,15 +3100,12 @@ pub fn main() !void {
             cam.processMouse(x_offset, y_offset);
         }
 
-        // Normalized mouse coordinates in [-1, 1] for GUI
-        var win_w: c_int = 1280;
-        var win_h: c_int = 720;
-        c.glfwGetFramebufferSize(window, &win_w, &win_h);
-        const mouse_norm_x: f32 = @as(f32, @floatCast(xpos / @as(f64, @floatFromInt(win_w)))) * 2.0 - 1.0;
-        const mouse_norm_y: f32 = 1.0 - @as(f32, @floatCast(ypos / @as(f64, @floatFromInt(win_h)))) * 2.0;
+        // Cursor coordinates are in window units, not framebuffer pixels.
+        const mouse_norm = size.cursor(xpos, ypos);
+        const mouse_norm_x = mouse_norm[0];
+        const mouse_norm_y = mouse_norm[1];
 
         // Build MVP: projection * view with portal dwell roll disorientation wobble
-        const aspect: f32 = 1280.0 / 720.0;
         const proj = cam.projectionMatrix(aspect);
         const portal_roll: f32 = if (portal_transit.inside_timer > 0.0)
             @sin(@as(f32, @floatCast(current_time)) * 5.0) * (portal_transit.inside_timer / portal_mod.PORTAL_TRIGGER_TIME) * 0.12

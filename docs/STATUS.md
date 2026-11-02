@@ -11,7 +11,7 @@ Git history.
 | Check | Last result |
 |-------|-------------|
 | CI on `main` | 2026-10-30: hosted jobs run again on the public repository. `build-and-test` and `public-content` are required for an up-to-date PR, including for administrators, with no human review approval required. See [current main runs](https://github.com/Soul4723/zigcraft/actions/workflows/ci.yml?query=branch%3Amain) for job results. |
-| Build and full test suite | 2026-11-02, Zig 0.16.0: build passed; 12,623 of 12,623 tests passed across 611 steps. Setup pins the compiler locally; LLVM/LLD are selected for compatibility with recent Linux C runtime objects. |
+| Build and full test suite | 2026-11-02, Zig 0.16.0: build passed; 12,625 of 12,625 tests passed across 613 steps. Setup pins the compiler locally; LLVM/LLD are selected for compatibility with recent Linux C runtime objects. |
 | Running the game | 2026-11-02: A freshly built executable under Xvfb/software OpenGL mined dirt while left was held, stopped destruction after release, placed one block while right was held, transferred an inventory stack once while left was held, and shut down with exit 0. Crafting, mob combat and portal travel remain unchecked. |
 
 Zig 0.17 cannot compile `build.zig` (`b.args` no longer exists). Use 0.16.0.
@@ -21,7 +21,7 @@ Zig 0.17 cannot compile `build.zig` (`b.args` no longer exists). Use 0.16.0.
 These systems are driven by input or the frame loop in `src/main.zig` and
 `src/chunk_manager.zig`:
 
-- Window, OpenGL 3.3 core context, mouse capture and first-person camera.
+- Window, OpenGL 3.3 core context, mouse capture and first-person camera. Viewport/projection follow framebuffer size; inventory cursor mapping uses logical window size, and zero-sized windows pause rendering.
 - Terrain from a value-noise heightmap with caves, ores, trees, lakes,
   mineshafts and ocean monuments (`src/world/terrain.zig`). Separate Nether
   and End generators live in the same file.
@@ -103,8 +103,6 @@ Other overlaps:
 - Some modules describe 3×3 recipes, but the inventory only has a 2×2 grid.
 
 ## Known problems
-
-- Rendering/input layout uses a fixed 1280×720 aspect ratio; resizing the window does not update that ratio.
 
 - Chest and shulker caches share a limit of 16 entries per dimension and four slots per entry.
 - Hopper and dropper caches each have a limit of 32 four-slot entries per dimension.
