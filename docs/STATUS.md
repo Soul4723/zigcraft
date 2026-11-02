@@ -11,8 +11,8 @@ Git history.
 | Check | Last result |
 |-------|-------------|
 | CI on `main` | 2026-10-30: hosted jobs run again on the public repository. `build-and-test` and `public-content` are required for an up-to-date PR, including for administrators, with no human review approval required. See [current main runs](https://github.com/Soul4723/zigcraft/actions/workflows/ci.yml?query=branch%3Amain) for job results. |
-| Build and full test suite | 2026-11-02, Zig 0.16.0: build passed; 12,571 of 12,571 tests passed across 611 steps. Setup pins the compiler locally; LLVM/LLD are selected for compatibility with recent Linux C runtime objects. |
-| Running the game | 2026-11-02: Xvfb with software OpenGL and synthesized input exercised held-click mining, destroying four dirt blocks. That harness timed out waiting for shutdown; placement, inventory interaction, mob combat and portal travel were not confirmed in that run. |
+| Build and full test suite | 2026-11-02, Zig 0.16.0: build passed; 12,573 of 12,573 tests passed across 611 steps. Setup pins the compiler locally; LLVM/LLD are selected for compatibility with recent Linux C runtime objects. |
+| Running the game | 2026-11-02: A freshly built executable under Xvfb/software OpenGL mined dirt while left was held, stopped destruction after release, placed one block while right was held, transferred an inventory stack once while left was held, and shut down with exit 0. Crafting, mob combat and portal travel remain unchecked. |
 
 Zig 0.17 cannot compile `build.zig` (`b.args` no longer exists). Use 0.16.0.
 
