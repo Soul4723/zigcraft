@@ -187,6 +187,7 @@ pub const Player = struct {
     pub fn respawn(self: *Player, x: f32, y: f32, z: f32) void {
         self.pos = math.Vec3.init(x, y, z);
         self.vel_y = 0;
+        self.on_ground = false;
         self.health = 20.0;
         self.hunger = 20.0;
         self.saturation = 5.0;
@@ -194,7 +195,17 @@ pub const Player = struct {
         self.is_sprinting = false;
         self.regen_timer = 0.0;
         self.wither_timer = 0.0;
+        self.poison_timer = 0.0;
+        self.weakness_timer = 0.0;
         self.hunger_debuff_timer = 0.0;
+        self.levitation_timer = 0.0;
+        self.fire_resistance_timer = 0.0;
+        self.slow_falling_timer = 0.0;
+        self.mining_fatigue_timer = 0.0;
+        self.dolphins_grace_timer = 0.0;
+        self.is_gliding = false;
+        self.rocket_boost_timer = 0.0;
+        self.riptide_timer = 0.0;
         self.in_water = false;
         self.in_boat = false;
         self.in_minecart = false;
@@ -202,6 +213,11 @@ pub const Player = struct {
         self.on_powered_rail = false;
         self.on_detector_rail = false;
         self.on_activator_rail = false;
+        self.on_soulsand = false;
+        self.in_cobweb = false;
+        self.in_bubble_column = false;
+        self.in_whirlpool = false;
+        self.water_entry_speed = 0.0;
         self.oxygen = 15.0;
         self.water_breathing_timer = 0.0;
         self.insomnia_timer = 0.0;
@@ -905,6 +921,65 @@ test "player death and respawn" {
     p.respawn(24.0, 20.0, 24.0);
     try std.testing.expect(!p.isDead());
     try std.testing.expectApproxEqAbs(p.hunger, 20.0, 0.001);
+}
+
+test "respawn clears status effects before vitals tick" {
+    var p = Player.init(0, 1, 0);
+    p.applyPoison();
+    p.applyWeakness();
+    p.applyWither();
+    p.applyHungerDebuff();
+    p.applyMiningFatigue();
+    p.applyDolphinsGrace();
+    p.drinkFireResistance();
+    p.drinkWaterBreathing();
+    p.drinkSlowFalling();
+    p.health = 0;
+    p.respawn(4, 10, 6);
+    p.tickVitals(1.0);
+    try std.testing.expectEqual(@as(f32, 20), p.health);
+    try std.testing.expectApproxEqAbs(@as(f32, 19.95), p.hunger, 0.001);
+    try std.testing.expect(!p.isPoisoned() and !p.isWeakened() and !p.isWithered() and !p.hasHungerDebuff());
+    try std.testing.expect(!p.hasMiningFatigue() and !p.hasDolphinsGrace());
+    try std.testing.expect(!p.isFireImmune() and !p.hasWaterBreathing() and !p.hasSlowFalling());
+}
+
+test "respawn clears levitation before physics" {
+    var p = Player.init(0, 1, 0);
+    p.applyLevitation();
+    p.health = 0;
+    p.respawn(0, 10, 0);
+    p.tickPhysics(testSolid, null, null, 0, 0, false, 0.05);
+    try std.testing.expect(!p.isLevitating());
+    try std.testing.expect(p.vel_y < 0 and p.pos.y < 10);
+}
+
+test "respawn clears flight and contact state but preserves player facts" {
+    var p = Player.init(0, 1, 0);
+    p.startGliding();
+    p.boostWithRocket();
+    p.launchRiptide();
+    p.on_ground = true;
+    p.on_soulsand = true;
+    p.in_cobweb = true;
+    p.in_bubble_column = true;
+    p.in_whirlpool = true;
+    p.water_entry_speed = 9;
+    p.has_soul_speed = true;
+    p.distance_walked = 42;
+    p.lodestone_target = math.Vec3.init(1, 2, 3);
+    p.health = 0;
+    p.respawn(0, 10, 0);
+    try std.testing.expect(!p.on_ground and !p.is_gliding and !p.isRiptiding());
+    try std.testing.expectEqual(@as(f32, 0), p.rocket_boost_timer);
+    try std.testing.expect(!p.on_soulsand and !p.in_cobweb and !p.in_bubble_column and !p.in_whirlpool);
+    try std.testing.expectEqual(@as(f32, 0), p.water_entry_speed);
+    try std.testing.expect(p.has_soul_speed);
+    try std.testing.expectEqual(@as(f32, 42), p.distance_walked);
+    try std.testing.expectEqual(@as(f32, 2), p.lodestone_target.?.y);
+    p.tickPhysics(testSolid, null, null, 1, 0, false, 0.05);
+    try std.testing.expectApproxEqAbs(@as(f32, 1), p.pos.x, 0.001);
+    try std.testing.expect(p.vel_y < 0);
 }
 
 test "golden apple heals and regens" {
