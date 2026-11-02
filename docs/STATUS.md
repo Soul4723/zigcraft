@@ -11,7 +11,7 @@ Git history.
 | Check | Last result |
 |-------|-------------|
 | CI on `main` | 2026-10-30: hosted jobs run again on the public repository. `build-and-test` and `public-content` are required for an up-to-date PR, including for administrators, with no human review approval required. See [current main runs](https://github.com/Soul4723/zigcraft/actions/workflows/ci.yml?query=branch%3Amain) for job results. |
-| Build and full test suite | 2026-11-02, Zig 0.16.0: build passed; 12,685 of 12,685 tests passed across 613 steps. Setup pins the compiler locally; LLVM/LLD are selected for compatibility with recent Linux C runtime objects. |
+| Build and full test suite | 2026-11-02, Zig 0.16.0: build passed; 12,817 of 12,817 tests passed across 613 steps. Setup pins the compiler locally; LLVM/LLD are selected for compatibility with recent Linux C runtime objects. |
 | Running the game | 2026-11-02: A freshly built executable under Xvfb/software OpenGL mined dirt while left was held, stopped destruction after release, placed one block while right was held, transferred an inventory stack once while left was held, and shut down with exit 0. Live 2×2 crafting was additionally checked through save data (32 logs became 31 logs plus four planks). Nether travel was checked with a fixture frame and, separately, with a normally generated frame and test-positioned player; an end-to-end walk from spawn and live return trip remain unchecked. |
 
 Zig 0.17 cannot compile `build.zig` (`b.args` no longer exists). Use 0.16.0.
@@ -38,9 +38,9 @@ These systems are driven by input or the frame loop in `src/main.zig` and
   that yield `resin_clump` items when interacted with using F at night (and
   drop bonus clumps when harvested with a tool while sandwiched), feeding the live `resin_clump` -> `resin_brick` furnace
   recipe.
-- Mobs from `src/entity/`: 25 types (for example sheep, pigs, wolves, zombies,
-  skeletons, creepers, endermen, piglins, blazes, guardians and the Ender
-  Dragon), with spawn rules, simple AI, pathfinding and box-model rendering.
+- Mobs from `src/entity/`: 26 types (including sheep, pigs, wolves, zombies,
+  skeletons, creepers, endermen, piglins, blazes, guardians, the Ender
+  Dragon, and the nocturnal Creaking puppet entity), with spawn rules, simple AI, pathfinding and box-model rendering. Sandwiched Creaking Hearts spawn at most one Creaking at night within 32m, freezing under unobstructed upper-body gaze via DDA occlusion, dealing contact damage, and extruding resin on hit via shared cooldown. A carried carved pumpkin bypasses gaze freeze, following the inventory-based armor convention. A fixture-assisted Xvfb run observed nighttime appearance, stationary torso-gaze behavior, pursuit/contact attacks after looking away, and resin on puppet strike followed by heart cooldown rejection and later extrusion. Dawn and broken-heart despawn remain covered by unit tests; the live post-break view was inconclusive.
 - Redstone: wire with 15-block falloff, torches, repeaters, levers, pressure
   plates, lamps and iron doors, plus dispensers, droppers and hoppers.
 - TNT, falling sand, water flow with levels, water washing away redstone. Player explosion damage reaches its maximum at the blast center with finite upward knockback and zero horizontal push there.
@@ -96,8 +96,7 @@ Several mechanics have more than one module, written by different sessions:
 
 Other overlaps:
 
-- `pale_garden` has Creaking Heart resin extrusion connected while full
-  Creaking mob entity spawning remains unconnected.
+- `pale_garden` Creaking Heart resin extrusion and Creaking mob entity runtime are connected to live gameplay; dynamic thunderstorm weather activation remains deferred while weather simulation is static clear sky.
 - Mob rule modules (guardian, blaze, warden and others) do not drive the mobs
   in `src/entity/`, which have their own stats and AI.
 - Some modules describe 3×3 recipes, but the inventory only has a 2×2 grid.

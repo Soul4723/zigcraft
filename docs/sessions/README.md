@@ -7,6 +7,7 @@ belong in the pull request description, not in a separate file.
 
 ## Recent sessions
 
+- 2026-11-02: Connected Creaking puppets to active hearts, repaired upper-body gaze, frozen gravity, hazard-free spawning and pumpkin handling; preserved shared resin cooldown and transit cleanup. Fixture-assisted live checks observed night appearance, torso-gaze stillness, pursuit/attacks and shared resin cooldown; dawn and broken-heart cleanup were not conclusively observed.
 - 2026-11-02: Connected deterministic dormant obsidian frames to Overworld generation; default seed frame (44, 7, 44) uses the existing F ignition and Nether transit. Generated-chunk/detector tests pass; live transit used a test-positioned player, not an end-to-end walk.
 - 2026-11-02: Adapted viewport/projection to framebuffer size and inventory input to logical window size; zero sizes pause rendering. Parent live resize/click checks passed at 960×720 and 1500×720 with clean exit; real HiDPI/minimize behavior remains unverified.
 - 2026-11-02: Added numeric stack counts to existing hotbar, inventory, crafting and cursor rendering. Quad batches handle all u8 counts; live frames showed 64 to 63 and 16 to 15 after placement. A resize exposed the existing fixed-aspect layout limitation.
@@ -22,9 +23,6 @@ belong in the pull request description, not in a separate file.
 - 2026-10-31: Persisted player position, dimension, vitals, inventory, crafting grid, cursor stack, selected slot and tool wear in root-level player.bin across dimensions.
 - 2026-10-31: Consolidated hunger exhaustion into Player, wired Left Control
   sprinting and activity exhaustion, and removed duplicate hunger_metabolism.zig.
-- 2026-10-31: Connected standard furnace smelting from resin clumps to resin
-  bricks and removed the raw-clump crafting shortcut; in-world resin drops
-  remain unconnected.
 
 ## History
 
