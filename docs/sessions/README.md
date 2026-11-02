@@ -7,6 +7,7 @@ belong in the pull request description, not in a separate file.
 
 ## Recent sessions
 
+- 2026-11-02: Removed player blast-center immunity and kept center knockback finite; regression tests cover exact and near-center damage. In-game blasts were not observed.
 - 2026-11-02: Persisted four-slot chest and shulker caches by dimension, including emptied fortress loot, enforced item stack limits, and cleaned destroyed container cache entries; hopper and dropper caches remain unsaved and not dimension-isolated.
 - 2026-10-31: Persisted furnace, smoker, blast-furnace jobs and growing saplings in per-dimension block_jobs.bin files with offline/unloaded pausing, preflight transit rollback, and ENOENT missing-file checks.
 - 2026-10-31: Corrected CONTRIBUTING documentation on Zig 0.16 lazy test collection, documented semantic analysis rules and minimal fixtures in learnings, and confirmed explicit test_files registration policy.
@@ -40,8 +41,6 @@ belong in the pull request description, not in a separate file.
 - 2026-10-29, session 427: Wave 25 integration (milestones 521 to 530):
   imports and discarded per-frame calls in `main.zig`, plus items and 2×2
   recipes.
-- 2026-10-29, sessions 421 to 426: Trial spawner, mace, vault, crafter,
-  bogged and ominous bottle rule modules (milestones 525 to 530).
 
 ## History
 
