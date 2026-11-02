@@ -11,7 +11,7 @@ Git history.
 | Check | Last result |
 |-------|-------------|
 | CI on `main` | 2026-10-30: hosted jobs run again on the public repository. `build-and-test` and `public-content` are required for an up-to-date PR, including for administrators, with no human review approval required. See [current main runs](https://github.com/Soul4723/zigcraft/actions/workflows/ci.yml?query=branch%3Amain) for job results. |
-| Build and full test suite | 2026-11-02, Zig 0.16.0: build passed; 12,621 of 12,621 tests passed across 611 steps. Setup pins the compiler locally; LLVM/LLD are selected for compatibility with recent Linux C runtime objects. |
+| Build and full test suite | 2026-11-02, Zig 0.16.0: build passed; 12,623 of 12,623 tests passed across 611 steps. Setup pins the compiler locally; LLVM/LLD are selected for compatibility with recent Linux C runtime objects. |
 | Running the game | 2026-11-02: A freshly built executable under Xvfb/software OpenGL mined dirt while left was held, stopped destruction after release, placed one block while right was held, transferred an inventory stack once while left was held, and shut down with exit 0. Crafting, mob combat and portal travel remain unchecked. |
 
 Zig 0.17 cannot compile `build.zig` (`b.args` no longer exists). Use 0.16.0.
@@ -28,7 +28,7 @@ These systems are driven by input or the frame loop in `src/main.zig` and
 - Chunk streaming in a 7×7 chunk area around the player, greedy meshing with
   ambient occlusion, frustum culling, procedural texture atlas.
 - Block picking by voxel raycast, outline highlight, held-left mining time by tool tier,
-  tool wear, block placement.
+  tool wear, block placement. Numeric stack counts are visible in the hotbar, inventory, crafting grid/output and held cursor stack.
 - Death and respawn clear temporary status effects, flight/propulsion and stale ground/fluid contact; equipment-derived Soul Speed and navigation targets remain intact.
 - Player physics: gravity, collision, jumping, sprinting, swimming, ladders,
   fall damage, suffocation, drowning, health and hunger shown on the HUD;
@@ -103,6 +103,8 @@ Other overlaps:
 - Some modules describe 3×3 recipes, but the inventory only has a 2×2 grid.
 
 ## Known problems
+
+- Rendering/input layout uses a fixed 1280×720 aspect ratio; resizing the window does not update that ratio.
 
 - Chest and shulker caches share a limit of 16 entries per dimension and four slots per entry.
 - Hopper and dropper caches each have a limit of 32 four-slot entries per dimension.

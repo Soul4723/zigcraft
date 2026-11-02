@@ -46,8 +46,8 @@ pub const UIRenderer = struct {
         c.glBindVertexArray(vao);
         c.glBindBuffer(c.GL_ARRAY_BUFFER, vbo);
 
-        // Max 128 UI vertices
-        c.glBufferData(c.GL_ARRAY_BUFFER, 4096 * @sizeOf(UIVertex), null, c.GL_DYNAMIC_DRAW);
+        // Inventory counts can require three digits in every slot.
+        c.glBufferData(c.GL_ARRAY_BUFFER, 8192 * @sizeOf(UIVertex), null, c.GL_DYNAMIC_DRAW);
 
         c.glEnableVertexAttribArray(0);
         c.glVertexAttribPointer(0, 2, c.GL_FLOAT, c.GL_FALSE, @sizeOf(UIVertex), @ptrFromInt(0));
@@ -91,6 +91,35 @@ pub const UIRenderer = struct {
         addQuad(verts, count, x0 + border_w, y0 + border_w, x1 - border_w, y1 - border_w, fill_col);
     }
 
+    // Seven-segment digits, placed inside the bottom-right corner of a slot.
+    fn addStackCount(verts: []UIVertex, count: *usize, x1: f32, y0: f32, slot_h: f32, aspect: f32, value: u8) void {
+        if (value <= 1) return;
+        const masks = [_]u8{ 0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f };
+        const digits: usize = if (value >= 100) 3 else if (value >= 10) 2 else 1;
+        const unit = slot_h / 14.0;
+        const ux = unit / aspect;
+        const right = x1 - ux;
+        const bottom = y0 + unit;
+        const left = right - @as(f32, @floatFromInt(digits * 4 - 1)) * ux;
+        addQuad(verts, count, left - ux * 0.4, bottom - unit * 0.4, right + ux * 0.4, bottom + unit * 5.4, .{ 0.0, 0.0, 0.0, 0.85 });
+        var remaining = value;
+        var digit: usize = 0;
+        while (digit < digits) : (digit += 1) {
+            const mask = masks[remaining % 10];
+            remaining /= 10;
+            const x = right - @as(f32, @floatFromInt(digit * 4 + 3)) * ux;
+            const segments = [7][4]f32{
+                .{ 0, 4, 3, 5 }, .{ 2, 2, 3, 4 }, .{ 2, 0, 3, 2 },
+                .{ 0, 0, 3, 1 }, .{ 0, 0, 1, 2 }, .{ 0, 2, 1, 4 },
+                .{ 0, 2, 3, 3 },
+            };
+            for (segments, 0..) |seg, bit| {
+                if (mask & (@as(u8, 1) << @intCast(bit)) != 0) {
+                    addQuad(verts, count, x + seg[0] * ux, bottom + seg[1] * unit, x + seg[2] * ux, bottom + seg[3] * unit, .{ 1, 1, 1, 1 });
+                }
+            }
+        }
+    }
 
     /// Render a toast status bar in the top-right corner.
     /// `alpha` in [0..1] scales opacity, `color` is RGB tint.
@@ -231,7 +260,7 @@ pub const UIRenderer = struct {
     }
 
     pub fn drawHUDWithCompass(self: *UIRenderer, aspect: f32, selected_slot: usize, hotbar_items: []const [4]f32, hotbar_counts: []const u8, mine_frac: f32, health: f32, hunger: f32, regen: bool, oxygen: f32, fire_res_timer: f32, wither_timer: f32, compass_rel: f32, is_lodestone: bool, boss_health_frac: f32) void {
-        var verts: [1024]UIVertex = undefined;
+        var verts: [2048]UIVertex = undefined;
         var count: usize = 0;
 
         // Crosshair
@@ -268,7 +297,7 @@ pub const UIRenderer = struct {
             addBorderedRect(&verts, &count, x0, y0, x1, y1, if (is_sel) 0.004 else 0.002, border_col, slot_bg);
 
             // Item interior icon
-            if (i < hotbar_items.len and hotbar_counts[i] > 0) {
+            if (i < hotbar_items.len and i < hotbar_counts.len and hotbar_counts[i] > 0) {
                 const icon_inset_x = 0.008 / aspect;
                 const icon_inset_y = 0.008;
                 addQuad(&verts, &count, x0 + icon_inset_x, y0 + icon_inset_y, x1 - icon_inset_x, y1 - icon_inset_y, hotbar_items[i]);
@@ -278,6 +307,7 @@ pub const UIRenderer = struct {
                 const frac = @as(f32, @floatFromInt(hotbar_counts[i])) / 64.0;
                 const bar_w = (slot_w - 2.0 * icon_inset_x) * @min(1.0, frac);
                 addQuad(&verts, &count, x0 + icon_inset_x, y0 + 0.003, x0 + icon_inset_x + bar_w, y0 + 0.003 + bar_h, .{ 0.3, 0.9, 0.3, 0.9 });
+                addStackCount(&verts, &count, x1, y0, slot_h, aspect, hotbar_counts[i]);
             }
         }
 
@@ -410,7 +440,7 @@ pub const UIRenderer = struct {
         mouse_norm_x: f32,
         mouse_norm_y: f32,
     ) void {
-        var verts: [4096]UIVertex = undefined;
+        var verts: [8192]UIVertex = undefined;
         var count: usize = 0;
 
         // 1. Semi-transparent dark background backdrop
@@ -447,8 +477,9 @@ pub const UIRenderer = struct {
 
                 addBorderedRect(&verts, &count, sx0, sy0, sx1, sy1, 0.003, .{ 0.35, 0.35, 0.38, 1.0 }, .{ 0.55, 0.55, 0.58, 1.0 });
 
-                if (idx < craft_grid_colors.len and craft_grid_counts[idx] > 0) {
+                if (idx < craft_grid_colors.len and idx < craft_grid_counts.len and craft_grid_counts[idx] > 0) {
                     addQuad(&verts, &count, sx0 + 0.006 / aspect, sy0 + 0.006, sx1 - 0.006 / aspect, sy1 - 0.006, craft_grid_colors[idx]);
+                    addStackCount(&verts, &count, sx1, sy0, slot_h, aspect, craft_grid_counts[idx]);
                 }
             }
         }
@@ -466,6 +497,7 @@ pub const UIRenderer = struct {
 
         if (craft_output_count > 0) {
             addQuad(&verts, &count, out_x0 + 0.008 / aspect, out_y0 + 0.008, out_x1 - 0.008 / aspect, out_y1 - 0.008, craft_output_col);
+            addStackCount(&verts, &count, out_x1, out_y0, out_y1 - out_y0, aspect, craft_output_count);
         }
 
         // Main Inventory 3 rows x 6 columns
@@ -484,8 +516,9 @@ pub const UIRenderer = struct {
 
                 addBorderedRect(&verts, &count, sx0, sy0, sx1, sy1, 0.003, .{ 0.35, 0.35, 0.38, 1.0 }, .{ 0.55, 0.55, 0.58, 1.0 });
 
-                if (idx < main_colors.len and main_counts[idx] > 0) {
+                if (idx < main_colors.len and idx < main_counts.len and main_counts[idx] > 0) {
                     addQuad(&verts, &count, sx0 + 0.006 / aspect, sy0 + 0.006, sx1 - 0.006 / aspect, sy1 - 0.006, main_colors[idx]);
+                    addStackCount(&verts, &count, sx1, sy0, slot_h, aspect, main_counts[idx]);
                 }
             }
         }
@@ -501,8 +534,9 @@ pub const UIRenderer = struct {
 
             addBorderedRect(&verts, &count, sx0, sy0, sx1, sy1, 0.003, .{ 0.35, 0.35, 0.38, 1.0 }, .{ 0.55, 0.55, 0.58, 1.0 });
 
-            if (hc < hotbar_colors.len and hotbar_counts[hc] > 0) {
+            if (hc < hotbar_colors.len and hc < hotbar_counts.len and hotbar_counts[hc] > 0) {
                 addQuad(&verts, &count, sx0 + 0.006 / aspect, sy0 + 0.006, sx1 - 0.006 / aspect, sy1 - 0.006, hotbar_colors[hc]);
+                addStackCount(&verts, &count, sx1, sy0, slot_h, aspect, hotbar_counts[hc]);
             }
         }
 
@@ -511,6 +545,7 @@ pub const UIRenderer = struct {
             const cw = 0.04 / aspect;
             const ch = 0.04;
             addQuad(&verts, &count, mouse_norm_x, mouse_norm_y - ch, mouse_norm_x + cw, mouse_norm_y, cursor_col);
+            addStackCount(&verts, &count, mouse_norm_x + cw, mouse_norm_y - ch, ch, aspect, cursor_count);
         }
 
         // Mouse pointer arrow icon
@@ -558,4 +593,36 @@ test "portal vignette alpha calculation" {
 
 test "toast vertex sizing" {
     try std.testing.expect(@sizeOf(UIVertex) == 24);
+}
+
+test "stack counts show distinct digits within the slot" {
+    var verts: [256]UIVertex = undefined;
+    var count: usize = 0;
+    UIRenderer.addStackCount(&verts, &count, 0.1, -0.2, 0.056, 2.0, 1);
+    try std.testing.expectEqual(@as(usize, 0), count);
+    UIRenderer.addStackCount(&verts, &count, 0.1, -0.2, 0.056, 2.0, 64);
+    const count64 = count;
+    var saved: [256]UIVertex = undefined;
+    @memcpy(saved[0..count], verts[0..count]);
+    count = 0;
+    UIRenderer.addStackCount(&verts, &count, 0.1, -0.2, 0.056, 2.0, 63);
+    try std.testing.expect(!std.mem.eql(u8, std.mem.sliceAsBytes(saved[0..count64]), std.mem.sliceAsBytes(verts[0..count])));
+    for (verts[0..count]) |vertex| {
+        try std.testing.expect(vertex.position[0] > 0.1 - 0.056 / 2.0 and vertex.position[0] < 0.1);
+        try std.testing.expect(vertex.position[1] > -0.2 and vertex.position[1] < -0.2 + 0.056);
+    }
+}
+
+test "all stack counts fit the inventory batch" {
+    var verts: [8192]UIVertex = undefined;
+    for (0..256) |value| {
+        var count: usize = 0;
+        UIRenderer.addStackCount(&verts, &count, 0.1, -0.2, 0.055, 1.0, @intCast(value));
+        const one_count = count;
+        // Thirty item locations, plus the existing inventory background and slot quads.
+        for (0..29) |_| UIRenderer.addStackCount(&verts, &count, 0.1, -0.2, 0.055, 1.0, @intCast(value));
+        try std.testing.expectEqual(one_count * 30, count);
+        try std.testing.expect(count + 600 <= verts.len);
+        if (value > 1) try std.testing.expect(count > 0);
+    }
 }
