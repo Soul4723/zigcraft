@@ -16,10 +16,10 @@ When an item is done, delete it here and update STATUS.md.
 
 - Required hosted checks protect `main`. Diagnose failed checks before
   adding work; leave externally blocked PRs open and take another task.
-- Complete live baseline checks of crafting, mob combat and a portal
-  trip. Xvfb with software OpenGL can run the game without a physical display;
-  mining, placement and inventory transfer have been exercised with synthesized
-  input. Record actual observations and test-harness limits in STATUS.md.
+- Complete live checks of mob combat, walking from spawn to a natural portal,
+  and a Nether return trip. Crafting consumption and outbound Nether travel
+  with a test-positioned player have been checked; keep fixture-assisted
+  verification distinct from normal exploration. Xvfb supports headless input.
 
 ## 2. Fix world and save correctness
 

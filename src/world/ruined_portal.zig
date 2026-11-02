@@ -194,6 +194,24 @@ pub fn generateRuinedPortalMonument(
     ) catch unreachable;
 }
 
+/// A dormant surface remnant. The sill is level with the surrounding ground;
+/// all required edges are ordinary obsidian, so the existing igniter can use it.
+pub const SurfaceFrame = struct {
+    x: i32,
+    y: i32,
+    z: i32,
+
+    /// Sample the standard X-axis frame in world coordinates. Corners are absent.
+    pub fn blockAt(self: SurfaceFrame, x: i32, y: i32, z: i32) ?@import("block.zig").BlockId {
+        if (z != self.z) return null;
+        const dx = x - self.x;
+        const dy = y - self.y;
+        if ((dx == 0 or dx == 1) and (dy == 0 or dy == 4)) return .obsidian;
+        if ((dx == -1 or dx == 2) and dy >= 1 and dy <= 3) return .obsidian;
+        return null;
+    }
+};
+
 // ============================================================================
 // Portal Frame Validation & Crying Obsidian Incompatibility
 // ============================================================================

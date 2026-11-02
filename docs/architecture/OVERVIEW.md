@@ -112,6 +112,11 @@ to `test_files`.
 - [learnings/build-and-slice-lifetimes.md](../learnings/build-and-slice-lifetimes.md): compiler setup and borrowed-slice lifetimes
 - [research/](../research/): meshing, rendering, terrain, math and C interop notes
 
+Overworld terrain samples a deterministic candidate per 64-block region for
+a dormant portal remnant. Geometry lives in `world/ruined_portal.zig`; terrain
+selects flat dry sites with headroom and stamps ordinary obsidian edges after
+trees, avoiding existing underground structures and nearby tree canopies.
+
 `window_size.zig` separates logical window input coordinates from framebuffer
 pixels. The frame loop validates both sizes before drawing, updates the viewport
 and projection from framebuffer dimensions, and maps the inventory cursor using
