@@ -121,3 +121,8 @@ trees, avoiding existing underground structures and nearby tree canopies.
 pixels. The frame loop validates both sizes before drawing, updates the viewport
 and projection from framebuffer dimensions, and maps the inventory cursor using
 logical dimensions.
+
+Creaking puppets live in `entity/mob_manager.zig`, linked to heart coordinates.
+`world/pale_garden.zig` owns gaze/occlusion rules and the resin cooldown shared
+by puppet strikes and direct heart interaction. Successful dimension transitions
+clear puppets alongside restoring dimension-specific world state.

@@ -466,16 +466,12 @@ pub fn isCreakingObserved(
     wearing_carved_pumpkin: bool,
     is_occluding: ?*const fn (x: i32, y: i32, z: i32) bool,
 ) bool {
-    if (!isCreakingFrozenByGaze(creaking_pos, player_eye_pos, player_look_dir, cos_fov_threshold, wearing_carved_pumpkin)) {
+    const target_eye = [3]f32{ creaking_pos[0], creaking_pos[1] + creaking_height * 0.8, creaking_pos[2] };
+    if (!isCreakingFrozenByGaze(target_eye, player_eye_pos, player_look_dir, cos_fov_threshold, wearing_carved_pumpkin)) {
         return false;
     }
 
     if (is_occluding) |occ| {
-        const target_eye = [3]f32{
-            creaking_pos[0],
-            creaking_pos[1] + creaking_height * 0.8,
-            creaking_pos[2],
-        };
         return isLineOfSightClear(player_eye_pos, target_eye, occ);
     }
 
@@ -1208,4 +1204,17 @@ test "isCreakingObserved handles gaze, occlusion, looking away, and pumpkin" {
 
     // Wearing carved pumpkin -> not frozen even with clear sight!
     try std.testing.expect(!isCreakingObserved(creaking_pos, 2.7, player_eye, player_look_forward, cos_fov, true, ClearWorld.occ));
+}
+
+test "close gaze targets the upper body for cone and occlusion" {
+    const World = struct {
+        fn wall(x: i32, y: i32, z: i32) bool { return x == 1 and y == 2 and z == 0; }
+        fn clear(_: i32, _: i32, _: i32) bool { return false; }
+    };
+    const eye = [3]f32{ 0.5, 2.16, 0.5 };
+    const target = [3]f32{ 2.5, 0, 0.5 };
+    try std.testing.expect(isCreakingObserved(target, 2.7, eye, .{ 1, 0, 0 }, 0.95, false, World.clear));
+    try std.testing.expect(!isCreakingObserved(target, 2.7, eye, .{ 1, 0, 0 }, 0.95, false, World.wall));
+    try std.testing.expect(!isCreakingObserved(target, 2.7, eye, .{ 1, 0, 0 }, 0.95, true, World.clear));
+    try std.testing.expect(isCreakingObserved(.{ -1.5, 0, 0.5 }, 2.7, eye, .{ -1, 0, 0 }, 0.95, false, World.clear));
 }

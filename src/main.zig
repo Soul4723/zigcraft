@@ -2852,7 +2852,8 @@ pub fn main() !void {
         try mob_manager.ensureSpawnPopulation(&manager, player.pos.x, player.pos.z, is_night_spawn);
         const is_overworld_spawn = !manager.is_nether and !manager.is_end;
         try mob_manager.ensureCreakingPopulation(&manager, is_night_spawn, false, dt);
-        mob_manager.tickCreakings(&pickBlockWorld, &pickSolid, player.pos, cam.position, cam.front(), is_night_spawn, false, false, is_overworld_spawn);
+        // Like armor, a carved pumpkin takes effect while present in inventory.
+        mob_manager.tickCreakings(&pickBlockWorld, &pickSolid, player.pos, cam.position, cam.front(), is_night_spawn, false, inventory.hasItem(.carved_pumpkin), is_overworld_spawn);
 
         // Insomnia aerial night spawn: spawn Phantoms circling above insomniac players
         if (is_night_spawn and player.hasInsomnia() and mob_manager.mobs.items.len < 8 and !manager.is_nether and !manager.is_end) {

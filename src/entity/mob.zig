@@ -192,18 +192,16 @@ pub const Mob = struct {
             self.walk_timer = 0.0;
             self.vel.x = 0.0;
             self.vel.z = 0.0;
-            if (!self.on_ground) {
-                self.vel.y -= 25.0 * clamped_dt;
-                if (self.vel.y < -30.0) self.vel.y = -30.0;
-                var dummy_v = self.vel.y;
-                self.pos.y = collideAxis(self.pos, self.width * 0.5, self.height, solid, self.vel.y * clamped_dt, .y, &dummy_v, &self.on_ground);
-                self.vel.y = dummy_v;
-            }
+            self.vel.y -= 25.0 * clamped_dt;
+            if (self.vel.y < -30.0) self.vel.y = -30.0;
+            var dummy_v = self.vel.y;
+            self.pos.y = collideAxis(self.pos, self.width * 0.5, self.height, solid, self.vel.y * clamped_dt, .y, &dummy_v, &self.on_ground);
+            self.vel.y = dummy_v;
             return;
         }
 
         self.change_dir_timer -= clamped_dt;
-        if (self.change_dir_timer <= 0.0) {
+        if (self.mob_type != .creaking and self.change_dir_timer <= 0.0) {
             const roll = rng.random().float(f32);
             if (roll < 0.65) {
                 // Pick a new wander yaw
@@ -1141,4 +1139,41 @@ test "creaking mob properties, invulnerability, and freeze behavior" {
     try std.testing.expectEqual(c_mob.walk_timer, 0.0);
     try std.testing.expectEqual(c_mob.vel.x, 0.0);
     try std.testing.expectEqual(c_mob.vel.z, 0.0);
+}
+
+test "frozen Creaking falls when its floor disappears and lands" {
+    const World = struct {
+        var floor_y: i32 = 0;
+        fn solid(_: i32, y: i32, _: i32) bool { return y == floor_y; }
+        fn fluid(_: i32, _: i32, _: i32) bool { return false; }
+    };
+    var rng = std.Random.DefaultPrng.init(42);
+    var m = Mob.init(.creaking, 0.5, 1, 0.5);
+    m.is_frozen = true;
+    m.on_ground = true;
+    m.tick(World.solid, World.fluid, 0.05, &rng);
+    try std.testing.expect(m.on_ground);
+    World.floor_y = -2;
+    m.tick(World.solid, World.fluid, 0.05, &rng);
+    try std.testing.expect(m.pos.y < 1 and !m.on_ground);
+    for (0..30) |_| m.tick(World.solid, World.fluid, 0.05, &rng);
+    try std.testing.expect(m.on_ground);
+    try std.testing.expectApproxEqAbs(@as(f32, -1), m.pos.y, 0.001);
+    try std.testing.expectEqual(@as(f32, 0.5), m.pos.x);
+    try std.testing.expectEqual(@as(f32, 0.5), m.pos.z);
+}
+
+test "Creaking pursuit yaw survives wander timer" {
+    const World = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return false; }
+        fn fluid(_: i32, _: i32, _: i32) bool { return false; }
+    };
+    var rng = std.Random.DefaultPrng.init(42);
+    var m = Mob.init(.creaking, 0, 3, 0);
+    m.yaw = 1.0;
+    m.walk_timer = 1;
+    m.change_dir_timer = 0;
+    m.tick(World.solid, World.fluid, 0.05, &rng);
+    try std.testing.expectEqual(@as(f32, 1), m.yaw);
+    try std.testing.expect(m.walk_timer > 0);
 }

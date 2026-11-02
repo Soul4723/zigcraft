@@ -592,12 +592,14 @@ pub const MobManager = struct {
     }
 
 
+    /// Create a puppet linked to the supplied heart coordinates.
     pub fn spawnCreaking(self: *MobManager, heart_pos: [3]i32, x: f32, y: f32, z: f32) !void {
         var m = mob_mod.Mob.init(.creaking, x, y, z);
         m.creaking_heart_pos = heart_pos;
         try self.mobs.append(self.allocator, m);
     }
 
+    /// Return whether a live puppet already belongs to this heart.
     pub fn hasLinkedCreaking(self: *const MobManager, heart_pos: [3]i32) bool {
         for (self.mobs.items) |m| {
             if (m.mob_type == .creaking) {
@@ -609,6 +611,7 @@ pub const MobManager = struct {
         return false;
     }
 
+    /// Remove puppets belonging to a destroyed heart.
     pub fn removeCreakingLinkedTo(self: *MobManager, heart_pos: [3]i32) void {
         var idx: usize = 0;
         while (idx < self.mobs.items.len) {
@@ -625,6 +628,7 @@ pub const MobManager = struct {
         }
     }
 
+    /// Remove puppets while preserving other mob types.
     pub fn clearAllCreakings(self: *MobManager) void {
         var idx: usize = 0;
         while (idx < self.mobs.items.len) {
@@ -636,6 +640,7 @@ pub const MobManager = struct {
         }
     }
 
+    /// Find supported nearby space clear of solids, fluids and contact hazards.
     pub fn findSafeSpawnNearHeart(chunk_manager: *const chunk_manager_mod.ChunkManager, heart_pos: [3]i32) ?math.Vec3 {
         const offsets = [_][2]i32{
             .{ 2, 0 }, .{ -2, 0 }, .{ 0, 2 }, .{ 0, -2 },
@@ -647,16 +652,24 @@ pub const MobManager = struct {
             const sz = heart_pos[2] + off[1];
             var sy: i32 = heart_pos[1] + 1;
             while (sy >= 1 and sy >= heart_pos[1] - 8) : (sy -= 1) {
-                if (!chunk_manager.isSolidWorld(sx, sy, sz)) continue;
-                if (chunk_manager.isSolidWorld(sx, sy + 1, sz)) continue;
-                if (chunk_manager.isSolidWorld(sx, sy + 2, sz)) continue;
-                if (chunk_manager.isSolidWorld(sx, sy + 3, sz)) continue;
+                const floor = chunk_manager.getBlockWorld(sx, sy, sz);
+                if (!floor.is_solid() or hazard_mod.checkBurnContact(floor) or floor == .cactus) continue;
+                var clear = true;
+                for (1..4) |dy| {
+                    const block = chunk_manager.getBlockWorld(sx, sy + @as(i32, @intCast(dy)), sz);
+                    if (block.is_solid() or block.is_fluid() or hazard_mod.checkBurnContact(block) or block == .cactus) {
+                        clear = false;
+                        break;
+                    }
+                }
+                if (!clear) continue;
                 return math.Vec3.init(@as(f32, @floatFromInt(sx)) + 0.5, @as(f32, @floatFromInt(sy + 1)), @as(f32, @floatFromInt(sz)) + 0.5);
             }
         }
         return null;
     }
 
+    /// Scan loaded Overworld hearts once per second and spawn missing active puppets.
     pub fn ensureCreakingPopulation(
         self: *MobManager,
         chunk_manager: *const chunk_manager_mod.ChunkManager,
@@ -703,6 +716,7 @@ pub const MobManager = struct {
         }
     }
 
+    /// Update heart validity, tethering, observation and pursuit for live puppets.
     pub fn tickCreakings(
         self: *MobManager,
         block_at: ?*const fn (x: i32, y: i32, z: i32) block_mod.BlockId,
@@ -1140,22 +1154,29 @@ test "MobManager tryShearSheep shearing mechanics" {
     try std.testing.expect(shear_res2 == null);
 }
 
-test "MobManager Creaking one-per-heart spawning and duplicate prevention" {
+test "MobManager Creaking population scan prevents duplicate puppets" {
+    var mgr = try chunk_manager_mod.ChunkManager.initWithOptions(std.testing.allocator, 0, 0, 0, 1337, ".zig-cache/creaking-population-fixture", false);
+    defer {
+        var iter = mgr.chunks.iterator();
+        while (iter.next()) |entry| entry.value_ptr.modified = false;
+        mgr.deinit();
+    }
+    for (0..16) |x| for (0..16) |z| for (0..16) |y| {
+        try std.testing.expect(mgr.setBlockWorld(@intCast(x), @intCast(y), @intCast(z), if (y == 1) .stone else .air));
+    };
+    const heart = [3]i32{ 8, 3, 8 };
+    try std.testing.expect(mgr.setBlockWorld(8, 2, 8, .pale_oak_log));
+    try std.testing.expect(mgr.setBlockWorld(8, 3, 8, .creaking_heart));
+    try std.testing.expect(mgr.setBlockWorld(8, 4, 8, .pale_oak_log));
     var mm = try MobManager.init(std.testing.allocator, 0);
     defer mm.deinit();
-
-    const heart_pos = [3]i32{ 10, 64, 10 };
-    try std.testing.expect(!mm.hasLinkedCreaking(heart_pos));
-
-    try mm.spawnCreaking(heart_pos, 12.5, 64.0, 10.5);
+    try mm.ensureCreakingPopulation(&mgr, false, false, 1);
+    try std.testing.expectEqual(@as(usize, 0), mm.mobs.items.len);
+    try mm.ensureCreakingPopulation(&mgr, true, false, 1);
     try std.testing.expectEqual(@as(usize, 1), mm.mobs.items.len);
-    try std.testing.expect(mm.hasLinkedCreaking(heart_pos));
-
-    // Attempting to spawn again for same heart is blocked
-    try std.testing.expect(mm.hasLinkedCreaking(heart_pos));
-
-    const other_heart = [3]i32{ 20, 64, 20 };
-    try std.testing.expect(!mm.hasLinkedCreaking(other_heart));
+    try std.testing.expect(mm.hasLinkedCreaking(heart));
+    try mm.ensureCreakingPopulation(&mgr, true, false, 1);
+    try std.testing.expectEqual(@as(usize, 1), mm.mobs.items.len);
 }
 
 test "MobManager Creaking safe spawn failure when no solid floor with headroom" {
@@ -1211,6 +1232,16 @@ test "MobManager Creaking tickCreakings gaze freeze, look away, and occlusion" {
     mm.tickCreakings(World.block, World.solid, player_pos, player_eye, look_forward, true, false, false, true);
     try std.testing.expect(mm.mobs.items[0].is_frozen);
     try std.testing.expectEqual(mm.mobs.items[0].walk_timer, 0.0);
+
+    // Inventory-based equipment follows the same convention as armor.
+    var inventory = inventory_mod.Inventory.init();
+    try std.testing.expect(!inventory.hasItem(.carved_pumpkin));
+    inventory.slots[6] = .{ .item = .carved_pumpkin, .count = 1 };
+    mm.tickCreakings(World.block, World.solid, player_pos, player_eye, look_forward, true, false, inventory.hasItem(.carved_pumpkin), true);
+    try std.testing.expect(!mm.mobs.items[0].is_frozen);
+    inventory.slots[6].count = 0;
+    mm.tickCreakings(World.block, World.solid, player_pos, player_eye, look_forward, true, false, inventory.hasItem(.carved_pumpkin), true);
+    try std.testing.expect(mm.mobs.items[0].is_frozen);
 
     // 2. Looking away: resumes pursuit!
     mm.tickCreakings(World.block, World.solid, player_pos, player_eye, look_away, true, false, false, true);
@@ -1274,26 +1305,16 @@ test "MobManager Creaking dawn removal, unaligned heart, and tether limit" {
     try std.testing.expectEqual(@as(usize, 0), mm.mobs.items.len);
 }
 
-test "MobManager Creaking dimension switch cleanup and failure preservation" {
+test "MobManager Creaking non-Overworld cleanup preserves regular mobs" {
     var mm = try MobManager.init(std.testing.allocator, 0);
     defer mm.deinit();
-
     try mm.spawnMob(.sheep, 0, 64, 0);
     try mm.spawnCreaking(.{ 10, 64, 10 }, 12, 64, 10);
-    try std.testing.expectEqual(@as(usize, 2), mm.mobs.items.len);
-
-    // On failed dimension switch: live mobs are preserved!
-    const switch_succeeded = false;
-    if (switch_succeeded) {
-        mm.clearAllCreakings();
-    }
-    try std.testing.expectEqual(@as(usize, 2), mm.mobs.items.len);
-
-    // On successful dimension switch: creakings cleared, regular mobs preserved!
-    const real_switch_succeeded = true;
-    if (real_switch_succeeded) {
-        mm.clearAllCreakings();
-    }
+    const World = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return false; }
+    };
+    const pos = math.Vec3.init(0, 64, 0);
+    mm.tickCreakings(null, World.solid, pos, pos, pos, true, false, false, false);
     try std.testing.expectEqual(@as(usize, 1), mm.mobs.items.len);
     try std.testing.expectEqual(mm.mobs.items[0].mob_type, .sheep);
 }
@@ -1350,4 +1371,40 @@ test "MobManager Creaking hit invulnerability and shared resin cooldown with F p
     tracker.tickSeconds(5.0);
     const f_reavailable = tracker.tryExtrudeResin(heart_pos, .pale_oak_log, .pale_oak_log, true, false);
     try std.testing.expectEqual(pale_garden_mod.ExtrudeStatus.extruded, f_reavailable.status);
+}
+
+test "Creaking spawn requires safe supported three-block clearance" {
+    var mgr = try chunk_manager_mod.ChunkManager.initWithOptions(std.testing.allocator, 0, 0, 0, 1337, ".zig-cache/creaking-spawn-fixture", false);
+    defer {
+        var iter = mgr.chunks.iterator();
+        while (iter.next()) |entry| entry.value_ptr.modified = false;
+        mgr.deinit();
+    }
+    for (0..16) |x| for (0..16) |z| {
+        for (0..9) |y| {
+            try std.testing.expect(mgr.setBlockWorld(@intCast(x), @intCast(y), @intCast(z), if (y == 1) .stone else .air));
+        }
+    };
+    const heart = [3]i32{ 8, 4, 8 };
+    try std.testing.expect(MobManager.findSafeSpawnNearHeart(&mgr, heart) != null);
+    for (0..16) |x| for (0..16) |z| {
+        try std.testing.expect(mgr.setBlockWorld(@intCast(x), 1, @intCast(z), .magma));
+    };
+    try std.testing.expect(MobManager.findSafeSpawnNearHeart(&mgr, heart) == null);
+    for (0..16) |x| for (0..16) |z| {
+        try std.testing.expect(mgr.setBlockWorld(@intCast(x), 1, @intCast(z), .stone));
+    };
+    for ([_]block_mod.BlockId{ .water, .lava, .campfire, .stone }) |obstacle| {
+        for (0..16) |x| for (0..16) |z| {
+            if (obstacle == .stone) {
+                for (4..9) |y| try std.testing.expect(mgr.setBlockWorld(@intCast(x), @intCast(y), @intCast(z), obstacle));
+            } else try std.testing.expect(mgr.setBlockWorld(@intCast(x), 2, @intCast(z), obstacle));
+        };
+        try std.testing.expect(MobManager.findSafeSpawnNearHeart(&mgr, heart) == null);
+        for (0..16) |x| for (0..16) |z| {
+            if (obstacle == .stone) {
+                for (4..9) |y| try std.testing.expect(mgr.setBlockWorld(@intCast(x), @intCast(y), @intCast(z), .air));
+            } else try std.testing.expect(mgr.setBlockWorld(@intCast(x), 2, @intCast(z), .air));
+        };
+    }
 }
