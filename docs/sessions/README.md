@@ -7,6 +7,7 @@ belong in the pull request description, not in a separate file.
 
 ## Recent sessions
 
+- 2026-11-02: Added numeric stack counts to existing hotbar, inventory, crafting and cursor rendering. Quad batches handle all u8 counts; live frames showed 64 to 63 and 16 to 15 after placement. A resize exposed the existing fixed-aspect layout limitation.
 - 2026-11-02: Persisted dimension-isolated hopper/dropper inventories and cooldown/power state, paused unloaded automation, and kept items on failed insertion. Worker live restart checks passed; a portal playthrough was not performed.
 - 2026-11-02: Restored held-left timed mining while retaining press-only inventory, placement and melee actions. A fresh-build Xvfb run verified held mining, release, one placement, one inventory transfer and clean shutdown; crafting, mob combat and portal travel remain unchecked.
 - 2026-11-02: Cleared temporary effects, flight and stale contact flags on respawn; regression tests cover post-respawn vitals/physics and retained equipment/navigation facts. Interactive death/respawn was not checked.
@@ -29,10 +30,6 @@ belong in the pull request description, not in a separate file.
   external-PR handling and parallel-session descriptions. Corrected CI's
   metadata range to exclude GitHub's temporary PR merge identity, and
   blocked local agent context/settings from publication.
-- 2026-10-30: Triaged all 67 remaining legacy PRs: 65 superseded, two
-  disconnected proposals declined with their code retained in closed PRs.
-  Removed 72 remote branches and one local branch. Retained historical
-  emails and paths; refreshed publication checks and the roadmap.
 
 ## History
 
