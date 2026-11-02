@@ -11,7 +11,7 @@ Git history.
 | Check | Last result |
 |-------|-------------|
 | CI on `main` | 2026-10-30: hosted jobs run again on the public repository. `build-and-test` and `public-content` are required for an up-to-date PR, including for administrators, with no human review approval required. See [current main runs](https://github.com/Soul4723/zigcraft/actions/workflows/ci.yml?query=branch%3Amain) for job results. |
-| Build and full test suite | 2026-11-02, Zig 0.16.0: build passed; 12,563 of 12,563 tests passed across 611 steps. Setup pins the compiler locally; LLVM/LLD are selected for compatibility with recent Linux C runtime objects. |
+| Build and full test suite | 2026-11-02, Zig 0.16.0: build passed; 12,565 of 12,565 tests passed across 611 steps. Setup pins the compiler locally; LLVM/LLD are selected for compatibility with recent Linux C runtime objects. |
 | Running the game | 2026-11-02: `zig build run` failed at GLFW initialization in this environment; gameplay was not checked. |
 
 Zig 0.17 cannot compile `build.zig` (`b.args` no longer exists). Use 0.16.0.
@@ -42,7 +42,7 @@ These systems are driven by input or the frame loop in `src/main.zig` and
   Dragon), with spawn rules, simple AI, pathfinding and box-model rendering.
 - Redstone: wire with 15-block falloff, torches, repeaters, levers, pressure
   plates, lamps and iron doors, plus dispensers, droppers and hoppers.
-- TNT, falling sand, water flow with levels, water washing away redstone.
+- TNT, falling sand, water flow with levels, water washing away redstone. Player explosion damage reaches its maximum at the blast center with finite upward knockback and zero horizontal push there.
 - Nether portal and End portal travel, with dimension-specific terrain, sky
   and fog.
 - Day and night cycle, sleeping, particles, procedural sound through ALSA.

@@ -16,7 +16,8 @@ pub fn inBlast(dx: i32, dy: i32, dz: i32) bool {
 }
 
 pub fn blastFalloff(dist: f32) f32 {
-    if (dist >= player_blast_radius or dist <= 0.1) return 0.0;
+    if (dist >= player_blast_radius) return 0.0;
+    if (dist <= 0.0) return 1.0;
     return (player_blast_radius - dist) / player_blast_radius;
 }
 
@@ -29,7 +30,8 @@ test "blast sphere membership" {
 }
 
 test "blast falloff curve" {
-    try std.testing.expectEqual(blastFalloff(0.05), 0.0);
+    try std.testing.expectEqual(@as(f32, 1.0), blastFalloff(0.0));
+    try std.testing.expectApproxEqAbs(@as(f32, 0.99285716), blastFalloff(0.05), 0.0001);
     try std.testing.expectEqual(blastFalloff(7.0), 0.0);
     try std.testing.expectEqual(blastFalloff(9.0), 0.0);
     const mid = blastFalloff(3.5);
@@ -66,13 +68,14 @@ pub fn calculatePlayerBlastImpulse(player_x: f32, player_y: f32, player_z: f32, 
     const pdy = player_y - @as(f32, @floatFromInt(ey));
     const pdz = player_z - @as(f32, @floatFromInt(ez));
     const pdist = @sqrt(pdx * pdx + pdy * pdy + pdz * pdz);
+    if (!std.math.isFinite(pdist)) return null;
     const blast_force = blastFalloff(pdist);
-    if (blast_force <= 0.0 or pdist <= 0.001) return null;
+    if (blast_force <= 0.0) return null;
     return BlastImpulse{
         .damage = blast_force * player_blast_damage,
         .vel_y = blast_force * 12.0,
-        .push_x = (pdx / pdist) * blast_force * 3.0,
-        .push_z = (pdz / pdist) * blast_force * 3.0,
+        .push_x = if (pdist > 0.0) (pdx / pdist) * blast_force * 3.0 else 0.0,
+        .push_z = if (pdist > 0.0) (pdz / pdist) * blast_force * 3.0 else 0.0,
     };
 }
 
@@ -89,6 +92,32 @@ test "player blast impulse calculation" {
 
     // Player far outside blast radius
     try std.testing.expect(calculatePlayerBlastImpulse(10.0, 0.0, 0.0, 0, 0, 0) == null);
+}
+
+test "player blast at center deals maximum damage with finite upward impulse" {
+    const imp = calculatePlayerBlastImpulse(0.0, 0.0, 0.0, 0, 0, 0);
+    try std.testing.expect(imp != null);
+    if (imp) |val| {
+        try std.testing.expectEqual(player_blast_damage, val.damage);
+        try std.testing.expectEqual(@as(f32, 12.0), val.vel_y);
+        try std.testing.expectEqual(@as(f32, 0.0), val.push_x);
+        try std.testing.expectEqual(@as(f32, 0.0), val.push_z);
+        try std.testing.expect(std.math.isFinite(val.damage));
+        try std.testing.expect(std.math.isFinite(val.vel_y));
+        try std.testing.expect(std.math.isFinite(val.push_x));
+        try std.testing.expect(std.math.isFinite(val.push_z));
+    }
+}
+
+test "player blast just off center deals near-maximum damage" {
+    const imp = calculatePlayerBlastImpulse(0.05, 0.0, 0.0, 0, 0, 0);
+    try std.testing.expect(imp != null);
+    if (imp) |val| {
+        try std.testing.expectApproxEqAbs(@as(f32, 13.9), val.damage, 0.0001);
+        try std.testing.expect(val.damage < player_blast_damage);
+        try std.testing.expect(val.push_x > 0.0);
+        try std.testing.expectEqual(@as(f32, 0.0), val.push_z);
+    }
 }
 
 pub const MobBlastHit = struct {
