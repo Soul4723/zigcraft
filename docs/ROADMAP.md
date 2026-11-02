@@ -16,10 +16,10 @@ When an item is done, delete it here and update STATUS.md.
 
 - Required hosted checks protect `main`. Diagnose failed checks before
   adding work; leave externally blocked PRs open and take another task.
-- Play the game and record in STATUS.md what works in the first minutes:
-  spawn, mining, placing, crafting, mobs, a portal trip. The last run only
-  checked that the game starts. If no display is available, record that
-  limit and choose work that can be checked locally.
+- Complete live baseline checks of placing, crafting, mob combat and a portal
+  trip. Xvfb with software OpenGL can run the game without a physical display;
+  held-click mining has been exercised with synthesized input. Record actual
+  observations and test-harness limits in STATUS.md.
 
 ## 2. Fix world and save correctness
 

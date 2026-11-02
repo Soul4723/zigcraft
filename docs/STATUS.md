@@ -12,7 +12,7 @@ Git history.
 |-------|-------------|
 | CI on `main` | 2026-10-30: hosted jobs run again on the public repository. `build-and-test` and `public-content` are required for an up-to-date PR, including for administrators, with no human review approval required. See [current main runs](https://github.com/Soul4723/zigcraft/actions/workflows/ci.yml?query=branch%3Amain) for job results. |
 | Build and full test suite | 2026-11-02, Zig 0.16.0: build passed; 12,571 of 12,571 tests passed across 611 steps. Setup pins the compiler locally; LLVM/LLD are selected for compatibility with recent Linux C runtime objects. |
-| Running the game | 2026-11-02: `zig build run` failed at GLFW initialization in this environment; gameplay was not checked. |
+| Running the game | 2026-11-02: Xvfb with software OpenGL and synthesized input exercised held-click mining, destroying four dirt blocks. That harness timed out waiting for shutdown; placement, inventory interaction, mob combat and portal travel were not confirmed in that run. |
 
 Zig 0.17 cannot compile `build.zig` (`b.args` no longer exists). Use 0.16.0.
 
@@ -27,7 +27,7 @@ These systems are driven by input or the frame loop in `src/main.zig` and
   and End generators live in the same file.
 - Chunk streaming in a 7×7 chunk area around the player, greedy meshing with
   ambient occlusion, frustum culling, procedural texture atlas.
-- Block picking by voxel raycast, outline highlight, mining time by tool tier,
+- Block picking by voxel raycast, outline highlight, held-left mining time by tool tier,
   tool wear, block placement.
 - Death and respawn clear temporary status effects, flight/propulsion and stale ground/fluid contact; equipment-derived Soul Speed and navigation targets remain intact.
 - Player physics: gravity, collision, jumping, sprinting, swimming, ladders,
