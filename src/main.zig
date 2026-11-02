@@ -6749,43 +6749,32 @@ pub fn main() !void {
                     flint_cooldown = interact_mod.flint_edge_cooldown;
                 } else
                 if (target == .obsidian) {
-                    // Check if adjacent open face is inside a valid 2x3 nether portal frame
-                    const adj_inside = [_][3]i32{
-                        .{ hit_f.x, hit_f.y + 1, hit_f.z },
-                        .{ hit_f.x + 1, hit_f.y, hit_f.z },
-                        .{ hit_f.x - 1, hit_f.y, hit_f.z },
-                        .{ hit_f.x, hit_f.y, hit_f.z + 1 },
-                        .{ hit_f.x, hit_f.y, hit_f.z - 1 },
-                    };
                     var activated = false;
-                    for (adj_inside) |cpos| {
-                        if (portal_mod.detectPortalFrame(&pickBlockWorld, cpos[0], cpos[1], cpos[2])) |frame| {
-                            var h: i32 = 0;
-                            while (h < frame.height) : (h += 1) {
-                                var w: i32 = 0;
-                                while (w < frame.width) : (w += 1) {
-                                    const cx = if (frame.axis == .x_axis) frame.interior_min_x + w else frame.interior_min_x;
-                                    const cy = frame.interior_min_y + h;
-                                    const cz = if (frame.axis == .z_axis) frame.interior_min_z + w else frame.interior_min_z;
-                                    _ = try manager.editAndRemesh(cx, cy, cz, .nether_portal);
-                                    particles.spawnPortalParticles(.{ @as(f32, @floatFromInt(cx)) + 0.5, @as(f32, @floatFromInt(cy)) + 0.5, @as(f32, @floatFromInt(cz)) + 0.5 }, 5);
-                                }
+                    if (portal_mod.detectPortalFrameAdjacentToObsidian(&pickBlockWorld, hit_f.x, hit_f.y, hit_f.z)) |frame| {
+                        var h: i32 = 0;
+                        while (h < frame.height) : (h += 1) {
+                            var w: i32 = 0;
+                            while (w < frame.width) : (w += 1) {
+                                const cx = if (frame.axis == .x_axis) frame.interior_min_x + w else frame.interior_min_x;
+                                const cy = frame.interior_min_y + h;
+                                const cz = if (frame.axis == .z_axis) frame.interior_min_z + w else frame.interior_min_z;
+                                _ = try manager.editAndRemesh(cx, cy, cz, .nether_portal);
+                                particles.spawnPortalParticles(.{ @as(f32, @floatFromInt(cx)) + 0.5, @as(f32, @floatFromInt(cy)) + 0.5, @as(f32, @floatFromInt(cz)) + 0.5 }, 5);
                             }
-                            if (portal_target_count < portal_targets.len) {
-                                const cur_dim: portal_mod.Dimension = if (manager.is_nether) .nether else .overworld;
-                                portal_targets[portal_target_count] = .{
-                                    .x = frame.interior_min_x,
-                                    .y = frame.interior_min_y,
-                                    .z = frame.interior_min_z,
-                                    .dim = cur_dim,
-                                };
-                                portal_target_count += 1;
-                            }
-                            audio.play(.portal_hum, 0.9);
-                            std.debug.print("activated nether portal frame ({d}x{d}) at ({d},{d},{d})\n", .{ frame.width, frame.height, frame.interior_min_x, frame.interior_min_y, frame.interior_min_z });
-                            activated = true;
-                            break;
                         }
+                        if (portal_target_count < portal_targets.len) {
+                            const cur_dim: portal_mod.Dimension = if (manager.is_nether) .nether else .overworld;
+                            portal_targets[portal_target_count] = .{
+                                .x = frame.interior_min_x,
+                                .y = frame.interior_min_y,
+                                .z = frame.interior_min_z,
+                                .dim = cur_dim,
+                            };
+                            portal_target_count += 1;
+                        }
+                        audio.play(.portal_hum, 0.9);
+                        std.debug.print("activated nether portal frame ({d}x{d}) at ({d},{d},{d})\n", .{ frame.width, frame.height, frame.interior_min_x, frame.interior_min_y, frame.interior_min_z });
+                        activated = true;
                     }
                     if (!activated) {
                         particles.spawnFlame(hit_f.x, hit_f.y, hit_f.z, 4);

@@ -33,6 +33,26 @@ pub fn detectPortalFrame(lookup: BlockLookupFn, x: i32, y: i32, z: i32) ?PortalF
     return null;
 }
 
+/// Find a valid portal frame whose interior touches the given obsidian block.
+/// This covers all six faces so top lintels, bottom sills, and either jamb can
+/// be used as the ignition target.
+pub fn detectPortalFrameAdjacentToObsidian(lookup: BlockLookupFn, x: i32, y: i32, z: i32) ?PortalFrame {
+    if (lookup(x, y, z) != .obsidian) return null;
+
+    const adjacent_inside = [_][3]i32{
+        .{ x, y + 1, z },
+        .{ x, y - 1, z },
+        .{ x + 1, y, z },
+        .{ x - 1, y, z },
+        .{ x, y, z + 1 },
+        .{ x, y, z - 1 },
+    };
+    for (adjacent_inside) |inside| {
+        if (detectPortalFrame(lookup, inside[0], inside[1], inside[2])) |frame| return frame;
+    }
+    return null;
+}
+
 fn detectFrameOnAxis(lookup: BlockLookupFn, x: i32, y: i32, z: i32, axis: PortalAxis) ?PortalFrame {
     // A 2x3 interior has width=2 along primary axis, height=3 along Y.
     // The candidate interior point (x, y, z) could be at horizontal offset dx in [0, 1]
@@ -176,6 +196,66 @@ test "detectPortalFrame rejects broken or incomplete frame" {
     };
 
     try std.testing.expect(detectPortalFrame(Mock.get, 1, 1, 0) == null);
+}
+
+test "ignition lookup finds valid frames from lintels sills and jambs on both axes" {
+    const World = struct {
+        fn get(x: i32, y: i32, z: i32) BlockId {
+            if (y >= 1 and y <= 5 and z == 2 and x >= 2 and x <= 5) {
+                const w = x - 2;
+                const h = y - 1;
+                if (w == 0 or w == 3 or h == 0 or h == 4) return .obsidian;
+            }
+            if (y >= 1 and y <= 5 and x == 6 and z >= 6 and z <= 9) {
+                const w = z - 6;
+                const h = y - 1;
+                if (w == 0 or w == 3 or h == 0 or h == 4) return .obsidian;
+            }
+            return .air;
+        }
+    };
+    const BrokenWorld = struct {
+        fn get(x: i32, y: i32, z: i32) BlockId {
+            if (x == 4 and y == 5 and z == 2) return .air;
+            return World.get(x, y, z);
+        }
+    };
+
+    // The actual top lintel hit was previously missed because y - 1 was absent.
+    const top = detectPortalFrameAdjacentToObsidian(World.get, 3, 5, 2);
+    try std.testing.expect(top != null);
+    try std.testing.expectEqual(PortalAxis.x_axis, top.?.axis);
+    try std.testing.expectEqual(@as(i32, 3), top.?.interior_min_x);
+    try std.testing.expectEqual(@as(i32, 2), top.?.interior_min_y);
+
+    const sill = detectPortalFrameAdjacentToObsidian(World.get, 3, 1, 2);
+    try std.testing.expect(sill != null);
+    try std.testing.expectEqual(PortalAxis.x_axis, sill.?.axis);
+
+    const jamb = detectPortalFrameAdjacentToObsidian(World.get, 2, 3, 2);
+    try std.testing.expect(jamb != null);
+    try std.testing.expectEqual(PortalAxis.x_axis, jamb.?.axis);
+
+    const z_top = detectPortalFrameAdjacentToObsidian(World.get, 6, 5, 8);
+    try std.testing.expect(z_top != null);
+    try std.testing.expectEqual(PortalAxis.z_axis, z_top.?.axis);
+    try std.testing.expectEqual(@as(i32, 6), z_top.?.interior_min_x);
+    try std.testing.expectEqual(@as(i32, 2), z_top.?.interior_min_y);
+    try std.testing.expectEqual(@as(i32, 7), z_top.?.interior_min_z);
+
+    const z_sill = detectPortalFrameAdjacentToObsidian(World.get, 6, 1, 8);
+    try std.testing.expect(z_sill != null);
+    try std.testing.expectEqual(PortalAxis.z_axis, z_sill.?.axis);
+
+    const z_jamb = detectPortalFrameAdjacentToObsidian(World.get, 6, 3, 6);
+    try std.testing.expect(z_jamb != null);
+    try std.testing.expectEqual(PortalAxis.z_axis, z_jamb.?.axis);
+
+    // The hit remains obsidian with adjacent interior air, but the second
+    // lintel block is missing so this frame must not ignite.
+    try std.testing.expectEqual(.obsidian, BrokenWorld.get(3, 5, 2));
+    try std.testing.expectEqual(.air, BrokenWorld.get(3, 4, 2));
+    try std.testing.expect(detectPortalFrameAdjacentToObsidian(BrokenWorld.get, 3, 5, 2) == null);
 }
 
 /// Activate portal: given a detected PortalFrame, fill its interior cells with nether_portal.
