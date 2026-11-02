@@ -117,6 +117,20 @@ pub fn findChest(chests: anytype, n: usize, x: i32, y: i32, z: i32) ?usize {
     return find2D(chests, n, x, y, z);
 }
 
+/// Initialize the cache for a newly placed chest or shulker box.
+pub fn initPlacedChest(chests: anytype, count: *usize, x: i32, y: i32, z: i32) void {
+    const index = findChest(chests, count.*, x, y, z) orelse new: {
+        if (!canCreateChest(count.*, chests.len)) return;
+        const next = count.*;
+        count.* += 1;
+        break :new next;
+    };
+    chests[index].x = x;
+    chests[index].y = y;
+    chests[index].z = z;
+    for (&chests[index].items) |*slot| slot.* = .{};
+}
+
 test "findChest helper" {
     const FakeChest = struct { x: i32, y: i32, z: i32 };
     var cs = [_]FakeChest{.{ .x = 1, .y = 2, .z = 3 }} ** 2;

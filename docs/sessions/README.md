@@ -7,7 +7,7 @@ belong in the pull request description, not in a separate file.
 
 ## Recent sessions
 
-- 2026-11-02: Persisted four-slot chest and shulker caches by dimension, including emptied fortress loot, and enforced item stack limits on deposits; hopper and dropper caches remain unsaved and not dimension-isolated.
+- 2026-11-02: Persisted four-slot chest and shulker caches by dimension, including emptied fortress loot, enforced item stack limits, and cleaned destroyed container cache entries; hopper and dropper caches remain unsaved and not dimension-isolated.
 - 2026-10-31: Persisted furnace, smoker, blast-furnace jobs and growing saplings in per-dimension block_jobs.bin files with offline/unloaded pausing, preflight transit rollback, and ENOENT missing-file checks.
 - 2026-10-31: Corrected CONTRIBUTING documentation on Zig 0.16 lazy test collection, documented semantic analysis rules and minimal fixtures in learnings, and confirmed explicit test_files registration policy.
 - 2026-10-31: Split inventory item definitions, recipe resolution and container logic into focused modules, preserving the original rules and test suite.

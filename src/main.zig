@@ -3619,7 +3619,9 @@ pub fn main() !void {
                                                     const bz = hit.z + cr_z;
                                                     const b_to_break = manager.getBlockWorld(bx, by, bz);
                                                     if (b_to_break != .obsidian and b_to_break != .air) {
-                                                        _ = try manager.editAndRemesh(bx, by, bz, .air);
+                                                        if (try manager.editAndRemesh(bx, by, bz, .air)) {
+                                                            if (cache_mod.findChest(&chests, chest_count, bx, by, bz)) |ci| cache_mod.swapRemove(&chests, &chest_count, ci);
+                                                        }
                                                     }
                                                 }
                                             }
@@ -3973,9 +3975,8 @@ pub fn main() !void {
                                             torches[torch_count] = .{ .x = px, .y = py, .z = pz };
                                             torch_count += 1;
                                         }
-                                        if ((place_type == .chest or place_type == .shulker_box) and cache_mod.canCreateChest(chest_count, chests.len)) {
-                                            chests[chest_count] = .{ .x = px, .y = py, .z = pz, .items = [_]inventory_mod.ItemStack{.{}} ** 4 };
-                                            chest_count += 1;
+                                        if (place_type == .chest or place_type == .shulker_box) {
+                                            cache_mod.initPlacedChest(&chests, &chest_count, px, py, pz);
                                         }
                                         if (place_type == .brewing_stand and brewing_stand_count < brewing_stands.len) {
                                             brewing_stands[brewing_stand_count] = .{ .x = px, .y = py, .z = pz };
@@ -6791,7 +6792,9 @@ pub fn main() !void {
                                             const bx = ex + rx;
                                             const by = ey + ry;
                                             const bz = ez + rz;
-                                            if (by > 0) _ = try manager.editAndRemesh(bx, by, bz, .air);
+                                            if (by > 0 and try manager.editAndRemesh(bx, by, bz, .air)) {
+                                                if (cache_mod.findChest(&chests, chest_count, bx, by, bz)) |ci| cache_mod.swapRemove(&chests, &chest_count, ci);
+                                            }
                                         }
                                     }
                                 }

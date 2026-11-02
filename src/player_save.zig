@@ -285,3 +285,26 @@ test "container deposits respect tool stack limits and remain saveable" {
     slots = [_]inventory_mod.ItemStack{.{ .item = .wooden_pickaxe, .count = 1 }} ** 4;
     try std.testing.expectEqual(@as(?usize, null), cache.findDepositSlot(&slots, inventory_mod.ItemType.wooden_pickaxe));
 }
+
+test "replacing a stale container reuses its entry and remains saveable" {
+    const cache = @import("world/component_cache.zig");
+    const Chest = struct { x: i32, y: i32, z: i32, items: [4]inventory_mod.ItemStack };
+    var chests: [16]Chest = undefined;
+    var count: usize = 0;
+    cache.initPlacedChest(&chests, &count, 3, 4, 5);
+    chests[0].items[0] = .{ .item = .diamond, .count = 4 };
+    cache.initPlacedChest(&chests, &count, 3, 4, 5);
+    try std.testing.expectEqual(@as(usize, 1), count);
+    try std.testing.expect(chests[0].items[0].isEmpty());
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var path_buf: [256:0]u8 = undefined;
+    const path = try std.fmt.bufPrintZ(&path_buf, ".zig-cache/tmp/{s}", .{tmp.sub_path});
+    try std.testing.expect(persistence_mod.Persistence.init(path).saveContainers(chests[0..count]));
+    for (1..16) |i| cache.initPlacedChest(&chests, &count, @intCast(i), 1, 0);
+    try std.testing.expectEqual(@as(usize, 16), count);
+    cache.initPlacedChest(&chests, &count, 3, 4, 5);
+    try std.testing.expectEqual(@as(usize, 16), count);
+    cache.initPlacedChest(&chests, &count, 99, 1, 0);
+    try std.testing.expectEqual(@as(usize, 16), count);
+}
