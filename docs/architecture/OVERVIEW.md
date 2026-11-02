@@ -111,3 +111,8 @@ to `test_files`.
 - [learnings/zig-0.16-changes.md](../learnings/zig-0.16-changes.md): Zig 0.16 API notes
 - [learnings/build-and-slice-lifetimes.md](../learnings/build-and-slice-lifetimes.md): compiler setup and borrowed-slice lifetimes
 - [research/](../research/): meshing, rendering, terrain, math and C interop notes
+
+`window_size.zig` separates logical window input coordinates from framebuffer
+pixels. The frame loop validates both sizes before drawing, updates the viewport
+and projection from framebuffer dimensions, and maps the inventory cursor using
+logical dimensions.

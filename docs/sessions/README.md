@@ -7,6 +7,7 @@ belong in the pull request description, not in a separate file.
 
 ## Recent sessions
 
+- 2026-11-02: Adapted viewport/projection to framebuffer size and inventory input to logical window size; zero sizes pause rendering. Parent live resize/click checks passed at 960×720 and 1500×720 with clean exit; real HiDPI/minimize behavior remains unverified.
 - 2026-11-02: Added numeric stack counts to existing hotbar, inventory, crafting and cursor rendering. Quad batches handle all u8 counts; live frames showed 64 to 63 and 16 to 15 after placement. A resize exposed the existing fixed-aspect layout limitation.
 - 2026-11-02: Persisted dimension-isolated hopper/dropper inventories and cooldown/power state, paused unloaded automation, and kept items on failed insertion. Worker live restart checks passed; a portal playthrough was not performed.
 - 2026-11-02: Restored held-left timed mining while retaining press-only inventory, placement and melee actions. A fresh-build Xvfb run verified held mining, release, one placement, one inventory transfer and clean shutdown; crafting, mob combat and portal travel remain unchecked.
@@ -24,12 +25,6 @@ belong in the pull request description, not in a separate file.
   bricks and removed the raw-clump crafting shortcut; in-world resin drops
   remain unconnected.
 - 2026-10-31: Isolated dimension save namespaces (Overworld in root, Nether and The End in subdirectories), added ChunkManager dimension switching with chunk flushing and headless mesh bypass, and wired portal transit.
-- 2026-10-30: Public final pass. Added Gemini and Claude entry points that
-  import AGENTS.md, enabled required hosted checks and native secret/push
-  protection, removed the obsolete local merge fallback, and clarified
-  external-PR handling and parallel-session descriptions. Corrected CI's
-  metadata range to exclude GitHub's temporary PR merge identity, and
-  blocked local agent context/settings from publication.
 
 ## History
 
