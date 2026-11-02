@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-10-31.
+Last updated: 2026-11-02.
 
 The project has far more rule modules than game. The next work makes
 existing mechanics real in the game and removes duplicates. Adding another
@@ -23,7 +23,7 @@ When an item is done, delete it here and update STATUS.md.
 
 ## 2. Fix world and save correctness
 
-- Save placed container contents (chests, shulker boxes) across quit/restart and portal dimension switches, isolating container caches by dimension.
+- Persist and isolate hopper and dropper state by dimension; prevent item loss on failed dropper insertion and container break overflow.
 
 ## 3. Connect or remove disconnected modules
 

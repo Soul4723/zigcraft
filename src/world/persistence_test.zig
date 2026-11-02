@@ -1163,3 +1163,70 @@ test "loadBlockJobs returns corrupt on path buffer construction failure" {
     try std.testing.expectEqual(persistence_mod.LoadJobsResult.corrupt, p.loadBlockJobs(&out));
     try std.testing.expectEqual(@as(usize, 88), out.furnace_count);
 }
+
+const ContainerTestItem = enum(u16) {
+    none = 0,
+    stone = 1,
+    tool = 2,
+    pub fn maxStackSize(self: @This()) u8 { return if (self == .tool) 1 else 64; }
+};
+const ContainerTestStack = struct { item: ContainerTestItem = .none, count: u8 = 0 };
+const ContainerTestChest = struct { x: i32, y: i32, z: i32, items: [4]ContainerTestStack = [_]ContainerTestStack{.{}} ** 4 };
+
+test "container saves preserve empty and filled entries in separate dimensions" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var path_buf: [256:0]u8 = undefined;
+    const path = try std.fmt.bufPrintZ(&path_buf, ".zig-cache/tmp/{s}", .{tmp.sub_path});
+    const overworld = Persistence.init(path);
+    const nether = overworld.withDimension(.nether);
+    var source = [_]ContainerTestChest{
+        .{ .x = 1, .y = 5, .z = -2, .items = .{ .{ .item = .stone, .count = 27 }, .{ .item = .tool, .count = 1 }, .{}, .{} } },
+        .{ .x = 3, .y = 4, .z = 5 },
+    };
+    try std.testing.expect(overworld.saveContainers(&source));
+    var dest: [16]ContainerTestChest = undefined;
+    var count: usize = 99;
+    try std.testing.expectEqual(.absent, nether.loadContainers(&dest, &count));
+    try std.testing.expectEqual(0, count);
+    var other = [_]ContainerTestChest{.{ .x = 1, .y = 5, .z = -2, .items = .{ .{ .item = .stone, .count = 2 }, .{}, .{}, .{} } }};
+    try std.testing.expect(nether.saveContainers(&other));
+    try std.testing.expectEqual(.ok, overworld.loadContainers(&dest, &count));
+    try std.testing.expectEqual(2, count);
+    try std.testing.expectEqualDeep(source, dest[0..2].*);
+    try std.testing.expectEqual(.ok, nether.loadContainers(&dest, &count));
+    try std.testing.expectEqual(1, count);
+    try std.testing.expectEqualDeep(other[0], dest[0]);
+    try std.testing.expectEqual(.ok, overworld.loadContainers(&dest, &count));
+    try std.testing.expectEqualDeep(source, dest[0..2].*);
+}
+
+test "container loader rejects malformed files without changing live state" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var path_buf: [256:0]u8 = undefined;
+    const path = try std.fmt.bufPrintZ(&path_buf, ".zig-cache/tmp/{s}", .{tmp.sub_path});
+    const p = Persistence.init(path);
+    var dest = [_]ContainerTestChest{.{ .x = 42, .y = 1, .z = 0 }} ** 16;
+    var count: usize = 1;
+    var data = [_]u8{0} ** 35;
+    @memcpy(data[0..4], "ZCON");
+    data[4] = 1; data[9] = 1; data[15] = 1;
+    const cases = [_]struct { index: usize, value: u8, len: usize }{
+        .{ .index = 0, .value = 'X', .len = 35 },
+        .{ .index = 4, .value = 2, .len = 35 },
+        .{ .index = 8, .value = 1, .len = 35 },
+        .{ .index = 9, .value = 17, .len = 35 },
+        .{ .index = 15, .value = 16, .len = 35 },
+        .{ .index = 23, .value = 255, .len = 35 },
+        .{ .index = 25, .value = 1, .len = 35 },
+        .{ .index = 0, .value = 'Z', .len = 34 },
+    };
+    for (cases) |case| {
+        var bad = data; bad[case.index] = case.value;
+        try tmp.dir.writeFile(std.testing.io, .{ .sub_path = "containers.bin", .data = bad[0..case.len] });
+        try std.testing.expectEqual(.corrupt, p.loadContainers(&dest, &count));
+        try std.testing.expectEqual(1, count);
+        try std.testing.expectEqual(42, dest[0].x);
+    }
+}

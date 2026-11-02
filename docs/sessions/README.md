@@ -7,6 +7,7 @@ belong in the pull request description, not in a separate file.
 
 ## Recent sessions
 
+- 2026-11-02: Persisted four-slot chest and shulker caches by dimension, including emptied fortress loot, enforced item stack limits, and cleaned destroyed container cache entries; hopper and dropper caches remain unsaved and not dimension-isolated.
 - 2026-10-31: Persisted furnace, smoker, blast-furnace jobs and growing saplings in per-dimension block_jobs.bin files with offline/unloaded pausing, preflight transit rollback, and ENOENT missing-file checks.
 - 2026-10-31: Corrected CONTRIBUTING documentation on Zig 0.16 lazy test collection, documented semantic analysis rules and minimal fixtures in learnings, and confirmed explicit test_files registration policy.
 - 2026-10-31: Split inventory item definitions, recipe resolution and container logic into focused modules, preserving the original rules and test suite.
@@ -41,8 +42,6 @@ belong in the pull request description, not in a separate file.
   recipes.
 - 2026-10-29, sessions 421 to 426: Trial spawner, mace, vault, crafter,
   bogged and ominous bottle rule modules (milestones 525 to 530).
-- 2026-10-29, sessions 415 to 420: Elder guardian, Nether portal
-  scaling and dragon respawn modules; waves 23 and 24 integrated the same way.
 
 ## History
 

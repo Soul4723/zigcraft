@@ -535,6 +535,10 @@ pub fn main() !void {
     const Chest = struct { x: i32, y: i32, z: i32, items: [4]inventory_mod.ItemStack };
     var chests: [cache_mod.chest_cap]Chest = undefined;
     var chest_count: usize = 0;
+    if (manager.persistence.loadContainers(&chests, &chest_count) == .corrupt) {
+        std.debug.print("fatal: container save is corrupt or unreadable\n", .{});
+        return error.CorruptContainerSave;
+    }
     var sprouts: [sapling_mod.sprout_cap]sapling_mod.Sprout = undefined;
     var sprout_count: usize = 0;
     {
@@ -1476,6 +1480,16 @@ pub fn main() !void {
                 // Preflight target job load/validation into temporary state before committing switch
                 var staged_target_jobs = block_jobs_mod.BlockJobsData{};
                 const target_persistence = manager.persistence.withDimension(target_dim);
+                var target_chests: [cache_mod.chest_cap]Chest = undefined;
+                var target_chest_count: usize = 0;
+                if (target_persistence.loadContainers(&target_chests, &target_chest_count) == .corrupt or
+                    !manager.persistence.saveContainers(chests[0..chest_count])) {
+                    end_portal_transit.current_dim = if (end_portal_transit.current_dim == .the_end) .overworld else .the_end;
+                    chunk_retry_timer = 1.0;
+                    std.debug.print("dimension transit paused: container save failed or target is corrupt\n", .{});
+                    continue;
+                }
+
                 const target_load_res = target_persistence.loadBlockJobs(&staged_target_jobs);
                 if (target_load_res == .corrupt) {
                     end_portal_transit.current_dim = if (end_portal_transit.current_dim == .the_end) .overworld else .the_end;
@@ -1515,6 +1529,8 @@ pub fn main() !void {
                     red_torch_count = 0;
                     known_stage_count = 0;
 
+                    @memcpy(chests[0..target_chest_count], target_chests[0..target_chest_count]);
+                    chest_count = target_chest_count;
                     block_jobs_mod.applyBlockJobs(&staged_target_jobs, &furnaces, &furnace_count, &smokers, &smoker_count, &blast_furnaces, &blast_furnace_count, &sprouts, &sprout_count);
 
                     if (end_portal_transit.current_dim == .the_end) {
@@ -1594,6 +1610,16 @@ pub fn main() !void {
                 // Preflight target job load/validation into temporary state before committing switch
                 var staged_target_jobs = block_jobs_mod.BlockJobsData{};
                 const target_persistence = manager.persistence.withDimension(target_dim);
+                var target_chests: [cache_mod.chest_cap]Chest = undefined;
+                var target_chest_count: usize = 0;
+                if (target_persistence.loadContainers(&target_chests, &target_chest_count) == .corrupt or
+                    !manager.persistence.saveContainers(chests[0..chest_count])) {
+                    portal_transit.current_dim = from_dim;
+                    chunk_retry_timer = 1.0;
+                    std.debug.print("dimension transit paused: container save failed or target is corrupt\n", .{});
+                    continue;
+                }
+
                 const target_load_res = target_persistence.loadBlockJobs(&staged_target_jobs);
                 if (target_load_res == .corrupt) {
                     portal_transit.current_dim = from_dim;
@@ -1632,6 +1658,8 @@ pub fn main() !void {
                     red_torch_count = 0;
                     known_stage_count = 0;
 
+                    @memcpy(chests[0..target_chest_count], target_chests[0..target_chest_count]);
+                    chest_count = target_chest_count;
                     block_jobs_mod.applyBlockJobs(&staged_target_jobs, &furnaces, &furnace_count, &smokers, &smoker_count, &blast_furnaces, &blast_furnace_count, &sprouts, &sprout_count);
 
                     if (matched_linked) |linked| {
@@ -1893,7 +1921,7 @@ pub fn main() !void {
                                     for (&hop.items) |*hs| {
                                         if (!hs.isEmpty()) {
                                             for (&ch.items) |*cs| {
-                                                if (cs.item == hs.item and cs.count < 64) {
+                                                if (cs.item == hs.item and cs.count < cs.item.maxStackSize()) {
                                                     cs.count += 1;
                                                     hs.count -= 1;
                                                     if (hs.count == 0) hs.item = .none;
@@ -1967,7 +1995,7 @@ pub fn main() !void {
                             for (chests[0..chest_count]) |*ch| {
                                 if (ch.x == front_x and ch.y == front_y and ch.z == front_z) {
                                     for (&ch.items) |*cs| {
-                                        if (cs.item == dropped_item and cs.count < 64) {
+                                        if (cs.item == dropped_item and cs.count < cs.item.maxStackSize()) {
                                             cs.count += 1;
                                             chest_found = true;
                                             break;
@@ -3591,7 +3619,9 @@ pub fn main() !void {
                                                     const bz = hit.z + cr_z;
                                                     const b_to_break = manager.getBlockWorld(bx, by, bz);
                                                     if (b_to_break != .obsidian and b_to_break != .air) {
-                                                        _ = try manager.editAndRemesh(bx, by, bz, .air);
+                                                        if (try manager.editAndRemesh(bx, by, bz, .air)) {
+                                                            if (cache_mod.findChest(&chests, chest_count, bx, by, bz)) |ci| cache_mod.swapRemove(&chests, &chest_count, ci);
+                                                        }
                                                     }
                                                 }
                                             }
@@ -3945,9 +3975,8 @@ pub fn main() !void {
                                             torches[torch_count] = .{ .x = px, .y = py, .z = pz };
                                             torch_count += 1;
                                         }
-                                        if (place_type == .chest and cache_mod.canCreateChest(chest_count, chests.len)) {
-                                            chests[chest_count] = .{ .x = px, .y = py, .z = pz, .items = [_]inventory_mod.ItemStack{.{}} ** 4 };
-                                            chest_count += 1;
+                                        if (place_type == .chest or place_type == .shulker_box) {
+                                            cache_mod.initPlacedChest(&chests, &chest_count, px, py, pz);
                                         }
                                         if (place_type == .brewing_stand and brewing_stand_count < brewing_stands.len) {
                                             brewing_stands[brewing_stand_count] = .{ .x = px, .y = py, .z = pz };
@@ -6763,7 +6792,9 @@ pub fn main() !void {
                                             const bx = ex + rx;
                                             const by = ey + ry;
                                             const bz = ez + rz;
-                                            if (by > 0) _ = try manager.editAndRemesh(bx, by, bz, .air);
+                                            if (by > 0 and try manager.editAndRemesh(bx, by, bz, .air)) {
+                                                if (cache_mod.findChest(&chests, chest_count, bx, by, bz)) |ci| cache_mod.swapRemove(&chests, &chest_count, ci);
+                                            }
                                         }
                                     }
                                 }
@@ -7286,6 +7317,7 @@ pub fn main() !void {
             std.debug.print("block jobs save failed during shutdown\n", .{});
         }
     }
+    if (!manager.persistence.saveContainers(chests[0..chest_count])) std.debug.print("container save failed during shutdown\n", .{});
     savePlayerState(manager, &player, &cam, &inventory, cursor_stack, selected_slot, &tool_wear);
     std.debug.print("shutting down\n", .{});
 }

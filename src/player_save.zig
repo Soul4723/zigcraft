@@ -239,3 +239,72 @@ test "out-of-range ItemType ID and vitals clamp safely" {
     try std.testing.expectEqual(@as(usize, inventory_mod.Inventory.HOTBAR_SIZE - 1), slot);
     try std.testing.expectEqual(@as(f32, 1.55), cam.pitch);
 }
+
+test "live container stacks survive dimension saves and reload" {
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var path_buf: [256:0]u8 = undefined;
+    const path = try std.fmt.bufPrintZ(&path_buf, ".zig-cache/tmp/{s}", .{tmp.sub_path});
+    const Chest = struct { x: i32, y: i32, z: i32, items: [4]inventory_mod.ItemStack };
+    const p = persistence_mod.Persistence.init(path);
+    var chests: [16]Chest = undefined;
+    chests[0] = .{ .x = 3, .y = 4, .z = 5, .items = .{ .{ .item = .diamond, .count = 4 }, .{}, .{}, .{} } };
+    try std.testing.expect(p.saveContainers(chests[0..1]));
+    var count: usize = 1;
+    try std.testing.expectEqual(.absent, p.withDimension(.nether).loadContainers(&chests, &count));
+    try std.testing.expectEqual(0, count);
+    chests[0] = .{ .x = 3, .y = 4, .z = 5, .items = .{ .{ .item = .dirt, .count = 2 }, .{}, .{}, .{} } };
+    try std.testing.expect(p.withDimension(.nether).saveContainers(chests[0..1]));
+    try std.testing.expectEqual(.ok, p.loadContainers(&chests, &count));
+    try std.testing.expectEqual(inventory_mod.ItemType.diamond, chests[0].items[0].item);
+    try std.testing.expectEqual(4, chests[0].items[0].count);
+    const cache = @import("world/component_cache.zig");
+    const found = cache.findChest(&chests, count, 3, 4, 5).?;
+    const slot = cache.findDepositSlot(&chests[found].items, .diamond).?;
+    chests[found].items[slot].count += 1;
+    try std.testing.expect(p.saveContainers(chests[0..count]));
+    try std.testing.expectEqual(.ok, p.loadContainers(&chests, &count));
+    try std.testing.expectEqual(5, chests[found].items[slot].count);
+}
+
+test "container deposits respect tool stack limits and remain saveable" {
+    const cache = @import("world/component_cache.zig");
+    var slots = [_]inventory_mod.ItemStack{
+        .{ .item = .wooden_pickaxe, .count = 1 }, .{}, .{}, .{},
+    };
+    const target = cache.findDepositSlot(&slots, inventory_mod.ItemType.wooden_pickaxe).?;
+    try std.testing.expectEqual(@as(usize, 1), target);
+    slots[target] = .{ .item = .wooden_pickaxe, .count = 1 };
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var path_buf: [256:0]u8 = undefined;
+    const path = try std.fmt.bufPrintZ(&path_buf, ".zig-cache/tmp/{s}", .{tmp.sub_path});
+    const Chest = struct { x: i32, y: i32, z: i32, items: [4]inventory_mod.ItemStack };
+    const chests = [_]Chest{.{ .x = 1, .y = 2, .z = 3, .items = slots }};
+    try std.testing.expect(persistence_mod.Persistence.init(path).saveContainers(&chests));
+    slots = [_]inventory_mod.ItemStack{.{ .item = .wooden_pickaxe, .count = 1 }} ** 4;
+    try std.testing.expectEqual(@as(?usize, null), cache.findDepositSlot(&slots, inventory_mod.ItemType.wooden_pickaxe));
+}
+
+test "replacing a stale container reuses its entry and remains saveable" {
+    const cache = @import("world/component_cache.zig");
+    const Chest = struct { x: i32, y: i32, z: i32, items: [4]inventory_mod.ItemStack };
+    var chests: [16]Chest = undefined;
+    var count: usize = 0;
+    cache.initPlacedChest(&chests, &count, 3, 4, 5);
+    chests[0].items[0] = .{ .item = .diamond, .count = 4 };
+    cache.initPlacedChest(&chests, &count, 3, 4, 5);
+    try std.testing.expectEqual(@as(usize, 1), count);
+    try std.testing.expect(chests[0].items[0].isEmpty());
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    var path_buf: [256:0]u8 = undefined;
+    const path = try std.fmt.bufPrintZ(&path_buf, ".zig-cache/tmp/{s}", .{tmp.sub_path});
+    try std.testing.expect(persistence_mod.Persistence.init(path).saveContainers(chests[0..count]));
+    for (1..16) |i| cache.initPlacedChest(&chests, &count, @intCast(i), 1, 0);
+    try std.testing.expectEqual(@as(usize, 16), count);
+    cache.initPlacedChest(&chests, &count, 3, 4, 5);
+    try std.testing.expectEqual(@as(usize, 16), count);
+    cache.initPlacedChest(&chests, &count, 99, 1, 0);
+    try std.testing.expectEqual(@as(usize, 16), count);
+}
