@@ -2,6 +2,7 @@ const std = @import("std");
 const chunk_mod = @import("chunk.zig");
 const block_jobs_mod = @import("block_jobs.zig");
 const Chunk = chunk_mod.Chunk;
+const container_cap = @import("component_cache.zig").chest_cap;
 
 const c = @cImport({
     @cInclude("stdio.h");
@@ -263,6 +264,79 @@ pub const Persistence = struct {
         };
 
         return writeAtomic(file_path, &.{ std.mem.asBytes(&header), std.mem.asBytes(&chunk.blocks), std.mem.asBytes(&chunk.levels) });
+    }
+
+    fn makeContainersPath(self: Persistence, buf: *[256:0]u8) ![:0]const u8 {
+        return switch (self.dimension) {
+            .overworld => std.fmt.bufPrintZ(buf, "{s}/containers.bin", .{self.dir_path}),
+            .nether => std.fmt.bufPrintZ(buf, "{s}/nether/containers.bin", .{self.dir_path}),
+            .the_end => std.fmt.bufPrintZ(buf, "{s}/the_end/containers.bin", .{self.dir_path}),
+        };
+    }
+
+    /// Atomically save the active dimension's container cache, including empty containers.
+    pub fn saveContainers(self: Persistence, containers: anytype) bool {
+        if (containers.len > container_cap) return false;
+        self.ensureDir();
+        var path_buf: [256:0]u8 = undefined;
+        const path = self.makeContainersPath(&path_buf) catch return false;
+        var bytes: [11 + 24 * container_cap]u8 = undefined;
+        @memcpy(bytes[0..4], "ZCON");
+        var i: usize = 4;
+        putInt(&bytes, &i, @as(u32, 1));
+        bytes[i] = @intFromEnum(self.dimension); i += 1;
+        putInt(&bytes, &i, @as(u16, @intCast(containers.len)));
+        for (containers, 0..) |ch, idx| {
+            if (ch.y < 0 or ch.y >= 16) return false;
+            for (containers[0..idx]) |prev| {
+                if (prev.x == ch.x and prev.y == ch.y and prev.z == ch.z) return false;
+            }
+            for (ch.items) |slot| {
+                if ((slot.item == .none) != (slot.count == 0) or slot.count > slot.item.maxStackSize()) return false;
+            }
+            putInt(&bytes, &i, ch.x); putInt(&bytes, &i, ch.y); putInt(&bytes, &i, ch.z);
+            for (ch.items) |slot| {
+                putInt(&bytes, &i, @as(u16, @intCast(@intFromEnum(slot.item))));
+                bytes[i] = slot.count; i += 1;
+            }
+        }
+        return writeAtomic(path, &.{bytes[0..i]});
+    }
+
+    /// Load a complete cache; corrupt or unreadable files leave the caller's state untouched.
+    pub fn loadContainers(self: Persistence, containers: anytype, count: *usize) LoadJobsResult {
+        var path_buf: [256:0]u8 = undefined;
+        const path = self.makeContainersPath(&path_buf) catch return .corrupt;
+        const f = c.fopen(path.ptr, "rb") orelse {
+            if (c.__errno_location().* == c.ENOENT) { count.* = 0; return .absent; }
+            return .corrupt;
+        };
+        defer _ = c.fclose(f);
+        var bytes: [11 + 24 * container_cap + 1]u8 = undefined;
+        const len = c.fread(&bytes, 1, bytes.len, f);
+        if (len < 11 or len > bytes.len - 1 or c.fgetc(f) != -1 or c.ferror(f) != 0) return .corrupt;
+        if (!std.mem.eql(u8, bytes[0..4], "ZCON")) return .corrupt;
+        var i: usize = 4;
+        if (getInt(u32, &bytes, &i) != 1 or bytes[i] != @intFromEnum(self.dimension)) return .corrupt;
+        i += 1;
+        const n = getInt(u16, &bytes, &i);
+        if (n > container_cap or n > containers.len or len != 11 + @as(usize, n) * 24) return .corrupt;
+        var staged: @TypeOf(containers.*) = undefined;
+        for (0..n) |idx| {
+            const x = getInt(i32, &bytes, &i); const y = getInt(i32, &bytes, &i); const z = getInt(i32, &bytes, &i);
+            if (y < 0 or y >= 16) return .corrupt;
+            for (staged[0..idx]) |prev| if (prev.x == x and prev.y == y and prev.z == z) { return .corrupt; };
+            staged[idx].x = x; staged[idx].y = y; staged[idx].z = z;
+            for (&staged[idx].items) |*slot| {
+                const id = getInt(u16, &bytes, &i);
+                const item = std.enums.fromInt(@TypeOf(slot.item), id) orelse return .corrupt;
+                const amount = bytes[i]; i += 1;
+                if ((item == .none) != (amount == 0) or amount > item.maxStackSize()) return .corrupt;
+                slot.* = .{ .item = item, .count = amount };
+            }
+        }
+        @memcpy(containers[0..n], staged[0..n]); count.* = n;
+        return .ok;
     }
 
     fn makeJobsPath(self: Persistence, buf: *[256:0]u8) ![:0]const u8 {

@@ -11,8 +11,8 @@ Git history.
 | Check | Last result |
 |-------|-------------|
 | CI on `main` | 2026-10-30: hosted jobs run again on the public repository. `build-and-test` and `public-content` are required for an up-to-date PR, including for administrators, with no human review approval required. See [current main runs](https://github.com/Soul4723/zigcraft/actions/workflows/ci.yml?query=branch%3Amain) for job results. |
-| Build and full test suite | 2026-10-31, Zig 0.16.0: build passed; 12,503 of 12,503 tests passed across 611 steps. Setup pins the compiler locally; LLVM/LLD are selected for compatibility with recent Linux C runtime objects. |
-| Running the game | 2026-10-30: the built executable initialized OpenGL and ran for 8 seconds before the smoke check stopped it. No crash was reported; gameplay was not checked. |
+| Build and full test suite | 2026-11-02, Zig 0.16.0: build passed; 12,561 of 12,561 tests passed across 611 steps. Setup pins the compiler locally; LLVM/LLD are selected for compatibility with recent Linux C runtime objects. |
+| Running the game | 2026-11-02: `zig build run` failed at GLFW initialization in this environment; gameplay was not checked. |
 
 Zig 0.17 cannot compile `build.zig` (`b.args` no longer exists). Use 0.16.0.
 
@@ -52,6 +52,7 @@ These systems are driven by input or the frame loop in `src/main.zig` and
 - Player position, velocity, spawn point, view, dimension, vitals, inventory,
   crafting grid, selected hotbar slot and tool wear persist in root-level
   `saves/player.bin` across dimensions.
+- Chest and shulker-box four-slot contents, including opened empty fortress chests, persist in per-dimension `containers.bin` across restart and portal travel.
 - Furnace, smoker, blast-furnace jobs and growing saplings persist in
   per-dimension `block_jobs.bin` files across quit/restart and portal
   switches; offline dimension and unloaded-chunk simulation are paused
@@ -101,8 +102,9 @@ Other overlaps:
 
 ## Known problems
 
+- Chest and shulker caches share a limit of 16 entries per dimension and four slots per entry.
+- Hopper and dropper caches are coordinate-only and are neither saved nor isolated across dimensions. Droppers can lose items when insertion fails; breaking a full container can lose overflow when the inventory is full.
 - The world is 16 blocks tall: chunks are 16×16×16 and there is one layer.
-- Placed container contents (chests, shulker boxes) are not saved to disk and use coordinate-only in-memory lookup without dimension keys; fortress loot reseeds lazily when entry is absent.
 - `BlockId` is a `u8` and uses all 256 values. New blocks need a wider ID or
   a different block-state scheme first.
 - `src/main.zig` is 7,105 lines; `main()` alone runs from line 363 to the
