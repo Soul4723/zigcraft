@@ -45,11 +45,12 @@ const face_normals: [6][3]f32 = .{
 fn faceTexCoords(tile_x: u32, tile_y: u32, w: f32, h: f32) [4][2]f32 {
     _ = w;
     _ = h;
-    const tile_size: f32 = 0.125; // 8x8 atlas
-    const u_min = @as(f32, @floatFromInt(tile_x)) * tile_size;
-    const v_min = @as(f32, @floatFromInt(tile_y)) * tile_size;
-    const u_max = u_min + tile_size;
-    const v_max = v_min + tile_size;
+    const tile_width: f32 = 1.0 / 8.0;
+    const tile_height: f32 = 1.0 / 16.0;
+    const u_min = @as(f32, @floatFromInt(tile_x)) * tile_width;
+    const v_min = @as(f32, @floatFromInt(tile_y)) * tile_height;
+    const u_max = u_min + tile_width;
+    const v_max = v_min + tile_height;
     return .{
         .{ u_min, v_min },
         .{ u_max, v_min },
@@ -226,7 +227,7 @@ pub fn generateMesh(
                     }
 
                     // Render individual 1x1 block faces so texture atlas coordinates
-                    // never stretch or sample neighbor tiles in the 4x4 atlas.
+                    // never stretch or sample neighbor tiles in the atlas.
                     const w: usize = 1;
                     const h: usize = 1;
 
@@ -481,5 +482,41 @@ test "torch face carries emissive, stone does not" {
     defer rock_mesh.deinit(std.testing.allocator);
     for (rock_mesh.vertices) |v| {
         try std.testing.expectEqual(v.emissive, 0.0);
+    }
+}
+
+test "portal materials and pressure plate reach their atlas tiles through the mesh" {
+    const cases = [_]struct { block: BlockId, u: f32, v: f32 }{
+        .{ .block = .obsidian, .u = 0.0, .v = 0.5 },
+        .{ .block = .nether_portal, .u = 0.125, .v = 0.5 },
+        .{ .block = .pressure_plate_up, .u = 0.25, .v = 0.375 },
+    };
+    for (cases) |case| {
+        var chunk = Chunk.init();
+        chunk.setBlock(7, 7, 7, case.block);
+        var mesh = try generateMesh(std.testing.allocator, &chunk, null);
+        defer mesh.deinit(std.testing.allocator);
+        try std.testing.expectEqual(@as(usize, 24), mesh.vertices.len);
+        try std.testing.expectEqual([2]f32{ case.u, case.v }, mesh.vertices[0].tex_coord);
+        try std.testing.expectEqual([2]f32{ case.u + 0.125, case.v + 0.0625 }, mesh.vertices[2].tex_coord);
+        for (mesh.vertices) |vertex| {
+            try std.testing.expect(vertex.tex_coord[0] >= case.u and vertex.tex_coord[0] <= case.u + 0.125);
+            try std.testing.expect(vertex.tex_coord[1] >= case.v and vertex.tex_coord[1] <= case.v + 0.0625);
+            try std.testing.expect(vertex.tex_coord[0] >= 0 and vertex.tex_coord[0] <= 1);
+            try std.testing.expect(vertex.tex_coord[1] >= 0 and vertex.tex_coord[1] <= 1);
+        }
+    }
+}
+
+test "all block face UVs stay within the atlas" {
+    inline for (std.meta.fields(BlockId)) |field| {
+        const block: BlockId = @enumFromInt(field.value);
+        for (0..6) |face| {
+            const tile = block.getFaceTexture(face);
+            for (faceTexCoords(tile.x, tile.y, 1, 1)) |uv| {
+                try std.testing.expect(uv[0] >= 0 and uv[0] <= 1);
+                try std.testing.expect(uv[1] >= 0 and uv[1] <= 1);
+            }
+        }
     }
 }

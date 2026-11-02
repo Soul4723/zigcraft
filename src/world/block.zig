@@ -417,7 +417,7 @@ pub const BlockId = enum(u8) {
         };
     }
 
-    /// Return tile coordinates (tile_x, tile_y) on the 4x4 atlas for given face.
+    /// Return tile coordinates (tile_x, tile_y) on the block atlas for given face.
     /// Face index matches chunk_mesh order:
     /// 0: Up (+Y)
     /// 1: Down (-Y)
@@ -478,8 +478,8 @@ pub const BlockId = enum(u8) {
             .cactus => .{ .x = 3, .y = 1 },
             .campfire => .{ .x = 4, .y = 3 },
             .lava => .{ .x = 5, .y = 3 },
-            .obsidian => .{ .x = 1, .y = 2 },
-            .nether_portal => .{ .x = 2, .y = 6 }, // Ethereal purple portal vortex tile
+            .obsidian => .{ .x = 0, .y = 8 },
+            .nether_portal => .{ .x = 1, .y = 8 }, // Ethereal purple portal vortex tile
             .netherrack => .{ .x = 3, .y = 3 }, // Craggy crimson nether stone
             .soul_sand => .{ .x = 2, .y = 1 }, // Dark gritty soul sediment
             .magma => .{ .x = 4, .y = 2 }, // Scorched glowing obsidian fissures
