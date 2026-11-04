@@ -117,7 +117,6 @@ const processing_workstations_mod = @import("world/processing_workstations.zig")
 const boots_and_armor_stands_mod = @import("world/boots_and_armor_stands.zig");
 const woodland_mansion_mod = @import("world/woodland_mansion.zig");
 const ocean_monument_mod = @import("world/ocean_monument.zig");
-const beacon_status_pyramids_mod = @import("world/beacon_status_pyramids.zig");
 const conduit_underwater_power_mod = @import("world/conduit_underwater_power.zig");
 const nether_portal_scaling_mod = @import("world/nether_portal_scaling.zig");
 const ancient_city_mod = @import("world/ancient_city.zig");
@@ -138,7 +137,6 @@ const ranged_enchantments_mod = @import("world/ranged_enchantments.zig");
 const item_frames_paintings_mod = @import("world/item_frames_paintings.zig");
 const armor_toughness_epf_mod = @import("world/armor_toughness_epf.zig");
 const hopper_item_sorter_mod = @import("world/hopper_item_sorter.zig");
-const beacon_pyramid_mod = @import("world/beacon_pyramid.zig");
 const badlands_mesa_mod = @import("world/badlands_mesa.zig");
 const concrete_masonry_mod = @import("world/concrete_masonry.zig");
 const igloo_snowy_plains_mod = @import("world/igloo_snowy_plains.zig");
@@ -1108,7 +1106,6 @@ pub fn main() !void {
         _ = armor_toughness_epf_mod.applyTotalEpfReduction(0.0, 0);
         _ = hopper_item_sorter_mod.tickHopperPushAndPull(&active_hopper, &active_hopper_source, &active_hopper_target);
         _ = hopper_item_sorter_mod.evaluateImpulseSvItemSorter(1, true, true);
-        _ = beacon_pyramid_mod.validateBeaconPyramidTier(false, false, false, false);
         _ = badlands_mesa_mod.mesaStrataColorForAltitude(70, 0);
         _ = badlands_mesa_mod.canGenerateBadlandsBonusGoldOre(true, 50);
         _ = concrete_masonry_mod.evaluateConcretePowderHydration(false, false, false);
@@ -1283,7 +1280,6 @@ pub fn main() !void {
         _ = ghast_fireball_tennis_mod.SIGHT_RANGE;
         _ = wither_skeleton_effect_mod.WITHER_DURATION_TICKS;
         _ = wither_boss_phases_mod.SPAWN_TICKS;
-        _ = beacon_status_pyramids_mod.tierProperties(.four);
         _ = conduit_underwater_power_mod.evaluateActivation(true, conduit_underwater_power_mod.complete_frame_blocks);
         _ = nether_portal_scaling_mod.overworldToNether(.{ .x = 0, .y = 64, .z = 0 });
         // Wave 24 representative frame-loop hooks; Elytra wear and dragon ritual
@@ -3667,6 +3663,7 @@ pub fn main() !void {
                         const held_item_now = inventory.slots[selected_slot].item;
                         var need = block_mod.mineTime(broken_block, @intFromEnum(held_item_now));
                         if (player.hasMiningFatigue()) need /= 0.3;
+                        if (beacon_supercharge_timer > 0.0) need /= beacon_aura_mod.hasteMultiplier(1, true);
                         const key: i64 = mining_mod.targetKey(hit.x, hit.y, hit.z);
                         if (!mine.valid or mine.key != key) {
                             mine.retarget(key, need);
@@ -4539,12 +4536,19 @@ pub fn main() !void {
                 }
                 if (block_mod.isBeaconSkyClear(&pickBlockWorld, bc.x, bc.y, bc.z)) {
                     particles.spawnBeaconBeam(bc.x, bc.y, bc.z, 2);
-                    const bdx = @as(f32, @floatFromInt(bc.x)) + 0.5 - player.pos.x;
-                    const bdz = @as(f32, @floatFromInt(bc.z)) + 0.5 - player.pos.z;
-                    const bdy = @as(f32, @floatFromInt(bc.y)) - player.pos.y;
-                    const bdist_sq = bdx * bdx + bdz * bdz + bdy * bdy;
-                    if (bdist_sq <= 24.0 * 24.0) {
-                        player.regen_timer = @max(player.regen_timer, 3.0);
+                    const base_b = manager.getBlockWorld(bc.x, bc.y - 1, bc.z);
+                    if (beacon_aura_mod.isBeaconBaseBlock(@intFromEnum(base_b))) {
+                        const aura_radius = if (beacon_supercharge_timer > 0.0)
+                            beacon_aura_mod.auraRadiusForLevel(4)
+                        else
+                            beacon_aura_mod.auraRadiusForLevel(1);
+                        const bdx = @as(f32, @floatFromInt(bc.x)) + 0.5 - player.pos.x;
+                        const bdz = @as(f32, @floatFromInt(bc.z)) + 0.5 - player.pos.z;
+                        const bdy = @as(f32, @floatFromInt(bc.y)) - player.pos.y;
+                        const bdist_sq = bdx * bdx + bdz * bdz + bdy * bdy;
+                        if (bdist_sq <= aura_radius * aura_radius) {
+                            player.regen_timer = @max(player.regen_timer, 3.0);
+                        }
                     }
                 }
                 bi2 += 1;

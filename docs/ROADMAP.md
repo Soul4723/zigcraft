@@ -45,8 +45,10 @@ in the game: mob rules for mobs already in `src/entity/`, and redstone parts.
 Creaking puppet entity runtime is integrated with sandwiched Creaking Hearts;
 Blaze combat rules and snowball vulnerability are unified in `blaze_fortress` and
 connected to live gameplay; Guardian and Elder Guardian combat and spike thorns rules
-are unified in `ocean_monument` and connected to live gameplay; remaining candidates
-include warden rule unification.
+are unified in `ocean_monument` and connected to live gameplay; Beacon pyramid geometry,
+status powers, and payment activation are unified in `beacon_aura` with live dynamic aura
+range, health regeneration, and supercharged Haste mining multiplier connected; remaining
+candidates include warden rule unification.
 
 ## 4. Pay down structure debt
 
