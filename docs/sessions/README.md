@@ -7,6 +7,7 @@ belong in the pull request description, not in a separate file.
 
 ## Recent sessions
 
+- 2026-11-04: Unified Ender Dragon fight rules into src/world/ender_dragon_fight.zig and removed duplicate ender_dragon_arena_fight.zig. Connected live crystal tether healing (2.0 HP/s, beam vortex/shimmer VFX), crystal shatter recoil backlash (10 damage within 32m, mob roar audio, flame/smoke VFX), and projectile perch deflection to gameplay in main.zig.
 - 2026-11-04: Unified Wither boss mechanics into src/world/wither_boss.zig and removed duplicate wither_boss_phases.zig. Connected spawn invulnerability charging (220 ticks), charging smoke/flame VFX, birth explosion detonation with audio and particle burst, and live HUD boss bar tracking to gameplay in main.zig.
 - 2026-11-04: Unified Strider mount and lava locomotion rules into src/world/strider_mount.zig and removed duplicate strider_lava_mount.zig. Connected active_strider update and right-click Warped Fungus on a Stick boost (speed surge to 7.8 m/s, durability wear, lava pop audio and flame VFX) and Warped Fungus feeding to live gameplay in main.zig.
 - 2026-11-04: Unified Beacon pyramid geometry, status powers, and payment activation into beacon_aura.zig and removed duplicate beacon_pyramid.zig and beacon_status_pyramids.zig. Connected Haste mining speed boost (1.40× multiplier) and dynamic aura radius (20m base, 50m supercharged) to live gameplay in main.zig.
@@ -21,7 +22,6 @@ belong in the pull request description, not in a separate file.
 - 2026-11-02: Added numeric stack counts to existing hotbar, inventory, crafting and cursor rendering. Quad batches handle all u8 counts; live frames showed 64 to 63 and 16 to 15 after placement. A resize exposed the existing fixed-aspect layout limitation.
 - 2026-11-02: Persisted dimension-isolated hopper/dropper inventories and cooldown/power state, paused unloaded automation, and kept items on failed insertion. Worker live restart checks passed; a portal playthrough was not performed.
 - 2026-11-02: Restored held-left timed mining while retaining press-only inventory, placement and melee actions. A fresh-build Xvfb run verified held mining, release, one placement, one inventory transfer and clean shutdown; crafting, mob combat and portal travel remain unchecked.
-- 2026-11-02: Cleared temporary effects, flight and stale contact flags on respawn; regression tests cover post-respawn vitals/physics and retained equipment/navigation facts. Interactive death/respawn was not checked.
 
 ## History
 

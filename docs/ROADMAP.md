@@ -51,7 +51,9 @@ range, health regeneration, and supercharged Haste mining multiplier connected; 
 and lava locomotion rules are unified into `strider_mount` with warped fungus boost and feeding
 connected to gameplay; Wither boss rules are unified in `wither_boss` (with duplicate
 `wither_boss_phases` removed) with spawn charging invulnerability, birth explosion detonation,
-and HUD boss bar tracking connected to gameplay; remaining candidates include warden rule unification.
+and HUD boss bar tracking connected to gameplay; Ender Dragon fight rules are unified into `ender_dragon_fight`
+(with duplicate `ender_dragon_arena_fight` removed) with crystal tether healing, recoil backlash, and projectile perch
+deflection connected to gameplay; remaining candidates include warden rule unification.
 
 ## 4. Pay down structure debt
 

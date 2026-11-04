@@ -1,0 +1,22 @@
+# Decision 019: Ender Dragon fight mechanics unification, crystal tether healing, and recoil backlash integration
+
+Accepted: 2026-11-04.
+
+## Context
+Ender Dragon fight mechanics were duplicated across two overlapping modules in `src/world/`:
+- `src/world/ender_dragon_fight.zig`: Defined crystal beam tether healing (`tickDragonCrystalBeamHealing`), crystal shatter recoil damage (`CRYSTAL_SHATTER_RECOIL_DAMAGE = 10.0`, `DRAGON_CRYSTAL_BEAM_RANGE = 32.0`), Dragon combat phases (`DragonCombatPhase`), projectile damage deflection during fountain perch (`canDamageDragonWithProjectile`), Dragon Breath lingering clouds and bottle collection (`DragonBreathCloud`, `DragonBreathCollection`), exit portal ritual respawn (`canTriggerDragonRespawnRitual`, `triggerDragonRespawnRitual`), defeat rewards (`dragonKillRewards`, `firstDragonDefeatRewards`), and outer End gateway ring generation (`generateEndGatewayRing`).
+- `src/world/ender_dragon_arena_fight.zig`: Milestone duplicate containing uppercase constant aliases (`MAX_HEALTH = 200.0`, `CRYSTAL_COUNT = 10`, `CRYSTAL_BEAM_RANGE = 32.0`, `CRYSTAL_BACKLASH_DAMAGE = 10.0`, `FIREBALL_DIRECT_DAMAGE = 6.0`, `DRAGON_BREATH_RADIUS = 3.5`, `CHARGE_SPEED = 10.0`, `CHARGE_DAMAGE = 10.0`, `DEATH_ANIMATION_TICKS = 200`, `PORTAL_Y = 8`), arena simulation types (`Dragon`, `DragonArenaFight`, `updateArena`, `BossBar`, `BossBarColor`, `Fireball`, `BreathConeHit`), and duplicate arena combat tests.
+
+In `src/main.zig`, two discarded dummy calls were executed each frame (`_ = ender_dragon_arena_fight_mod.updateArena(&active_dragon_arena_fight, ...);` and `_ = ender_dragon_fight_mod.tickDragonCrystalBeamHealing(200.0, 200.0, 33.0, dt);`). The live End dimension crystal loop in `src/main.zig` used a hardcoded sine wave rather than checking crystal distance and applying `tickDragonCrystalBeamHealing`. End crystal destruction did not deliver recoil backlash damage to the dragon, and projectile damage against the dragon did not check fountain perch deflection.
+
+## Decision
+1. **Module ownership**: `src/world/ender_dragon_fight.zig` is the single authoritative module for Ender Dragon combat rules, crystal tether healing, recoil backlash, breath clouds, ritual respawn, defeat rewards, and arena simulation.
+   - Merged uppercase constant aliases (`MAX_HEALTH`, `CRYSTAL_COUNT`, `CRYSTAL_BEAM_RANGE`, `CRYSTAL_BACKLASH_DAMAGE`, `FIREBALL_DIRECT_DAMAGE`, `DRAGON_BREATH_RADIUS`, `CHARGE_SPEED`, `CHARGE_DAMAGE`, `DEATH_ANIMATION_TICKS`, `DEFEAT_XP`, `PORTAL_Y`, `TICKS_PER_SECOND`), arena simulation types (`Dragon`, `DragonArenaFight`, `updateArena`, `BossBar`, `BossBarColor`, `BossBarStyle`, `Crystal`, `Fireball`, `BreathCloud`, `BreathConeHit`), phase conversion helpers (`toCombatPhase`, `canDamageDragonInPhase`), and `firstDragonDefeatRewards()` into `src/world/ender_dragon_fight.zig`.
+   - Retained all tests from both files plus new coverage for `firstDragonDefeatRewards()`, yielding 60 module unit tests (182 total tests including `block.zig` imports).
+   - Removed duplicate module `src/world/ender_dragon_arena_fight.zig` using `git rm` and removed its entry from `test_files` in `build.zig`.
+2. **Game loop and live gameplay integration**:
+   - In `src/main.zig`, removed the unused import `ender_dragon_arena_fight_mod` and the discarded dummy calls `_ = ender_dragon_arena_fight_mod.updateArena(...)` and `_ = ender_dragon_fight_mod.tickDragonCrystalBeamHealing(200.0, 200.0, 33.0, dt);`.
+   - Connected live End dimension crystal tether healing: the dragon finds the nearest alive End Crystal within `DRAGON_CRYSTAL_BEAM_RANGE` (32.0m), evaluates `tickDragonCrystalBeamHealing`, smoothly accumulates healing points at 2.0 HP/s capped at 200 HP, and emits particle vortex and glowstone shimmer effects along the tether beam.
+   - Connected crystal shatter recoil backlash: when an End Crystal is destroyed via mining or projectile impact, if the dragon is within 32m (`DRAGON_CRYSTAL_BEAM_RANGE`), it takes 10 damage (`CRYSTAL_SHATTER_RECOIL_DAMAGE`), triggers `.mob_roar` audio, and spawns flame and smoke particle bursts.
+   - Connected fountain perch projectile deflection: when arrows or other projectiles strike the dragon while perched on the fountain (`canDamageDragonWithProjectile` returns false), the projectile is deflected with `.shield_block` audio, spark particles, and zero damage, preserving valid melee attacks.
+   - Updated `pickSolid` in `src/main.zig` so End Crystals are pickable for both player mining and projectile collision.
