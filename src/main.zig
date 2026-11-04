@@ -78,7 +78,6 @@ const strider_lava_mount_mod = @import("world/strider_lava_mount.zig");
 const charged_creeper_mod = @import("world/charged_creeper.zig");
 const swamp_witch_mod = @import("world/swamp_witch.zig");
 const blaze_fortress_mod = @import("world/blaze_fortress.zig");
-const blaze_fireball_artillery_mod = @import("world/blaze_fireball_artillery.zig");
 const ghast_deflection_mod = @import("world/ghast_deflection.zig");
 const ghast_fireball_tennis_mod = @import("world/ghast_fireball_tennis.zig");
 const slime_mitosis_mod = @import("world/slime_mitosis.zig");
@@ -997,7 +996,6 @@ pub fn main() !void {
         _ = active_piglin_barter.tick(@intFromFloat(@max(0.0, dt * 20.0)));
         _ = charged_creeper_mod.tickCreeperFuse(&active_creeper, 0.0, false, false, dt);
         _ = swamp_witch_mod.applyWitchMagicResistance(0.0);
-        _ = active_blaze_attack.tick(dt);
         _ = active_blaze_brewing.tick(dt);
         _ = ghast_deflection_mod.canGhastSeeTarget(0.0, true);
         _ = slime_mitosis_mod.swampMoonPhaseSpawnChance(0, 0, 64);
@@ -1286,7 +1284,6 @@ pub fn main() !void {
         // already have representative queries in their existing wave sections.
         _ = copper_bulb_display_mod.decodeDigit(9);
         // Wave 23 representative frame-loop hooks keep all ten domains queryable.
-        _ = blaze_fireball_artillery_mod.CHARGE_TICKS;
         _ = magma_cube_splitting_mod.MagmaCubeSize.big.meleeDamage();
         _ = ghast_fireball_tennis_mod.SIGHT_RANGE;
         _ = wither_skeleton_effect_mod.WITHER_DURATION_TICKS;
@@ -4950,9 +4947,25 @@ pub fn main() !void {
                                 const is_sa = (t.kind == .spectral_arrow);
                                 const is_arr = (t.kind == .arrow);
                                 const is_trident = (t.kind == .trident);
-                                const hit_dmg = if (is_trident) t.damage else if (is_sa or is_arr) t.damage else if (is_fc) @as(u8, 2) else @as(u8, 1);
+                                const is_snowball = (t.kind == .snowball);
+                                const is_blaze = (m.mob_type == .blaze);
+                                const hit_dmg: u8 = if (is_snowball and is_blaze)
+                                    @intFromFloat(blaze_fortress_mod.resolveSnowballOrWaterHitOnBlaze(true, false))
+                                else if (is_trident)
+                                    t.damage
+                                else if (is_sa or is_arr)
+                                    t.damage
+                                else if (is_fc)
+                                    @as(u8, 2)
+                                else
+                                    @as(u8, 1);
                                 const died = m.takeHitDmg(cam.front(), hit_dmg);
                                 if (is_fc) particles.spawnFlame(mbx, mby, mbz, 8);
+                                if (is_snowball and is_blaze) {
+                                    audio.playAt(.burn_sizzle, .{ m.pos.x, m.pos.y, m.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 20.0);
+                                    particles.spawnBurnSparks(.{ m.pos.x, m.pos.y + 0.5, m.pos.z }, 8);
+                                    std.debug.print("snowball struck blaze: 3 damage (snowball vulnerability)\n", .{});
+                                }
                                 if (is_sa) {
                                     m.glow_timer = proj_mod.spectral_arrow_glow_duration;
                                     particles.spawnGlowstoneShimmer(.{ m.pos.x, m.pos.y + 0.5, m.pos.z }, 12);
@@ -5258,7 +5271,7 @@ pub fn main() !void {
         fireball_cooldown = combat_mod.tickCooldown(fireball_cooldown, dt);
         if (fireball_cooldown <= 0.0) {
             for (mob_manager.mobs.items) |m| {
-                if (m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .blaze) continue;
+                if (m.mob_type != .emberbeast and m.mob_type != .wither_skeleton) continue;
                 const fdx = player.pos.x - m.pos.x;
                 const fdz = player.pos.z - m.pos.z;
                 const fdy = (player.pos.y + 1.0) - (m.pos.y + 0.7);
@@ -5278,6 +5291,51 @@ pub fn main() !void {
                 }
                 fireball_cooldown = proj_mod.fireball_cooldown;
                 break;
+            }
+        }
+        // Blaze combat: 3s fire charge followed by 3-shot fireball volley with 5s cooldown
+        var active_blaze_in_range: ?*entity_mod.mob.Mob = null;
+        for (mob_manager.mobs.items) |*m| {
+            if (m.mob_type == .blaze) {
+                const fdx = player.pos.x - m.pos.x;
+                const fdz = player.pos.z - m.pos.z;
+                if (proj_mod.inFireballRange(fdx, fdz)) {
+                    active_blaze_in_range = m;
+                    break;
+                }
+            }
+        }
+        if (active_blaze_in_range) |bm| {
+            const shots = active_blaze_attack.tick(dt);
+            if (active_blaze_attack.isVisuallyOnFire()) {
+                const b_bx: i32 = @intFromFloat(@floor(bm.pos.x));
+                const b_by: i32 = @intFromFloat(@floor(bm.pos.y + 1.0));
+                const b_bz: i32 = @intFromFloat(@floor(bm.pos.z));
+                particles.spawnFlame(b_bx, b_by, b_bz, 4);
+            }
+            if (shots > 0) {
+                const fdx = player.pos.x - bm.pos.x;
+                const fdz = player.pos.z - bm.pos.z;
+                const fdy = (player.pos.y + 1.0) - (bm.pos.y + 0.7);
+                const fv = proj_mod.fireballVelocity(fdx, fdy, fdz);
+                var s: u8 = 0;
+                while (s < shots) : (s += 1) {
+                    if (thrown_count < thrown.len) {
+                        thrown[thrown_count] = .{
+                            .pos = math.Vec3.init(bm.pos.x, bm.pos.y + 0.7, bm.pos.z),
+                            .vel = math.Vec3.init(fv[0], fv[1], fv[2]),
+                            .life = proj_mod.fireball_life,
+                            .kind = .hostile_fireball,
+                        };
+                        thrown_count += 1;
+                    }
+                }
+                audio.playAt(.lava_pop, .{ bm.pos.x, bm.pos.y, bm.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
+                const b_bx: i32 = @intFromFloat(@floor(bm.pos.x));
+                const b_by: i32 = @intFromFloat(@floor(bm.pos.y + 1.0));
+                const b_bz: i32 = @intFromFloat(@floor(bm.pos.z));
+                particles.spawnFlame(b_bx, b_by, b_bz, 8);
+                std.debug.print("blaze fireball volley (shots={d})\n", .{shots});
             }
         }
         // Creeper detonation AI: approaches player, hisses & primes within 3m, explodes at 0
