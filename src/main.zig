@@ -85,7 +85,6 @@ const phantom_insomnia_mod = @import("world/phantom_insomnia.zig");
 const wither_boss_mod = @import("world/wither_boss.zig");
 const wither_skeleton_effect_mod = @import("world/wither_skeleton_effect.zig");
 const ender_dragon_fight_mod = @import("world/ender_dragon_fight.zig");
-const ender_dragon_arena_fight_mod = @import("world/ender_dragon_arena_fight.zig");
 const dragon_respawn_ritual_mod = @import("world/dragon_respawn_ritual.zig");
 const villager_curing_mod = @import("world/villager_curing.zig");
 const piston_adhesion_mod = @import("world/piston_adhesion.zig");
@@ -314,7 +313,9 @@ fn isWartTracked(warts: []const WartCrop, x: i32, y: i32, z: i32) bool {
 }
 
 fn pickSolid(x: i32, y: i32, z: i32) bool {
-    return pick_manager.?.isSolidWorld(x, y, z);
+    const mgr = pick_manager orelse return false;
+    const b = mgr.getBlockWorld(x, y, z);
+    return b.is_solid() or b == .end_crystal;
 }
 
 fn pickFluid(x: i32, y: i32, z: i32) bool {
@@ -665,7 +666,8 @@ pub fn main() !void {
     var active_wither = wither_boss_mod.WitherBoss{ .phase = .defeated };
     var wither_summon_site: ?[3]i32 = null;
     var active_dragon_breath = ender_dragon_fight_mod.DragonBreathCloud{ .pos = .{ 0.0, 64.0, 0.0 } };
-    var active_dragon_arena_fight = ender_dragon_arena_fight_mod.DragonArenaFight{};
+    var active_dragon_arena_fight = ender_dragon_fight_mod.DragonArenaFight{};
+    var dragon_crystal_heal_accum: f32 = 0.0;
     var active_dragon_respawn_ritual = dragon_respawn_ritual_mod.DragonRespawnRitual{};
     var dragon_arena_tick_accumulator: f32 = 0.0;
     var active_villager_cure = villager_curing_mod.ZombieVillagerCureState{};
@@ -1045,18 +1047,15 @@ pub fn main() !void {
         dragon_arena_tick_accumulator += dt;
         while (dragon_arena_tick_accumulator >= 0.05) {
             dragon_arena_tick_accumulator -= 0.05;
-            _ = active_dragon_arena_fight.healFromNearbyCrystal();
-            _ = ender_dragon_arena_fight_mod.updateArena(&active_dragon_arena_fight, .{ player.pos.x, player.pos.y, player.pos.z });
+            _ = active_dragon_arena_fight.dragon.tick(.{ player.pos.x, player.pos.y, player.pos.z });
             _ = active_dragon_respawn_ritual.tick();
         }
-        _ = active_dragon_arena_fight.dragon.bossBar();
         if (active_villager_cure.is_converting) active_villager_cure.cure_timer = @max(0.0, active_villager_cure.cure_timer - dt);
         shield_thorns_combat_mod.tickShieldBlockState(&active_shield, dt);
         _ = trident_enchantments_mod.stepLoyaltyReturnFlight(&active_loyalty_trident, dt);
         _ = active_respawn_anchor.comparatorSignal();
         _ = active_observer.tick(0, dt);
         _ = snow_golem_ai_mod.advanceSnowGolemAttackCooldown(&active_snow_golem, dt);
-        _ = ender_dragon_fight_mod.tickDragonCrystalBeamHealing(200.0, 200.0, 33.0, dt);
         _ = villager_curing_mod.canPanicSpawnVillageIronGolem(0, false, false, false);
         _ = piston_adhesion_mod.evaluatePushClusterLimit(0, false);
         _ = fishing_treasure_mod.computeFishingCategoryProbabilities(0, false);
@@ -2945,24 +2944,48 @@ pub fn main() !void {
             };
             for (mob_manager.mobs.items) |*m| {
                 if (m.mob_type == .ender_dragon and m.health > 0) {
+                    var min_dist: f32 = std.math.floatMax(f32);
+                    var nearest_crystal_pos: ?[3]f32 = null;
                     for (crystal_coords) |c_pos| {
                         if (manager.getBlockWorld(c_pos[0], c_pos[1], c_pos[2]) == .end_crystal) {
                             const cx = @as(f32, @floatFromInt(c_pos[0])) + 0.5;
                             const cy = @as(f32, @floatFromInt(c_pos[1])) + 0.5;
                             const cz = @as(f32, @floatFromInt(c_pos[2])) + 0.5;
-                            // Emit beam tether particles between crystal and dragon
-                            const t_frac = 0.5 + 0.5 * @sin(@as(f32, @floatCast(current_time)) * 6.0);
-                            const bx = cx + (m.pos.x - cx) * t_frac;
-                            const by = cy + (m.pos.y - cy) * t_frac;
-                            const bz = cz + (m.pos.z - cz) * t_frac;
-                            particles.spawnPortalVortex(.{ bx, by, bz }, 0.4, 2, 0.0);
-                            particles.spawnGlowstoneShimmer(.{ bx, by, bz }, 1);
-
-                            // Healing pulse (restores health capped at 200)
-                            if (m.health < 200 and @sin(@as(f32, @floatCast(current_time)) * 4.0) > 0.95) {
-                                m.health = @min(200, m.health + 1);
+                            const dx = m.pos.x - cx;
+                            const dy = m.pos.y - cy;
+                            const dz = m.pos.z - cz;
+                            const dist = @sqrt(dx * dx + dy * dy + dz * dz);
+                            if (dist < min_dist) {
+                                min_dist = dist;
+                                nearest_crystal_pos = .{ cx, cy, cz };
                             }
                         }
+                    }
+
+                    const heal_result = ender_dragon_fight_mod.tickDragonCrystalBeamHealing(
+                        @as(f32, @floatFromInt(m.health)),
+                        200.0,
+                        min_dist,
+                        dt,
+                    );
+                    if (heal_result.tethered_beam_active) {
+                        dragon_crystal_heal_accum += (heal_result.new_hp - @as(f32, @floatFromInt(m.health)));
+                        if (dragon_crystal_heal_accum >= 1.0) {
+                            const add_hp: u8 = @intFromFloat(dragon_crystal_heal_accum);
+                            m.health = @min(200, m.health + add_hp);
+                            dragon_crystal_heal_accum -= @as(f32, @floatFromInt(add_hp));
+                        }
+                        if (nearest_crystal_pos) |cp| {
+                            // Emit beam tether particles between crystal and dragon
+                            const t_frac = 0.5 + 0.5 * @sin(@as(f32, @floatCast(current_time)) * 6.0);
+                            const bx = cp[0] + (m.pos.x - cp[0]) * t_frac;
+                            const by = cp[1] + (m.pos.y - cp[1]) * t_frac;
+                            const bz = cp[2] + (m.pos.z - cp[2]) * t_frac;
+                            particles.spawnPortalVortex(.{ bx, by, bz }, 0.4, 2, 0.0);
+                            particles.spawnGlowstoneShimmer(.{ bx, by, bz }, 1);
+                        }
+                    } else {
+                        dragon_crystal_heal_accum = 0.0;
                     }
                     // Periodic dragon breath strafe attack: drops a harmful AoE dragon breath cloud onto island
                     if (@as(u32, @intFromFloat(current_time * 10.0)) % 180 == 0 and vapor_cloud_count < vapor_clouds.len) {
@@ -3767,6 +3790,28 @@ pub fn main() !void {
                                         player.pos.x += imp.push_x * 1.2;
                                         player.pos.z += imp.push_z * 1.2;
                                         audio.play(.hurt, 1.0);
+                                    }
+                                    const cx = @as(f32, @floatFromInt(hit.x)) + 0.5;
+                                    const cy = @as(f32, @floatFromInt(hit.y)) + 0.5;
+                                    const cz = @as(f32, @floatFromInt(hit.z)) + 0.5;
+                                    for (mob_manager.mobs.items) |*m| {
+                                        if (m.mob_type == .ender_dragon and m.health > 0) {
+                                            const dx = m.pos.x - cx;
+                                            const dy = m.pos.y - cy;
+                                            const dz = m.pos.z - cz;
+                                            const dist = @sqrt(dx * dx + dy * dy + dz * dz);
+                                            if (dist <= ender_dragon_fight_mod.DRAGON_CRYSTAL_BEAM_RANGE) {
+                                                const recoil: u8 = @intFromFloat(ender_dragon_fight_mod.CRYSTAL_SHATTER_RECOIL_DAMAGE);
+                                                m.health = if (m.health > recoil) m.health - recoil else 0;
+                                                audio.play(.mob_roar, 1.0);
+                                                const mx: i32 = @intFromFloat(@floor(m.pos.x));
+                                                const my: i32 = @intFromFloat(@floor(m.pos.y));
+                                                const mz: i32 = @intFromFloat(@floor(m.pos.z));
+                                                particles.spawnFlame(mx, my, mz, 16);
+                                                particles.spawnSmoke(mx, my, mz, 16);
+                                                std.debug.print("End Crystal recoil backlash dealt {d} damage to Ender Dragon (hp={d})!\n", .{ recoil, m.health });
+                                            }
+                                        }
                                     }
                                     std.debug.print("End Crystal detonated at ({d},{d},{d})!\n", .{ hit.x, hit.y, hit.z });
                                 }
@@ -4889,7 +4934,63 @@ pub fn main() !void {
                             std.debug.print("firework rocket impact burst\n", .{});
                         }
                         const struck = manager.getBlockWorld(mbx, mby, mbz);
-                        if (t.kind == .player_fire_charge) {
+                        if (struck == .end_crystal) {
+                            _ = try manager.editAndRemesh(mbx, mby, mbz, .air);
+                            audio.play(.firework_blast, 1.0);
+                            particles.spawnFireworkBurst(.{ @as(f32, @floatFromInt(mbx)) + 0.5, @as(f32, @floatFromInt(mby)) + 0.5, @as(f32, @floatFromInt(mbz)) + 0.5 }, 36);
+                            particles.spawnPortalVortex(.{ @as(f32, @floatFromInt(mbx)) + 0.5, @as(f32, @floatFromInt(mby)) + 0.5, @as(f32, @floatFromInt(mbz)) + 0.5 }, 2.0, 24, 0.0);
+                            var cr_x: i32 = -boom_mod.creeper_blast_radius;
+                            while (cr_x <= boom_mod.creeper_blast_radius) : (cr_x += 1) {
+                                var cr_y: i32 = -boom_mod.creeper_blast_radius;
+                                while (cr_y <= boom_mod.creeper_blast_radius) : (cr_y += 1) {
+                                    var cr_z: i32 = -boom_mod.creeper_blast_radius;
+                                    while (cr_z <= boom_mod.creeper_blast_radius) : (cr_z += 1) {
+                                        if (boom_mod.inBlast(cr_x, cr_y, cr_z)) {
+                                            const bx = mbx + cr_x;
+                                            const by = mby + cr_y;
+                                            const bz = mbz + cr_z;
+                                            const b_to_break = manager.getBlockWorld(bx, by, bz);
+                                            if (b_to_break != .obsidian and b_to_break != .air) {
+                                                if (tryDrainContainerBreak(b_to_break, bx, by, bz, &chests, &chest_count, &hoppers, &hopper_count, &droppers, &dropper_count, &inventory)) {
+                                                    _ = try manager.editAndRemesh(bx, by, bz, .air);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if (boom_mod.calculatePlayerBlastImpulse(player.pos.x, player.pos.y, player.pos.z, mbx, mby, mbz)) |imp| {
+                                player.health = @max(0.0, player.health - imp.damage * 1.5);
+                                player.vel_y = imp.vel_y * 1.2;
+                                player.pos.x += imp.push_x * 1.2;
+                                player.pos.z += imp.push_z * 1.2;
+                                audio.play(.hurt, 1.0);
+                            }
+                            const cx = @as(f32, @floatFromInt(mbx)) + 0.5;
+                            const cy = @as(f32, @floatFromInt(mby)) + 0.5;
+                            const cz = @as(f32, @floatFromInt(mbz)) + 0.5;
+                            for (mob_manager.mobs.items) |*m| {
+                                if (m.mob_type == .ender_dragon and m.health > 0) {
+                                    const dx = m.pos.x - cx;
+                                    const dy = m.pos.y - cy;
+                                    const dz = m.pos.z - cz;
+                                    const dist = @sqrt(dx * dx + dy * dy + dz * dz);
+                                    if (dist <= ender_dragon_fight_mod.DRAGON_CRYSTAL_BEAM_RANGE) {
+                                        const recoil: u8 = @intFromFloat(ender_dragon_fight_mod.CRYSTAL_SHATTER_RECOIL_DAMAGE);
+                                        m.health = if (m.health > recoil) m.health - recoil else 0;
+                                        audio.play(.mob_roar, 1.0);
+                                        const mx: i32 = @intFromFloat(@floor(m.pos.x));
+                                        const my: i32 = @intFromFloat(@floor(m.pos.y));
+                                        const mz: i32 = @intFromFloat(@floor(m.pos.z));
+                                        particles.spawnFlame(mx, my, mz, 16);
+                                        particles.spawnSmoke(mx, my, mz, 16);
+                                        std.debug.print("End Crystal recoil backlash dealt {d} damage to Ender Dragon (hp={d})!\n", .{ recoil, m.health });
+                                    }
+                                }
+                            }
+                            dead = true;
+                            std.debug.print("projectile shattered End Crystal at ({d},{d},{d})!\n", .{ mbx, mby, mbz });
+                        } else if (t.kind == .player_fire_charge) {
                             if (struck == .tnt and fuse_count < fuses.len) {
                                 fuses[fuse_count] = .{ .x = mbx, .y = mby, .z = mbz, .t = 2.5 };
                                 fuse_count += 1;
@@ -4998,6 +5099,22 @@ pub fn main() !void {
                             if (t.last_hit_mob != null and t.last_hit_mob.? == mi) continue;
                             const d = proj_mod.mobDelta(m.pos.x, m.pos.y, m.pos.z, t.pos.x, t.pos.y, t.pos.z);
                             if (proj_mod.hitsMob(d[0], d[1], d[2])) {
+                                if (m.mob_type == .ender_dragon) {
+                                    const d_phase: ender_dragon_fight_mod.DragonCombatPhase = switch (active_dragon_arena_fight.dragon.phase) {
+                                        .perching => .perched_on_fountain,
+                                        .circling => .circling_pillars,
+                                        .strafing => .strafing_acid_ball,
+                                        .charging => .diving_charge,
+                                        .dying, .defeated => .dying_ascension,
+                                    };
+                                    if (!ender_dragon_fight_mod.canDamageDragonWithProjectile(d_phase)) {
+                                        audio.play(.shield_block, 0.8);
+                                        particles.spawnBurnSparks(.{ m.pos.x, m.pos.y + 0.5, m.pos.z }, 8);
+                                        std.debug.print("projectile deflected by perched Ender Dragon!\n", .{});
+                                        dead = true;
+                                        break;
+                                    }
+                                }
                                 const is_fc = (t.kind == .player_fire_charge);
                                 const is_sa = (t.kind == .spectral_arrow);
                                 const is_arr = (t.kind == .arrow);
