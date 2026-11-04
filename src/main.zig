@@ -379,6 +379,47 @@ fn syncRedstoneSnapshots(repeaters: []const cache_mod.Repeater, red_torches: []c
     chunk_manager_mod.ChunkManager.setBurnoutSnapshot(bsnap[0..bn]);
 }
 
+fn tryDrainContainerBreak(
+    b: block_mod.BlockId,
+    bx: i32,
+    by: i32,
+    bz: i32,
+    chests: anytype,
+    chest_count: *usize,
+    hoppers: anytype,
+    hopper_count: *usize,
+    droppers: anytype,
+    dropper_count: *usize,
+    inventory: anytype,
+) bool {
+    if (b == .chest or b == .shulker_box) {
+        if (cache_mod.findChest(chests, chest_count.*, bx, by, bz)) |ci| {
+            const drained = cache_mod.drainContainerBreak(&chests[ci].items, inventory);
+            if (drained) {
+                cache_mod.swapRemove(chests, chest_count, ci);
+            }
+            return drained;
+        }
+    } else if (b == .hopper) {
+        if (cache_mod.findChest(hoppers, hopper_count.*, bx, by, bz)) |hi| {
+            const drained = cache_mod.drainContainerBreak(&hoppers[hi].items, inventory);
+            if (drained) {
+                cache_mod.swapRemove(hoppers, hopper_count, hi);
+            }
+            return drained;
+        }
+    } else if (b == .dropper) {
+        if (cache_mod.findChest(droppers, dropper_count.*, bx, by, bz)) |di| {
+            const drained = cache_mod.drainContainerBreak(&droppers[di].items, inventory);
+            if (drained) {
+                cache_mod.swapRemove(droppers, dropper_count, di);
+            }
+            return drained;
+        }
+    }
+    return true;
+}
+
 pub fn main() !void {
     std.debug.print("zigcraft v0.0.8\n", .{});
 
@@ -3636,9 +3677,12 @@ pub fn main() !void {
                         if (mine.done(need)) {
                             mine.reset();
                             player.addActivityExhaustion(.mine_block);
-                            const above_before = if (broken_block == .creaking_heart) manager.getBlockWorld(hit.x, hit.y + 1, hit.z) else .air;
-                            const below_before = if (broken_block == .creaking_heart) manager.getBlockWorld(hit.x, hit.y - 1, hit.z) else .air;
-                            if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .air)) {
+                            if (!tryDrainContainerBreak(broken_block, hit.x, hit.y, hit.z, &chests, &chest_count, &hoppers, &hopper_count, &droppers, &dropper_count, &inventory)) {
+                                std.debug.print("inventory full; container retained overflow items\n", .{});
+                            } else {
+                                const above_before = if (broken_block == .creaking_heart) manager.getBlockWorld(hit.x, hit.y + 1, hit.z) else .air;
+                                const below_before = if (broken_block == .creaking_heart) manager.getBlockWorld(hit.x, hit.y - 1, hit.z) else .air;
+                                if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .air)) {
                                 if (broken_block == .creaking_heart) {
                                     creaking_hearts.onBroken(.{ hit.x, hit.y, hit.z });
                                     mob_manager.removeCreakingLinkedTo(.{ hit.x, hit.y, hit.z });
@@ -3666,8 +3710,8 @@ pub fn main() !void {
                                                     const bz = hit.z + cr_z;
                                                     const b_to_break = manager.getBlockWorld(bx, by, bz);
                                                     if (b_to_break != .obsidian and b_to_break != .air) {
-                                                        if (try manager.editAndRemesh(bx, by, bz, .air)) {
-                                                            if (cache_mod.findChest(&chests, chest_count, bx, by, bz)) |ci| cache_mod.swapRemove(&chests, &chest_count, ci);
+                                                        if (tryDrainContainerBreak(b_to_break, bx, by, bz, &chests, &chest_count, &hoppers, &hopper_count, &droppers, &dropper_count, &inventory)) {
+                                                            _ = try manager.editAndRemesh(bx, by, bz, .air);
                                                         }
                                                     }
                                                 }
@@ -3712,14 +3756,6 @@ pub fn main() !void {
                                 }
 
                                 if (tier_ok) {
-                                    if (broken_block == .chest or broken_block == .shulker_box) {
-                                        if (cache_mod.findChest(&chests, chest_count, hit.x, hit.y, hit.z)) |ci| {
-                                            for (chests[ci].items) |citem| {
-                                                if (!citem.isEmpty()) _ = inventory.addItem(citem.item, citem.count);
-                                            }
-                                            cache_mod.swapRemove(&chests, &chest_count, ci);
-                                        }
-                                    }
                                     var drops_buf: [2]inventory_mod.BlockDrop = undefined;
                                     const drop_count = inventory_mod.getBlockDrops(broken_block, &drops_buf);
                                     for (drops_buf[0..drop_count]) |d| {
@@ -3762,6 +3798,7 @@ pub fn main() !void {
                                 }
                                 std.debug.print("destroyed {s} ({d},{d},{d})\n", .{ @tagName(broken_block), hit.x, hit.y, hit.z });
                             }
+                        }
                         }
                     } else if (right and !right_down and inventory.slots[selected_slot].item == .eye_of_ender and manager.getBlockWorld(hit.x, hit.y, hit.z) == .end_portal_frame) {
                         if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .end_portal_frame_filled)) {
@@ -5283,13 +5320,9 @@ pub fn main() !void {
                                                     _ = try manager.editAndRemesh(bx, by, bz, .air);
                                                 },
                                                 .destroy_chest => {
-                                                    if (cache_mod.findChest(&chests, chest_count, bx, by, bz)) |ci| {
-                                                        for (chests[ci].items) |citem| {
-                                                            if (!citem.isEmpty()) _ = inventory.addItem(citem.item, citem.count);
-                                                        }
-                                                        cache_mod.swapRemove(&chests, &chest_count, ci);
+                                                    if (tryDrainContainerBreak(old_b, bx, by, bz, &chests, &chest_count, &hoppers, &hopper_count, &droppers, &dropper_count, &inventory)) {
+                                                        _ = try manager.editAndRemesh(bx, by, bz, .air);
                                                     }
-                                                    _ = try manager.editAndRemesh(bx, by, bz, .air);
                                                 },
                                                 .chain_tnt => {
                                                     if (boom_mod.canChainFuse(fuses[0..fuse_count], bx, by, bz, fuses.len)) {
@@ -5455,13 +5488,9 @@ pub fn main() !void {
                                             }
                                         },
                                         .destroy_chest => {
-                                            if (cache_mod.findChest(&chests, chest_count, bx, by, bz)) |ci| {
-                                                for (chests[ci].items) |citem| {
-                                                    if (!citem.isEmpty()) _ = inventory.addItem(citem.item, citem.count);
-                                                }
-                                                cache_mod.swapRemove(&chests, &chest_count, ci);
+                                            if (tryDrainContainerBreak(old_b, bx, by, bz, &chests, &chest_count, &hoppers, &hopper_count, &droppers, &dropper_count, &inventory)) {
+                                                _ = try manager.editAndRemesh(bx, by, bz, .air);
                                             }
-                                            _ = try manager.editAndRemesh(bx, by, bz, .air);
                                         },
                                         .destroy_block => {
                                             _ = try manager.editAndRemesh(bx, by, bz, .air);
@@ -6855,8 +6884,11 @@ pub fn main() !void {
                                             const bx = ex + rx;
                                             const by = ey + ry;
                                             const bz = ez + rz;
-                                            if (by > 0 and try manager.editAndRemesh(bx, by, bz, .air)) {
-                                                if (cache_mod.findChest(&chests, chest_count, bx, by, bz)) |ci| cache_mod.swapRemove(&chests, &chest_count, ci);
+                                            if (by > 0) {
+                                                const b_to_break = manager.getBlockWorld(bx, by, bz);
+                                                if (tryDrainContainerBreak(b_to_break, bx, by, bz, &chests, &chest_count, &hoppers, &hopper_count, &droppers, &dropper_count, &inventory)) {
+                                                    _ = try manager.editAndRemesh(bx, by, bz, .air);
+                                                }
                                             }
                                         }
                                     }

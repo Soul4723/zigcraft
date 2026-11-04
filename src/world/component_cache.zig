@@ -528,3 +528,141 @@ pub fn interactAutomation(slots: anytype, inventory: anytype, selected_slot: usi
     }
     return false;
 }
+
+/// Drain container slots into player inventory on container break or explosion destruction.
+/// Any items that fit are removed from the container slots. Any items that cannot fit remain in slot.count = remaining.
+/// Returns true if the container is completely empty / drained (all items fit into inventory),
+/// or false if overflow remains (at least one item could not fit into inventory).
+pub fn drainContainerBreak(slots: anytype, inventory: anytype) bool {
+    var all_fit = true;
+    for (slots) |*slot| {
+        if (!slot.isEmpty()) {
+            const remaining = inventory.addItem(slot.item, slot.count);
+            if (remaining == 0) {
+                slot.clear();
+            } else {
+                slot.count = remaining;
+                all_fit = false;
+            }
+        }
+    }
+    return all_fit;
+}
+
+test "drainContainerBreak handles empty, partial, overflow, and full states across chest, hopper, dropper" {
+    const Item = enum {
+        none,
+        stone,
+        dirt,
+        iron_ingot,
+        diamond,
+    };
+    const Slot = struct {
+        item: Item = .none,
+        count: u8 = 0,
+        pub fn isEmpty(self: @This()) bool {
+            return self.item == .none or self.count == 0;
+        }
+        pub fn clear(self: *@This()) void {
+            self.item = .none;
+            self.count = 0;
+        }
+    };
+    const MockInv = struct {
+        space: u8,
+        stored: u8 = 0,
+        pub fn addItem(self: *@This(), item: Item, count: u8) u8 {
+            if (item == .none or count == 0) return 0;
+            const available = self.space - self.stored;
+            const to_add = @min(available, count);
+            self.stored += to_add;
+            return count - to_add;
+        }
+    };
+
+    // 1. empty container returns true (drained)
+    {
+        var slots = [_]Slot{.{}} ** 4;
+        var inv = MockInv{ .space = 64 };
+        try std.testing.expect(drainContainerBreak(&slots, &inv));
+        try std.testing.expectEqual(@as(u8, 0), inv.stored);
+    }
+
+    // 2. partially full container where all items fit returns true, clears container slots, adds to inventory
+    {
+        var slots = [_]Slot{
+            .{ .item = .stone, .count = 10 },
+            .{ .item = .dirt, .count = 20 },
+            .{},
+            .{},
+        };
+        var inv = MockInv{ .space = 64 };
+        try std.testing.expect(drainContainerBreak(&slots, &inv));
+        try std.testing.expectEqual(@as(u8, 30), inv.stored);
+        for (slots) |s| try std.testing.expect(s.isEmpty());
+    }
+
+    // 3. partially full container where only some items fit returns false, transfers fitting items, leaves remainder in container slots
+    {
+        var slots = [_]Slot{
+            .{ .item = .stone, .count = 10 },
+            .{ .item = .dirt, .count = 20 },
+            .{},
+            .{},
+        };
+        var inv = MockInv{ .space = 15 };
+        try std.testing.expect(!drainContainerBreak(&slots, &inv));
+        try std.testing.expectEqual(@as(u8, 15), inv.stored);
+        try std.testing.expect(slots[0].isEmpty());
+        try std.testing.expectEqual(Item.dirt, slots[1].item);
+        try std.testing.expectEqual(@as(u8, 15), slots[1].count);
+        try std.testing.expect(slots[2].isEmpty());
+        try std.testing.expect(slots[3].isEmpty());
+    }
+
+    // 4. completely full container with full inventory returns false, transfers 0 items, leaves all container slots intact
+    {
+        var slots = [_]Slot{
+            .{ .item = .stone, .count = 64 },
+            .{ .item = .dirt, .count = 64 },
+            .{ .item = .iron_ingot, .count = 64 },
+            .{ .item = .diamond, .count = 64 },
+        };
+        var inv = MockInv{ .space = 0 };
+        try std.testing.expect(!drainContainerBreak(&slots, &inv));
+        try std.testing.expectEqual(@as(u8, 0), inv.stored);
+        try std.testing.expectEqual(Item.stone, slots[0].item);
+        try std.testing.expectEqual(@as(u8, 64), slots[0].count);
+        try std.testing.expectEqual(Item.dirt, slots[1].item);
+        try std.testing.expectEqual(@as(u8, 64), slots[1].count);
+        try std.testing.expectEqual(Item.iron_ingot, slots[2].item);
+        try std.testing.expectEqual(@as(u8, 64), slots[2].count);
+        try std.testing.expectEqual(Item.diamond, slots[3].item);
+        try std.testing.expectEqual(@as(u8, 64), slots[3].count);
+    }
+
+    // 5. verify it works for Chest, Hopper, and Dropper item arrays
+    {
+        const TestChest = struct { x: i32, y: i32, z: i32, items: [4]Slot = [_]Slot{.{}} ** 4 };
+        var test_chest = TestChest{ .x = 1, .y = 2, .z = 3 };
+        test_chest.items[0] = .{ .item = .diamond, .count = 5 };
+        var inv1 = MockInv{ .space = 10 };
+        try std.testing.expect(drainContainerBreak(&test_chest.items, &inv1));
+        try std.testing.expectEqual(@as(u8, 5), inv1.stored);
+        try std.testing.expect(test_chest.items[0].isEmpty());
+
+        var test_hopper: Hopper(Slot) = .{ .x = 1, .y = 2, .z = 3 };
+        test_hopper.items[1] = .{ .item = .iron_ingot, .count = 12 };
+        var inv2 = MockInv{ .space = 10 };
+        try std.testing.expect(!drainContainerBreak(&test_hopper.items, &inv2));
+        try std.testing.expectEqual(@as(u8, 10), inv2.stored);
+        try std.testing.expectEqual(@as(u8, 2), test_hopper.items[1].count);
+
+        var test_dropper: Dropper(Slot) = .{ .x = 1, .y = 2, .z = 3 };
+        test_dropper.items[2] = .{ .item = .stone, .count = 8 };
+        var inv3 = MockInv{ .space = 8 };
+        try std.testing.expect(drainContainerBreak(&test_dropper.items, &inv3));
+        try std.testing.expectEqual(@as(u8, 8), inv3.stored);
+        try std.testing.expect(test_dropper.items[2].isEmpty());
+    }
+}
