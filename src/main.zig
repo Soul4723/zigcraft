@@ -213,8 +213,6 @@ const calibrated_sculk_resonance_mod = @import("world/calibrated_sculk_resonance
 const chiseled_bookshelf_storage_mod = @import("world/chiseled_bookshelf_storage.zig");
 const bookshelf_secret_latch_mod = @import("world/bookshelf_secret_latch.zig");
 const hanging_sign_mechanics_mod = @import("world/hanging_sign_mechanics.zig");
-const camel_mount_kinematics_mod = @import("world/camel_mount_kinematics.zig");
-const camel_step_dash_mod = @import("world/camel_step_dash.zig");
 const decorated_pot_storage_mod = @import("world/decorated_pot_storage.zig");
 const mangrove_mud_architecture_mod = @import("world/mangrove_mud_architecture.zig");
 const chorus_teleport_purpur_mod = @import("world/chorus_teleport_purpur.zig");
@@ -1253,8 +1251,6 @@ pub fn main() !void {
         _ = chiseled_bookshelf_storage_mod.total_slots;
         _ = bookshelf_secret_latch_mod.door_transition_ticks;
         _ = hanging_sign_mechanics_mod.crafting_yield;
-        _ = camel_mount_kinematics_mod.camel_step_height;
-        _ = camel_step_dash_mod.canStrideGap(2.0);
         _ = decorated_pot_storage_mod.wobble_duration_seconds;
         _ = mangrove_mud_architecture_mod.generateRootCage(2, .{ false, false, false, false });
         // Wave 18 representative frame-loop hooks keep all ten domains queryable.
@@ -7585,6 +7581,17 @@ pub fn main() !void {
                 _ = camel_mount.togglePosture();
                 audio.play(.click_on, 0.8);
                 std.debug.print("toggled Camel posture: {s}\n", .{@tagName(camel_mount.posture)});
+            } else if (held_eat.item == .camel_dash_saddle or held_eat.item == .saddle) {
+                if (camel_mount.canDash() and player.on_ground) {
+                    const impulse = camel_mount.releaseDash(cam.yaw, true);
+                    if (impulse) |imp| {
+                        player.vel_x += imp.vx;
+                        player.vel_z += imp.vz;
+                        audio.play(.mob_growl, 0.9);
+                        particles.spawnDustParticles(.{ player.pos.x, player.pos.y + 0.2, player.pos.z }, 10);
+                        std.debug.print("camel dash released (v={d:.1}m/s)\n", .{camel_mod.DASH_SPEED});
+                    }
+                }
             } else if (held_eat.item == .wind_charge) {
                 inventory.slots[selected_slot].decrement(1);
                 player.fall_distance = 0.0;
