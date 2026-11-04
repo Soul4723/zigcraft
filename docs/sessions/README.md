@@ -7,6 +7,7 @@ belong in the pull request description, not in a separate file.
 
 ## Recent sessions
 
+- 2026-11-04: Unified Warden behavior, scent tracking, sonic boom kinematics, and Sculk Shrieker warning rules into src/world/warden_deep_dark.zig and removed duplicate warden_scent_blast.zig and warden_sonic_boom.zig. Connected Sculk Shrieker F-key interaction and physical stepping, acoustic shriek audio (.mob_roar / .portal_hum), portal particle emission, warning level progression (1 to 4), darkness status duration, and Tier 4 Warden emergence warning feedback to live gameplay in main.zig.
 - 2026-11-04: Unified Elytra glide aerodynamics and rocket propulsion rules into src/world/elytra_aerodynamics.zig and removed duplicate elytra_flight_matrix.zig and elytra_rocket_propulsion.zig. Connected forward rocket boost impulse along camera look vector (rocket_acceleration = 1.5 m/s²), stall kinematics, durability wear/tattered wing state, and solid-block kinetic crash damage (speed >= 10.0 m/s) to live gameplay in main.zig.
 - 2026-11-04: Unified Camel mount rules into src/world/camel.zig and removed duplicate camel_mount_kinematics.zig and camel_step_dash.zig. Connected right-click camel dash saddle impulse (DASH_SPEED = 19.5 m/s burst momentum, 55-tick cooldown, mob growl audio, dust particles) to live gameplay in main.zig, retaining cactus healing and lead posture toggle.
 - 2026-11-04: Unified Wind Charge and Breeze rules into src/world/wind_charge.zig and removed duplicate breeze_wind_charge.zig and breeze_jump_deflection.zig. Connected rocket jump fall distance reset (player.fall_distance = 0.0), horizontal dash momentum (7.0 m/s), burst damage/knockback, and portal particles to live gameplay in main.zig.
@@ -21,7 +22,6 @@ belong in the pull request description, not in a separate file.
 - 2026-11-02: Added dedicated dark obsidian and purple Nether portal tiles using a taller atlas, preserving existing sheep and pressure-plate materials. Xvfb runs visually checked a normally generated frame with side and top-edge ignition; the combined run saved all six portal cells and exited cleanly.
 - 2026-11-02: Fixed F ignition from a portal top lintel by checking all six adjacent cells; both frame orientations have regression coverage. A normally generated frame ignited under top-edge aim in Xvfb and saved six portal cells; player positioning was supplied.
 - 2026-11-02: Connected Creaking puppets to active hearts, repaired upper-body gaze, frozen gravity, hazard-free spawning and pumpkin handling; preserved shared resin cooldown and transit cleanup. Fixture-assisted live checks observed night appearance, torso-gaze stillness, pursuit/attacks and shared resin cooldown; dawn and broken-heart cleanup were not conclusively observed.
-- 2026-11-02: Connected deterministic dormant obsidian frames to Overworld generation; default seed frame (44, 7, 44) uses the existing F ignition and Nether transit. Generated-chunk/detector tests pass; live transit used a test-positioned player, not an end-to-end walk.
 
 ## History
 
