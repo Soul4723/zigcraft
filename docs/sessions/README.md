@@ -7,6 +7,7 @@ belong in the pull request description, not in a separate file.
 
 ## Recent sessions
 
+- 2026-11-04: Unified Guardian and Elder Guardian combat and drop rules in ocean_monument.zig and removed duplicate guardian_laser_spikes.zig and elder_guardian_curse.zig. Connected GuardianLaserState 15m laser beam tracking, progressive color cues, piercing beam damage, Elder Guardian Mining Fatigue, and melee spike thorns retaliation to live gameplay in main.zig.
 - 2026-11-04: Unified Blaze combat rules in blaze_fortress.zig and removed duplicate blaze_fireball_artillery.zig. Connected BlazeAttackState 3-fireball volleys, charging flame VFX, and snowball vulnerability (3 damage with sizzle audio and sparks) to live gameplay in main.zig.
 
 - 2026-11-04: Prevented container item loss on player inventory overflow during mining and explosions. Drained items are added to inventory; if overflow remains, container blocks and cached items survive without deletion or drops.
@@ -22,7 +23,6 @@ belong in the pull request description, not in a separate file.
 - 2026-11-02: Removed player blast-center immunity and kept center knockback finite; regression tests cover exact and near-center damage. In-game blasts were not observed.
 - 2026-11-02: Persisted four-slot chest and shulker caches by dimension, including emptied fortress loot, enforced item stack limits, and cleaned destroyed container cache entries; hopper and dropper caches remain unsaved and not dimension-isolated.
 - 2026-10-31: Persisted furnace, smoker, blast-furnace jobs and growing saplings in per-dimension block_jobs.bin files with offline/unloaded pausing, preflight transit rollback, and ENOENT missing-file checks.
-- 2026-10-31: Corrected CONTRIBUTING documentation on Zig 0.16 lazy test collection, documented semantic analysis rules and minimal fixtures in learnings, and confirmed explicit test_files registration policy.
 
 ## History
 

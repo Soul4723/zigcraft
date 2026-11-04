@@ -119,8 +119,6 @@ const woodland_mansion_mod = @import("world/woodland_mansion.zig");
 const ocean_monument_mod = @import("world/ocean_monument.zig");
 const beacon_status_pyramids_mod = @import("world/beacon_status_pyramids.zig");
 const conduit_underwater_power_mod = @import("world/conduit_underwater_power.zig");
-const guardian_laser_spikes_mod = @import("world/guardian_laser_spikes.zig");
-const elder_guardian_curse_mod = @import("world/elder_guardian_curse.zig");
 const nether_portal_scaling_mod = @import("world/nether_portal_scaling.zig");
 const ancient_city_mod = @import("world/ancient_city.zig");
 const temple_traps_mod = @import("world/temple_traps.zig");
@@ -1069,9 +1067,6 @@ pub fn main() !void {
         _ = woodland_mansion_mod.selectEvokerSpell(8.0, 0, 0.0, false, true);
         _ = woodland_mansion_mod.wololoSheep(.blue);
         _ = woodland_mansion_mod.VindicatorState.init(true).shouldJohnnyAttackMob(false, false);
-        _ = ocean_monument_mod.tickGuardianLaserBeam(&active_guardian_laser, true, 10.0, false, dt);
-        _ = ocean_monument_mod.evaluateGuardianSpikeThorns(true, true);
-        _ = ocean_monument_mod.placeSpongeInBiomeOrDimension(false, false, 1);
         _ = ancient_city_mod.computeSwiftSneakSpeedMultiplier(true, 2);
         _ = ancient_city_mod.doesActionEmitSculkVibration(false, true, false, false);
         _ = ancient_city_mod.evaluateAncientCityBasementDoorPuzzle(8, 0, 0);
@@ -1290,8 +1285,6 @@ pub fn main() !void {
         _ = wither_boss_phases_mod.SPAWN_TICKS;
         _ = beacon_status_pyramids_mod.tierProperties(.four);
         _ = conduit_underwater_power_mod.evaluateActivation(true, conduit_underwater_power_mod.complete_frame_blocks);
-        _ = guardian_laser_spikes_mod.LASER_CHARGE_TICKS;
-        _ = elder_guardian_curse_mod.MINING_FATIGUE_III_TICKS;
         _ = nether_portal_scaling_mod.overworldToNether(.{ .x = 0, .y = 64, .z = 0 });
         // Wave 24 representative frame-loop hooks; Elytra wear and dragon ritual
         // ticking are already queried in their active simulation paths above.
@@ -3601,6 +3594,15 @@ pub fn main() !void {
                         }
                         particles.spawnBlockDebris(px, py, pz, .{ 0.85, 0.2, 0.2 }, 8);
                     }
+                    if (hit_mob.mob_type == .guardian or hit_mob.mob_type == .elder_guardian) {
+                        const thorns_dmg = ocean_monument_mod.evaluateGuardianSpikeThorns(true, true);
+                        if (thorns_dmg > 0.0) {
+                            player.health = @max(0.0, player.health - thorns_dmg);
+                            audio.play(.hurt, 0.8);
+                            particles.spawnBlockDebris(px, py, pz, .{ 1.0, 0.28, 0.06 }, 8);
+                            std.debug.print("{s} spike thorns retaliated for {d:.1} damage (hp={d:.1})\n", .{ @tagName(hit_mob.mob_type), thorns_dmg, player.health });
+                        }
+                    }
                     if (hit_mob.died) {
                         const drop = inventory_mod.getMobMeatDrop(hit_mob.mob_type);
                         _ = inventory.addItem(drop, 1);
@@ -5337,6 +5339,57 @@ pub fn main() !void {
                 particles.spawnFlame(b_bx, b_by, b_bz, 8);
                 std.debug.print("blaze fireball volley (shots={d})\n", .{shots});
             }
+        }
+        // Guardian & Elder Guardian laser combat: 2s (3s for elder) tracking charge + piercing beam
+        var active_guardian_in_range: ?*entity_mod.mob.Mob = null;
+        var min_guardian_dist: f32 = ocean_monument_mod.guardian_laser_range + 1.0;
+        for (mob_manager.mobs.items) |*m| {
+            if ((m.mob_type == .guardian or m.mob_type == .elder_guardian) and m.health > 0) {
+                const gdx = player.pos.x - m.pos.x;
+                const gdy = (player.pos.y + 1.0) - (m.pos.y + 0.5);
+                const gdz = player.pos.z - m.pos.z;
+                const dist = @sqrt(gdx * gdx + gdy * gdy + gdz * gdz);
+                if (dist <= ocean_monument_mod.guardian_laser_range and dist < min_guardian_dist) {
+                    min_guardian_dist = dist;
+                    active_guardian_in_range = m;
+                }
+            }
+        }
+        if (active_guardian_in_range) |gm| {
+            const is_elder = (gm.mob_type == .elder_guardian);
+            const laser_tick = ocean_monument_mod.tickGuardianLaserBeam(&active_guardian_laser, true, min_guardian_dist, is_elder, dt);
+            const charge_color = ocean_monument_mod.guardianLaserChargeColor(active_guardian_laser, is_elder);
+            const g_bx: i32 = @intFromFloat(@floor(gm.pos.x));
+            const g_by: i32 = @intFromFloat(@floor(gm.pos.y + 0.6));
+            const g_bz: i32 = @intFromFloat(@floor(gm.pos.z));
+            switch (charge_color) {
+                .purple => {
+                    particles.spawnPortalParticles(.{ gm.pos.x, gm.pos.y + 0.6, gm.pos.z }, 3);
+                    particles.spawnBlockDebris(g_bx, g_by, g_bz, .{ 0.2, 0.8, 0.85 }, 2);
+                },
+                .orange => {
+                    particles.spawnBlockDebris(g_bx, g_by, g_bz, .{ 1.0, 0.5, 0.1 }, 4);
+                    particles.spawnPortalParticles(.{ gm.pos.x, gm.pos.y + 0.6, gm.pos.z }, 2);
+                },
+                .yellow_flash => {
+                    particles.spawnGlowstoneShimmer(.{ gm.pos.x, gm.pos.y + 0.6, gm.pos.z }, 6);
+                    particles.spawnBlockDebris(g_bx, g_by, g_bz, .{ 1.0, 0.95, 0.2 }, 4);
+                },
+            }
+            if (laser_tick.fired_beam) {
+                const phys_dmg = combat_mod.applyArmorReductionEveryTier(laser_tick.physical_damage, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
+                const total_dmg = phys_dmg + laser_tick.magic_armor_piercing_damage;
+                player.health = @max(0.0, player.health - total_dmg);
+                audio.playAt(.splash, .{ gm.pos.x, gm.pos.y, gm.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 25.0);
+                audio.playAt(.mob_roar, .{ gm.pos.x, gm.pos.y, gm.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 25.0);
+                audio.play(.hurt, 0.8);
+                if (is_elder) {
+                    player.applyMiningFatigue();
+                }
+                std.debug.print("{s} laser beam fired: dmg={d:.1} (phys={d:.1}, magic={d:.1}, hp={d:.1})\n", .{ @tagName(gm.mob_type), total_dmg, phys_dmg, laser_tick.magic_armor_piercing_damage, player.health });
+            }
+        } else {
+            _ = ocean_monument_mod.tickGuardianLaserBeam(&active_guardian_laser, false, 0.0, false, dt);
         }
         // Creeper detonation AI: approaches player, hisses & primes within 3m, explodes at 0
         {
