@@ -53,7 +53,7 @@ connected to gameplay; Wither boss rules are unified in `wither_boss` (with dupl
 `wither_boss_phases` removed) with spawn charging invulnerability, birth explosion detonation,
 and HUD boss bar tracking connected to gameplay; Ender Dragon fight rules are unified into `ender_dragon_fight`
 (with duplicate `ender_dragon_arena_fight` removed) with crystal tether healing, recoil backlash, and projectile perch
-deflection connected to gameplay; remaining candidates include warden rule unification.
+deflection connected to gameplay; Bundle pouch rules and 16 dye colors are unified in `bundle_pouch` (with duplicate `bundle_dyeing_nesting` removed) with cauldron washing and hotbar item insertion/extraction connected to gameplay (all duplicate pairs listed in STATUS.md are now resolved); remaining candidates include warden rule unification and redstone parts.
 
 ## 4. Pay down structure debt
 
