@@ -221,7 +221,6 @@ const trial_spawner_waves_mod = @import("world/trial_spawner_waves.zig");
 const vault_loot_dispenser_mod = @import("world/vault_loot_dispenser.zig");
 const trial_vault_reset_mod = @import("world/trial_vault_reset.zig");
 const vault_multiplayer_reset_mod = @import("world/vault_multiplayer_reset.zig");
-const warden_scent_blast_mod = @import("world/warden_scent_blast.zig");
 const sculk_shrieker_fog_mod = @import("world/sculk_shrieker_fog.zig");
 const calibrated_sensor_chains_mod = @import("world/calibrated_sensor_chains.zig");
 const mace_velocity_scaling_mod = @import("world/mace_velocity_scaling.zig");
@@ -240,7 +239,6 @@ const copper_horn_acoustics_mod = @import("world/copper_horn_acoustics.zig");
 const copper_bulb_display_mod = @import("world/copper_bulb_display.zig");
 const sculk_sensor_multiplexing_mod = @import("world/sculk_sensor_multiplexing.zig");
 const deepslate_mineralogy_mod = @import("world/deepslate_mineralogy.zig");
-const warden_sonic_boom_mod = @import("world/warden_sonic_boom.zig");
 const recovery_compass_echo_mod = @import("world/recovery_compass_echo.zig");
 const archaeology_brush_excavation_mod = @import("world/archaeology_brush_excavation.zig");
 const brushing_visual_particles_mod = @import("world/brushing_visual_particles.zig");
@@ -1005,6 +1003,12 @@ pub fn main() !void {
         _ = active_happy_ghast.riderCount();
         active_sculk_catalyst.tick(dt);
         active_shrieker_warning.tick(dt);
+        if (active_shrieker_warning.hasDarkness()) {
+            const fog_intensity = warden_deep_dark_mod.computeDarknessFogIntensity(active_shrieker_warning.darkness_timer);
+            if (fog_intensity > 0.4 and @sin(world_time * 4.0) > 0.75) {
+                particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 1);
+            }
+        }
         active_warden_anger.tick(dt);
         active_strider.setLavaState(floor_blk == .lava or at_feet_blk == .lava, player.in_water);
         active_strider.update(dt);
@@ -1329,7 +1333,6 @@ pub fn main() !void {
         _ = sculk_sensor_multiplexing_mod.SENSOR_RANGE;
         _ = deepslate_mineralogy_mod.deepslateProbability(-4.0);
         _ = mangrove_mud_architecture_mod.MUD_HARDNESS;
-        _ = warden_sonic_boom_mod.SONIC_BOOM_RANGE;
         _ = recovery_compass_echo_mod.isAncientCityExclusive(.echo_shard);
         _ = archaeology_brush_excavation_mod.TOTAL_EXCAVATION_TICKS;
         _ = brushing_visual_particles_mod.TOTAL_EXCAVATION_TICKS;
@@ -1361,7 +1364,6 @@ pub fn main() !void {
         _ = end_city_layout_mod.generateEndCity(.{ .x = 0, .y = 64, .z = 0 });
         _ = end_ship_vault_mod.generateEndShip(.{ .x = 0, .y = 64, .z = 0 });
         // Wave 25 representative frame-loop hooks keep all ten domains queryable.
-        _ = warden_scent_blast_mod.SCENT_RANGE;
         _ = sculk_shrieker_fog_mod.DARKNESS_RADIUS;
         _ = calibrated_sensor_chains_mod.CALIBRATED_SENSOR_RANGE;
         _ = trial_spawner_waves_mod.scaleTotalMobs(6, 2);
@@ -1498,6 +1500,22 @@ pub fn main() !void {
                 const has_legs = inventory.hasItem(.leather_leggings) or inventory.hasItem(.iron_leggings) or inventory.hasItem(.diamond_leggings) or inventory.hasItem(.netherite_leggings);
                 const bush_dmg = scaffolding_mod.calculateBerryBushDamage(norm_wish.x != 0 or norm_wish.z != 0, has_legs, dt);
                 if (bush_dmg > 0.0) player.health = @max(0.0, player.health - bush_dmg);
+            }
+            if (manager.getBlockWorld(px_i, py_i, pz_i) == .sculk_shrieker or manager.getBlockWorld(px_i, py_i - 1, pz_i) == .sculk_shrieker) {
+                const s_sy = if (manager.getBlockWorld(px_i, py_i, pz_i) == .sculk_shrieker) py_i else py_i - 1;
+                const step_res = active_shrieker_warning.trigger(player.pos.x, player.pos.y, player.pos.z, px_i, s_sy, pz_i);
+                if (step_res.shrieked) {
+                    audio.playAt(.mob_roar, .{ @as(f32, @floatFromInt(px_i)) + 0.5, @as(f32, @floatFromInt(s_sy)) + 0.8, @as(f32, @floatFromInt(pz_i)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 32.0);
+                    audio.playAt(.portal_hum, .{ @as(f32, @floatFromInt(px_i)) + 0.5, @as(f32, @floatFromInt(s_sy)) + 0.8, @as(f32, @floatFromInt(pz_i)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 32.0);
+                    particles.spawnPortalParticles(.{ @as(f32, @floatFromInt(px_i)) + 0.5, @as(f32, @floatFromInt(s_sy)) + 0.8, @as(f32, @floatFromInt(pz_i)) + 0.5 }, 12);
+                    std.debug.print("sculk shrieker shrieked (warning_level={d}/4)\n", .{step_res.warning_level});
+                    if (step_res.warning_level >= 4 or step_res.summon_warden) {
+                        toast.timer = 3.0;
+                        toast.color = .{ 0.1, 0.6, 0.8 };
+                        particles.spawnPortalVortex(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 1.5, 24, 0.0);
+                        std.debug.print("Warden emergence warning! Darkness descends upon the deep dark...\n", .{});
+                    }
+                }
             }
 
             // Campfire / magma / lava contact burn hazard (negated by fire resistance immunity)
@@ -6421,6 +6439,21 @@ pub fn main() !void {
                                 _ = try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, .air);
                                 cache_mod.swapRemove(&cakes, &cake_count, cki);
                             }
+                        }
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .sculk_shrieker) {
+                    const shriek_res = active_shrieker_warning.trigger(player.pos.x, player.pos.y, player.pos.z, hit_f.x, hit_f.y, hit_f.z);
+                    if (shriek_res.shrieked) {
+                        audio.playAt(.mob_roar, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 32.0);
+                        audio.playAt(.portal_hum, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 32.0);
+                        particles.spawnPortalParticles(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 12);
+                        std.debug.print("sculk shrieker shrieked (warning_level={d}/4)\n", .{shriek_res.warning_level});
+                        if (shriek_res.warning_level >= 4 or shriek_res.summon_warden) {
+                            toast.timer = 3.0;
+                            toast.color = .{ 0.1, 0.6, 0.8 };
+                            particles.spawnPortalVortex(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 1.5, 24, 0.0);
+                            std.debug.print("Warden emergence warning! Darkness descends upon the deep dark...\n", .{});
                         }
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;

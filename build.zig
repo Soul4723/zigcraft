@@ -133,8 +133,6 @@ pub fn build(b: *std.Build) void {
         "src/world/allay_amethyst_duplication.zig",
         "src/world/happy_ghast.zig",
         "src/world/warden_deep_dark.zig",
-        "src/world/warden_sonic_boom.zig",
-        "src/world/warden_scent_blast.zig",
         "src/world/recovery_compass_echo.zig",
         "src/world/sculk_shrieker_warning.zig",
         "src/world/sculk_shrieker_fog.zig",
