@@ -6,15 +6,16 @@ const c = @cImport({
 
 pub const ATLAS_TILES_PER_ROW: f32 = 8.0;
 pub const TILE_UV_SIZE: f32 = 1.0 / ATLAS_TILES_PER_ROW;
+pub const TILE_V_SIZE: f32 = 1.0 / 16.0;
 
 pub fn getTileUV(tile_x: u32, tile_y: u32) [4][2]f32 {
     const u_min = @as(f32, @floatFromInt(tile_x)) * TILE_UV_SIZE;
-    const v_min = @as(f32, @floatFromInt(tile_y)) * TILE_UV_SIZE;
+    const v_min = @as(f32, @floatFromInt(tile_y)) * TILE_V_SIZE;
     return .{
         .{ u_min, v_min },
         .{ u_min + TILE_UV_SIZE, v_min },
-        .{ u_min + TILE_UV_SIZE, v_min + TILE_UV_SIZE },
-        .{ u_min, v_min + TILE_UV_SIZE },
+        .{ u_min + TILE_UV_SIZE, v_min + TILE_V_SIZE },
+        .{ u_min, v_min + TILE_V_SIZE },
     };
 }
 
@@ -27,6 +28,16 @@ fn hash2(x: usize, y: usize, seed: u32) u32 {
 }
 
 pub fn tilePixel(tile_x: u32, tile_y: u32, x: usize, y: usize) [4]u8 {
+    if (tile_y == 8 and tile_x == 0) {
+        const n: u8 = @intCast(hash2(x / 2, y / 2, 310) % 13);
+        if ((x + y * 2) % 11 == 0) return .{ 43, 28, 59, 255 };
+        return .{ 16 + n, 12 + n / 2, 25 + n, 255 };
+    }
+    if (tile_y == 8 and tile_x == 1) {
+        const n: u8 = @intCast(hash2(x / 2, y / 2, 311) % 30);
+        if ((x + y * 2) % 9 < 2) return .{ 181, 66, 230, 255 };
+        return .{ 99 + n, 24 + n / 2, 158 + n, 255 };
+    }
     if (tile_x == 0 and tile_y == 0) {
         const n = hash2(x, y, 11) % 100;
         if (hash2(x / 2, y, 77) % 8 == 0) return .{ 38, 118, 32, 255 };
@@ -832,11 +843,12 @@ pub fn createBlockTexture() c.GLuint {
     var texture: c.GLuint = 0;
     c.glGenTextures(1, &texture);
     c.glBindTexture(c.GL_TEXTURE_2D, texture);
-    const atlas_size: usize = 128;
-    var data: [128 * 128 * 4]u8 = undefined;
+    const atlas_width: usize = 128;
+    const atlas_height: usize = 256;
+    var data: [atlas_width * atlas_height * 4]u8 = undefined;
     @memset(&data, 0);
     var ty: usize = 0;
-    while (ty < 8) : (ty += 1) {
+    while (ty < 16) : (ty += 1) {
         var tx: usize = 0;
         while (tx < 8) : (tx += 1) {
             var yy: usize = 0;
@@ -844,7 +856,7 @@ pub fn createBlockTexture() c.GLuint {
                 var xx: usize = 0;
                 while (xx < 16) : (xx += 1) {
                     const px = tilePixel(@intCast(tx), @intCast(ty), xx, yy);
-                    const idx = ((ty * 16 + yy) * 128 + (tx * 16 + xx)) * 4;
+                    const idx = ((ty * 16 + yy) * atlas_width + (tx * 16 + xx)) * 4;
                     data[idx] = px[0];
                     data[idx + 1] = px[1];
                     data[idx + 2] = px[2];
@@ -853,7 +865,7 @@ pub fn createBlockTexture() c.GLuint {
             }
         }
     }
-    c.glTexImage2D(c.GL_TEXTURE_2D, 0, c.GL_RGBA, @intCast(atlas_size), @intCast(atlas_size), 0, c.GL_RGBA, c.GL_UNSIGNED_BYTE, &data);
+    c.glTexImage2D(c.GL_TEXTURE_2D, 0, c.GL_RGBA, @intCast(atlas_width), @intCast(atlas_height), 0, c.GL_RGBA, c.GL_UNSIGNED_BYTE, &data);
     c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_WRAP_S, c.GL_REPEAT);
     c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_WRAP_T, c.GL_REPEAT);
     c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_MIN_FILTER, c.GL_NEAREST);
@@ -865,9 +877,9 @@ pub fn createBlockTexture() c.GLuint {
 test "tile UV coordinates within unit quad" {
     const uv = getTileUV(1, 1);
     try std.testing.expectEqual(uv[0][0], 0.125);
-    try std.testing.expectEqual(uv[0][1], 0.125);
+    try std.testing.expectEqual(uv[0][1], 0.0625);
     try std.testing.expectEqual(uv[2][0], 0.25);
-    try std.testing.expectEqual(uv[2][1], 0.25);
+    try std.testing.expectEqual(uv[2][1], 0.125);
 }
 
 test "all block tiles opaque, sand tile verified" {
@@ -903,7 +915,7 @@ test "iron door tiles rendered with rivets and slit cutout" {
     try std.testing.expectEqual(tilePixel(4, 7, 5, 4)[3], 140); // window slit
     try std.testing.expectEqual(tilePixel(4, 7, 3, 3)[0], 240); // rivet head
     try std.testing.expectEqual(tilePixel(5, 7, 0, 0)[3], 255); // edge
-    try std.testing.expectEqual(tilePixel(5, 7, 10, 10)[3], 0);  // pass-through
+    try std.testing.expectEqual(tilePixel(5, 7, 10, 10)[3], 0); // pass-through
 }
 
 test "lamp tiles rendered with lattice frame and amber/golden cores" {
@@ -1050,4 +1062,21 @@ test "spawner cage atlas texture iron bars and ember core" {
     const interior = tilePixel(5, 0, 2, 2);
     try std.testing.expect(interior[0] <= 35);
     try std.testing.expectEqual(interior[3], 255);
+}
+
+test "dedicated portal pixels preserve sheep and pressure plate materials" {
+    for (0..16) |y| for (0..16) |x| {
+        const obsidian = tilePixel(0, 8, x, y);
+        const portal = tilePixel(1, 8, x, y);
+        try std.testing.expect(obsidian[0] < 60 and obsidian[1] < 40 and obsidian[2] < 65 and obsidian[3] == 255);
+        try std.testing.expect(portal[0] > 90 and portal[2] > portal[0] and portal[1] < portal[0] and portal[3] == 255);
+    };
+    try std.testing.expectEqual(@as(u8, 0), tilePixel(2, 6, 0, 0)[3]);
+    try std.testing.expectEqual(@as(u8, 255), tilePixel(2, 6, 5, 5)[3]);
+    try std.testing.expectEqual([4]u8{ 35, 30, 30, 255 }, tilePixel(1, 2, 4, 7));
+    try std.testing.expectEqual([4]u8{ 245, 245, 245, 255 }, tilePixel(1, 2, 2, 6));
+    try std.testing.expectEqual([4]u8{ 220, 180, 170, 255 }, tilePixel(1, 2, 5, 9));
+    const sheep_uv = getTileUV(1, 2);
+    try std.testing.expectEqual([2]f32{ 0.125, 0.125 }, sheep_uv[0]);
+    try std.testing.expectEqual([2]f32{ 0.25, 0.1875 }, sheep_uv[2]);
 }

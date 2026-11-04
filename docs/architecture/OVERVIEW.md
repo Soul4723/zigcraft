@@ -126,3 +126,7 @@ Creaking puppets live in `entity/mob_manager.zig`, linked to heart coordinates.
 `world/pale_garden.zig` owns gaze/occlusion rules and the resin cooldown shared
 by puppet strikes and direct heart interaction. Successful dimension transitions
 clear puppets alongside restoring dimension-specific world state.
+
+The procedural block atlas has eight columns and sixteen rows of 16-pixel tiles
+(128 by 256 pixels). Renderer and chunk-mesh UVs use separate width and height
+scales; old tile coordinates remain valid while new materials use added rows.
