@@ -8,10 +8,18 @@ pub const SaddleItemId: u16 = 250;
 pub const LavaBlockId: u16 = 8;
 pub const WarpedFungusBlockId: u16 = 72;
 
+/// Ticks and timing constants.
+pub const TICKS_PER_SECOND: u32 = 20;
+pub const TICK_DT: f32 = 1.0 / @as(f32, @floatFromInt(TICKS_PER_SECOND)); // 0.05 seconds
+
 /// Health and healing constants.
 pub const strider_max_health: f32 = 20.0; // 10 hearts
 pub const strider_baby_health: f32 = 10.0; // 5 hearts
 pub const warped_fungus_heal_amount: f32 = 2.0; // 1 heart
+
+pub const STRIDER_MAX_HEALTH: f32 = strider_max_health;
+pub const STRIDER_BABY_MAX_HEALTH: f32 = strider_baby_health;
+pub const WARPED_FUNGUS_HEAL_AMOUNT: f32 = warped_fungus_heal_amount;
 
 /// Speed constants (m/s).
 /// Striders stride rapidly across lava surfaces, accelerate under fungus boost,
@@ -20,10 +28,19 @@ pub const strider_lava_speed: f32 = 4.2; // 4.2 m/s normal stride on lava
 pub const strider_boost_speed: f32 = 7.8; // 7.8 m/s boosted stride on lava
 pub const strider_land_speed: f32 = 1.7; // 1.7 m/s slow shivering stride on land
 
+pub const STRIDER_LAVA_SPEED: f32 = strider_lava_speed;
+pub const STRIDER_BOOST_SPEED_LAVA: f32 = strider_boost_speed;
+pub const STRIDER_BOOST_SPEED: f32 = strider_boost_speed;
+pub const STRIDER_LAND_SPEED: f32 = strider_land_speed;
+
 /// Warped Fungus on a Stick boost mechanics.
 pub const fungus_boost_duration: f32 = 14.0; // 14.0 seconds speed boost
 pub const max_stick_durability: u16 = 100; // max durability of Warped Fungus on a Stick
 pub const boost_durability_cost: u16 = 1; // durability consumed per boost activation
+
+pub const BOOST_DURATION_SECONDS: f32 = fungus_boost_duration;
+pub const BOOST_DURABILITY_COST: u16 = boost_durability_cost;
+pub const WARPED_FUNGUS_STICK_MAX_DURABILITY: u16 = max_stick_durability;
 
 /// Environmental contact damage constants.
 /// Striders take 1.0 HP damage per 0.5 seconds in water or rain (2.0 HP/s).
@@ -40,19 +57,74 @@ pub const baby_growth_step_reduction: f32 = 120.0; // 10% reduction per warped f
 pub const strider_rider_y_offset: f32 = 1.6; // Player rider feet Y relative to strider base
 pub const baby_piggyback_y_offset: f32 = 1.35; // Baby piggyback perched atop adult strider
 
+pub const STRIDER_RIDER_Y_OFFSET: f32 = strider_rider_y_offset;
+pub const BABY_PIGGYBACK_Y_OFFSET: f32 = baby_piggyback_y_offset;
+
 /// RGBA color representation for strider thermal coloration.
 pub const ColorRGBA = struct {
     r: f32,
     g: f32,
     b: f32,
-    a: f32,
+    a: f32 = 1.0,
+
+    pub fn eql(self: ColorRGBA, other: ColorRGBA) bool {
+        const eps: f32 = 0.01;
+        return @abs(self.r - other.r) < eps and
+            @abs(self.g - other.g) < eps and
+            @abs(self.b - other.b) < eps and
+            @abs(self.a - other.a) < eps;
+    }
 };
 
 /// Warm crimson / red-orange strider coloration when submerged or standing in lava.
 pub const strider_warm_color: ColorRGBA = .{ .r = 0.78, .g = 0.24, .b = 0.20, .a = 1.0 };
+pub const VIBRANT_WARM_RED: ColorRGBA = strider_warm_color;
 
 /// Cold pale purple-blue strider coloration when shivering out of lava or in rain/water.
 pub const strider_cold_shivering_color: ColorRGBA = .{ .r = 0.42, .g = 0.40, .b = 0.58, .a = 1.0 };
+pub const COLD_SHIVERING_PURPLE: ColorRGBA = strider_cold_shivering_color;
+
+/// Thermal temperature states for the Strider.
+pub const ThermalState = enum {
+    warm,
+    freezing,
+
+    pub fn isWarm(self: ThermalState) bool {
+        return self == .warm;
+    }
+
+    pub fn isFreezing(self: ThermalState) bool {
+        return self == .freezing;
+    }
+
+    pub fn skinColor(self: ThermalState) ColorRGBA {
+        return switch (self) {
+            .warm => strider_warm_color,
+            .freezing => strider_cold_shivering_color,
+        };
+    }
+};
+
+/// Audio sound cues emitted during Strider actions.
+pub const SoundEvent = enum {
+    strider_step,
+    strider_ambient,
+    strider_hurt,
+    strider_death,
+    strider_eat,
+    strider_boost,
+    strider_saddle,
+    strider_shiver,
+};
+
+/// Visual particle cues emitted during Strider actions.
+pub const ParticleEvent = enum {
+    shivering_chill,
+    lava_drip,
+    heart_love,
+    boost_smoke,
+    water_splash,
+};
 
 /// Returns the visual tint color for a strider based on its shivering state.
 pub fn getStriderColor(is_shivering: bool) ColorRGBA {
@@ -105,6 +177,8 @@ pub fn triggerFungusBoost(strider: *StriderState, stick_durability: u16) FungusB
     }
 
     strider.boost_timer = fungus_boost_duration;
+    strider.last_sound = .strider_boost;
+    strider.last_particle = .boost_smoke;
     const cost: u16 = boost_durability_cost;
     const reverted: bool = (stick_durability <= cost);
 
@@ -123,8 +197,15 @@ pub fn waterContactDamage(in_water_or_rain: bool, dt: f32) f32 {
     return water_damage_rate * clamped_dt;
 }
 
+/// 3D position vector for strider riders and passengers.
+pub const RiderPosition = struct {
+    x: f32,
+    y: f32,
+    z: f32,
+};
+
 /// Computes the 3D world position of a player mounted on the Strider.
-pub fn computeWorldRiderPosition(sx: f32, sy: f32, sz: f32) struct { x: f32, y: f32, z: f32 } {
+pub fn computeWorldRiderPosition(sx: f32, sy: f32, sz: f32) RiderPosition {
     return .{
         .x = sx,
         .y = sy + strider_rider_y_offset,
@@ -132,8 +213,11 @@ pub fn computeWorldRiderPosition(sx: f32, sy: f32, sz: f32) struct { x: f32, y: 
     };
 }
 
+/// Authoritative helper alias for computeWorldRiderPosition.
+pub const computeRiderPosition = computeWorldRiderPosition;
+
 /// Computes the 3D world position of a baby strider piggybacking atop an adult Strider.
-pub fn computeWorldBabyPiggybackPosition(sx: f32, sy: f32, sz: f32) struct { x: f32, y: f32, z: f32 } {
+pub fn computeWorldBabyPiggybackPosition(sx: f32, sy: f32, sz: f32) RiderPosition {
     return .{
         .x = sx,
         .y = sy + baby_piggyback_y_offset,
@@ -172,6 +256,7 @@ pub fn breedStriders(parent1: *StriderState, parent2: *StriderState) ?StriderSta
 pub const StriderState = struct {
     is_on_lava: bool = true,
     is_shivering: bool = false,
+    thermal_state: ThermalState = .warm,
     has_saddle: bool = false,
     has_rider: bool = false,
     boost_timer: f32 = 0.0,
@@ -187,6 +272,10 @@ pub const StriderState = struct {
     has_baby_rider: bool = false,
     is_riding_adult: bool = false,
 
+    // Feedback telemetry
+    last_sound: ?SoundEvent = null,
+    last_particle: ?ParticleEvent = null,
+
     const timer_epsilon: f32 = 0.0001;
 
     /// Creates an adult strider spawned in lava.
@@ -194,6 +283,7 @@ pub const StriderState = struct {
         return .{
             .is_on_lava = true,
             .is_shivering = false,
+            .thermal_state = .warm,
             .has_saddle = false,
             .has_rider = false,
             .boost_timer = 0.0,
@@ -206,6 +296,7 @@ pub const StriderState = struct {
         return .{
             .is_on_lava = true,
             .is_shivering = false,
+            .thermal_state = .warm,
             .has_saddle = false,
             .has_rider = false,
             .boost_timer = 0.0,
@@ -213,6 +304,11 @@ pub const StriderState = struct {
             .is_baby = true,
             .growth_timer = baby_growth_duration,
         };
+    }
+
+    /// Returns the current thermal state based on shivering status.
+    pub fn getThermalState(self: StriderState) ThermalState {
+        return self.thermal_state;
     }
 
     /// Checks if speed boost is currently active.
@@ -223,6 +319,11 @@ pub const StriderState = struct {
     /// Calculates current horizontal movement speed based on lava contact and boost.
     pub fn currentSpeed(self: StriderState) f32 {
         return striderMovementSpeed(self.is_on_lava, self.isBoosting());
+    }
+
+    /// Helper alias for currentSpeed.
+    pub fn getMovementSpeed(self: StriderState) f32 {
+        return self.currentSpeed();
     }
 
     /// Returns whether the strider is completely immune to fire and lava burn damage.
@@ -240,12 +341,18 @@ pub const StriderState = struct {
     pub fn setLavaState(self: *StriderState, on_lava: bool, in_water_or_rain: bool) void {
         self.is_on_lava = on_lava;
         self.is_shivering = computeShivering(on_lava, in_water_or_rain);
+        self.thermal_state = if (self.is_shivering) .freezing else .warm;
+        if (self.is_shivering) {
+            self.last_sound = .strider_shiver;
+            self.last_particle = .shivering_chill;
+        }
     }
 
     /// Equips a saddle on the Strider. Babies cannot be saddled.
     pub fn equipSaddle(self: *StriderState) bool {
         if (self.is_baby or self.has_saddle) return false;
         self.has_saddle = true;
+        self.last_sound = .strider_saddle;
         return true;
     }
 
@@ -299,6 +406,7 @@ pub const StriderState = struct {
     pub fn feedWarpedFungus(self: *StriderState) bool {
         if (self.health < strider_max_health) {
             self.health = applyWarpedFungusHeal(self.health, strider_max_health);
+            self.last_sound = .strider_eat;
             return true;
         }
         if (self.is_baby) {
@@ -307,10 +415,13 @@ pub const StriderState = struct {
                 self.is_baby = false;
                 self.growth_timer = 0.0;
             }
+            self.last_sound = .strider_eat;
             return true;
         }
         if (self.breeding_cooldown <= timer_epsilon and !self.in_love) {
             self.in_love = true;
+            self.last_sound = .strider_eat;
+            self.last_particle = .heart_love;
             return true;
         }
         return false;
@@ -322,6 +433,8 @@ pub const StriderState = struct {
         const dmg = waterContactDamage(in_water_or_rain, dt);
         if (dmg > 0.0) {
             self.health = @max(0.0, self.health - dmg);
+            self.last_sound = if (self.health <= 0.0) .strider_death else .strider_hurt;
+            self.last_particle = .water_splash;
         }
         return dmg;
     }
@@ -352,12 +465,14 @@ pub const StriderState = struct {
 
         // Shivering persists when out of lava
         self.is_shivering = !self.is_on_lava;
+        self.thermal_state = if (self.is_shivering) .freezing else .warm;
     }
 
     /// Comprehensive environment update: updates habitat, applies water damage, and advances timers.
     pub fn updateWithEnvironment(self: *StriderState, dt: f32, on_lava: bool, in_water_or_rain: bool) void {
         self.is_on_lava = on_lava;
         self.is_shivering = computeShivering(on_lava, in_water_or_rain);
+        self.thermal_state = if (self.is_shivering) .freezing else .warm;
         if (in_water_or_rain) {
             _ = self.applyWaterDamage(true, dt);
         }
@@ -365,6 +480,7 @@ pub const StriderState = struct {
         // Ensure shivering is maintained if rain was active
         if (in_water_or_rain) {
             self.is_shivering = true;
+            self.thermal_state = .freezing;
         }
     }
 
@@ -373,6 +489,9 @@ pub const StriderState = struct {
         self.update(0.05);
     }
 };
+
+/// Strider type alias for StriderState.
+pub const Strider = StriderState;
 
 // ============================================================================
 // Unit Tests (Comprehensive test suite covering all Milestone 307 requirements)
@@ -463,12 +582,14 @@ test "6. striderMovementSpeed normal on lava is 4.2 m/s" {
     const speed = striderMovementSpeed(true, false);
     try std.testing.expectEqual(@as(f32, 4.2), speed);
     try std.testing.expectEqual(@as(f32, strider_lava_speed), speed);
+    try std.testing.expectEqual(@as(f32, STRIDER_LAVA_SPEED), speed);
 }
 
 test "7. striderMovementSpeed boosted on lava is 7.8 m/s" {
     const speed = striderMovementSpeed(true, true);
     try std.testing.expectEqual(@as(f32, 7.8), speed);
     try std.testing.expectEqual(@as(f32, strider_boost_speed), speed);
+    try std.testing.expectEqual(@as(f32, STRIDER_BOOST_SPEED_LAVA), speed);
 }
 
 test "8. striderMovementSpeed on land is slow shivering 1.7 m/s" {
@@ -476,6 +597,7 @@ test "8. striderMovementSpeed on land is slow shivering 1.7 m/s" {
     const normal_land = striderMovementSpeed(false, false);
     try std.testing.expectEqual(@as(f32, 1.7), normal_land);
     try std.testing.expectEqual(@as(f32, strider_land_speed), normal_land);
+    try std.testing.expectEqual(@as(f32, STRIDER_LAND_SPEED), normal_land);
 
     // Boost on land cannot overcome cold shivering paralysis
     const boosted_land = striderMovementSpeed(false, true);
@@ -513,6 +635,8 @@ test "10. triggerFungusBoost activates 14.0s boost and consumes 1 durability" {
     try std.testing.expectEqual(@as(f32, 14.0), strider.boost_timer);
     try std.testing.expect(strider.isBoosting());
     try std.testing.expectEqual(@as(f32, 7.8), strider.currentSpeed());
+    try std.testing.expectEqual(SoundEvent.strider_boost, strider.last_sound.?);
+    try std.testing.expectEqual(ParticleEvent.boost_smoke, strider.last_particle.?);
 }
 
 test "11. triggerFungusBoost at 1 durability reverts stick to fishing rod" {
@@ -560,11 +684,14 @@ test "14. water contact damage reduces strider health and clamps at zero" {
     const dmg1 = strider.applyWaterDamage(true, 5.0);
     try std.testing.expectApproxEqAbs(dmg1, 10.0, 0.001);
     try std.testing.expectApproxEqAbs(strider.health, 10.0, 0.001);
+    try std.testing.expectEqual(SoundEvent.strider_hurt, strider.last_sound.?);
+    try std.testing.expectEqual(ParticleEvent.water_splash, strider.last_particle.?);
 
     // Another 6.0 seconds: 12.0 HP damage, health drops to 0.0 (clamped)
     const dmg2 = strider.applyWaterDamage(true, 6.0);
     try std.testing.expectApproxEqAbs(dmg2, 12.0, 0.001);
     try std.testing.expectEqual(@as(f32, 0.0), strider.health);
+    try std.testing.expectEqual(SoundEvent.strider_death, strider.last_sound.?);
 }
 
 test "15. warped fungus feeding heals injured adult strider" {
@@ -574,6 +701,7 @@ test "15. warped fungus feeding heals injured adult strider" {
     // First feed: 15.0 + 2.0 = 17.0 HP
     try std.testing.expect(strider.feedWarpedFungus());
     try std.testing.expectApproxEqAbs(strider.health, 17.0, 0.001);
+    try std.testing.expectEqual(SoundEvent.strider_eat, strider.last_sound.?);
 
     // Second feed: 17.0 + 2.0 = 19.0 HP
     try std.testing.expect(strider.feedWarpedFungus());
@@ -592,6 +720,8 @@ test "16. warped fungus feeding puts healthy adult strider into love mode" {
     // Healthy adult consumes warped fungus to enter love mode
     try std.testing.expect(strider.feedWarpedFungus());
     try std.testing.expect(strider.in_love);
+    try std.testing.expectEqual(SoundEvent.strider_eat, strider.last_sound.?);
+    try std.testing.expectEqual(ParticleEvent.heart_love, strider.last_particle.?);
 
     // Already in love: does not consume additional warped fungus
     try std.testing.expect(!strider.feedWarpedFungus());
@@ -688,6 +818,7 @@ test "20. saddle equipping, rider mounting, and dismounting" {
     // Equip saddle on adult
     try std.testing.expect(strider.equipSaddle());
     try std.testing.expect(strider.has_saddle);
+    try std.testing.expectEqual(SoundEvent.strider_saddle, strider.last_sound.?);
     try std.testing.expect(!strider.equipSaddle()); // already saddled
 
     // Mount player rider
@@ -728,6 +859,7 @@ test "21. update countdowns for boost, cooldowns, and environment tick" {
     var s2 = StriderState.init();
     s2.updateWithEnvironment(1.0, true, true);
     try std.testing.expect(s2.is_shivering);
+    try std.testing.expectEqual(ThermalState.freezing, s2.getThermalState());
     try std.testing.expectApproxEqAbs(s2.health, 18.0, 0.001);
 
     // World position offsets verify 3D coordinates
@@ -735,4 +867,51 @@ test "21. update countdowns for boost, cooldowns, and environment tick" {
     try std.testing.expectApproxEqAbs(rider_pos.y, 64.0 + strider_rider_y_offset, 0.001);
     const baby_pos = computeWorldBabyPiggybackPosition(10.0, 64.0, 20.0);
     try std.testing.expectApproxEqAbs(baby_pos.y, 64.0 + baby_piggyback_y_offset, 0.001);
+}
+
+test "22. ThermalState enum, skinColor mapping, and state transitions" {
+    const warm_st = ThermalState.warm;
+    const freeze_st = ThermalState.freezing;
+
+    try std.testing.expect(warm_st.isWarm());
+    try std.testing.expect(!warm_st.isFreezing());
+    try std.testing.expect(!freeze_st.isWarm());
+    try std.testing.expect(freeze_st.isFreezing());
+
+    try std.testing.expect(warm_st.skinColor().eql(VIBRANT_WARM_RED));
+    try std.testing.expect(freeze_st.skinColor().eql(COLD_SHIVERING_PURPLE));
+
+    var strider = Strider.init();
+    try std.testing.expectEqual(ThermalState.warm, strider.getThermalState());
+
+    strider.setLavaState(false, false);
+    try std.testing.expectEqual(ThermalState.freezing, strider.getThermalState());
+    try std.testing.expectEqual(SoundEvent.strider_shiver, strider.last_sound.?);
+    try std.testing.expectEqual(ParticleEvent.shivering_chill, strider.last_particle.?);
+
+    strider.setLavaState(true, false);
+    try std.testing.expectEqual(ThermalState.warm, strider.getThermalState());
+}
+
+test "23. computeRiderPosition alias matches computeWorldRiderPosition" {
+    const pos1 = computeWorldRiderPosition(5.0, 32.0, 15.0);
+    const pos2 = computeRiderPosition(5.0, 32.0, 15.0);
+
+    try std.testing.expectEqual(pos1.x, pos2.x);
+    try std.testing.expectEqual(pos1.y, pos2.y);
+    try std.testing.expectEqual(pos1.z, pos2.z);
+    try std.testing.expectEqual(@as(f32, 32.0 + STRIDER_RIDER_Y_OFFSET), pos2.y);
+}
+
+test "24. unified speed and health constants match specification" {
+    try std.testing.expectEqual(@as(f32, 20.0), STRIDER_MAX_HEALTH);
+    try std.testing.expectEqual(@as(f32, 10.0), STRIDER_BABY_MAX_HEALTH);
+    try std.testing.expectEqual(@as(f32, 2.0), WARPED_FUNGUS_HEAL_AMOUNT);
+    try std.testing.expectEqual(@as(f32, 4.2), STRIDER_LAVA_SPEED);
+    try std.testing.expectEqual(@as(f32, 7.8), STRIDER_BOOST_SPEED_LAVA);
+    try std.testing.expectEqual(@as(f32, 7.8), STRIDER_BOOST_SPEED);
+    try std.testing.expectEqual(@as(f32, 1.7), STRIDER_LAND_SPEED);
+    try std.testing.expectEqual(@as(u16, 100), WARPED_FUNGUS_STICK_MAX_DURABILITY);
+    try std.testing.expectEqual(@as(u16, 1), BOOST_DURABILITY_COST);
+    try std.testing.expectEqual(@as(f32, 14.0), BOOST_DURATION_SECONDS);
 }

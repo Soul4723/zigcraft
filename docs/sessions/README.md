@@ -7,6 +7,7 @@ belong in the pull request description, not in a separate file.
 
 ## Recent sessions
 
+- 2026-11-04: Unified Strider mount and lava locomotion rules into src/world/strider_mount.zig and removed duplicate strider_lava_mount.zig. Connected active_strider update and right-click Warped Fungus on a Stick boost (speed surge to 7.8 m/s, durability wear, lava pop audio and flame VFX) and Warped Fungus feeding to live gameplay in main.zig.
 - 2026-11-04: Unified Beacon pyramid geometry, status powers, and payment activation into beacon_aura.zig and removed duplicate beacon_pyramid.zig and beacon_status_pyramids.zig. Connected Haste mining speed boost (1.40× multiplier) and dynamic aura radius (20m base, 50m supercharged) to live gameplay in main.zig.
 - 2026-11-04: Unified Guardian and Elder Guardian combat and drop rules in ocean_monument.zig and removed duplicate guardian_laser_spikes.zig and elder_guardian_curse.zig. Connected GuardianLaserState 15m laser beam tracking, progressive color cues, piercing beam damage, Elder Guardian Mining Fatigue, and melee spike thorns retaliation to live gameplay in main.zig.
 - 2026-11-04: Unified Blaze combat rules in blaze_fortress.zig and removed duplicate blaze_fireball_artillery.zig. Connected BlazeAttackState 3-fireball volleys, charging flame VFX, and snowball vulnerability (3 damage with sizzle audio and sparks) to live gameplay in main.zig.
@@ -21,7 +22,6 @@ belong in the pull request description, not in a separate file.
 - 2026-11-02: Restored held-left timed mining while retaining press-only inventory, placement and melee actions. A fresh-build Xvfb run verified held mining, release, one placement, one inventory transfer and clean shutdown; crafting, mob combat and portal travel remain unchecked.
 - 2026-11-02: Cleared temporary effects, flight and stale contact flags on respawn; regression tests cover post-respawn vitals/physics and retained equipment/navigation facts. Interactive death/respawn was not checked.
 - 2026-11-02: Removed player blast-center immunity and kept center knockback finite; regression tests cover exact and near-center damage. In-game blasts were not observed.
-- 2026-11-02: Persisted four-slot chest and shulker caches by dimension, including emptied fortress loot, enforced item stack limits, and cleaned destroyed container cache entries; hopper and dropper caches remain unsaved and not dimension-isolated.
 
 ## History
 
