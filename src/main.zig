@@ -250,7 +250,6 @@ const recovery_compass_echo_mod = @import("world/recovery_compass_echo.zig");
 const archaeology_brush_excavation_mod = @import("world/archaeology_brush_excavation.zig");
 const brushing_visual_particles_mod = @import("world/brushing_visual_particles.zig");
 const trial_chamber_traps_mod = @import("world/trial_chamber_traps.zig");
-const bundle_dyeing_nesting_mod = @import("world/bundle_dyeing_nesting.zig");
 const netherite_smithing_pipeline_mod = @import("world/netherite_smithing_pipeline.zig");
 const shulker_bullet_levitation_mod = @import("world/shulker_bullet_levitation.zig");
 const elytra_rocket_propulsion_mod = @import("world/elytra_rocket_propulsion.zig");
@@ -1294,7 +1293,6 @@ pub fn main() !void {
         _ = brushing_visual_particles_mod.TOTAL_EXCAVATION_TICKS;
         // Wave 20 representative frame-loop hooks keep all ten domains queryable.
         _ = trial_chamber_traps_mod.HAZARD_INTERVAL_TICKS;
-        _ = bundle_dyeing_nesting_mod.TOTAL_BUNDLE_CAPACITY;
         _ = netherite_smithing_pipeline_mod.NETHERITE_BLOCK_BLAST_RESISTANCE;
         _ = shulker_bullet_levitation_mod.LEVITATION_DURATION_TICKS;
         _ = elytra_rocket_propulsion_mod.rocket_acceleration;
@@ -6877,6 +6875,14 @@ pub fn main() !void {
                             audio.play(.lava_pop, 0.85);
                             particles.spawnFlame(hit_f.x, hit_f.y + 1, hit_f.z, 8);
                             std.debug.print("filled cauldron with lava (level=3)\n", .{});
+                        } else if (held_item == .dyed_bundle_package and cs.fluid == .water and cs.level > 0) {
+                            inventory.slots[selected_slot].item = .bundle;
+                            cs.level -= 1;
+                            if (cs.level == 0) cs.fluid = .empty;
+                            _ = player_bundle.undye();
+                            audio.play(.splash, 0.8);
+                            particles.spawnWaterSplash(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 6);
+                            std.debug.print("washed dyed bundle in cauldron (remaining level={d})\n", .{cs.level});
                         } else if (held_item == .glass and cs.fluid == .water and cs.level > 0) {
                             // Dip glass vial into water cauldron to scoop a water bottle
                             cs.level -= 1;
@@ -7455,8 +7461,41 @@ pub fn main() !void {
                 audio.play(.burn_sizzle, 0.7);
                 particles.spawnPortalVortex(target_pos, 2.0, 16, 0.0);
                 std.debug.print("deployed Lingering Weakness Potion cloud!\n", .{});
-            } else if (held_eat.item == .bundle) {
-                if (player_bundle.total_weight > 0) {
+            } else if (held_eat.item == .bundle or held_eat.item == .dyed_bundle_package) {
+                if (!cursor_stack.isEmpty() and player_bundle.remainingCapacity() > 0) {
+                    const item_id: u16 = @intFromEnum(cursor_stack.item);
+                    const max_stack = cursor_stack.item.maxStackSize();
+                    const accepted = player_bundle.insert(item_id, cursor_stack.count, max_stack);
+                    if (accepted > 0) {
+                        cursor_stack.decrement(accepted);
+                        audio.play(.click_on, 0.85);
+                        std.debug.print("inserted {d}x {s} into Bundle (occupancy={d}/64)\n", .{ accepted, cursor_stack.item.name(), player_bundle.total_weight });
+                    } else {
+                        audio.play(.click_off, 0.7);
+                        std.debug.print("Bundle cannot accept {s} (occupancy={d}/64)\n", .{ cursor_stack.item.name(), player_bundle.total_weight });
+                    }
+                } else if (key_shift and player_bundle.remainingCapacity() > 0) {
+                    var inserted_any = false;
+                    for (0..6) |i| {
+                        if (i == selected_slot) continue;
+                        const slot = &inventory.slots[i];
+                        if (slot.isEmpty() or slot.item == .none) continue;
+                        const item_id: u16 = @intFromEnum(slot.item);
+                        const max_stack = slot.item.maxStackSize();
+                        const accepted = player_bundle.insert(item_id, slot.count, max_stack);
+                        if (accepted > 0) {
+                            slot.decrement(accepted);
+                            audio.play(.click_on, 0.85);
+                            std.debug.print("inserted {d}x {s} into Bundle (occupancy={d}/64)\n", .{ accepted, slot.item.name(), player_bundle.total_weight });
+                            inserted_any = true;
+                            break;
+                        }
+                    }
+                    if (!inserted_any) {
+                        audio.play(.click_off, 0.7);
+                        std.debug.print("no hotbar item fits into Bundle (occupancy={d}/64)\n", .{player_bundle.total_weight});
+                    }
+                } else if (player_bundle.total_weight > 0) {
                     if (player_bundle.extract()) |ext| {
                         const out_item: inventory_mod.ItemType = @enumFromInt(ext.item_id);
                         _ = inventory.addItem(out_item, ext.count);
@@ -7464,8 +7503,26 @@ pub fn main() !void {
                         std.debug.print("extracted {d}x {s} from Bundle (occupancy={d}/64)\n", .{ ext.count, out_item.name(), player_bundle.total_weight });
                     }
                 } else {
-                    audio.play(.click_on, 0.7);
-                    std.debug.print("Bundle is empty (0/64 weight)\n", .{});
+                    var inserted_any = false;
+                    for (0..6) |i| {
+                        if (i == selected_slot) continue;
+                        const slot = &inventory.slots[i];
+                        if (slot.isEmpty() or slot.item == .none) continue;
+                        const item_id: u16 = @intFromEnum(slot.item);
+                        const max_stack = slot.item.maxStackSize();
+                        const accepted = player_bundle.insert(item_id, slot.count, max_stack);
+                        if (accepted > 0) {
+                            slot.decrement(accepted);
+                            audio.play(.click_on, 0.85);
+                            std.debug.print("inserted {d}x {s} into Bundle (occupancy={d}/64)\n", .{ accepted, slot.item.name(), player_bundle.total_weight });
+                            inserted_any = true;
+                            break;
+                        }
+                    }
+                    if (!inserted_any) {
+                        audio.play(.click_on, 0.7);
+                        std.debug.print("Bundle is empty (0/64 weight)\n", .{});
+                    }
                 }
             } else if (held_eat.item == .ominous_bottle) {
                 inventory.slots[selected_slot].decrement(1);

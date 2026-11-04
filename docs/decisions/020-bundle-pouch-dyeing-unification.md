@@ -1,0 +1,21 @@
+# Decision 020: Bundle pouch storage and color dyeing unification, cauldron washing, and hotbar insertion integration
+
+Accepted: 2026-11-04.
+
+## Context
+Bundle pouch mechanics were duplicated across two overlapping modules in `src/world/`:
+- `src/world/bundle_pouch.zig`: Defined standard bundle pouch storage with a 64 weight unit capacity limit (`MAX_BUNDLE_WEIGHT`), up to 16 entry slots (`MAX_BUNDLE_ENTRIES`), item weight rules (`BundleWeight`), scroll selection index cycling, 16 dye colors (`DyeColor`), display name formatting, total weight recomputation, and fullness comparator signal (`comparatorSignal`).
+- `src/world/bundle_dyeing_nesting.zig`: Defined Milestone 472 bundle mechanics with 64 weight capacity (`TOTAL_BUNDLE_CAPACITY`), nested bundles (4 base weight baseline + contents weight, ancestry cycle detection, and self-containment rejection), 17-variant `BundleColor` enum (undyed + 16 Minecraft dye colors), crafting grid dyeing (`craftDyeBundle`, `craftDyeGrid`), standalone and fluid-state cauldron washing (`washBundleInCauldron`, `washBundleInCauldronState`), fixed-buffer memory-safe pool (`BundlePool`), and redstone comparator signal curve calculation (`comparatorSignalForWeight`).
+
+In `src/main.zig`, an unused import `bundle_dyeing_nesting_mod` was retained and a discarded dummy call was executed each frame (`_ = bundle_dyeing_nesting_mod.TOTAL_BUNDLE_CAPACITY;`). In live gameplay, right-clicking a water cauldron while holding a dyed bundle (`dyed_bundle_package`) did not wash the bundle, and bundle right-click only performed extraction without allowing the player to insert items from hotbar slots or cursor into the bundle.
+
+## Decision
+1. **Module ownership**: `src/world/bundle_pouch.zig` is the single authoritative module for Bundle pouch capacity (64 weight units), nested bundle rules, 16 dye color variants, LIFO extraction/insertion, crafting grid dyeing, and cauldron washing.
+   - Merged constants (`TOTAL_BUNDLE_CAPACITY = 64`, `EMPTY_BUNDLE_BASE_WEIGHT = 4`, `MAX_NESTED_BUNDLE_ENTRIES = 64`, `MAX_NESTING_DEPTH = 16`), `BundleColor` enum (undyed + 16 dye colors, rgbHex, name, displayName), nested tree bundle container `Bundle`, memory-safe pool `BundlePool`, crafting grid dyeing helpers (`craftDyeBundle`, `craftBundleDye`, `craftDyeGrid`, `CraftingGridSlot`), cauldron washing helpers (`Cauldron`, `washBundleInCauldron`, `washBundleInCauldronState`), and redstone comparator signal calculations (`comparatorSignalForWeight`, `comparatorSignal`, `bundleComparatorSignal`).
+   - Extended `BundlePouch` to support direct `getColor`, `setColor`, `undye`, and generic `wash` calls.
+   - Retained all 27 unit tests from `src/world/bundle_pouch.zig` and all 38 unit tests from `src/world/bundle_dyeing_nesting.zig` (65 unit tests total, 87 including transitive imports).
+   - Removed duplicate module `src/world/bundle_dyeing_nesting.zig` using `git rm` and removed its entry from `test_files` in `build.zig`. All duplicate module pairs listed in `docs/STATUS.md` are now fully resolved.
+2. **Gameplay integration in `src/main.zig`**:
+   - Removed the unused import `bundle_dyeing_nesting_mod` and the discarded dummy call `_ = bundle_dyeing_nesting_mod.TOTAL_BUNDLE_CAPACITY;`.
+   - Connected cauldron right-click washing: when interacting with a water cauldron (`cs.fluid == .water and cs.level > 0`) while holding a dyed bundle (`held_item == .dyed_bundle_package`), the item reverts to `.bundle`, the cauldron water level is decremented by 1 (`cs.level -= 1`, clearing to `.empty` if level reaches 0), the internal bundle color is cleared via `player_bundle.undye()`, `.splash` audio is played, water splash particles are spawned, and `washed dyed bundle in cauldron (remaining level={d})\n` is printed.
+   - Connected bundle right-click item insertion and extraction: when holding `.bundle` or `.dyed_bundle_package`, if the player has an item in `cursor_stack` or presses shift while holding an eligible item in another hotbar slot, or right-clicks while the bundle is empty, items are inserted into the bundle via `player_bundle.insert(...)`, reducing the source slot count and playing `.click_on` audio; otherwise, when the bundle holds contents, right-click extracts the top item in LIFO order with `.click_off` audio.
