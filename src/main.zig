@@ -83,7 +83,6 @@ const slime_mitosis_mod = @import("world/slime_mitosis.zig");
 const magma_cube_splitting_mod = @import("world/magma_cube_splitting.zig");
 const phantom_insomnia_mod = @import("world/phantom_insomnia.zig");
 const wither_boss_mod = @import("world/wither_boss.zig");
-const wither_boss_phases_mod = @import("world/wither_boss_phases.zig");
 const wither_skeleton_effect_mod = @import("world/wither_skeleton_effect.zig");
 const ender_dragon_fight_mod = @import("world/ender_dragon_fight.zig");
 const ender_dragon_arena_fight_mod = @import("world/ender_dragon_arena_fight.zig");
@@ -663,7 +662,8 @@ pub fn main() !void {
     var phantom_insomnia = phantom_insomnia_mod.InsomniaTracker{};
     var active_phantom = phantom_insomnia_mod.PhantomFlightState{};
     // Wave 6 domain states expose the tick and interaction entry points to the frame loop.
-    var active_wither = wither_boss_mod.WitherBoss{};
+    var active_wither = wither_boss_mod.WitherBoss{ .phase = .defeated };
+    var wither_summon_site: ?[3]i32 = null;
     var active_dragon_breath = ender_dragon_fight_mod.DragonBreathCloud{ .pos = .{ 0.0, 64.0, 0.0 } };
     var active_dragon_arena_fight = ender_dragon_arena_fight_mod.DragonArenaFight{};
     var active_dragon_respawn_ritual = dragon_respawn_ritual_mod.DragonRespawnRitual{};
@@ -999,12 +999,46 @@ pub fn main() !void {
         _ = magma_cube_splitting_mod.takesFallDamage();
         phantom_insomnia.tick(dt);
         active_phantom.climb(dt);
-        // A Wither only advances after a summon interaction has started it.
-        if (active_wither.spawn_ticks > 0 and active_wither.phase == .spawning_invulnerable) {
+        // A Wither advances spawn ticks after summoning.
+        if (active_wither.phase == .spawning_invulnerable) {
             wither_spawn_tick_accumulator += dt;
+            var champ_pos: ?[3]f32 = null;
+            for (mob_manager.mobs.items) |m| {
+                if (m.mob_type == .wither_skeleton and m.is_champion and m.health > 0) {
+                    champ_pos = .{ m.pos.x, m.pos.y, m.pos.z };
+                    break;
+                }
+            }
+            const blast_bx: i32 = if (champ_pos) |cp|
+                @as(i32, @intFromFloat(@floor(cp[0])))
+            else if (wither_summon_site) |site|
+                site[0]
+            else
+                @as(i32, @intFromFloat(@floor(player.pos.x)));
+            const blast_by: i32 = if (champ_pos) |cp|
+                @as(i32, @intFromFloat(@floor(cp[1])))
+            else if (wither_summon_site) |site|
+                site[1]
+            else
+                @as(i32, @intFromFloat(@floor(player.pos.y)));
+            const blast_bz: i32 = if (champ_pos) |cp|
+                @as(i32, @intFromFloat(@floor(cp[2])))
+            else if (wither_summon_site) |site|
+                site[2]
+            else
+                @as(i32, @intFromFloat(@floor(player.pos.z)));
+
+            particles.spawnSmoke(blast_bx, blast_by, blast_bz, 2);
+            particles.spawnFlame(blast_bx, blast_by, blast_bz, 1);
+
             while (wither_spawn_tick_accumulator >= 0.05) {
                 wither_spawn_tick_accumulator -= 0.05;
-                _ = active_wither.advanceSpawnTick();
+                if (active_wither.advanceSpawnTick()) {
+                    audio.play(.tnt_explode, 1.0);
+                    particles.spawnSmoke(blast_bx, blast_by, blast_bz, 32);
+                    particles.spawnFlame(blast_bx, blast_by, blast_bz, 24);
+                    std.debug.print("wither birth explosion detonated\n", .{});
+                }
             }
         }
         active_dragon_breath.tick(dt);
@@ -1019,7 +1053,6 @@ pub fn main() !void {
         if (active_villager_cure.is_converting) active_villager_cure.cure_timer = @max(0.0, active_villager_cure.cure_timer - dt);
         shield_thorns_combat_mod.tickShieldBlockState(&active_shield, dt);
         _ = trident_enchantments_mod.stepLoyaltyReturnFlight(&active_loyalty_trident, dt);
-        _ = wither_boss_mod.canSummonWitherBoss(false, false, false, 0, false);
         _ = active_respawn_anchor.comparatorSignal();
         _ = active_observer.tick(0, dt);
         _ = snow_golem_ai_mod.advanceSnowGolemAttackCooldown(&active_snow_golem, dt);
@@ -1278,7 +1311,6 @@ pub fn main() !void {
         _ = magma_cube_splitting_mod.MagmaCubeSize.big.meleeDamage();
         _ = ghast_fireball_tennis_mod.SIGHT_RANGE;
         _ = wither_skeleton_effect_mod.WITHER_DURATION_TICKS;
-        _ = wither_boss_phases_mod.SPAWN_TICKS;
         _ = conduit_underwater_power_mod.evaluateActivation(true, conduit_underwater_power_mod.complete_frame_blocks);
         _ = nether_portal_scaling_mod.overworldToNether(.{ .x = 0, .y = 64, .z = 0 });
         // Wave 24 representative frame-loop hooks; Elytra wear and dragon ritual
@@ -3299,13 +3331,28 @@ pub fn main() !void {
                 break :blk compass_mod.calculateNeedleAngle(0.0, 0.0, player.pos.x, player.pos.z, cam.yaw);
             } else compass_mod.compass_hidden;
 
-            // Query if Ender Dragon or Elder Guardian boss is present for boss health bar
+            // Query if Ender Dragon, Wither champion, or Elder Guardian boss is present for boss health bar
             var boss_health_frac: f32 = -1.0;
             if (manager.is_end) {
                 for (mob_manager.mobs.items) |m| {
                     if (m.mob_type == .ender_dragon and m.health > 0) {
                         boss_health_frac = @as(f32, @floatFromInt(m.health)) / 200.0;
                         break;
+                    }
+                }
+            } else if (active_wither.phase != .defeated) {
+                for (mob_manager.mobs.items) |m| {
+                    if (m.mob_type == .wither_skeleton and m.is_champion and m.health > 0) {
+                        boss_health_frac = @as(f32, @floatFromInt(m.health)) / 30.0;
+                        break;
+                    }
+                }
+                if (boss_health_frac < 0.0) {
+                    for (mob_manager.mobs.items) |m| {
+                        if (m.mob_type == .elder_guardian and m.health > 0) {
+                            boss_health_frac = @as(f32, @floatFromInt(m.health)) / 80.0;
+                            break;
+                        }
                     }
                 }
             } else {
@@ -3607,6 +3654,7 @@ pub fn main() !void {
                             particles.spawnFlame(px, py, pz, 6);
                         }
                         if (hit_mob.is_champion) {
+                            active_wither.phase = .defeated;
                             _ = inventory.addItem(.nether_star, 1);
                             _ = inventory.addItem(.wither_skull, 2);
                             std.debug.print("wither champion slain: nether star dropped\n", .{});
@@ -4185,6 +4233,8 @@ pub fn main() !void {
                                                     mob_manager.mobs.items[mob_manager.mobs.items.len - 1].health = 30;
                                                     mob_manager.mobs.items[mob_manager.mobs.items.len - 1].is_champion = true;
                                                 }
+                                                active_wither.startSpawning();
+                                                wither_summon_site = .{ site.base_x, site.base_y + 1, site.base_z };
                                                 audio.playAt(.mob_roar, .{ @as(f32, @floatFromInt(site.base_x)) + 0.5, @as(f32, @floatFromInt(site.base_y)) + 1.0, @as(f32, @floatFromInt(site.base_z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 40.0);
                                                 particles.spawnFlame(site.base_x, site.base_y + 1, site.base_z, 24);
                                                 std.debug.print("wither champion summoned at ({d},{d},{d})\n", .{ site.base_x, site.base_y, site.base_z });
@@ -4996,6 +5046,7 @@ pub fn main() !void {
                                         particles.spawnFlame(mbx, mby, mbz, 6);
                                     }
                                     if (m.is_champion) {
+                                        active_wither.phase = .defeated;
                                         _ = inventory.addItem(.nether_star, 1);
                                         _ = inventory.addItem(.wither_skull, 2);
                                         std.debug.print("wither champion slain: nether star dropped\n", .{});

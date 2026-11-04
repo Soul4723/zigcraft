@@ -60,6 +60,7 @@ pub const SoundType = enum {
     end_portal_open,
     dragon_roar,
     shears_snip,
+    tnt_explode,
 };
 
 pub const SAMPLE_RATE: u32 = 44100;
@@ -150,6 +151,7 @@ pub const AudioMixer = struct {
             .end_portal_open => SAMPLE_RATE * 3 / 2, // ~1500ms deep rumbling cosmic void portal resonance
             .dragon_roar => SAMPLE_RATE * 2, // ~2000ms thunderous draconic roar and subterranean wing flapping
             .shears_snip => SAMPLE_RATE / 6, // ~166ms crisp dual metallic blade shear snip
+            .tnt_explode => SAMPLE_RATE * 3 / 5, // ~600ms heavy concussive blast & rumble
         };
 
         slot.?.* = .{
@@ -577,6 +579,13 @@ pub const AudioMixer = struct {
                 const crunch = if (@sin(t * 1200.0) > 0.6) (rng.random().float(f32) * 2.0 - 1.0) * 0.55 else 0.0;
                 return (thump + crunch) * (1.0 - progress) * 0.75;
             },
+            .tnt_explode => {
+                // Heavy explosive detonation: punchy low-frequency thump (50Hz) + broadband explosive noise decay
+                const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
+                const sub = @sin(t * 50.0 * 2.0 * std.math.pi) * 0.8 * @exp(-progress * 6.0);
+                const noise = (rng.random().float(f32) * 2.0 - 1.0) * 0.6 * @exp(-progress * 4.0);
+                return (sub + noise) * envelope * 0.9;
+            },
             .shears_snip => {
                 // Crisp dual metallic blade shear snip: sharp high-frequency edge scrape (2400Hz -> 1800Hz) + metallic snap
                 const t = @as(f32, @floatFromInt(sample_idx)) / @as(f32, SAMPLE_RATE);
@@ -675,7 +684,7 @@ test "AudioMixer play voice produces non-zero samples" {
 
 test "AudioMixer all sound types render without overflow or crash" {
     var mixer = AudioMixer.init();
-    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .mob_roar, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle, .nether_wind, .glowstone_chime, .bow_shoot, .shield_block, .crossbow_shoot, .crossbow_load, .firework_blast, .note_harp, .note_bass, .note_snare, .note_chime, .record_13, .record_cat, .anvil_clang, .grindstone_scrape, .smithing_strike, .map_rustle, .fletching_snap, .composter_fill, .loom_shuttle, .stonecutter_saw, .mob_hiss, .mob_teleport, .end_portal_open, .dragon_roar, .shears_snip };
+    const sounds = [_]SoundType{ .step_grass, .step_stone, .step_wood, .step_dirt, .step_snow, .step_wool, .step_sand, .break_block, .place_block, .mob_baa, .mob_oink, .eat, .hurt, .mob_growl, .mob_roar, .click_on, .click_off, .splash, .underwater_submerge, .lava_pop, .lava_bubble, .portal_hum, .portal_warp, .burn_sizzle, .nether_wind, .glowstone_chime, .bow_shoot, .shield_block, .crossbow_shoot, .crossbow_load, .firework_blast, .note_harp, .note_bass, .note_snare, .note_chime, .record_13, .record_cat, .anvil_clang, .grindstone_scrape, .smithing_strike, .map_rustle, .fletching_snap, .composter_fill, .loom_shuttle, .stonecutter_saw, .mob_hiss, .mob_teleport, .end_portal_open, .dragon_roar, .shears_snip, .tnt_explode };
     for (sounds) |snd| {
         mixer.play(snd, 1.0);
     }
@@ -896,6 +905,21 @@ test "dragon_roar audio synthesis produces non-zero output" {
 test "shears_snip audio synthesis non-zero output" {
     var mixer = AudioMixer.init();
     mixer.play(.shears_snip, 1.0);
+    var buf: [256]i16 = undefined;
+    mixer.render(&buf);
+    var has_nonzero = false;
+    for (buf) |s| {
+        if (s != 0) {
+            has_nonzero = true;
+            break;
+        }
+    }
+    try std.testing.expect(has_nonzero);
+}
+
+test "tnt_explode audio synthesis non-zero output" {
+    var mixer = AudioMixer.init();
+    mixer.play(.tnt_explode, 1.0);
     var buf: [256]i16 = undefined;
     mixer.render(&buf);
     var has_nonzero = false;

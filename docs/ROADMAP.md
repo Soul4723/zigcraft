@@ -49,7 +49,9 @@ are unified in `ocean_monument` and connected to live gameplay; Beacon pyramid g
 status powers, and payment activation are unified in `beacon_aura` with live dynamic aura
 range, health regeneration, and supercharged Haste mining multiplier connected; Strider mount
 and lava locomotion rules are unified into `strider_mount` with warped fungus boost and feeding
-connected to gameplay; remaining candidates include warden rule unification.
+connected to gameplay; Wither boss rules are unified in `wither_boss` (with duplicate
+`wither_boss_phases` removed) with spawn charging invulnerability, birth explosion detonation,
+and HUD boss bar tracking connected to gameplay; remaining candidates include warden rule unification.
 
 ## 4. Pay down structure debt
 
