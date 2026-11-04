@@ -11,7 +11,7 @@ Git history.
 | Check | Last result |
 |-------|-------------|
 | CI on `main` | 2026-10-30: hosted jobs run again on the public repository. `build-and-test` and `public-content` are required for an up-to-date PR, including for administrators, with no human review approval required. See [current main runs](https://github.com/Soul4723/zigcraft/actions/workflows/ci.yml?query=branch%3Amain) for job results. |
-| Build and full test suite | 2026-11-04, Zig 0.16.0: build passed; 12,725 of 12,725 tests passed across 607 steps. Setup pins the compiler locally; LLVM/LLD are selected for compatibility with recent Linux C runtime objects. |
+| Build and full test suite | 2026-11-04, Zig 0.16.0: build passed; 12,725 of 12,725 tests passed across 603 steps. Setup pins the compiler locally; LLVM/LLD are selected for compatibility with recent Linux C runtime objects. |
 | Running the game | 2026-11-02: A freshly built executable under Xvfb/software OpenGL mined dirt while left was held, stopped destruction after release, placed one block while right was held, transferred an inventory stack once while left was held, and shut down with exit 0. Live 2×2 crafting was additionally checked through save data (32 logs became 31 logs plus four planks). Nether travel was checked with a fixture frame and, separately, with a normally generated frame and test-positioned player; an end-to-end walk from spawn and live return trip remain unchecked. |
 
 Zig 0.17 cannot compile `build.zig` (`b.args` no longer exists). Use 0.16.0.
@@ -41,6 +41,7 @@ These systems are driven by input or the frame loop in `src/main.zig` and
 - Mobs from `src/entity/`: 26 types (including sheep, pigs, wolves, zombies,
   skeletons, creepers, endermen, piglins, blazes, guardians, the Ender
   Dragon, and the nocturnal Creaking puppet entity), with spawn rules, simple AI, pathfinding and box-model rendering. Sandwiched Creaking Hearts spawn at most one Creaking at night within 32m, freezing under unobstructed upper-body gaze via DDA occlusion, dealing contact damage, and extruding resin on hit via shared cooldown. A carried carved pumpkin bypasses gaze freeze, following the inventory-based armor convention. A fixture-assisted Xvfb run observed nighttime appearance, stationary torso-gaze behavior, pursuit/contact attacks after looking away, and resin on puppet strike followed by heart cooldown rejection and later extrusion. Dawn and broken-heart despawn remain covered by unit tests; the live post-break view was inconclusive. Blaze combat is wired to `blaze_fortress` rules (`BlazeAttackState`): Blazes charge visibly on fire for 3s then fire a 3-fireball volley toward the player before entering a 5s cooldown, and take 3 damage from snowballs (`resolveSnowballOrWaterHitOnBlaze`) with sizzle audio and spark particles. Guardian and Elder Guardian combat is wired to `ocean_monument` rules (`GuardianLaserState`, `tickGuardianLaserBeam`): Guardians within 15m charge their laser with progressive visual cues (purple portal particles and cyan debris progressing through orange debris and flashing yellow shimmer) before firing an armor-piercing beam (6 physical + 1 magic damage for standard, 8 physical + 2 magic damage and Mining Fatigue for Elder Guardian) with splash and mob roar audio. Striking a Guardian or Elder Guardian in melee triggers defensive spike thorns retaliation (`evaluateGuardianSpikeThorns`), dealing 2 thorns damage to the player with orange spike particle debris and hurt audio.
+- Beacon block placement and sky beam activation: Beacons activate when unobstructed to the sky and placed atop an iron, gold, diamond, or emerald mineral block (`beacon_aura`). Active beacons emit a continuous beam of luminous particles and project an aura (20m radius base level, expanding to 50m when supercharged). Right-clicking an active beacon with mineral payment (iron ingot, gold nugget, emerald, diamond, or netherite ingot) activates a 300s supercharge timer with chime audio and shimmer particles, providing active health regeneration and a live 1.40× Haste mining speed boost (`hasteMultiplier`) reducing mining time across all blocks.
 - Redstone: wire with 15-block falloff, torches, repeaters, levers, pressure
   plates, lamps and iron doors, plus dispensers, droppers and hoppers.
 - TNT, falling sand, water flow with levels, water washing away redstone. Player explosion damage reaches its maximum at the blast center with finite upward knockback and zero horizontal push there.
@@ -89,7 +90,6 @@ Several mechanics have more than one module, written by different sessions:
 | Elytra | `elytra_aerodynamics`, `elytra_flight_matrix`, `elytra_rocket_propulsion` |
 | Warden and sculk | `warden_deep_dark`, `warden_scent_blast`, `warden_sonic_boom`, `sculk_shrieker_fog`, `sculk_shrieker_warning`, `calibrated_sculk`, `calibrated_sculk_resonance`, `calibrated_sensor_chains` |
 | Trial chambers | `trial_spawner_dynamics`, `trial_spawner_waves`, `vault_loot_dispenser`, `vault_multiplayer_reset`, `trial_vault_reset`, `ominous_trial`, `ominous_bottle_omen`, `ominous_bottle_matrix` |
-| Beacon | `beacon_aura`, `beacon_pyramid`, `beacon_status_pyramids` |
 | Wind charge | `wind_charge`, `breeze_wind_charge`, `breeze_jump_deflection` |
 | Camel | `camel`, `camel_mount_kinematics`, `camel_step_dash` |
 | Pairs | `bundle_pouch` / `bundle_dyeing_nesting`, `ender_dragon_fight` / `ender_dragon_arena_fight`, `wither_boss` / `wither_boss_phases`, `strider_mount` / `strider_lava_mount` |
@@ -98,7 +98,7 @@ Other overlaps:
 
 - `pale_garden` Creaking Heart resin extrusion and Creaking mob entity runtime are connected to live gameplay; dynamic thunderstorm weather activation remains deferred while weather simulation is static clear sky.
 - Mob rule modules (warden and others) do not drive the mobs
-  in `src/entity/`, which have their own stats and AI; Blaze combat rules are unified in `blaze_fortress` and Guardian / Elder Guardian rules are unified in `ocean_monument`, both connected to live gameplay.
+  in `src/entity/`, which have their own stats and AI; Blaze combat rules are unified in `blaze_fortress` and Guardian / Elder Guardian rules are unified in `ocean_monument`, both connected to live gameplay; Beacon pyramid geometry, status powers, and payment activation are unified in `beacon_aura` with live dynamic aura range, health regeneration, and supercharged Haste mining multiplier connected.
 - Some modules describe 3×3 recipes, but the inventory only has a 2×2 grid.
 
 ## Known problems
