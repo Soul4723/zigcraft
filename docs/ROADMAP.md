@@ -43,7 +43,9 @@ A module that cannot be connected yet because a needed system is missing
 Good first candidates are mechanics whose blocks, items or mobs already exist
 in the game: mob rules for mobs already in `src/entity/`, and redstone parts.
 Creaking puppet entity runtime is integrated with sandwiched Creaking Hearts;
-remaining candidates include guardian, blaze, and warden rule unification.
+Blaze combat rules and snowball vulnerability are unified in `blaze_fortress` and
+connected to live gameplay; remaining candidates include guardian and warden rule
+unification.
 
 ## 4. Pay down structure debt
 

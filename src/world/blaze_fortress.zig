@@ -16,6 +16,29 @@ pub const blaze_idle_descent_speed: f32 = -0.6;
 pub const MAX_BREW_FUEL: u5 = 20;
 pub const brew_batch_duration: f32 = 20.0;
 
+// Unified Blaze mob properties and drop rates
+pub const MAX_HEALTH: f32 = 20.0;
+pub const ROD_COUNT: usize = 12;
+pub const CHARGE_TICKS: u16 = 60;
+pub const VOLLEY_SHOTS: u8 = 3;
+pub const SHOT_INTERVAL_TICKS: u8 = 6;
+pub const VOLLEY_COOLDOWN_TICKS: u16 = 100;
+pub const EXPERIENCE_DROP: u8 = 10;
+pub const BLAZE_ROD_DROP_CHANCE: f32 = 0.5;
+pub const MAX_BLAZE_ROD_DROP: u8 = 4;
+pub const TICKS_PER_SECOND: f32 = 20.0;
+
+pub const BlazeRodDrop = struct {
+    count: u8,
+    experience: u8 = EXPERIENCE_DROP,
+};
+
+/// A successful 50% drop roll yields one rod plus one per Looting level, capped at four.
+pub fn rollBlazeRodDrop(roll: f32, looting_level: u8) BlazeRodDrop {
+    if (roll < 0.0 or roll >= BLAZE_ROD_DROP_CHANCE) return .{ .count = 0 };
+    return .{ .count = @min(MAX_BLAZE_ROD_DROP, 1 +| looting_level) };
+}
+
 pub const BlazeAttackPhase = enum {
     idle_cooldown,
     charging_on_fire,
@@ -242,4 +265,35 @@ test "brewing stand refuses overlapping batches" {
     try std.testing.expect(fuel.startBatch());
     try std.testing.expect(!fuel.startBatch());
     try std.testing.expectEqual(@as(u5, 1), fuel.fuel_charges);
+}
+
+test "unified constants match canonical Minecraft values" {
+    try std.testing.expectEqual(@as(usize, 12), ROD_COUNT);
+    try std.testing.expectEqual(@as(u16, 60), CHARGE_TICKS);
+    try std.testing.expectEqual(@as(u16, 100), VOLLEY_COOLDOWN_TICKS);
+    try std.testing.expectEqual(@as(u8, 10), EXPERIENCE_DROP);
+    try std.testing.expectEqual(@as(f32, 20.0), MAX_HEALTH);
+}
+
+test "rod drop roll can yield zero rods" {
+    try std.testing.expectEqual(@as(u8, 0), rollBlazeRodDrop(0.5, 0).count);
+}
+
+test "base rod drop yields one rod on success" {
+    try std.testing.expectEqual(@as(u8, 1), rollBlazeRodDrop(0.0, 0).count);
+}
+
+test "looting adds one rod per level" {
+    try std.testing.expectEqual(@as(u8, 2), rollBlazeRodDrop(0.0, 1).count);
+    try std.testing.expectEqual(@as(u8, 3), rollBlazeRodDrop(0.0, 2).count);
+}
+
+test "looting rod drop caps at four" {
+    try std.testing.expectEqual(@as(u8, 4), rollBlazeRodDrop(0.0, 3).count);
+    try std.testing.expectEqual(@as(u8, 4), rollBlazeRodDrop(0.0, 10).count);
+}
+
+test "rod drops always award ten experience" {
+    try std.testing.expectEqual(@as(u8, 10), rollBlazeRodDrop(0.0, 0).experience);
+    try std.testing.expectEqual(@as(u8, 10), rollBlazeRodDrop(0.9, 3).experience);
 }
