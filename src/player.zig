@@ -10,6 +10,9 @@ pub const Player = struct {
 
     pos: math.Vec3, // feet position
     vel_y: f32,
+    vel_x: f32 = 0.0,
+    vel_z: f32 = 0.0,
+    fall_distance: f32 = 0.0,
     on_ground: bool,
     height: f32,
     radius: f32,
@@ -122,6 +125,9 @@ pub const Player = struct {
             .on_activator_rail = false,
             .water_entry_speed = 0.0,
             .oxygen = 15.0,
+            .vel_x = 0.0,
+            .vel_z = 0.0,
+            .fall_distance = 0.0,
         };
     }
 
@@ -221,6 +227,9 @@ pub const Player = struct {
         self.oxygen = 15.0;
         self.water_breathing_timer = 0.0;
         self.insomnia_timer = 0.0;
+        self.vel_x = 0.0;
+        self.vel_z = 0.0;
+        self.fall_distance = 0.0;
         self.spawn_point = self.pos;
     }
 
@@ -453,8 +462,11 @@ pub const Player = struct {
             soulsand_horizontal_speed_scale
         else
             1.0;
-        var effective_move_x = move_x * speed_scale;
-        var effective_move_z = move_z * speed_scale;
+        var effective_move_x = move_x * speed_scale + self.vel_x * clamped_dt;
+        var effective_move_z = move_z * speed_scale + self.vel_z * clamped_dt;
+        const drag: f32 = if (self.on_ground) 10.0 else 2.0;
+        self.vel_x = approachZero(self.vel_x, drag * clamped_dt);
+        self.vel_z = approachZero(self.vel_z, drag * clamped_dt);
 
         // Water current push: if inside water, compute lateral flow gradient and push player
         if (self.in_water and fluid != null) {
@@ -547,8 +559,12 @@ pub const Player = struct {
         if (self.on_ground or self.in_water) {
             self.is_gliding = false;
             self.rocket_boost_timer = 0.0;
+            self.fall_distance = 0.0;
+        } else if (self.vel_y < 0.0) {
+            self.fall_distance += -self.vel_y * clamped_dt;
         }
         if (was_airborne and self.on_ground) {
+            self.fall_distance = 0.0;
             const floor_y = @as(i32, @intFromFloat(@floor(self.pos.y - 0.1)));
             const floor_x = @as(i32, @intFromFloat(@floor(self.pos.x)));
             const floor_z = @as(i32, @intFromFloat(@floor(self.pos.z)));
@@ -1567,4 +1583,10 @@ test "slime block cancels fall damage and bounces upward" {
     try std.testing.expectEqual(@as(f32, 20.0), player.health);
     // Bounced upward: ~15.0 * 0.80 = ~12.0 rebound velocity
     try std.testing.expect(player.vel_y > 5.0);
+}
+
+fn approachZero(val: f32, delta: f32) f32 {
+    if (val > 0.0) return @max(0.0, val - delta);
+    if (val < 0.0) return @min(0.0, val + delta);
+    return 0.0;
 }
