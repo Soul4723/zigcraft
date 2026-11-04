@@ -44,8 +44,9 @@ Good first candidates are mechanics whose blocks, items or mobs already exist
 in the game: mob rules for mobs already in `src/entity/`, and redstone parts.
 Creaking puppet entity runtime is integrated with sandwiched Creaking Hearts;
 Blaze combat rules and snowball vulnerability are unified in `blaze_fortress` and
-connected to live gameplay; remaining candidates include guardian and warden rule
-unification.
+connected to live gameplay; Guardian and Elder Guardian combat and spike thorns rules
+are unified in `ocean_monument` and connected to live gameplay; remaining candidates
+include warden rule unification.
 
 ## 4. Pay down structure debt
 
