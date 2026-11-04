@@ -302,8 +302,6 @@ pub fn build(b: *std.Build) void {
         "src/world/chiseled_bookshelf_storage.zig",
         "src/world/bookshelf_secret_latch.zig",
         "src/world/hanging_sign_mechanics.zig",
-        "src/world/camel_mount_kinematics.zig",
-        "src/world/camel_step_dash.zig",
         "src/world/decorated_pot_storage.zig",
         "src/world/mangrove_mud_architecture.zig",
         "src/world/chorus_teleport_purpur.zig",

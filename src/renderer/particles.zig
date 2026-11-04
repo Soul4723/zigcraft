@@ -812,6 +812,37 @@ pub fn spawnBeaconBeam(self: *ParticleSystem, bx: i32, by: i32, bz: i32, count: 
         }
     }
 
+    /// Spawn desert dust cloud / trail particles around position (e.g. for camel dash burst).
+    pub fn spawnDustParticles(self: *ParticleSystem, pos: [3]f32, count: usize) void {
+        var i: usize = 0;
+        var seed: u32 = @as(u32, @bitCast(@as(i32, @intFromFloat(pos[0] * 32.0)))) *% 37 +%
+            @as(u32, @bitCast(@as(i32, @intFromFloat(pos[1] * 32.0)))) *% 19 +%
+            @as(u32, @bitCast(@as(i32, @intFromFloat(pos[2] * 32.0)))) *% 11 +%
+            @as(u32, @intCast(self.count));
+        while (i < count and self.count < MAX_PARTICLES) : (i += 1) {
+            seed = seed *% 1103515245 +% 12345;
+            const rx = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            seed = seed *% 1103515245 +% 12345;
+            const ry = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            seed = seed *% 1103515245 +% 12345;
+            const rz = @as(f32, @floatFromInt((seed >> 16) % 100)) / 100.0;
+            const col = [3]f32{ 0.82 + 0.1 * rx, 0.74 + 0.08 * ry, 0.52 + 0.08 * rz };
+            self.particles[self.count] = .{
+                .x = pos[0] + (rx - 0.5) * 0.8,
+                .y = pos[1] + ry * 0.4,
+                .z = pos[2] + (rz - 0.5) * 0.8,
+                .vx = (rx - 0.5) * 2.5,
+                .vy = 0.5 + ry * 1.2,
+                .vz = (rz - 0.5) * 2.5,
+                .life = 0.5 + 0.3 * rx,
+                .max_life = 0.5 + 0.3 * rx,
+                .color = col,
+                .size = 0.08 + 0.04 * ry,
+            };
+            self.count += 1;
+        }
+    }
+
     pub fn tick(self: *ParticleSystem, dt: f32) void {
         var i: usize = 0;
         const gravity: f32 = 18.0;
