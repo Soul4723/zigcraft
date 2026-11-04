@@ -63,7 +63,6 @@ const village_raid_mod = @import("world/village_raid.zig");
 const redstone_workstations_mod = @import("world/redstone_workstations.zig");
 const shulker_end_city_mod = @import("world/shulker_end_city.zig");
 const elytra_aerodynamics_mod = @import("world/elytra_aerodynamics.zig");
-const elytra_flight_matrix_mod = @import("world/elytra_flight_matrix.zig");
 const sea_turtle_mod = @import("world/sea_turtle.zig");
 const turtle_scute_helmet_mod = @import("world/turtle_scute_helmet.zig");
 const taiga_fox_mod = @import("world/taiga_fox.zig");
@@ -248,7 +247,6 @@ const brushing_visual_particles_mod = @import("world/brushing_visual_particles.z
 const trial_chamber_traps_mod = @import("world/trial_chamber_traps.zig");
 const netherite_smithing_pipeline_mod = @import("world/netherite_smithing_pipeline.zig");
 const shulker_bullet_levitation_mod = @import("world/shulker_bullet_levitation.zig");
-const elytra_rocket_propulsion_mod = @import("world/elytra_rocket_propulsion.zig");
 const riptide_trident_kinematics_mod = @import("world/riptide_trident_kinematics.zig");
 const skeleton_trap_combat_mod = @import("world/skeleton_trap_combat.zig");
 const witch_potion_combat_mod = @import("world/witch_potion_combat.zig");
@@ -899,8 +897,9 @@ pub fn main() !void {
         const space_pressed = !inventory_open and (c.glfwGetKey(window, c.GLFW_KEY_SPACE) == c.GLFW_PRESS);
         const jump = space_pressed;
         if (space_pressed and !space_down and !player.on_ground and !player.in_water and inventory.hasItem(.elytra)) {
-            if (!player.is_gliding) {
+            if (!player.is_gliding and active_elytra.canFly()) {
                 player.startGliding();
+                _ = active_elytra.deploy(player.on_ground, player.in_water, player.isLevitating());
                 audio.play(.nether_wind, 0.9);
                 std.debug.print("elytra glide deployed\n", .{});
             }
@@ -942,7 +941,53 @@ pub fn main() !void {
             particles.spawnBubble(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 4);
         }
 
+        if (player.is_gliding and active_elytra.rocket_boost_timer > 0.0) {
+            const cf = cam.front();
+            const boost_accel = elytra_aerodynamics_mod.rocket_acceleration * dt * 20.0;
+            player.vel_x += cf.x * boost_accel;
+            player.vel_z += cf.z * boost_accel;
+            player.vel_y = @min(12.0, player.vel_y + cf.y * boost_accel);
+        }
+
+        const pre_pos = player.pos;
+        const pre_gliding = player.is_gliding;
+        const pre_h_vel = @sqrt(player.vel_x * player.vel_x + player.vel_z * player.vel_z);
+        const intended_h_speed = @max(pre_h_vel, if (pre_gliding) (if (active_elytra.rocket_boost_timer > 0.0) player_mod.Player.rocket_boost_speed else player_mod.Player.glide_horizontal_scale * walk_speed) else 0.0);
+
         player.tickPhysicsCustom(&pickSolid, &pickLadder, &pickFluid, &pickHay, &pickSlime, norm_wish.x * walk_speed * dt, norm_wish.z * walk_speed * dt, jump, dt);
+
+        if (player.on_ground or player.in_water or !player.is_gliding) {
+            active_elytra.stopGliding();
+        }
+
+        // Kinetic crash collision check when gliding at high horizontal speed into a solid block face
+        if (pre_gliding and intended_h_speed >= 10.0) {
+            const actual_dx = player.pos.x - pre_pos.x;
+            const actual_dz = player.pos.z - pre_pos.z;
+            const actual_h_dist = @sqrt(actual_dx * actual_dx + actual_dz * actual_dz);
+            const actual_h_speed = actual_h_dist / @max(dt, 0.0001);
+            const cf = cam.front();
+            const check_dir_x = if (actual_h_dist > 0.01) (actual_dx / actual_h_dist) else cf.x;
+            const check_dir_z = if (actual_h_dist > 0.01) (actual_dz / actual_h_dist) else cf.z;
+            const wall_x: i32 = @intFromFloat(@floor(player.pos.x + check_dir_x * 0.5));
+            const wall_z: i32 = @intFromFloat(@floor(player.pos.z + check_dir_z * 0.5));
+            const wall_y_torso: i32 = @intFromFloat(@floor(player.pos.y + 0.8));
+            const wall_y_feet: i32 = @intFromFloat(@floor(player.pos.y + 0.2));
+            const hit_solid_face = pickSolid(wall_x, wall_y_torso, wall_z) or pickSolid(wall_x, wall_y_feet, wall_z);
+
+            if (hit_solid_face and actual_h_speed < intended_h_speed * 0.5) {
+                const crash = elytra_aerodynamics_mod.evaluateKineticCrash(intended_h_speed);
+                if (crash.is_crash) {
+                    player.health = @max(0.0, player.health - crash.damage);
+                    player.vel_x = 0.0;
+                    player.vel_z = 0.0;
+                    player.stopGliding();
+                    active_elytra.stopGliding();
+                    audio.play(.hurt, 0.9);
+                    std.debug.print("elytra kinetic crash: {d:.1} damage at {d:.1} m/s\n", .{ crash.damage, intended_h_speed });
+                }
+            }
+        }
         player.tickVitals(dt);
         night_vision_timer = lush_caves_mod.tickNightVision(night_vision_timer, dt);
         alchemy_buffs_mod.tickBuffs(&buff_timers, dt);
@@ -977,6 +1022,10 @@ pub fn main() !void {
         active_furnace_minecart.tick(dt);
         _ = active_tnt_minecart.tick(dt);
         active_elytra.tick(dt);
+        player.rocket_boost_timer = active_elytra.rocket_boost_timer;
+        if (player.is_gliding and !active_elytra.is_gliding) {
+            player.stopGliding();
+        }
         _ = sea_turtle_mod.tickBabyTurtleGrowth(&active_turtle, dt, false);
         active_fox.tick(dt, false, false, false);
         _ = active_composter.tick(dt);
@@ -1288,8 +1337,6 @@ pub fn main() !void {
         _ = trial_chamber_traps_mod.HAZARD_INTERVAL_TICKS;
         _ = netherite_smithing_pipeline_mod.NETHERITE_BLOCK_BLAST_RESISTANCE;
         _ = shulker_bullet_levitation_mod.LEVITATION_DURATION_TICKS;
-        _ = elytra_rocket_propulsion_mod.rocket_acceleration;
-        _ = elytra_flight_matrix_mod.wearProbability(3);
         _ = riptide_trident_kinematics_mod.BASE_LAUNCH_SPEED;
         _ = skeleton_trap_combat_mod.TRIGGER_DISTANCE;
         _ = witch_potion_combat_mod.witch_max_health;
@@ -7287,6 +7334,7 @@ pub fn main() !void {
                 }
             } else if (player.is_gliding and held_eat.item == .fireworks_rocket) {
                 player.boostWithRocket();
+                _ = active_elytra.boostWithRocket(elytra_aerodynamics_mod.default_rocket_duration);
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.burn_sizzle, 0.9);
                 particles.spawnBurnSparks(.{ player.pos.x, player.pos.y, player.pos.z }, 12);
