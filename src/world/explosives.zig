@@ -165,7 +165,7 @@ pub fn evaluateBlastBlock(block: @import("block.zig").BlockId, y: i32) BlastBloc
     if (y <= 0) return .ignore;
     return switch (block) {
         .tnt => .chain_tnt,
-        .chest, .shulker_box => .destroy_chest,
+        .chest, .shulker_box, .hopper, .dropper => .destroy_chest,
         .air => .ignore,
         else => .destroy_block,
     };
@@ -177,6 +177,8 @@ test "evaluateBlastBlock classification" {
     try std.testing.expectEqual(BlastBlockAction.chain_tnt, evaluateBlastBlock(.tnt, 5));
     try std.testing.expectEqual(BlastBlockAction.destroy_chest, evaluateBlastBlock(.chest, 5));
     try std.testing.expectEqual(BlastBlockAction.destroy_chest, evaluateBlastBlock(.shulker_box, 5));
+    try std.testing.expectEqual(BlastBlockAction.destroy_chest, evaluateBlastBlock(.hopper, 5));
+    try std.testing.expectEqual(BlastBlockAction.destroy_chest, evaluateBlastBlock(.dropper, 5));
     try std.testing.expectEqual(BlastBlockAction.destroy_block, evaluateBlastBlock(.dirt, 5));
 }
 

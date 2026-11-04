@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-11-02.
+Last updated: 2026-11-04.
 
 The project has far more rule modules than game. The next work makes
 existing mechanics real in the game and removes duplicates. Adding another
@@ -23,7 +23,7 @@ When an item is done, delete it here and update STATUS.md.
 
 ## 2. Fix world and save correctness
 
-- Prevent item loss from container break overflow when the player inventory is full.
+- No active world or save correctness bugs recorded; continue monitoring multi-dimension container and automation persistence.
 
 ## 3. Connect or remove disconnected modules
 

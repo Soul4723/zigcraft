@@ -7,6 +7,7 @@ belong in the pull request description, not in a separate file.
 
 ## Recent sessions
 
+- 2026-11-04: Prevented container item loss on player inventory overflow during mining and explosions. Drained items are added to inventory; if overflow remains, container blocks and cached items survive without deletion or drops.
 - 2026-11-02: Added dedicated dark obsidian and purple Nether portal tiles using a taller atlas, preserving existing sheep and pressure-plate materials. Xvfb runs visually checked a normally generated frame with side and top-edge ignition; the combined run saved all six portal cells and exited cleanly.
 - 2026-11-02: Fixed F ignition from a portal top lintel by checking all six adjacent cells; both frame orientations have regression coverage. A normally generated frame ignited under top-edge aim in Xvfb and saved six portal cells; player positioning was supplied.
 - 2026-11-02: Connected Creaking puppets to active hearts, repaired upper-body gaze, frozen gravity, hazard-free spawning and pumpkin handling; preserved shared resin cooldown and transit cleanup. Fixture-assisted live checks observed night appearance, torso-gaze stillness, pursuit/attacks and shared resin cooldown; dawn and broken-heart cleanup were not conclusively observed.
@@ -21,7 +22,6 @@ belong in the pull request description, not in a separate file.
 - 2026-10-31: Persisted furnace, smoker, blast-furnace jobs and growing saplings in per-dimension block_jobs.bin files with offline/unloaded pausing, preflight transit rollback, and ENOENT missing-file checks.
 - 2026-10-31: Corrected CONTRIBUTING documentation on Zig 0.16 lazy test collection, documented semantic analysis rules and minimal fixtures in learnings, and confirmed explicit test_files registration policy.
 - 2026-10-31: Split inventory item definitions, recipe resolution and container logic into focused modules, preserving the original rules and test suite.
-- 2026-10-31: Added natural Pale Oak hearts and F-key nighttime resin collection, protected active heart cooldowns, and removed five disconnected duplicate modules.
 
 ## History
 

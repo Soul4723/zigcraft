@@ -1,6 +1,6 @@
 # Status
 
-Last updated: 2026-11-02.
+Last updated: 2026-11-04.
 
 This page is the current state of the project. Replace lines that stop being
 true; do not append a new dated section per session. Older status text is in
@@ -11,7 +11,7 @@ Git history.
 | Check | Last result |
 |-------|-------------|
 | CI on `main` | 2026-10-30: hosted jobs run again on the public repository. `build-and-test` and `public-content` are required for an up-to-date PR, including for administrators, with no human review approval required. See [current main runs](https://github.com/Soul4723/zigcraft/actions/workflows/ci.yml?query=branch%3Amain) for job results. |
-| Build and full test suite | 2026-11-02, Zig 0.16.0: build passed; 12,830 of 12,830 tests passed across 613 steps. Setup pins the compiler locally; LLVM/LLD are selected for compatibility with recent Linux C runtime objects. |
+| Build and full test suite | 2026-11-04, Zig 0.16.0: build passed; 12,834 of 12,834 tests passed across 613 steps. Setup pins the compiler locally; LLVM/LLD are selected for compatibility with recent Linux C runtime objects. |
 | Running the game | 2026-11-02: A freshly built executable under Xvfb/software OpenGL mined dirt while left was held, stopped destruction after release, placed one block while right was held, transferred an inventory stack once while left was held, and shut down with exit 0. Live 2×2 crafting was additionally checked through save data (32 logs became 31 logs plus four planks). Nether travel was checked with a fixture frame and, separately, with a normally generated frame and test-positioned player; an end-to-end walk from spawn and live return trip remain unchecked. |
 
 Zig 0.17 cannot compile `build.zig` (`b.args` no longer exists). Use 0.16.0.
@@ -53,7 +53,7 @@ These systems are driven by input or the frame loop in `src/main.zig` and
 - Player position, velocity, spawn point, view, dimension, vitals, inventory,
   crafting grid, selected hotbar slot and tool wear persist in root-level
   `saves/player.bin` across dimensions.
-- Chest and shulker-box four-slot contents, including opened empty fortress chests, persist in per-dimension `containers.bin` across restart and portal travel.
+- Chest and shulker-box four-slot contents, including opened empty fortress chests, persist in per-dimension `containers.bin` across restart and portal travel. Breaking or exploding chests, shulker boxes, hoppers, or droppers drains items into player inventory; when inventory lacks room, container destruction is aborted and remaining items stay in cache.
 - Hoppers and droppers accept one held item with F or return a stack to an empty hand. Their contents, cooldown/power state and per-dimension isolation persist across restart and portal travel; failed insertion keeps its item.
 - Furnace, smoker, blast-furnace jobs and growing saplings persist in
   per-dimension `block_jobs.bin` files across quit/restart and portal
@@ -105,7 +105,6 @@ Other overlaps:
 
 - Chest and shulker caches share a limit of 16 entries per dimension and four slots per entry.
 - Hopper and dropper caches each have a limit of 32 four-slot entries per dimension.
-- Breaking a full container can lose overflow when the player inventory is full.
 - The world is 16 blocks tall: chunks are 16×16×16 and there is one layer.
 - `BlockId` is a `u8` and uses all 256 values. New blocks need a wider ID or
   a different block-state scheme first.
