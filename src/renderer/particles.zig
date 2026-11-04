@@ -124,6 +124,32 @@ pub const ParticleSystem = struct {
 
     /// Advance physics (gravity + velocity), remove expired particles in place.
     /// Emit rising orange/yellow ember debris at a block cell (fire visual).
+    /// Emit rising dark smoke / ash particles at a block cell or burst.
+    pub fn spawnSmoke(self: *ParticleSystem, bx: i32, by: i32, bz: i32, count: usize) void {
+        var i: usize = 0;
+        while (i < count) : (i += 1) {
+            const hx = @mod(bx * 11 + by * 17 + bz * 23 + @as(i32, @intCast(i * 37)), 60);
+            const hz = @mod(bx * 7 + by * 13 + bz * 19 + @as(i32, @intCast(i * 29)), 60);
+            const fx = @as(f32, @floatFromInt(bx)) + 0.2 + @as(f32, @floatFromInt(hx)) / 100.0;
+            const fz = @as(f32, @floatFromInt(bz)) + 0.2 + @as(f32, @floatFromInt(hz)) / 100.0;
+            const grey: f32 = 0.2 + @as(f32, @floatFromInt(i % 4)) * 0.05;
+            if (self.count >= MAX_PARTICLES) return;
+            self.particles[self.count] = .{
+                .x = fx,
+                .y = @as(f32, @floatFromInt(by)) + 0.2,
+                .z = fz,
+                .vx = 0.0,
+                .vy = 0.8 + @as(f32, @floatFromInt(i % 3)) * 0.3,
+                .vz = 0.0,
+                .life = 0.8,
+                .max_life = 0.8,
+                .color = .{ grey, grey, grey },
+                .size = 0.12,
+            };
+            self.count += 1;
+        }
+    }
+
     pub fn spawnFlame(self: *ParticleSystem, bx: i32, by: i32, bz: i32, count: usize) void {
         var i: usize = 0;
         while (i < count) : (i += 1) {
@@ -1306,3 +1332,22 @@ test "spawnRiptideSpiral creates cyan aquatic vortex particles" {
         try std.testing.expect(p.vy >= 2.0);
     }
 }
+
+test "spawnSmoke creates dark rising smoke particles" {
+    var ps = ParticleSystem{
+        .particles = undefined,
+        .count = 0,
+        .vao = 0,
+        .vbo = 0,
+        .program = 0,
+    };
+    ps.spawnSmoke(10, 5, 10, 4);
+    try std.testing.expectEqual(@as(usize, 4), ps.count);
+    for (ps.particles[0..4]) |p| {
+        try std.testing.expect(p.color[0] <= 0.4);
+        try std.testing.expect(p.color[1] <= 0.4);
+        try std.testing.expect(p.color[2] <= 0.4);
+        try std.testing.expect(p.vy >= 0.8);
+    }
+}
+

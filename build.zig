@@ -180,7 +180,6 @@ pub fn build(b: *std.Build) void {
         "src/world/magma_cube_splitting.zig",
         "src/world/phantom_insomnia.zig",
         "src/world/wither_boss.zig",
-        "src/world/wither_boss_phases.zig",
         "src/world/wither_skeleton_effect.zig",
         "src/world/ender_dragon_fight.zig",
         "src/world/ender_dragon_arena_fight.zig",
