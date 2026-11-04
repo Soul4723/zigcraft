@@ -47,8 +47,9 @@ Blaze combat rules and snowball vulnerability are unified in `blaze_fortress` an
 connected to live gameplay; Guardian and Elder Guardian combat and spike thorns rules
 are unified in `ocean_monument` and connected to live gameplay; Beacon pyramid geometry,
 status powers, and payment activation are unified in `beacon_aura` with live dynamic aura
-range, health regeneration, and supercharged Haste mining multiplier connected; remaining
-candidates include warden rule unification.
+range, health regeneration, and supercharged Haste mining multiplier connected; Strider mount
+and lava locomotion rules are unified into `strider_mount` with warped fungus boost and feeding
+connected to gameplay; remaining candidates include warden rule unification.
 
 ## 4. Pay down structure debt
 

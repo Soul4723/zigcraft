@@ -74,7 +74,6 @@ const piglin_bastion_mod = @import("world/piglin_bastion.zig");
 const piglin_bartering_economy_mod = @import("world/piglin_bartering_economy.zig");
 const piglin_brute_bastion_mod = @import("world/piglin_brute_bastion.zig");
 const zombified_piglin_swarm_mod = @import("world/zombified_piglin_swarm.zig");
-const strider_lava_mount_mod = @import("world/strider_lava_mount.zig");
 const charged_creeper_mod = @import("world/charged_creeper.zig");
 const swamp_witch_mod = @import("world/swamp_witch.zig");
 const blaze_fortress_mod = @import("world/blaze_fortress.zig");
@@ -966,6 +965,7 @@ pub fn main() !void {
         active_shrieker_warning.tick(dt);
         active_warden_anger.tick(dt);
         active_strider.setLavaState(floor_blk == .lava or at_feet_blk == .lava, player.in_water);
+        active_strider.update(dt);
         active_axolotl.update(dt, player.in_water);
         _ = active_banner.getLayers();
         _ = active_anvil.isBroken();
@@ -1046,7 +1046,6 @@ pub fn main() !void {
         _ = piglin_bartering_economy_mod.rollBarterLootByWeight(0);
         _ = piglin_brute_bastion_mod.calculateDefeatDrops(0, 0.0);
         _ = zombified_piglin_swarm_mod.sampleAngerTicks(0.0);
-        _ = strider_lava_mount_mod.Strider.init(0, .init(0.0, 0.0, 0.0), false).getMovementSpeed();
         _ = nether_fungus_forest_mod.sproutItem(.crimson_fungus);
         _ = fox_sweet_berry_mod.harvestBerryBush(2, 0);
         var turtle_helmet_recipe = [_]turtle_scute_helmet_mod.CraftSlot{.none} ** 9;
@@ -7500,6 +7499,20 @@ pub fn main() !void {
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.7);
                 std.debug.print("ate apple (hunger={d:.1})\n", .{player.hunger});
+            } else if (held_eat.item == .warped_fungus_on_a_stick) {
+                if (active_strider.is_on_lava or floor_blk == .lava or at_feet_blk == .lava) {
+                    _ = strider_mount_mod.triggerFungusBoost(&active_strider, 100);
+                    if (tool_wear.use(selected_slot, 100)) {
+                        inventory.slots[selected_slot].clear();
+                        audio.play(.break_block, 0.8);
+                        std.debug.print("warped fungus on a stick broke\n", .{});
+                    }
+                    audio.play(.lava_pop, 0.85);
+                    particles.spawnFlame(@intFromFloat(@floor(player.pos.x)), @intFromFloat(@floor(player.pos.y)), @intFromFloat(@floor(player.pos.z)), 8);
+                    std.debug.print("warped fungus boost activated (speed={d:.1}m/s)\n", .{active_strider.currentSpeed()});
+                }
+            } else if (held_eat.item == .warped_fungus) {
+                _ = active_strider.feedWarpedFungus();
             } else
             if (cooked) |is_cooked| {
                 if (player.hunger < 20.0) {
