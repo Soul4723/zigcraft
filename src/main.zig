@@ -227,13 +227,11 @@ const vault_multiplayer_reset_mod = @import("world/vault_multiplayer_reset.zig")
 const warden_scent_blast_mod = @import("world/warden_scent_blast.zig");
 const sculk_shrieker_fog_mod = @import("world/sculk_shrieker_fog.zig");
 const calibrated_sensor_chains_mod = @import("world/calibrated_sensor_chains.zig");
-const breeze_jump_deflection_mod = @import("world/breeze_jump_deflection.zig");
 const mace_velocity_scaling_mod = @import("world/mace_velocity_scaling.zig");
 const crafter_pulsed_grid_mod = @import("world/crafter_pulsed_grid.zig");
 const bogged_poison_harvest_mod = @import("world/bogged_poison_harvest.zig");
 const ominous_bottle_matrix_mod = @import("world/ominous_bottle_matrix.zig");
 const eyeblossom_bloom_toxicity_mod = @import("world/eyeblossom_bloom_toxicity.zig");
-const breeze_wind_charge_mod = @import("world/breeze_wind_charge.zig");
 const crafter_automation_mod = @import("world/crafter_automation.zig");
 const crafter_factory_clocking_mod = @import("world/crafter_factory_clocking.zig");
 const trial_chamber_generation_mod = @import("world/trial_chamber_generation.zig");
@@ -1269,7 +1267,6 @@ pub fn main() !void {
         _ = trial_vault_reset_mod.dropsVaultResetToken(true, 4);
         _ = vault_multiplayer_reset_mod.requiredKey(.standard);
         _ = vault_multiplayer_reset_mod.dropsVaultResetToken(true, 4);
-        _ = breeze_wind_charge_mod.takesWaterDamage(false);
         _ = mace_smash_kinematics_mod.calculateSmashDamage(2.0, 0);
         _ = mace_aerial_combos_mod.damageMultiplier(1);
         _ = crafter_automation_mod.slot_count;
@@ -1324,7 +1321,6 @@ pub fn main() !void {
         _ = warden_scent_blast_mod.SCENT_RANGE;
         _ = sculk_shrieker_fog_mod.DARKNESS_RADIUS;
         _ = calibrated_sensor_chains_mod.CALIBRATED_SENSOR_RANGE;
-        _ = breeze_jump_deflection_mod.VERTICAL_BOOST_VY;
         _ = trial_spawner_waves_mod.scaleTotalMobs(6, 2);
         _ = mace_velocity_scaling_mod.BASE_DAMAGE;
         _ = vault_multiplayer_reset_mod.requiredKey(.standard);
@@ -7590,19 +7586,25 @@ pub fn main() !void {
                 audio.play(.click_on, 0.8);
                 std.debug.print("toggled Camel posture: {s}\n", .{@tagName(camel_mount.posture)});
             } else if (held_eat.item == .wind_charge) {
-                player.vel_y = wind_charge_mod.calculateSelfBoostVy(player.vel_y, cam.pitch);
                 inventory.slots[selected_slot].decrement(1);
+                player.fall_distance = 0.0;
+                player.vel_y = wind_charge_mod.calculateSelfBoostVy(player.vel_y, cam.pitch);
+                if (cam.pitch > -70.0) {
+                    player.vel_x += cam.front().x * 7.0;
+                    player.vel_z += cam.front().z * 7.0;
+                }
                 audio.play(.firework_blast, 0.85);
-                particles.spawnFireworkBurst(.{ player.pos.x, player.pos.y, player.pos.z }, 12);
+                particles.spawnPortalParticles(.{ player.pos.x, player.pos.y, player.pos.z }, 12);
                 for (mob_manager.mobs.items) |*m| {
                     if (wind_charge_mod.isWithinBurstRadius(player.pos.x, player.pos.y, player.pos.z, m.pos.x, m.pos.y, m.pos.z)) {
                         const imp = wind_charge_mod.calculateKnockbackImpulse(player.pos.x, player.pos.z, m.pos.x, m.pos.z);
                         m.vel.x += imp.vx;
                         m.vel.y = @max(m.vel.y, imp.vy);
                         m.vel.z += imp.vz;
+                        m.health = if (m.health > 1) m.health - 1 else 0;
                     }
                 }
-                std.debug.print("detonated Wind Charge burst (vel_y={d:.1})!\n", .{player.vel_y});
+                std.debug.print("wind charge detonated (vy={d:.1})\n", .{player.vel_y});
             } else if (held_eat.item == .enchanted_golden_apple) {
                 player.health = 20.0;
                 player.hunger = 20.0;

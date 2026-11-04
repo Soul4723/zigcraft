@@ -7,6 +7,7 @@ belong in the pull request description, not in a separate file.
 
 ## Recent sessions
 
+- 2026-11-04: Unified Wind Charge and Breeze rules into src/world/wind_charge.zig and removed duplicate breeze_wind_charge.zig and breeze_jump_deflection.zig. Connected rocket jump fall distance reset (player.fall_distance = 0.0), horizontal dash momentum (7.0 m/s), burst damage/knockback, and portal particles to live gameplay in main.zig.
 - 2026-11-04: Unified Bundle pouch rules into src/world/bundle_pouch.zig and removed duplicate bundle_dyeing_nesting.zig. Connected cauldron washing for dyed bundles (reverting to undyed, consuming 1 water level, splash audio/VFX) and bundle item insertion from hotbar/cursor with .click_on audio to live gameplay in main.zig.
 - 2026-11-04: Unified Ender Dragon fight rules into src/world/ender_dragon_fight.zig and removed duplicate ender_dragon_arena_fight.zig. Connected live crystal tether healing (2.0 HP/s, beam vortex/shimmer VFX), crystal shatter recoil backlash (10 damage within 32m, mob roar audio, flame/smoke VFX), and projectile perch deflection to gameplay in main.zig.
 - 2026-11-04: Unified Wither boss mechanics into src/world/wither_boss.zig and removed duplicate wither_boss_phases.zig. Connected spawn invulnerability charging (220 ticks), charging smoke/flame VFX, birth explosion detonation with audio and particle burst, and live HUD boss bar tracking to gameplay in main.zig.
@@ -21,7 +22,6 @@ belong in the pull request description, not in a separate file.
 - 2026-11-02: Connected deterministic dormant obsidian frames to Overworld generation; default seed frame (44, 7, 44) uses the existing F ignition and Nether transit. Generated-chunk/detector tests pass; live transit used a test-positioned player, not an end-to-end walk.
 - 2026-11-02: Adapted viewport/projection to framebuffer size and inventory input to logical window size; zero sizes pause rendering. Parent live resize/click checks passed at 960×720 and 1500×720 with clean exit; real HiDPI/minimize behavior remains unverified.
 - 2026-11-02: Added numeric stack counts to existing hotbar, inventory, crafting and cursor rendering. Quad batches handle all u8 counts; live frames showed 64 to 63 and 16 to 15 after placement. A resize exposed the existing fixed-aspect layout limitation.
-- 2026-11-02: Persisted dimension-isolated hopper/dropper inventories and cooldown/power state, paused unloaded automation, and kept items on failed insertion. Worker live restart checks passed; a portal playthrough was not performed.
 
 ## History
 
