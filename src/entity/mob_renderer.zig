@@ -514,8 +514,8 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
             try appendBox(allocator, verts, inds, math.Vec3.init(-0.10, 0.72, 0 + leg_swing), math.Vec3.init(0.09, 1.44, 0.09), mob.yaw, mob.pos, uv_obsidian, uv_obsidian);
             try appendBox(allocator, verts, inds, math.Vec3.init(0.10, 0.72, 0 - leg_swing), math.Vec3.init(0.09, 1.44, 0.09), mob.yaw, mob.pos, uv_obsidian, uv_obsidian);
         },
-        .piglin, .piglin_brute => {
-            const uv_skin = if (mob.mob_type == .piglin_brute) texture.getTileUV(2, 5) else texture.getTileUV(5, 4); // Brute dark charcoal armor
+        .piglin, .piglin_brute, .zombified_piglin => {
+            const uv_skin = if (mob.mob_type == .piglin_brute) texture.getTileUV(2, 5) else if (mob.mob_type == .zombified_piglin) texture.getTileUV(7, 0) else texture.getTileUV(5, 4); // Brute dark charcoal armor
             const uv_face = texture.getTileUV(6, 4);
             const uv_gold = texture.getTileUV(3, 5); // gold battleaxe / golden weapon
 
@@ -538,12 +538,34 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
             try appendBox(allocator, verts, inds, math.Vec3.init(-0.12, 0.28, 0 + leg_swing), math.Vec3.init(0.13, 0.56, 0.13), mob.yaw, mob.pos, uv_skin, uv_skin);
             try appendBox(allocator, verts, inds, math.Vec3.init(0.12, 0.28, 0 - leg_swing), math.Vec3.init(0.13, 0.56, 0.13), mob.yaw, mob.pos, uv_skin, uv_skin);
         },
-                .shulker => {
+                .hoglin, .zoglin => {
+            const uv_body = if (mob.mob_type == .zoglin) texture.getTileUV(7, 0) else texture.getTileUV(4, 2);
+            const uv_tusk = texture.getTileUV(7, 6);
+            const scale: f32 = if (mob.is_baby) 0.5 else 1.0;
+
+            // Body
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.72 * scale, 0), math.Vec3.init(0.85 * scale, 0.65 * scale, 1.25 * scale), mob.yaw, mob.pos, uv_body, uv_body);
+            // Head
+            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.90 * scale + head_bob_y, 0.68 * scale), math.Vec3.init(0.65 * scale, 0.55 * scale, 0.55 * scale), mob.yaw, mob.pos, uv_body, uv_body);
+            // Left & right ivory tusks
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.28 * scale, 0.85 * scale + head_bob_y, 0.95 * scale), math.Vec3.init(0.10 * scale, 0.30 * scale, 0.12 * scale), mob.yaw, mob.pos, uv_tusk, uv_tusk);
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.28 * scale, 0.85 * scale + head_bob_y, 0.95 * scale), math.Vec3.init(0.10 * scale, 0.30 * scale, 0.12 * scale), mob.yaw, mob.pos, uv_tusk, uv_tusk);
+            // 4 legs
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.28 * scale, 0.22 * scale, 0.38 * scale + leg_swing), math.Vec3.init(0.22 * scale, 0.44 * scale, 0.22 * scale), mob.yaw, mob.pos, uv_body, uv_body);
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.28 * scale, 0.22 * scale, 0.38 * scale - leg_swing), math.Vec3.init(0.22 * scale, 0.44 * scale, 0.22 * scale), mob.yaw, mob.pos, uv_body, uv_body);
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.28 * scale, 0.22 * scale, -0.38 * scale - leg_swing), math.Vec3.init(0.22 * scale, 0.44 * scale, 0.22 * scale), mob.yaw, mob.pos, uv_body, uv_body);
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.28 * scale, 0.22 * scale, -0.38 * scale + leg_swing), math.Vec3.init(0.22 * scale, 0.44 * scale, 0.22 * scale), mob.yaw, mob.pos, uv_body, uv_body);
+        },
+        .shulker => {
             const uv_shell = texture.getTileUV(6, 5); // Purpur shell
             const uv_eye = texture.getTileUV(7, 6);   // Glowing yellow-white shulker eyes / inner head
 
-            // Peeking shell animation: shell opens upwards by peek_h (up to 0.28m)
-            const peek_h = @sin(mob.anim_time * 2.5) * 0.14 + 0.14;
+            // Peeking shell driven by unified ShulkerPeekState
+            const peek_h: f32 = switch (mob.shulker_peek_state) {
+                .closed_shell => 0.0,
+                .peeking => 0.12,
+                .open_firing => 0.28,
+            };
 
             // 1. Lower shell base: 0.72 x 0.36 x 0.72 at (0, 0.18, 0)
             try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.18, 0), math.Vec3.init(0.72, 0.36, 0.72), mob.yaw, mob.pos, uv_shell, uv_shell);
@@ -1129,4 +1151,24 @@ test "bogged skeleton mushroom cap mesh disappears after shearing" {
     // Sheared Bogged removes the 2 mushroom cap boxes -> 7 boxes (168 verts, 252 indices)
     try std.testing.expectEqual(@as(usize, 168), verts.items.len);
     try std.testing.expectEqual(@as(usize, 252), inds.items.len);
+}
+
+test "hoglin, zoglin, and zombified piglin mesh generation" {
+    var verts = std.ArrayList(MobVertex).empty;
+    defer verts.deinit(std.testing.allocator);
+    var inds = std.ArrayList(u32).empty;
+    defer inds.deinit(std.testing.allocator);
+
+    try appendMobMesh(std.testing.allocator, &verts, &inds, mob_mod.Mob.init(.hoglin, 0, 0, 0));
+    try std.testing.expectEqual(@as(usize, 8 * 24), verts.items.len);
+
+    verts.clearRetainingCapacity();
+    inds.clearRetainingCapacity();
+    try appendMobMesh(std.testing.allocator, &verts, &inds, mob_mod.Mob.init(.zoglin, 0, 0, 0));
+    try std.testing.expectEqual(@as(usize, 8 * 24), verts.items.len);
+
+    verts.clearRetainingCapacity();
+    inds.clearRetainingCapacity();
+    try appendMobMesh(std.testing.allocator, &verts, &inds, mob_mod.Mob.init(.zombified_piglin, 0, 0, 0));
+    try std.testing.expectEqual(@as(usize, 10 * 24), verts.items.len);
 }

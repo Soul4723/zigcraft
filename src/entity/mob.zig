@@ -3,6 +3,9 @@ const math = @import("../math.zig");
 
 const inventory_mod = @import("../inventory.zig");
 const skeleton_variants_mod = @import("../world/skeleton_variants.zig");
+const piglin_bastion_mod = @import("../world/piglin_bastion.zig");
+const hoglin_zoglin_mod = @import("../world/hoglin_zoglin.zig");
+const shulker_end_city_mod = @import("../world/shulker_end_city.zig");
 pub const MobType = inventory_mod.MobType;
 
 
@@ -51,6 +54,16 @@ pub const Mob = struct {
     regrow_timer: f32 = 0.0,
     skeleton_variant: skeleton_variants_mod.SkeletonVariant = .standard_skeleton,
     freeze_conversion: skeleton_variants_mod.SkeletonFreezeConversionState = .{},
+    anger_timer: f32 = 0.0,
+    zombify_timer: f32 = 0.0,
+    barter_state: piglin_bastion_mod.PiglinBarterState = .{},
+    barter_tick_accum: f32 = 0.0,
+    alarm_cooldown: f32 = 0.0,
+    love_mode: bool = false,
+    is_baby: bool = false,
+    maturation_timer: f32 = 0.0,
+    is_repelled: bool = false,
+    shulker_peek_state: shulker_end_city_mod.ShulkerPeekState = .closed_shell,
 
     pub fn isLeashed(self: Mob) bool {
         return self.leashed_to_player or self.fence_post != null;
@@ -107,7 +120,8 @@ pub const Mob = struct {
             .wolf => 0.6,
             .emberbeast => 0.7,
             .wither_skeleton => 0.6,
-            .piglin, .piglin_brute => 0.6,
+            .piglin, .piglin_brute, .zombified_piglin => 0.6,
+            .hoglin, .zoglin => 1.39,
             .blaze => 0.6,
             .target_dummy => 0.6,
             .spider => 0.8,
@@ -131,6 +145,8 @@ pub const Mob = struct {
             .emberbeast => 1.0,
             .wither_skeleton => 2.4,
             .piglin, .piglin_brute => 1.5,
+            .zombified_piglin => 1.8,
+            .hoglin, .zoglin => 1.4,
             .blaze => 1.8,
             .target_dummy => 1.8,
             .spider => 0.5,
@@ -158,6 +174,9 @@ pub const Mob = struct {
             .wither_skeleton => 3.6,
             .piglin => 2.6,
             .piglin_brute => 3.0,
+            .zombified_piglin => piglin_bastion_mod.NEUTRAL_WALK_SPEED,
+            .hoglin => 3.2,
+            .zoglin => 3.6,
             .blaze => 2.4,
             .target_dummy => 0.0,
             .spider => 3.5,
@@ -192,7 +211,7 @@ pub const Mob = struct {
             .anim_time = 0.0,
             .change_dir_timer = 2.0,
             .wants_sound = false,
-            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze or mob_type == .enderman or mob_type == .phantom or mob_type == .wither_skeleton) 20 else if (mob_type == .piglin_brute or mob_type == .drowned) 15 else if (mob_type == .ender_dragon) 200 else if (mob_type == .elder_guardian) 80 else if (mob_type == .target_dummy) 50 else if (mob_type == .shulker or mob_type == .turtle or mob_type == .guardian) 30 else if (mob_type == .spider or mob_type == .endermite) 8 else if (mob_type == .cave_spider) 6 else if (mob_type == .skeleton or mob_type == .zombie or mob_type == .creeper or mob_type == .dolphin) 10 else if (mob_type == .slime) 16 else if (mob_type == .piglin) 10 else if (mob_type == .creaking) 1 else 3,
+            .health = if (mob_type == .wolf) 5 else if (mob_type == .emberbeast) 8 else if (mob_type == .blaze or mob_type == .enderman or mob_type == .phantom or mob_type == .wither_skeleton) 20 else if (mob_type == .piglin_brute or mob_type == .drowned) 15 else if (mob_type == .ender_dragon) 200 else if (mob_type == .elder_guardian) 80 else if (mob_type == .target_dummy) 50 else if (mob_type == .shulker or mob_type == .turtle or mob_type == .guardian) 30 else if (mob_type == .spider or mob_type == .endermite) 8 else if (mob_type == .cave_spider) 6 else if (mob_type == .skeleton or mob_type == .zombie or mob_type == .creeper or mob_type == .dolphin) 10 else if (mob_type == .slime) 16 else if (mob_type == .piglin) 10 else if (mob_type == .zombified_piglin) @as(u8, @intFromFloat(piglin_bastion_mod.ZOMBIFIED_PIGLIN_MAX_HEALTH)) else if (mob_type == .hoglin or mob_type == .zoglin) @as(u8, @intFromFloat(hoglin_zoglin_mod.hoglin_max_health)) else if (mob_type == .creaking) 1 else 3,
             .in_water = false,
             .in_bubble_column = false,
             .in_whirlpool = false,
@@ -212,6 +231,17 @@ pub const Mob = struct {
 
         self.barter_timer = @max(0.0, self.barter_timer - clamped_dt);
         self.glow_timer = @max(0.0, self.glow_timer - clamped_dt);
+        self.anger_timer = @max(0.0, self.anger_timer - clamped_dt);
+        self.alarm_cooldown = @max(0.0, self.alarm_cooldown - clamped_dt);
+        if (self.mob_type == .zombified_piglin) {
+            self.walk_speed = if (self.anger_timer > 0.0) piglin_bastion_mod.ANGERED_SPRINT_SPEED else piglin_bastion_mod.NEUTRAL_WALK_SPEED;
+        }
+        if (self.mob_type == .piglin and self.barter_state.isAdmiring()) {
+            self.walk_timer = 0.0;
+            self.vel.x = 0.0;
+            self.vel.z = 0.0;
+            return;
+        }
         if (self.mob_type == .sheep and self.is_sheared) {
             self.regrow_timer = @max(0.0, self.regrow_timer - clamped_dt);
             if (self.regrow_timer <= 0.0) {
@@ -219,7 +249,12 @@ pub const Mob = struct {
             }
         }
         if (self.mob_type == .target_dummy or self.mob_type == .shulker) {
-            // Stationary practice target
+            if (self.mob_type == .shulker) {
+                self.anim_time += clamped_dt;
+                const cycle = @mod(self.anim_time, 4.0);
+                self.shulker_peek_state = if (cycle < 2.0) .closed_shell else if (cycle < 2.5) .peeking else .open_firing;
+            }
+            // Stationary target/sentry
             self.walk_timer = 0.0;
             self.vel.x = 0.0;
             self.vel.z = 0.0;
@@ -694,7 +729,8 @@ pub fn getSound(mob_type: MobType) ?@import("../audio/synth.zig").SoundType {
         .emberbeast => .mob_roar,
         .blaze => .mob_roar,
         .wither_skeleton => .mob_growl,
-        .piglin, .piglin_brute => .mob_oink,
+        .piglin, .piglin_brute, .zombified_piglin, .hoglin => .mob_oink,
+        .zoglin => .mob_growl,
         .target_dummy => .step_wood,
         .spider => .mob_growl,
         .cave_spider => .mob_hiss,

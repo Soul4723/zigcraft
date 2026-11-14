@@ -16,6 +16,9 @@ const hazard_mod = @import("../world/hazard.zig");
 const inventory_mod = @import("../inventory.zig");
 const pale_garden_mod = @import("../world/pale_garden.zig");
 const skeleton_variants_mod = @import("../world/skeleton_variants.zig");
+const hoglin_zoglin_mod = @import("../world/hoglin_zoglin.zig");
+const piglin_bastion_mod = @import("../world/piglin_bastion.zig");
+const shulker_end_city_mod = @import("../world/shulker_end_city.zig");
 
 pub const MobManager = struct {
     allocator: std.mem.Allocator,
@@ -26,6 +29,8 @@ pub const MobManager = struct {
     spawner_timer: f32,
     creaking_scan_timer: f32 = 0.0,
     last_stray_conversion_pos: ?math.Vec3 = null,
+    player_wearing_gold_armor: bool = false,
+    in_overworld_or_end: bool = true,
 
     pub fn init(allocator: std.mem.Allocator, atlas_texture: c.GLuint) !MobManager {
         const r = try mob_renderer_mod.MobRenderer.init(allocator, atlas_texture);
@@ -113,6 +118,20 @@ pub const MobManager = struct {
                 try self.spawnMob(m_type, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
                 break;
             }
+        }
+
+        // Nether crimson/wastes pass: hoglins and zombified piglins roam near blackstone and netherrack.
+        var nether_pig_attempts: usize = 0;
+        while (self.mobs.items.len < 8 and nether_pig_attempts < 4) : (nether_pig_attempts += 1) {
+            const rx = center_x + (self.rng.random().float(f32) * 36.0 - 18.0);
+            const rz = center_z + (self.rng.random().float(f32) * 36.0 - 18.0);
+            const ix: i32 = @intFromFloat(@floor(rx));
+            const iz: i32 = @intFromFloat(@floor(rz));
+            const iy: i32 = 6;
+            if (!spawn_rules.isNetherSpawn(chunk_manager, ix, iy, iz)) continue;
+            const np_type: mob_mod.MobType = if (self.rng.random().float(f32) < 0.5) .hoglin else .zombified_piglin;
+            try self.spawnMob(np_type, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
+            break;
         }
 
         // Nether pass: emberbeasts stalk netherrack wastes and fortress bridges.
@@ -227,6 +246,192 @@ pub const MobManager = struct {
         return findNearbyWarpedFungus(block_at, pos, 8.0);
     }
 
+    /// Find nearest warped fungus, nether portal, or respawn anchor within 7 blocks for Hoglin repulsion.
+    pub fn findNearbyHoglinRepellent(block_at: ?*const fn (x: i32, y: i32, z: i32) block_mod.BlockId, pos: math.Vec3) ?math.Vec3 {
+        const bat = block_at orelse return null;
+        const max_range = hoglin_zoglin_mod.hoglin_fungus_repulsion_radius;
+        const cx: i32 = @intFromFloat(@floor(pos.x));
+        const cy: i32 = @intFromFloat(@floor(pos.y));
+        const cz: i32 = @intFromFloat(@floor(pos.z));
+        const r: i32 = @intFromFloat(@ceil(max_range));
+        var closest_dist: f32 = max_range + 1.0;
+        var best: ?math.Vec3 = null;
+
+        var dy: i32 = -r;
+        while (dy <= r) : (dy += 1) {
+            const ny = cy + dy;
+            var dx: i32 = -r;
+            while (dx <= r) : (dx += 1) {
+                const nx = cx + dx;
+                var dz: i32 = -r;
+                while (dz <= r) : (dz += 1) {
+                    const nz = cz + dz;
+                    const blk = bat(nx, ny, nz);
+                    const is_repel_blk = (blk == .warped_fungus or blk == .nether_portal or blk == .respawn_anchor);
+                    if (!is_repel_blk) continue;
+                    const fx = @as(f32, @floatFromInt(nx)) + 0.5;
+                    const fy = @as(f32, @floatFromInt(ny)) + 0.5;
+                    const fz = @as(f32, @floatFromInt(nz)) + 0.5;
+                    const dist = @sqrt((fx - pos.x) * (fx - pos.x) + (fy - pos.y) * (fy - pos.y) + (fz - pos.z) * (fz - pos.z));
+                    if (hoglin_zoglin_mod.isHoglinRepelledByBlock(false, true, dist) and dist < closest_dist) {
+                        closest_dist = dist;
+                        best = math.Vec3.init(fx, fy, fz);
+                    }
+                }
+            }
+        }
+        return best;
+    }
+
+    /// Provoke all standard Piglins within 16m of (x, y, z), breaking pacification and active gold inspection.
+    pub fn provokePiglinsNear(self: *MobManager, x: f32, y: f32, z: f32) usize {
+        var provoked: usize = 0;
+        for (self.mobs.items) |*mob| {
+            if (mob.mob_type != .piglin) continue;
+            const dx = mob.pos.x - x;
+            const dy = mob.pos.y - y;
+            const dz = mob.pos.z - z;
+            const dist = @sqrt(dx * dx + dy * dy + dz * dz);
+            if (piglin_bastion_mod.guardedBlockProvokesPiglins(dist)) {
+                mob.anger_timer = piglin_bastion_mod.guarded_block_anger_duration;
+                mob.barter_timer = 0.0;
+                mob.barter_state.holding_gold = false;
+                mob.barter_state.ticks_remaining = 0;
+                mob.barter_state.distracted = true;
+                provoked += 1;
+            }
+        }
+        return provoked;
+    }
+
+    /// Broadcast 40m Zombified Piglin swarm alarm (no LOS required).
+    pub fn alertZombifiedSwarm(self: *MobManager, origin: math.Vec3) usize {
+        var alerted: usize = 0;
+        for (self.mobs.items) |*mob| {
+            if (mob.mob_type != .zombified_piglin) continue;
+            const dx = mob.pos.x - origin.x;
+            const dy = mob.pos.y - origin.y;
+            const dz = mob.pos.z - origin.z;
+            const dist = @sqrt(dx * dx + dy * dy + dz * dz);
+            if (dist <= piglin_bastion_mod.SWARM_ALARM_RADIUS) {
+                const ticks = piglin_bastion_mod.sampleAngerTicks(self.rng.random().float(f32));
+                mob.anger_timer = @as(f32, @floatFromInt(ticks)) / 20.0;
+                mob.walk_speed = piglin_bastion_mod.ANGERED_SPRINT_SPEED;
+                alerted += 1;
+            }
+        }
+        return alerted;
+    }
+
+    pub fn mapBarterRewardItem(item: piglin_bastion_mod.ItemType) inventory_mod.ItemType {
+        return switch (item) {
+            .ender_pearl => .ender_pearl,
+            .crying_obsidian => .crying_obsidian,
+            .obsidian => .obsidian,
+            .fire_charge => .fire_charge,
+            .nether_quartz => .nether_quartz,
+            .string => .string,
+            .magma_cream => .magma_cream,
+            .leather => .leather,
+            .soul_sand => .soul_sand,
+            .gravel => .suspicious_gravel,
+            .iron_nugget => .iron_ingot,
+            .potion_of_fire_resistance, .splash_potion_of_fire_resistance => .fire_resistance_potion,
+            .iron_boots_soul_speed => .soul_speed_boots,
+            .soul_speed_enchanted_book => .enchanted_book,
+            else => .obsidian,
+        };
+    }
+
+    /// Start 6-second Gold Ingot bartering inspection with a raycasted Piglin.
+    pub fn tryStartGoldIngotBarter(self: *MobManager, origin: math.Vec3, dir: math.Vec3, max_dist: f32) ?math.Vec3 {
+        var closest_dist: f32 = max_dist;
+        var hit_idx: ?usize = null;
+        for (self.mobs.items, 0..) |mob, i| {
+            if (mob.mob_type != .piglin) continue;
+            if (mob.anger_timer > 0.0 or mob.barter_state.isAdmiring()) continue;
+            if (mob.rayIntersects(origin, dir, closest_dist)) |d| {
+                closest_dist = d;
+                hit_idx = i;
+            }
+        }
+        if (hit_idx) |i| {
+            var piglin = &self.mobs.items[i];
+            piglin.barter_state.startAdmiring();
+            piglin.barter_tick_accum = 0.0;
+            piglin.barter_timer = piglin_bastion_mod.barter_admiration_duration;
+            return piglin.pos;
+        }
+        return null;
+    }
+
+    /// Advance active 6-second Gold Ingot barters and emit completed loot drops.
+    pub fn tickGoldIngotBarters(self: *MobManager, dt: f32, out_rewards: []BarterResult) usize {
+        var count: usize = 0;
+        for (self.mobs.items) |*mob| {
+            if (mob.mob_type != .piglin or !mob.barter_state.isAdmiring()) continue;
+            mob.barter_tick_accum += dt;
+            while (mob.barter_tick_accum >= 0.05) {
+                mob.barter_tick_accum -= 0.05;
+                if (mob.barter_state.tick(1)) {
+                    if (mob.barter_state.returnsLoot() and count < out_rewards.len) {
+                        const dropped = piglin_bastion_mod.rollBarterLoot(&self.rng);
+                        out_rewards[count] = .{
+                            .item = mapBarterRewardItem(dropped.item),
+                            .count = dropped.count,
+                            .pos = mob.pos,
+                        };
+                        count += 1;
+                    }
+                    mob.barter_state.holding_gold = false;
+                    break;
+                }
+            }
+        }
+        return count;
+    }
+
+    pub const HoglinFeedResult = struct { bred: bool, pos: math.Vec3 };
+
+    /// Feed Crimson Fungus to a Hoglin for breeding/pacification; Zoglins are rejected.
+    pub fn tryFeedHoglin(self: *MobManager, origin: math.Vec3, dir: math.Vec3, max_dist: f32) ?HoglinFeedResult {
+        var closest_dist: f32 = max_dist;
+        var hit_idx: ?usize = null;
+        for (self.mobs.items, 0..) |mob, i| {
+            if (mob.mob_type != .hoglin and mob.mob_type != .zoglin) continue;
+            if (mob.rayIntersects(origin, dir, closest_dist)) |d| {
+                closest_dist = d;
+                hit_idx = i;
+            }
+        }
+        const i = hit_idx orelse return null;
+        if (!hoglin_zoglin_mod.canBreedHoglin(self.mobs.items[i].mob_type == .zoglin, true)) return null;
+
+        self.mobs.items[i].love_mode = true;
+        self.mobs.items[i].anger_timer = 0.0;
+        const feed_pos = self.mobs.items[i].pos;
+
+        // Check for a nearby second adult Hoglin in love mode to breed a baby.
+        if (!self.mobs.items[i].is_baby) {
+            for (self.mobs.items, 0..) |*partner, j| {
+                if (j == i or partner.mob_type != .hoglin or partner.is_baby or !partner.love_mode) continue;
+                const dx = partner.pos.x - feed_pos.x;
+                const dy = partner.pos.y - feed_pos.y;
+                const dz = partner.pos.z - feed_pos.z;
+                if (dx * dx + dy * dy + dz * dz <= 64.0) {
+                    self.mobs.items[i].love_mode = false;
+                    partner.love_mode = false;
+                    var baby = mob_mod.Mob.init(.hoglin, (feed_pos.x + partner.pos.x) * 0.5, feed_pos.y, (feed_pos.z + partner.pos.z) * 0.5);
+                    baby.is_baby = true;
+                    baby.health = @intFromFloat(hoglin_zoglin_mod.BABY_MAX_HEALTH);
+                    self.mobs.append(self.allocator, baby) catch {};
+                    return .{ .bred = true, .pos = feed_pos };
+                }
+            }
+        }
+        return .{ .bred = false, .pos = feed_pos };
+    }
+
     pub fn tick(self: *MobManager, solid: *const fn (x: i32, y: i32, z: i32) bool, fluid: *const fn (x: i32, y: i32, z: i32) bool, block_at: ?*const fn (x: i32, y: i32, z: i32) block_mod.BlockId, player_pos: math.Vec3, player_radius: f32, player_holding_fungus: bool, audio: ?*audio_mod.AudioSystem, dt: f32) void {
         var idx: usize = 0;
         while (idx < self.mobs.items.len) {
@@ -240,7 +445,7 @@ pub const MobManager = struct {
                     mob.yaw = std.math.atan2(pdx, pdz);
                     mob.walk_timer = hunt_mod.walk_pulse;
                 }
-            } else if (mob.mob_type == .wolf or mob.mob_type == .emberbeast or mob.mob_type == .wither_skeleton or mob.mob_type == .piglin or mob.mob_type == .piglin_brute or mob.mob_type == .blaze or mob.mob_type == .spider or mob.mob_type == .cave_spider or mob.mob_type == .skeleton or mob.mob_type == .zombie or mob.mob_type == .creeper or mob.mob_type == .enderman or mob.mob_type == .slime) {
+            } else if (mob.mob_type == .wolf or mob.mob_type == .emberbeast or mob.mob_type == .wither_skeleton or mob.mob_type == .piglin or mob.mob_type == .piglin_brute or mob.mob_type == .zombified_piglin or mob.mob_type == .hoglin or mob.mob_type == .zoglin or mob.mob_type == .blaze or mob.mob_type == .spider or mob.mob_type == .cave_spider or mob.mob_type == .skeleton or mob.mob_type == .zombie or mob.mob_type == .creeper or mob.mob_type == .enderman or mob.mob_type == .slime) {
                 var is_repelled = false;
                 if (mob.mob_type == .piglin) {
                     if (isPiglinRepelled(mob.pos, player_pos, player_holding_fungus, block_at)) |repel_source| {
@@ -252,11 +457,67 @@ pub const MobManager = struct {
                         }
                         mob.walk_timer = hunt_mod.walk_pulse;
                     }
+                } else if (mob.mob_type == .hoglin) {
+                    if (findNearbyHoglinRepellent(block_at, mob.pos)) |repel_source| {
+                        is_repelled = true;
+                        mob.is_repelled = true;
+                        const fdx = mob.pos.x - repel_source.x;
+                        const fdz = mob.pos.z - repel_source.z;
+                        if (fdx * fdx + fdz * fdz > 0.0001) {
+                            mob.yaw = std.math.atan2(fdx, fdz);
+                        }
+                        mob.walk_timer = hunt_mod.walk_pulse;
+                    } else {
+                        mob.is_repelled = false;
+                    }
+                    if (hoglin_zoglin_mod.tickHoglinOverworldZombification(self.in_overworld_or_end, &mob.zombify_timer, dt)) {
+                        mob.mob_type = .zoglin;
+                        mob.walk_speed = 3.6;
+                        mob.zombify_timer = 0.0;
+                        if (audio) |a| a.playAt(.mob_growl, .{ mob.pos.x, mob.pos.y, mob.pos.z }, .{ player_pos.x, player_pos.y, player_pos.z }, 0.9, 25.0);
+                    }
                 }
+                if (mob.mob_type == .piglin or mob.mob_type == .piglin_brute) {
+                    if (self.in_overworld_or_end) {
+                        mob.zombify_timer += dt;
+                        const elapsed_ticks: u32 = @intFromFloat(mob.zombify_timer * 20.0);
+                        if (piglin_bastion_mod.shouldTransformToZombifiedPiglin(elapsed_ticks, true)) {
+                            mob.mob_type = .zombified_piglin;
+                            mob.health = @intFromFloat(piglin_bastion_mod.ZOMBIFIED_PIGLIN_MAX_HEALTH);
+                            mob.walk_speed = piglin_bastion_mod.NEUTRAL_WALK_SPEED;
+                            mob.anger_timer = 0.0;
+                            mob.zombify_timer = 0.0;
+                            mob.barter_state = .{};
+                            if (audio) |a| a.playAt(.mob_oink, .{ mob.pos.x, mob.pos.y, mob.pos.z }, .{ player_pos.x, player_pos.y, player_pos.z }, 0.9, 25.0);
+                        }
+                    } else {
+                        mob.zombify_timer = 0.0;
+                    }
+                }
+                if (mob.mob_type == .piglin_brute and mob.alarm_cooldown <= 0.0) {
+                    const bdx = player_pos.x - mob.pos.x;
+                    const bdy = player_pos.y - mob.pos.y;
+                    const bdz = player_pos.z - mob.pos.z;
+                    if (bdx * bdx + bdy * bdy + bdz * bdz <= piglin_bastion_mod.ALARM_RADIUS_SQ) {
+                        mob.alarm_cooldown = 8.0;
+                        _ = self.provokePiglinsNear(mob.pos.x, mob.pos.y, mob.pos.z);
+                        if (audio) |a| a.playAt(.mob_roar, .{ mob.pos.x, mob.pos.y, mob.pos.z }, .{ player_pos.x, player_pos.y, player_pos.z }, 0.95, 28.0);
+                    }
+                }
+                if (mob.mob_type == .zombified_piglin and mob.anger_timer > 0.0) {
+                    const zdx = player_pos.x - mob.pos.x;
+                    const zdy = player_pos.y - mob.pos.y;
+                    const zdz = player_pos.z - mob.pos.z;
+                    if (zdx * zdx + zdy * zdy + zdz * zdz <= piglin_bastion_mod.RE_AGGRO_RADIUS_SQ) {
+                        mob.anger_timer = @max(mob.anger_timer, 20.0);
+                    }
+                }
+                const piglin_pacified = (mob.mob_type == .piglin) and (mob.barter_timer > 0.0 or mob.barter_state.isAdmiring() or piglin_bastion_mod.isPiglinPacifiedByPlayer(self.player_wearing_gold_armor, mob.anger_timer > 0.0, false));
+                const zombified_neutral = (mob.mob_type == .zombified_piglin and mob.anger_timer <= 0.0);
                 if (is_repelled) {
-                    // Piglin fleeing warped fungus; hunting inhibited
-                } else if (mob.mob_type == .piglin and mob.barter_timer > 0.0) {
-                    // Pacified piglin wanders peacefully instead of hunting player
+                    // Piglin/Hoglin fleeing repellent; hunting inhibited
+                } else if (piglin_pacified or zombified_neutral) {
+                    // Pacified piglin or neutral zombified piglin wanders peacefully
                 } else {
                     const wdx = player_pos.x - mob.pos.x;
                     const wdz = player_pos.z - mob.pos.z;
@@ -305,7 +566,7 @@ pub const MobManager = struct {
                 // Contact heat hazard check: floor block under feet or immersed block
                 const floor_b = bat(mx, @intFromFloat(@floor(mob.pos.y - 0.1)), mz);
                 const body_b = bat(mx, my, mz);
-                if (mob.mob_type != .emberbeast and mob.mob_type != .wither_skeleton and mob.mob_type != .blaze and (hazard_mod.checkBurnContact(floor_b) or hazard_mod.checkBurnContact(body_b) or hazard_mod.checkLavaHazard(floor_b) or hazard_mod.checkLavaHazard(body_b))) {
+                if (mob.mob_type != .emberbeast and mob.mob_type != .wither_skeleton and mob.mob_type != .blaze and !(mob.mob_type == .zombified_piglin and piglin_bastion_mod.IS_IMMUNE_TO_FIRE) and mob.mob_type != .zoglin and (hazard_mod.checkBurnContact(floor_b) or hazard_mod.checkBurnContact(body_b) or hazard_mod.checkLavaHazard(floor_b) or hazard_mod.checkLavaHazard(body_b))) {
                     const prev_hp = mob.health;
                     if (mob.applyBurnTick(dt)) {
                         if (audio) |a| {
@@ -450,7 +711,7 @@ pub const MobManager = struct {
         }
     }
 
-    pub const HitResult = struct { mob_type: mob_mod.MobType, pos: math.Vec3, died: bool, drop: ?mob_mod.MobType, wool: bool, is_champion: bool = false, creaking_heart_pos: ?[3]i32 = null, skeleton_variant: skeleton_variants_mod.SkeletonVariant = .standard_skeleton };
+    pub const HitResult = struct { mob_type: mob_mod.MobType, pos: math.Vec3, died: bool, drop: ?mob_mod.MobType, wool: bool, is_champion: bool = false, creaking_heart_pos: ?[3]i32 = null, skeleton_variant: skeleton_variants_mod.SkeletonVariant = .standard_skeleton, was_burning: bool = false };
 
     /// Try hitting a mob with raycast from camera. Returns hit info incl. death/drop.
     pub fn tryHitMobDmg(self: *MobManager, origin: math.Vec3, dir: math.Vec3, max_dist: f32, dmg: u8) ?HitResult {
@@ -469,16 +730,38 @@ pub const MobManager = struct {
             const was_champ = self.mobs.items[i].is_champion;
             const heart_pos = self.mobs.items[i].creaking_heart_pos;
             const sk_var = self.mobs.items[i].skeleton_variant;
-            if (mtype == .piglin) {
-                self.mobs.items[i].barter_timer = 0.0;
+            const was_burning = self.mobs.items[i].burn_timer > 0.0;
+            if (mtype == .piglin or mtype == .piglin_brute) {
+                if (mtype == .piglin) {
+                    self.mobs.items[i].barter_timer = 0.0;
+                    self.mobs.items[i].barter_state.holding_gold = false;
+                    self.mobs.items[i].barter_state.ticks_remaining = 0;
+                    self.mobs.items[i].barter_state.distracted = true;
+                }
+                const mp = self.mobs.items[i].pos;
+                _ = self.provokePiglinsNear(mp.x, mp.y, mp.z);
+            } else if (mtype == .zombified_piglin) {
+                const mp = self.mobs.items[i].pos;
+                _ = self.alertZombifiedSwarm(mp);
             }
-            const died = self.mobs.items[i].takeHitDmg(dir, dmg);
+            var effective_dmg = dmg;
+            if (mtype == .shulker) {
+                const reduced = shulker_end_city_mod.applyMeleeDamage(self.mobs.items[i].shulker_peek_state, @floatFromInt(dmg));
+                effective_dmg = if (dmg > 0 and reduced > 0.0) @max(@as(u8, 1), @as(u8, @intFromFloat(@round(reduced)))) else 0;
+            }
+            const died = self.mobs.items[i].takeHitDmg(dir, effective_dmg);
+            if (!died and mtype == .shulker and shulker_end_city_mod.shouldTeleportAfterDamage(self.rng.random().float(f32))) {
+                const angle = self.rng.random().float(f32) * std.math.pi * 2.0;
+                const dist_off = 3.0 + self.rng.random().float(f32) * 4.0;
+                self.mobs.items[i].pos.x += @cos(angle) * dist_off;
+                self.mobs.items[i].pos.z += @sin(angle) * dist_off;
+            }
             if (died) {
                 const pos = self.mobs.items[i].pos;
                 _ = self.mobs.swapRemove(i);
-                return .{ .mob_type = mtype, .pos = pos, .died = true, .drop = mtype, .wool = mtype == .sheep, .is_champion = was_champ, .creaking_heart_pos = heart_pos, .skeleton_variant = sk_var };
+                return .{ .mob_type = mtype, .pos = pos, .died = true, .drop = mtype, .wool = mtype == .sheep, .is_champion = was_champ, .creaking_heart_pos = heart_pos, .skeleton_variant = sk_var, .was_burning = was_burning };
             }
-            return .{ .mob_type = mtype, .pos = self.mobs.items[i].pos, .died = false, .drop = null, .wool = false, .is_champion = was_champ, .creaking_heart_pos = heart_pos, .skeleton_variant = sk_var };
+            return .{ .mob_type = mtype, .pos = self.mobs.items[i].pos, .died = false, .drop = null, .wool = false, .is_champion = was_champ, .creaking_heart_pos = heart_pos, .skeleton_variant = sk_var, .was_burning = was_burning };
         }
 
         return null;
@@ -1507,4 +1790,89 @@ test "MobManager tryShearBogged and Powder Snow freeze conversion" {
     }
     try std.testing.expectEqual(skeleton_variants_mod.SkeletonVariant.icy_stray, mm.mobs.items[1].skeleton_variant);
     try std.testing.expect(mm.takeStrayConversionPos() != null);
+}
+
+test "mob manager hoglin 7-block repulsion and crimson fungus breeding" {
+    var mm = try MobManager.init(std.testing.allocator, 0);
+    defer mm.deinit();
+    mm.in_overworld_or_end = false;
+
+    const MockRepelWorld = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return true; }
+        fn fluid(_: i32, _: i32, _: i32) bool { return false; }
+        fn block(x: i32, y: i32, z: i32) block_mod.BlockId {
+            if (x == 5 and y == 1 and z == 0) return .respawn_anchor;
+            return .air;
+        }
+    };
+
+    try mm.spawnMob(.hoglin, 0.5, 1.0, 0.5);
+    try mm.spawnMob(.hoglin, 1.5, 1.0, 0.5);
+
+    // Within 7 blocks of respawn_anchor at (5,1,0): hoglins flee away (-X)
+    mm.tick(MockRepelWorld.solid, MockRepelWorld.fluid, MockRepelWorld.block, math.Vec3.init(0.5, 1.0, 10.0), 0.4, false, null, 0.05);
+    try std.testing.expect(mm.mobs.items[0].is_repelled);
+    try std.testing.expectApproxEqAbs(mm.mobs.items[0].yaw, -std.math.pi * 0.5, 0.05);
+
+    // Crimson fungus feeding breeds a baby hoglin when both adults are fed
+    const r1 = mm.tryFeedHoglin(math.Vec3.init(0.5, 1.5, -2.0), math.Vec3.init(0.0, 0.0, 1.0), 5.0);
+    try std.testing.expect(r1 != null and !r1.?.bred);
+    const r2 = mm.tryFeedHoglin(math.Vec3.init(1.5, 1.5, -2.0), math.Vec3.init(0.0, 0.0, 1.0), 5.0);
+    try std.testing.expect(r2 != null and r2.?.bred);
+    try std.testing.expectEqual(@as(usize, 3), mm.mobs.items.len);
+    try std.testing.expect(mm.mobs.items[2].is_baby);
+}
+
+test "mob manager piglin 6s gold ingot barter, brute alarm, and zombified swarm alert" {
+    var mm = try MobManager.init(std.testing.allocator, 0);
+    defer mm.deinit();
+    mm.in_overworld_or_end = false;
+    mm.player_wearing_gold_armor = true;
+
+    try mm.spawnMob(.piglin, 0.5, 1.0, 3.0);
+    const started = mm.tryStartGoldIngotBarter(math.Vec3.init(0.5, 1.5, 0.0), math.Vec3.init(0.0, 0.0, 1.0), 5.0);
+    try std.testing.expect(started != null);
+    try std.testing.expect(mm.mobs.items[0].barter_state.isAdmiring());
+
+    var rewards: [4]MobManager.BarterResult = undefined;
+    try std.testing.expectEqual(@as(usize, 0), mm.tickGoldIngotBarters(5.9, &rewards));
+    try std.testing.expectEqual(@as(usize, 1), mm.tickGoldIngotBarters(0.15, &rewards));
+    try std.testing.expect(rewards[0].count > 0);
+
+    // Brute within 16m provokes nearby piglin and overrides gold armor pacification
+    try mm.spawnMob(.piglin_brute, 2.0, 1.0, 3.0);
+    const MockWorld = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return true; }
+        fn fluid(_: i32, _: i32, _: i32) bool { return false; }
+        fn block(_: i32, _: i32, _: i32) block_mod.BlockId { return .air; }
+    };
+    mm.tick(MockWorld.solid, MockWorld.fluid, MockWorld.block, math.Vec3.init(0.5, 1.0, 5.0), 0.4, false, null, 0.05);
+    try std.testing.expect(mm.mobs.items[0].anger_timer > 25.0);
+
+    // Zombified piglin swarm alert within 40m
+    try mm.spawnMob(.zombified_piglin, 10.0, 1.0, 0.0);
+    try mm.spawnMob(.zombified_piglin, 30.0, 1.0, 0.0);
+    try mm.spawnMob(.zombified_piglin, 70.0, 1.0, 0.0);
+    const hit = mm.tryHitMobDmg(math.Vec3.init(10.0, 1.5, -2.0), math.Vec3.init(0.0, 0.0, 1.0), 5.0, 2);
+    try std.testing.expect(hit != null);
+    try std.testing.expect(mm.mobs.items[2].anger_timer >= 20.0);
+    try std.testing.expect(mm.mobs.items[3].anger_timer >= 20.0);
+    try std.testing.expectEqual(@as(f32, 0.0), mm.mobs.items[4].anger_timer);
+}
+
+test "mob manager shulker closed shell reduces melee damage by 80 percent vs open shell" {
+    var mm = try MobManager.init(std.testing.allocator, 0);
+    defer mm.deinit();
+
+    try mm.spawnMob(.shulker, 0.5, 1.0, 3.0);
+    // Closed shell: 10 damage reduced by 80% -> 2 damage (30 -> 28 HP)
+    mm.mobs.items[0].shulker_peek_state = .closed_shell;
+    _ = mm.tryHitMobDmg(math.Vec3.init(0.5, 1.4, 0.0), math.Vec3.init(0.0, 0.0, 1.0), 6.0, 10);
+    try std.testing.expectEqual(@as(u8, 28), mm.mobs.items[0].health);
+
+    // Open firing shell: full 10 damage (28 -> 18 HP)
+    mm.mobs.items[0].pos = math.Vec3.init(0.5, 1.0, 3.0);
+    mm.mobs.items[0].shulker_peek_state = .open_firing;
+    _ = mm.tryHitMobDmg(math.Vec3.init(0.5, 1.4, 0.0), math.Vec3.init(0.0, 0.0, 1.0), 6.0, 10);
+    try std.testing.expectEqual(@as(u8, 18), mm.mobs.items[0].health);
 }
