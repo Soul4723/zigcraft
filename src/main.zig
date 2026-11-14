@@ -45,7 +45,6 @@ const trial_alchemy_mod = @import("world/trial_alchemy.zig");
 const bundle_pouch_mod = @import("world/bundle_pouch.zig");
 const copper_fixtures_mod = @import("world/copper_fixtures.zig");
 const jukebox_discs_mod = @import("world/jukebox_discs.zig");
-const allay_amethyst_duplication_mod = @import("world/allay_amethyst_duplication.zig");
 const happy_ghast_mod = @import("world/happy_ghast.zig");
 const warden_deep_dark_mod = @import("world/warden_deep_dark.zig");
 const strider_mount_mod = @import("world/strider_mount.zig");
@@ -111,7 +110,6 @@ const processing_workstations_mod = @import("world/processing_workstations.zig")
 const boots_and_armor_stands_mod = @import("world/boots_and_armor_stands.zig");
 const woodland_mansion_mod = @import("world/woodland_mansion.zig");
 const ocean_monument_mod = @import("world/ocean_monument.zig");
-const conduit_underwater_power_mod = @import("world/conduit_underwater_power.zig");
 const nether_portal_scaling_mod = @import("world/nether_portal_scaling.zig");
 const ancient_city_mod = @import("world/ancient_city.zig");
 const temple_traps_mod = @import("world/temple_traps.zig");
@@ -153,7 +151,6 @@ const swamp_marsh_mod = @import("world/swamp_marsh.zig");
 const book_quill_lectern_mod = @import("world/book_quill_lectern.zig");
 const outer_end_islands_mod = @import("world/outer_end_islands.zig");
 const subterranean_fossils_mod = @import("world/subterranean_fossils.zig");
-const amethyst_geode_budding_mod = @import("world/amethyst_geode_budding.zig");
 const azalea_lush_ecology_mod = @import("world/azalea_lush_ecology.zig");
 const brewing_stand_alchemy_mod = @import("world/brewing_stand_alchemy.zig");
 const fletching_tipped_arrows_mod = @import("world/fletching_tipped_arrows.zig");
@@ -327,6 +324,34 @@ fn getFootstepSound(block: block_mod.BlockId) audio_mod.synth.SoundType {
         .sand => .step_sand,
         .snow => .step_snow,
         .wool => .step_wool,
+    };
+}
+
+fn musicDiscFromItem(item: inventory_mod.ItemType) ?jukebox_discs_mod.MusicDisc {
+    return switch (item) {
+        .music_disc_13 => .disc_13,
+        .music_disc_cat => .cat,
+        .music_disc_5 => .disc_5,
+        .music_disc_relic => .relic,
+        .music_disc_precipice => .precipice,
+        .music_disc_creator => .creator,
+        else => null,
+    };
+}
+
+fn isPickaxeItem(item: inventory_mod.ItemType) bool {
+    return item == .wooden_pickaxe or item == .stone_pickaxe or item == .golden_pickaxe or
+        item == .iron_pickaxe or item == .diamond_pickaxe or item == .netherite_pickaxe;
+}
+
+fn sampleConduitCell(x: i32, y: i32, z: i32) conduit_frame_mod.ConduitCell {
+    return switch (pickBlockWorld(x, y, z)) {
+        .water => .water,
+        .prismarine => .prismarine,
+        .dark_prismarine => .dark_prismarine,
+        .prismarine_bricks => .prismarine_bricks,
+        .sea_lantern => .sea_lantern,
+        else => .other,
     };
 }
 
@@ -572,6 +597,9 @@ pub fn main() !void {
     const Conduit = struct { x: i32, y: i32, z: i32 };
     var conduits: [16]Conduit = undefined;
     var conduit_count: usize = 0;
+    var budding_nodes: [amethyst_mod.max_budding_nodes]amethyst_mod.BuddingNode = undefined;
+    var budding_node_count: usize = 0;
+    var amethyst_chime_step: u8 = 0;
     const AnchorState = struct { x: i32, y: i32, z: i32, charges: u8 };
     var anchors: [16]AnchorState = undefined;
     var anchor_count: usize = 0;
@@ -680,6 +708,7 @@ pub fn main() !void {
     var active_composter = redstone_workstations_mod.ComposterState{};
     var active_levitation = shulker_end_city_mod.Levitation{};
     var conduit_zap_timer: f32 = 0.0;
+    var conduit_mining_multiplier: f32 = 1.0;
     var active_raid = village_raid_mod.triggerRaid(.normal, 0);
     // Wave 5 representative domain state, advanced by the frame loop.
     var active_enderman = enderman_ai_mod.EndermanState{};
@@ -710,6 +739,11 @@ pub fn main() !void {
     };
     // Wave 7 representative domain states; entity spawning/world mutation remains caller-owned.
     var active_allay = allay_collector_mod.AllayCollectorState.init();
+    var allay_companions: [8]allay_collector_mod.Allay = undefined;
+    allay_companions[0] = allay_collector_mod.Allay.init(.{ player.pos.x + 1.2, player.pos.y + 1.4, player.pos.z + 1.2 });
+    var allay_companion_count: usize = 1;
+    var allay_tick_accum: f32 = 0.0;
+    var allay_dance_particle_timer: f32 = 0.0;
     var active_dolphin = dolphin_navigation_mod.DolphinState{};
     var active_bee = bee_pollination_mod.BeePollinatorState{};
     const active_map = cartography_maps_mod.CartographyMapState{ .center_x = 0, .center_z = 0 };
@@ -1084,7 +1118,7 @@ pub fn main() !void {
         _ = active_composter.tick(dt);
         active_levitation.tick(dt);
         active_raid.tick(dt);
-        _ = conduit_frame_mod.tickConduitHostileZap(active_raid.active, 0.0, false, &conduit_zap_timer, dt);
+
         active_enderman.tick(dt);
         _ = enderman_ai_mod.isDryShelter(player.in_water, false, false);
         _ = piglin_bastion_mod.isPiglinPacifiedByPlayer(true, false, false);
@@ -1162,6 +1196,50 @@ pub fn main() !void {
         _ = snow_golem_ai_mod.canThrowSnowball(active_snow_golem, .{ 0.0, 64.0, 0.0 });
         active_allay.tick(dt);
         allay_collector_mod.tickAllayRegeneration(&active_allay, dt);
+        {
+            const jukebox_signal: ?allay_collector_mod.JukeboxSignal = if (active_jukebox.is_playing and active_jukebox.inserted_disc != null) .{
+                .pos = .{
+                    @as(f32, @floatFromInt(active_jukebox.x)) + 0.5,
+                    @as(f32, @floatFromInt(active_jukebox.y)) + 0.5,
+                    @as(f32, @floatFromInt(active_jukebox.z)) + 0.5,
+                },
+                .active = true,
+                .playing_disc = active_jukebox.inserted_disc,
+            } else null;
+            const dest = allay_collector_mod.resolveAllayDeliveryDestination(active_allay, .{ player.pos.x, player.pos.y + 1.4, player.pos.z });
+            for (allay_companions[0..allay_companion_count], 0..) |*ac, ai| {
+                const angle = @as(f32, @floatFromInt(ai)) * 1.4 + @as(f32, @floatCast(current_time)) * 0.8;
+                const tx = dest[0] + @cos(angle) * 1.4;
+                const ty = dest[1] + 0.25 * @sin(@as(f32, @floatCast(current_time)) * 2.5 + @as(f32, @floatFromInt(ai)));
+                const tz = dest[2] + @sin(angle) * 1.4;
+                const blend = @min(1.0, dt * 3.0);
+                ac.pos[0] += (tx - ac.pos[0]) * blend;
+                ac.pos[1] += (ty - ac.pos[1]) * blend;
+                ac.pos[2] += (tz - ac.pos[2]) * blend;
+            }
+            allay_tick_accum += dt;
+            while (allay_tick_accum >= 0.05) {
+                allay_tick_accum -= 0.05;
+                for (allay_companions[0..allay_companion_count], 0..) |*ac, ai| {
+                    const dance_tick = ac.tick(jukebox_signal);
+                    if (ai == 0 and dance_tick.entered_dancing) {
+                        audio.playAt(.note_chime, ac.pos, .{ player.pos.x, player.pos.y, player.pos.z }, 0.85, 24.0);
+                        std.debug.print("Allay started dancing to jukebox music!\n", .{});
+                    }
+                }
+            }
+            if (allay_companions[0].is_dancing) {
+                allay_dance_particle_timer += dt;
+                if (allay_dance_particle_timer >= 0.35) {
+                    allay_dance_particle_timer = 0.0;
+                    for (allay_companions[0..allay_companion_count]) |ac| {
+                        particles.spawnGlowstoneShimmer(ac.pos, 2);
+                    }
+                }
+            } else {
+                allay_dance_particle_timer = 0.0;
+            }
+        }
         _ = note_block_instruments_mod.resolveNoteBlockInstrument(.stone, null);
         _ = note_block_instruments_mod.computeNotePitchMultiplier(12);
         var dragon_head_animation = dragon_head_acoustics_mod.DragonHeadAnimation{};
@@ -1207,8 +1285,6 @@ pub fn main() !void {
         _ = experience_orbs_mod.clumpNearbyXpOrbs(3, 1, 5, 0.1);
         active_melee_elapsed += dt;
         _ = melee_sweep_crit_mod.computeCooldownDamageScale(active_melee_elapsed, melee_sweep_crit_mod.WeaponAttackSpeed.sword_1_6_hz.rechargeDurationSeconds());
-        _ = allay_amethyst_duplication_mod.isJukeboxInDanceRange(.{ 0.0, 0.0, 0.0 }, .{ 4.0, 0.0, 0.0 });
-        _ = allay_amethyst_duplication_mod.ALLAY_MAX_HEALTH;
         _ = zombie_conversions_mod.tickZombieUnderwaterConversion(&active_zombie_submersion, false, dt);
         _ = zombie_conversions_mod.HuskMechanics.huskMeleeHungerDurationSeconds(1.0);
         _ = spider_arachnids_mod.isSpiderHostileAtLightLevel(12, false);
@@ -1274,8 +1350,6 @@ pub fn main() !void {
         _ = outer_end_islands_mod.computeGatewayTeleportTarget(false, 0);
         _ = subterranean_fossils_mod.sampleFossilBlockAtCoord(0, 0, -20, 0);
         _ = subterranean_fossils_mod.craftBoneBlockFromMeal(9);
-        _ = amethyst_geode_budding_mod.geodeLayerForNormalizedRadius(0.5);
-        _ = amethyst_geode_budding_mod.progressGrowthOnFace(null, true);
         _ = azalea_lush_ecology_mod.indicatesLushCaveBelow();
         _ = azalea_lush_ecology_mod.applyBoneMealToRootedDirt(true);
         _ = brewing_stand_alchemy_mod.brewPotion(brewing_stand_alchemy_mod.createWaterBottle(), .nether_wart);
@@ -1364,7 +1438,6 @@ pub fn main() !void {
         _ = enchanting_grindstone_mod.computeEnchantSlotOffers(0);
         // Wave 19 representative frame-loop hooks keep all ten domains queryable.
         _ = armadillo_wolf_defense_mod.threat_radius;
-        _ = allay_amethyst_duplication_mod.DUPLICATION_COOLDOWN_TICKS;
         _ = froglight_predation_mod.acquisition_range;
         _ = goat_horn_acoustics_mod.ACOUSTIC_RADIUS;
         _ = copper_horn_acoustics_mod.registerForCameraPitch(0);
@@ -1386,7 +1459,6 @@ pub fn main() !void {
         _ = magma_cube_splitting_mod.MagmaCubeSize.big.meleeDamage();
         _ = ghast_fireball_tennis_mod.SIGHT_RANGE;
         _ = wither_skeleton_effect_mod.WITHER_DURATION_TICKS;
-        _ = conduit_underwater_power_mod.evaluateActivation(true, conduit_underwater_power_mod.complete_frame_blocks);
         _ = nether_portal_scaling_mod.overworldToNether(.{ .x = 0, .y = 64, .z = 0 });
         // Wave 24 representative frame-loop hooks; Elytra wear and dragon ritual
         // ticking are already queried in their active simulation paths above.
@@ -1938,6 +2010,9 @@ pub fn main() !void {
                 const jb = &jukeboxes[jbi];
                 const cur_b = manager.getBlockWorld(jb.x, jb.y, jb.z);
                 if (cur_b != .jukebox) {
+                    if (active_jukebox.x == jb.x and active_jukebox.y == jb.y and active_jukebox.z == jb.z) {
+                        _ = active_jukebox.ejectDisc();
+                    }
                     cache_mod.swapRemove(&jukeboxes, &jukebox_count, jbi);
                     continue;
                 }
@@ -1980,6 +2055,8 @@ pub fn main() !void {
                     };
                     audio.playAt(snd, .{ @as(f32, @floatFromInt(nb.x)) + 0.5, @as(f32, @floatFromInt(nb.y)) + 0.5, @as(f32, @floatFromInt(nb.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 32.0);
                     particles.spawnFlame(nb.x, nb.y + 1, nb.z, 2);
+                    const nb_dist = @sqrt(allay_collector_mod.distanceSq(allay_companions[0].pos, .{ @as(f32, @floatFromInt(nb.x)) + 0.5, @as(f32, @floatFromInt(nb.y)) + 0.5, @as(f32, @floatFromInt(nb.z)) + 0.5 }));
+                    _ = active_allay.onNoteBlockPlayed(.{ nb.x, nb.y, nb.z }, nb_dist, false);
                     std.debug.print("note block struck by redstone: {s} (pitch={d})\n", .{ @tagName(inst), nb.pitch });
                 } else if (!is_pwr) {
                     nb.powered = false;
@@ -3527,7 +3604,7 @@ pub fn main() !void {
                 }
             }
         }
-        const night_factor = 1.0 - day_factor;
+        const night_factor = if (night_vision_timer > 0.0) 0.0 else (1.0 - day_factor);
         const stats = manager.draw(mvp, sun_dir, lamp_spots[0..lamp_spot_count], night_factor, cam.position, cam_underwater);
         try mob_manager.draw(mvp, sun_dir, cam.position, cam_underwater, manager.is_nether);
 
@@ -3982,6 +4059,7 @@ pub fn main() !void {
                         var need = block_mod.mineTime(broken_block, @intFromEnum(held_item_now));
                         if (player.hasMiningFatigue()) need /= 0.3;
                         if (beacon_supercharge_timer > 0.0) need /= beacon_aura_mod.hasteMultiplier(1, true);
+                        if (conduit_mining_multiplier > 1.0) need /= conduit_mining_multiplier;
                         const key: i64 = mining_mod.targetKey(hit.x, hit.y, hit.z);
                         if (!mine.valid or mine.key != key) {
                             mine.retarget(key, need);
@@ -4094,7 +4172,23 @@ pub fn main() !void {
                                     }
                                 }
 
-                                if (tier_ok) {
+                                if (broken_block == .budding_amethyst) {
+                                    if (!amethyst_mod.BuddingAmethystRules.dropsWhenMined(false)) {
+                                        audio.play(.note_chime, 0.7);
+                                        std.debug.print("Budding Amethyst shattered without dropping (must be farmed in-situ)\n", .{});
+                                    }
+                                } else if (broken_block == .amethyst_cluster) {
+                                    const is_pick = isPickaxeItem(held);
+                                    const roll_u: u32 = @as(u32, @bitCast(hit.x *% 31 +% hit.y *% 17 +% hit.z *% 53)) +% @as(u32, @truncate(frame_count));
+                                    const roll: f32 = @as(f32, @floatFromInt(roll_u % 100)) / 100.0;
+                                    const harvest = amethyst_mod.calculateHarvestYield(.amethyst_cluster, is_pick, false, 0, roll);
+                                    if (harvest.shard_count > 0) {
+                                        _ = inventory.addItem(.amethyst_shard, harvest.shard_count);
+                                    }
+                                    audio.play(.note_chime, 0.85);
+                                    particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit.x)) + 0.5, @as(f32, @floatFromInt(hit.y)) + 0.5, @as(f32, @floatFromInt(hit.z)) + 0.5 }, 10);
+                                    std.debug.print("harvested Amethyst Cluster ({d}x Amethyst Shard, pickaxe={any})\n", .{ harvest.shard_count, is_pick });
+                                } else if (tier_ok) {
                                     var drops_buf: [2]inventory_mod.BlockDrop = undefined;
                                     const drop_count = inventory_mod.getBlockDrops(broken_block, &drops_buf);
                                     for (drops_buf[0..drop_count]) |d| {
@@ -4497,6 +4591,9 @@ pub fn main() !void {
                                             if (copper_fixtures_mod.ensureFixture(&copper_fixtures, &copper_fixture_count, .copper_trapdoor, .unoxidized, px, py, pz)) |cf| {
                                                 cf.is_open = false;
                                             }
+                                        }
+                                        if (place_type == .budding_amethyst) {
+                                            _ = amethyst_mod.findOrRegisterBuddingNode(&budding_nodes, &budding_node_count, px, py, pz);
                                         }
                                         if (place_type == .sponge) {
                                             var absorbed: usize = 0;
@@ -4954,7 +5051,8 @@ pub fn main() !void {
                 }
                 eri += 1;
             }
-            // Oceanic Conduit Power field: emit pulsing cyan vortex particles & refresh water breathing
+            // Oceanic Conduit Power field & hunting eye hostile aquatic zap
+            conduit_mining_multiplier = 1.0;
             var ci: usize = 0;
             while (ci < conduit_count) {
                 const c_block = &conduits[ci];
@@ -4964,18 +5062,96 @@ pub fn main() !void {
                     conduit_count -= 1;
                     continue;
                 }
-                const cdx = @as(f32, @floatFromInt(c_block.x)) + 0.5 - player.pos.x;
-                const cdy = @as(f32, @floatFromInt(c_block.y)) + 0.5 - player.pos.y;
-                const cdz = @as(f32, @floatFromInt(c_block.z)) + 0.5 - player.pos.z;
-                const dist_sq = cdx * cdx + cdy * cdy + cdz * cdz;
-                if (dist_sq <= 32.0 * 32.0) {
-                    // Pulse cyan oceanic vortex particles around conduit core
-                    particles.spawnPortalVortex(.{ @as(f32, @floatFromInt(c_block.x)) + 0.5, @as(f32, @floatFromInt(c_block.y)) + 0.5, @as(f32, @floatFromInt(c_block.z)) + 0.5 }, 1.2, 2, 0.0);
-                    // Conduit Power aura: restores player oxygen & refreshes water breathing timer
-                    player.water_breathing_timer = @max(player.water_breathing_timer, 15.0);
-                    player.oxygen = 15.0;
+                const c_env = conduit_frame_mod.scanConduitEnvironment(c_block.x, c_block.y, c_block.z, sampleConduitCell);
+                const c_act = conduit_frame_mod.evaluateConduitActivation(c_env.surrounded_by_3x3x3_water, c_env.valid_ring_block_count);
+                if (c_act.is_active) {
+                    const cx = @as(f32, @floatFromInt(c_block.x)) + 0.5;
+                    const cy = @as(f32, @floatFromInt(c_block.y)) + 0.5;
+                    const cz = @as(f32, @floatFromInt(c_block.z)) + 0.5;
+                    const cdx = cx - player.pos.x;
+                    const cdy = cy - player.pos.y;
+                    const cdz = cz - player.pos.z;
+                    const dist_sq = cdx * cdx + cdy * cdy + cdz * cdz;
+                    const buff = conduit_frame_mod.computeConduitPowerBuff(c_act.is_active, player.in_water or was_eye_underwater, dist_sq, c_act.aura_radius);
+                    if (dist_sq <= 32.0 * 32.0) {
+                        particles.spawnPortalVortex(.{ cx, cy, cz }, 1.2, 2, 0.0);
+                    }
+                    if (buff.restores_oxygen) {
+                        player.water_breathing_timer = @max(player.water_breathing_timer, 15.0);
+                        player.oxygen = 15.0;
+                    }
+                    if (buff.grants_underwater_night_vision) {
+                        night_vision_timer = @max(night_vision_timer, 2.0);
+                    }
+                    conduit_mining_multiplier = @max(conduit_mining_multiplier, buff.mining_speed_multiplier);
+                    if (c_act.eye_hunting_open) {
+                        var nearest_idx: ?usize = null;
+                        var nearest_dist: f32 = conduit_frame_mod.hostile_zap_radius + 1.0;
+                        for (mob_manager.mobs.items, 0..) |m, mi| {
+                            if (m.health == 0) continue;
+                            if (m.mob_type != .drowned and m.mob_type != .guardian and m.mob_type != .elder_guardian) continue;
+                            const mob_wet = m.in_water or pickFluid(@intFromFloat(@floor(m.pos.x)), @intFromFloat(@floor(m.pos.y)), @intFromFloat(@floor(m.pos.z)));
+                            if (!mob_wet) continue;
+                            const mdx = m.pos.x - cx;
+                            const mdy = m.pos.y - cy;
+                            const mdz = m.pos.z - cz;
+                            const md = @sqrt(mdx * mdx + mdy * mdy + mdz * mdz);
+                            if (md <= conduit_frame_mod.hostile_zap_radius and md < nearest_dist) {
+                                nearest_dist = md;
+                                nearest_idx = mi;
+                            }
+                        }
+                        if (nearest_idx) |zap_mob_idx| {
+                            const zap_dmg = conduit_frame_mod.tickConduitHostileZap(c_act.eye_hunting_open, nearest_dist, true, &conduit_zap_timer, dt);
+                            if (zap_dmg > 0.0) {
+                                const target_mob = &mob_manager.mobs.items[zap_mob_idx];
+                                const dmg_u8: u8 = @intFromFloat(zap_dmg);
+                                target_mob.health = if (target_mob.health > dmg_u8) target_mob.health - dmg_u8 else 0;
+                                audio.playAt(.burn_sizzle, .{ target_mob.pos.x, target_mob.pos.y + 0.8, target_mob.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 24.0);
+                                particles.spawnBubble(.{ target_mob.pos.x, target_mob.pos.y + 0.8, target_mob.pos.z }, 10);
+                                particles.spawnGlowstoneShimmer(.{ target_mob.pos.x, target_mob.pos.y + 0.8, target_mob.pos.z }, 8);
+                                std.debug.print("Conduit zapped {s} for {d:.0} dmg (hp={d})\n", .{ @tagName(target_mob.mob_type), zap_dmg, target_mob.health });
+                            }
+                        }
+                    }
                 }
                 ci += 1;
+            }
+            // Budding Amethyst crystal growth progression across open orthogonal faces
+            var bni: usize = 0;
+            while (bni < budding_node_count) {
+                const bn = &budding_nodes[bni];
+                if (manager.getBlockWorld(bn.x, bn.y, bn.z) != .budding_amethyst) {
+                    cache_mod.swapRemove(&budding_nodes, &budding_node_count, bni);
+                    continue;
+                }
+                var open_pos: ?[3]i32 = null;
+                for (amethyst_mod.all_growth_faces, 0..) |_, fi| {
+                    const f_idx = (fi + bn.cycles) % amethyst_mod.all_growth_faces.len;
+                    const off = amethyst_mod.all_growth_faces[f_idx].offset();
+                    const gx = bn.x + off[0];
+                    const gy = bn.y + off[1];
+                    const gz = bn.z + off[2];
+                    const adj = manager.getBlockWorld(gx, gy, gz);
+                    if (amethyst_mod.canGrowAmethystOnFace(adj == .air or adj == .water)) {
+                        open_pos = .{ gx, gy, gz };
+                        break;
+                    }
+                }
+                if (amethyst_mod.advanceBuddingCluster(bn, dt, open_pos != null)) |new_stage| {
+                    if (new_stage == .amethyst_cluster) {
+                        if (open_pos) |gp| {
+                            if (try manager.editAndRemesh(gp[0], gp[1], gp[2], .amethyst_cluster)) {
+                                audio.playAt(.note_chime, .{ @as(f32, @floatFromInt(gp[0])) + 0.5, @as(f32, @floatFromInt(gp[1])) + 0.5, @as(f32, @floatFromInt(gp[2])) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 24.0);
+                                particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(gp[0])) + 0.5, @as(f32, @floatFromInt(gp[1])) + 0.5, @as(f32, @floatFromInt(gp[2])) + 0.5 }, 10);
+                                std.debug.print("Budding Amethyst matured Amethyst Cluster at ({d},{d},{d})\n", .{ gp[0], gp[1], gp[2] });
+                            }
+                        }
+                    } else {
+                        particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(bn.x)) + 0.5, @as(f32, @floatFromInt(bn.y)) + 0.8, @as(f32, @floatFromInt(bn.z)) + 0.5 }, 6);
+                    }
+                }
+                bni += 1;
             }
         }
 
@@ -7269,18 +7445,23 @@ pub fn main() !void {
                             _ = inventory.addItem(disc, 1);
                             jb.playing_disc = null;
                             jb.play_timer = 0.0;
+                            if (active_jukebox.x == hit_f.x and active_jukebox.y == hit_f.y and active_jukebox.z == hit_f.z) {
+                                _ = active_jukebox.ejectDisc();
+                            }
                             audio.playAt(.click_off, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 30.0);
                             std.debug.print("jukebox ejected {s} at ({d},{d},{d})\n", .{ disc.name(), hit_f.x, hit_f.y, hit_f.z });
                         } else {
                             // Check if player holds a music disc
                             const held_slot = &inventory.slots[selected_slot];
-                            if (held_slot.item == .music_disc_13 or held_slot.item == .music_disc_cat or held_slot.item == .music_disc_5 or held_slot.item == .music_disc_relic or held_slot.item == .music_disc_precipice or held_slot.item == .music_disc_creator) {
+                            if (musicDiscFromItem(held_slot.item)) |md| {
                                 const disc = held_slot.item;
                                 held_slot.count -= 1;
                                 if (held_slot.count == 0) held_slot.clear();
 
                                 jb.playing_disc = disc;
-                                jb.play_timer = 3.0;
+                                jb.play_timer = md.durationSeconds();
+                                active_jukebox = jukebox_discs_mod.JukeboxState.initAt(hit_f.x, hit_f.y, hit_f.z);
+                                _ = active_jukebox.insertDisc(md);
                                 const track_sound: audio_mod.synth.SoundType = if (disc == .music_disc_13) .record_13 else if (disc == .music_disc_cat) .record_cat else .glowstone_chime;
                                 audio.playAt(track_sound, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 48.0);
                                 particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 8);
@@ -7312,7 +7493,40 @@ pub fn main() !void {
                         };
                         audio.playAt(snd, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 32.0);
                         particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 4);
+                        const nb_dist = @sqrt(allay_collector_mod.distanceSq(allay_companions[0].pos, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }));
+                        _ = active_allay.onNoteBlockPlayed(.{ hit_f.x, hit_f.y, hit_f.z }, nb_dist, false);
                         std.debug.print("tuned note block: {s} (semitones={d})\n", .{ @tagName(inst), nb.pitch });
+                    }
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .conduit) {
+                    if (cache_mod.findChest(&conduits, conduit_count, hit_f.x, hit_f.y, hit_f.z) == null and conduit_count < conduits.len) {
+                        conduits[conduit_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z };
+                        conduit_count += 1;
+                    }
+                    const c_env = conduit_frame_mod.scanConduitEnvironment(hit_f.x, hit_f.y, hit_f.z, sampleConduitCell);
+                    const c_act = conduit_frame_mod.evaluateConduitActivation(c_env.surrounded_by_3x3x3_water, c_env.valid_ring_block_count);
+                    const c_pos = [3]f32{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 };
+                    if (c_act.is_active) {
+                        audio.playAt(.glowstone_chime, c_pos, .{ player.pos.x, player.pos.y, player.pos.z }, 0.95, 32.0);
+                        particles.spawnPortalVortex(c_pos, 1.2, 12, 0.0);
+                    } else {
+                        audio.playAt(.click_off, c_pos, .{ player.pos.x, player.pos.y, player.pos.z }, 0.75, 24.0);
+                    }
+                    std.debug.print("conduit status: active={any} water_3x3x3={any} frame={d}/42 radius={d:.0}m hunting_eye={any}\n", .{ c_act.is_active, c_env.surrounded_by_3x3x3_water, c_env.valid_ring_block_count, c_act.aura_radius, c_act.eye_hunting_open });
+                    flint_cooldown = interact_mod.flint_action_cooldown;
+                } else if (target == .budding_amethyst or target == .amethyst_block or target == .amethyst_cluster) {
+                    const pitch_mult = amethyst_mod.chimePitchMultiplier(amethyst_chime_step);
+                    amethyst_chime_step +%= 1;
+                    const a_pos = [3]f32{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 };
+                    audio.playAt(.note_chime, a_pos, .{ player.pos.x, player.pos.y, player.pos.z }, @min(1.0, 0.65 * pitch_mult), 24.0);
+                    particles.spawnGlowstoneShimmer(a_pos, 8);
+                    if (target == .budding_amethyst) {
+                        if (amethyst_mod.findOrRegisterBuddingNode(&budding_nodes, &budding_node_count, hit_f.x, hit_f.y, hit_f.z)) |bn| {
+                            const st_name = if (bn.stage) |st| st.name() else "Dormant Budding Amethyst";
+                            std.debug.print("budding amethyst: {s} (timer={d:.1}/{d:.0}s, cycles={d})\n", .{ st_name, bn.timer, amethyst_mod.crystal_growth_interval, bn.cycles });
+                        }
+                    } else {
+                        std.debug.print("amethyst chime resonance (pitch_mult={d:.2}x)\n", .{pitch_mult});
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .daylight_detector or target == .daylight_detector_inverted) {
@@ -8075,6 +8289,41 @@ pub fn main() !void {
                         std.debug.print("camel dash released (v={d:.1}m/s)\n", .{camel_mod.DASH_SPEED});
                     }
                 }
+            } else if (held_eat.item == .amethyst_shard) {
+                var offered = allay_collector_mod.ItemStack{ .item = .amethyst_shard, .count = held_eat.count };
+                const dup = allay_collector_mod.feedAmethystShard(&allay_companions[0], &offered);
+                switch (dup.result) {
+                    .success => {
+                        inventory.slots[selected_slot].decrement(1);
+                        if (dup.child) |child| {
+                            if (allay_companion_count < allay_companions.len) {
+                                allay_companions[allay_companion_count] = child;
+                                allay_companion_count += 1;
+                            }
+                        }
+                        if (dup.amethyst_chime) audio.play(.note_chime, 0.95);
+                        audio.play(.glowstone_chime, 0.9);
+                        if (dup.heart_particles) particles.spawnGlowstoneShimmer(allay_companions[0].pos, 16);
+                        particles.spawnPortalParticles(allay_companions[0].pos, 10);
+                        toast.timer = 2.5;
+                        toast.color = .{ 0.45, 0.85, 1.0 };
+                        std.debug.print("Allay duplicated with Amethyst Shard! (companions={d}, cooldown=300s)\n", .{allay_companion_count});
+                    },
+                    .on_cooldown => {
+                        audio.play(.click_off, 0.6);
+                        std.debug.print("Allay duplication on cooldown ({d} ticks remaining)\n", .{allay_companions[0].duplication_cooldown_ticks});
+                    },
+                    .not_dancing => {
+                        audio.play(.click_off, 0.5);
+                        std.debug.print("Allay is not dancing (play a Jukebox within 16m before feeding Amethyst Shard)\n", .{});
+                    },
+                    .no_amethyst_shard => {},
+                }
+            } else if (held_eat.item == .allay_amethyst_resonator) {
+                active_allay.assignFilterItem(@intFromEnum(inventory_mod.ItemType.amethyst_shard));
+                audio.play(.note_chime, 0.85);
+                particles.spawnGlowstoneShimmer(allay_companions[0].pos, 8);
+                std.debug.print("Allay resonator attuned (dancing={any}, companions={d}, state={s})\n", .{ allay_companions[0].is_dancing, allay_companion_count, @tagName(allay_companions[0].state) });
             } else if (held_eat.item == .wind_charge) {
                 inventory.slots[selected_slot].decrement(1);
                 player.fall_distance = 0.0;
