@@ -196,8 +196,6 @@ pub fn build(b: *std.Build) void {
         "src/world/experience_orbs.zig",
         "src/world/melee_sweep_crit.zig",
         "src/world/skeleton_variants.zig",
-        "src/world/bogged_stray_variants.zig",
-        "src/world/bogged_poison_harvest.zig",
         "src/world/skeleton_trap_combat.zig",
         "src/world/zombie_conversions.zig",
         "src/world/spider_arachnids.zig",

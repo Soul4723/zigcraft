@@ -122,7 +122,6 @@ const weather_lightning_mod = @import("world/weather_lightning.zig");
 const experience_orbs_mod = @import("world/experience_orbs.zig");
 const melee_sweep_crit_mod = @import("world/melee_sweep_crit.zig");
 const skeleton_variants_mod = @import("world/skeleton_variants.zig");
-const bogged_stray_variants_mod = @import("world/bogged_stray_variants.zig");
 const zombie_conversions_mod = @import("world/zombie_conversions.zig");
 const spider_arachnids_mod = @import("world/spider_arachnids.zig");
 const mountain_goat_mod = @import("world/mountain_goat.zig");
@@ -218,8 +217,6 @@ const trial_spawner_waves_mod = @import("world/trial_spawner_waves.zig");
 const vault_loot_dispenser_mod = @import("world/vault_loot_dispenser.zig");
 const trial_vault_reset_mod = @import("world/trial_vault_reset.zig");
 const vault_multiplayer_reset_mod = @import("world/vault_multiplayer_reset.zig");
-
-const bogged_poison_harvest_mod = @import("world/bogged_poison_harvest.zig");
 const ominous_bottle_matrix_mod = @import("world/ominous_bottle_matrix.zig");
 const eyeblossom_bloom_toxicity_mod = @import("world/eyeblossom_bloom_toxicity.zig");
 const trial_chamber_generation_mod = @import("world/trial_chamber_generation.zig");
@@ -584,7 +581,7 @@ pub fn main() !void {
     var portal_targets: [32]PortalTarget = undefined;
     var portal_target_count: usize = 0;
     const ThrownKind = enum { snowball, hostile_fireball, hostile_arrow, player_fire_charge, spectral_arrow, arrow, firework_rocket, ender_pearl, eye_of_ender, shulker_bullet, trident };
-    const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball, damage: u8 = 1, pierce: u8 = 0, last_hit_mob: ?usize = null };
+    const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball, damage: u8 = 1, pierce: u8 = 0, last_hit_mob: ?usize = null, arrow_variant: skeleton_variants_mod.SkeletonVariant = .standard_skeleton };
     var thrown: [proj_mod.thrown_cap]Thrown = undefined;
     var thrown_count: usize = 0;
     const FurnaceJob = smelt_mod.FurnaceJob;
@@ -727,7 +724,6 @@ pub fn main() !void {
     };
     var active_mooshroom = mushroom_island_mod.MooshroomState{};
     var active_melee_elapsed: f32 = 0.0;
-    var active_skeleton_freeze = skeleton_variants_mod.SkeletonFreezeConversionState{};
     var active_zombie_submersion = zombie_conversions_mod.ZombieSubmersionState{ .variant = .desert_husk };
     const active_hoglin = hoglin_zoglin_mod.HoglinState.init();
     var active_warped_hoglin = hoglin_warped_repellent_mod.Hoglin.init();
@@ -915,7 +911,7 @@ pub fn main() !void {
         const key_ctrl = !inventory_open and (c.glfwGetKey(window, c.GLFW_KEY_LEFT_CONTROL) == c.GLFW_PRESS);
         player.updateSprint(key_ctrl, key_w and !key_s, is_blocking or is_loading_crossbow);
         const base_walk_speed: f32 = if (is_blocking or is_loading_crossbow) 6.0 * combat_mod.shield_blocking_speed_mult else 6.0;
-        const walk_speed = base_walk_speed * (if (player.is_sprinting) player_mod.Player.sprint_speed_mult else 1.0);
+        const walk_speed = base_walk_speed * (if (player.is_sprinting) player_mod.Player.sprint_speed_mult else 1.0) * player.effectiveSlownessMultiplier();
         const key_d = c.glfwGetKey(window, c.GLFW_KEY_D) == c.GLFW_PRESS;
         const key_a = c.glfwGetKey(window, c.GLFW_KEY_A) == c.GLFW_PRESS;
         const norm_wish = player_mod.computeWishDirection(walk_vecs, key_w, key_s, key_d, key_a, inventory_open);
@@ -1213,11 +1209,6 @@ pub fn main() !void {
         _ = experience_orbs_mod.clumpNearbyXpOrbs(3, 1, 5, 0.1);
         active_melee_elapsed += dt;
         _ = melee_sweep_crit_mod.computeCooldownDamageScale(active_melee_elapsed, melee_sweep_crit_mod.WeaponAttackSpeed.sword_1_6_hz.rechargeDurationSeconds());
-        _ = skeleton_variants_mod.tickSkeletonPowderSnowConversion(&active_skeleton_freeze, dt, false);
-        _ = skeleton_variants_mod.computeSkeletonArrowPayload(.icy_stray);
-        _ = bogged_stray_variants_mod.arrowPayload(.bogged);
-        _ = bogged_stray_variants_mod.arrowPayload(.stray);
-        _ = bogged_stray_variants_mod.trapSpawnProbability(0.5);
         _ = allay_amethyst_duplication_mod.isJukeboxInDanceRange(.{ 0.0, 0.0, 0.0 }, .{ 4.0, 0.0, 0.0 });
         _ = allay_amethyst_duplication_mod.ALLAY_MAX_HEALTH;
         _ = zombie_conversions_mod.tickZombieUnderwaterConversion(&active_zombie_submersion, false, dt);
@@ -1415,7 +1406,6 @@ pub fn main() !void {
         // Wave 25 representative frame-loop hooks keep all ten domains queryable.
         _ = trial_spawner_waves_mod.scaleTotalMobs(6, 2);
         _ = vault_multiplayer_reset_mod.requiredKey(.standard);
-        _ = bogged_poison_harvest_mod.BOGGED_MAX_HEALTH;
         _ = ominous_bottle_matrix_mod.DRINKING_DURATION_TICKS;
         _ = eyeblossom_bloom_toxicity_mod.POISON_DURATION_TICKS;
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
@@ -3074,6 +3064,12 @@ pub fn main() !void {
         }
         const held_warped_fungus = (inventory.slots[selected_slot].item == .warped_fungus or inventory.slots[selected_slot].item == .warped_fungus_on_a_stick);
         mob_manager.tick(&pickSolid, &pickFluid, &pickBlockWorld, player.pos, player.radius, held_warped_fungus, &audio, dt);
+        if (mob_manager.takeStrayConversionPos()) |conv_pos| {
+            particles.spawnBlockDebris(@intFromFloat(@floor(conv_pos.x)), @intFromFloat(@floor(conv_pos.y + 1.0)), @intFromFloat(@floor(conv_pos.z)), .{ 0.85, 0.95, 1.0 }, 16);
+            toast.timer = 1.8;
+            toast.color = .{ 0.72, 0.90, 1.0 };
+            std.debug.print("skeleton froze in powder snow and converted to Stray!\n", .{});
+        }
         // In The End: emit soaring celestial violet gateway sky-beams from nearby End Gateways
         if (manager.is_end) {
             if (@abs(player.pos.x - 32.0) <= 64.0 and @abs(player.pos.z - 0.0) <= 64.0) {
@@ -3743,6 +3739,25 @@ pub fn main() !void {
                         toast.color = .{ 0.90, 0.90, 0.90 };
                         std.debug.print("sheared sheep, acquired {d} wool\n", .{sh.wool_count});
                         sheared_sheep = true;
+                    } else if (mob_manager.tryShearBogged(cam.position, dir, combat_mod.melee_range)) |bh| {
+                        for (bh.mushrooms) |m_kind| {
+                            const m_item: inventory_mod.ItemType = switch (m_kind) {
+                                .red => .red_mushroom,
+                                .brown => .brown_mushroom,
+                            };
+                            _ = inventory.addItem(m_item, 1);
+                        }
+                        audio.playAt(.shears_snip, .{ bh.pos.x, bh.pos.y + 0.5, bh.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 24.0);
+                        audio.play(.click_on, 0.7);
+                        particles.spawnBlockDebris(@intFromFloat(@floor(bh.pos.x)), @intFromFloat(@floor(bh.pos.y + 1.2)), @intFromFloat(@floor(bh.pos.z)), .{ 0.36, 0.58, 0.24 }, 12);
+                        particles.spawnBlockDebris(@intFromFloat(@floor(bh.pos.x)), @intFromFloat(@floor(bh.pos.y + 1.4)), @intFromFloat(@floor(bh.pos.z)), .{ 0.85, 0.22, 0.18 }, 8);
+                        if (tool_wear.use(selected_slot, inventory.slots[selected_slot].item.maxDurability())) {
+                            inventory.slots[selected_slot].clear();
+                        }
+                        toast.timer = 1.5;
+                        toast.color = .{ 0.45, 0.72, 0.35 };
+                        std.debug.print("sheared bogged: harvested 2 mushrooms ({s}, {s})\n", .{ @tagName(bh.mushrooms[0]), @tagName(bh.mushrooms[1]) });
+                        sheared_sheep = true;
                     }
                 }
                 var leashed_mob = false;
@@ -3842,8 +3857,13 @@ pub fn main() !void {
                             _ = inventory.addItem(.spider_eye, 1);
                             std.debug.print("spider eye harvested\n", .{});
                         } else if (hit_mob.mob_type == .skeleton and inventory_mod.dropsSkeletonArrow(px, py, pz)) {
-                            _ = inventory.addItem(.arrow, 2);
-                            std.debug.print("skeleton dropped reserve arrows\n", .{});
+                            if (hit_mob.skeleton_variant == .icy_stray) {
+                                _ = inventory.addItem(.arrow_of_slowness, 1);
+                                std.debug.print("stray dropped arrow of slowness\n", .{});
+                            } else {
+                                _ = inventory.addItem(.arrow, 2);
+                                std.debug.print("skeleton dropped reserve arrows\n", .{});
+                            }
                         } else if (hit_mob.mob_type == .zombie and inventory_mod.dropsZombieIron(px, py, pz)) {
                             _ = inventory.addItem(.iron_ingot, 1);
                             std.debug.print("zombie dropped rare iron ingot\n", .{});
@@ -4990,11 +5010,25 @@ pub fn main() !void {
                                 }
                                 std.debug.print("shield blocked skeleton arrow\n", .{});
                             } else {
-                                const arrow_dmg = combat_mod.applyArmorReductionEveryTier(2.0, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
+                                const payload = skeleton_variants_mod.computeSkeletonArrowPayload(t.arrow_variant);
+                                const arrow_dmg = combat_mod.applyArmorReductionEveryTier(payload.base_damage, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
                                 player.health = @max(0.0, player.health - arrow_dmg);
+                                if (payload.poison_seconds > 0.0) {
+                                    player.poison_timer = @max(player.poison_timer, payload.poison_seconds);
+                                    particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.35, 0.78, 0.25 }, 8);
+                                    std.debug.print("bogged poison arrow struck player (poison={d:.1}s, hp={d:.1})\n", .{ payload.poison_seconds, player.health });
+                                } else if (payload.slowness_seconds > 0.0) {
+                                    player.applySlowness(payload.slowness_seconds, payload.movement_speed_multiplier);
+                                    particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.55, 0.78, 0.92 }, 8);
+                                    std.debug.print("stray slowness arrow struck player (slow={d:.1}s, mult={d:.2}, hp={d:.1})\n", .{ payload.slowness_seconds, payload.movement_speed_multiplier, player.health });
+                                } else {
+                                    std.debug.print("skeleton arrow struck player (hp={d:.1})\n", .{player.health});
+                                }
+                                if (skeleton_variants_mod.shouldDropSlownessArrowsOnPlayerKill(t.arrow_variant, player.health <= 0.0)) {
+                                    std.debug.print("stray slowness arrow felled player\n", .{});
+                                }
                                 audio.play(.hurt, 0.8);
                                 particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.85, 0.20, 0.20 }, 8);
-                                std.debug.print("skeleton arrow struck player (hp={d:.1})\n", .{player.health});
                             }
                             dead = true;
                         } else if (pickSolid(mbx, mby, mbz)) {
@@ -5336,8 +5370,13 @@ pub fn main() !void {
                                         _ = inventory.addItem(.spider_eye, 1);
                                         std.debug.print("spider eye harvested\n", .{});
                                     } else if (m.mob_type == .skeleton and inventory_mod.dropsSkeletonArrow(mbx, mby, mbz)) {
-                                        _ = inventory.addItem(.arrow, 2);
-                                        std.debug.print("skeleton dropped reserve arrows\n", .{});
+                                        if (m.skeleton_variant == .icy_stray) {
+                                            _ = inventory.addItem(.arrow_of_slowness, 1);
+                                            std.debug.print("stray dropped arrow of slowness\n", .{});
+                                        } else {
+                                            _ = inventory.addItem(.arrow, 2);
+                                            std.debug.print("skeleton dropped reserve arrows\n", .{});
+                                        }
                                     } else if (m.mob_type == .zombie and inventory_mod.dropsZombieIron(mbx, mby, mbz)) {
                                         _ = inventory.addItem(.iron_ingot, 1);
                                         std.debug.print("zombie dropped rare iron ingot\n", .{});
@@ -5885,13 +5924,18 @@ pub fn main() !void {
                             .life = proj_mod.throw_life,
                             .kind = .hostile_arrow,
                             .damage = 2,
+                            .arrow_variant = m.skeleton_variant,
                         };
                         thrown_count += 1;
                         audio.playAt(.bow_shoot, .{ m.pos.x, m.pos.y, m.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
                         particles.spawnBlockDebris(@intFromFloat(@floor(m.pos.x)), @intFromFloat(@floor(m.pos.y + 1)), @intFromFloat(@floor(m.pos.z)), .{ 0.85, 0.85, 0.85 }, 4);
-                        std.debug.print("skeleton archer fired arrow\n", .{});
+                        std.debug.print("skeleton archer ({s}) fired arrow\n", .{@tagName(m.skeleton_variant)});
                     }
-                    skeleton_shot_cooldown = 1.8;
+                    skeleton_shot_cooldown = switch (m.skeleton_variant) {
+                        .mossy_bogged => @as(f32, @floatFromInt(skeleton_variants_mod.bogged_bow_cooldown_ticks)) / 20.0,
+                        .icy_stray => @as(f32, @floatFromInt(skeleton_variants_mod.stray_bow_cooldown_ticks)) / 20.0,
+                        else => 1.8,
+                    };
                     break;
                 }
             }

@@ -431,23 +431,38 @@ pub fn appendMobMesh(allocator: std.mem.Allocator, verts: *std.ArrayList(MobVert
             try appendBox(allocator, verts, inds, math.Vec3.init(0.12, 0.3, 0 - leg_swing), math.Vec3.init(0.12, 0.6, 0.12), mob.yaw, mob.pos, uv_bone, uv_bone);
         },
         .skeleton => {
-            const uv_bone = texture.getTileUV(7, 2); // bone / light ivory texture
-            const uv_skull = texture.getTileUV(1, 2); // ivory skull face
+            const shake_x: f32 = if (mob.freeze_conversion.shaking) @sin(mob.anim_time * 40.0) * 0.04 else 0.0;
+            const uv_bone = switch (mob.skeleton_variant) {
+                .mossy_bogged => texture.getTileUV(7, 0), // mossy bone tone
+                .icy_stray => texture.getTileUV(1, 5), // frosted bandage cloak
+                else => texture.getTileUV(7, 2), // bone / light ivory texture
+            };
+            const uv_skull = switch (mob.skeleton_variant) {
+                .icy_stray => texture.getTileUV(7, 1), // icy blue-tinted stray face
+                else => texture.getTileUV(1, 2), // skull face
+            };
             const uv_bow = texture.getTileUV(2, 2); // wooden bow stave
 
             // 1. Ribcage: 0.38 x 0.52 x 0.28 at (0, 0.85, 0)
-            try appendBox(allocator, verts, inds, math.Vec3.init(0, 0.85, 0), math.Vec3.init(0.38, 0.52, 0.28), mob.yaw, mob.pos, uv_bone, uv_bone);
+            try appendBox(allocator, verts, inds, math.Vec3.init(shake_x, 0.85, 0), math.Vec3.init(0.38, 0.52, 0.28), mob.yaw, mob.pos, uv_bone, uv_bone);
             // 2. Skull: 0.32 cube at (0, 1.30 + head_bob_y, 0.08)
-            try appendBox(allocator, verts, inds, math.Vec3.init(0, 1.30 + head_bob_y, 0.08), math.Vec3.init(0.32, 0.32, 0.32), mob.yaw, mob.pos, uv_skull, uv_bone);
+            try appendBox(allocator, verts, inds, math.Vec3.init(shake_x, 1.30 + head_bob_y, 0.08), math.Vec3.init(0.32, 0.32, 0.32), mob.yaw, mob.pos, uv_skull, uv_bone);
             // 3. Left arm: 0.1 x 0.56 x 0.1
-            try appendBox(allocator, verts, inds, math.Vec3.init(-0.26, 0.85, 0 + leg_swing), math.Vec3.init(0.10, 0.56, 0.10), mob.yaw, mob.pos, uv_bone, uv_bone);
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.26 + shake_x, 0.85, 0 + leg_swing), math.Vec3.init(0.10, 0.56, 0.10), mob.yaw, mob.pos, uv_bone, uv_bone);
             // 4. Right arm raised holding bow forward
-            try appendBox(allocator, verts, inds, math.Vec3.init(0.26, 0.90, 0.20), math.Vec3.init(0.10, 0.10, 0.50), mob.yaw, mob.pos, uv_bone, uv_bone);
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.26 + shake_x, 0.90, 0.20), math.Vec3.init(0.10, 0.10, 0.50), mob.yaw, mob.pos, uv_bone, uv_bone);
             // 5. Wooden Bow held in right hand: 0.06 x 0.60 x 0.06
-            try appendBox(allocator, verts, inds, math.Vec3.init(0.26, 0.90, 0.45), math.Vec3.init(0.06, 0.60, 0.06), mob.yaw, mob.pos, uv_bow, uv_bow);
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.26 + shake_x, 0.90, 0.45), math.Vec3.init(0.06, 0.60, 0.06), mob.yaw, mob.pos, uv_bow, uv_bow);
             // 6-7. Legs
-            try appendBox(allocator, verts, inds, math.Vec3.init(-0.12, 0.30, 0 + leg_swing), math.Vec3.init(0.11, 0.58, 0.11), mob.yaw, mob.pos, uv_bone, uv_bone);
-            try appendBox(allocator, verts, inds, math.Vec3.init(0.12, 0.30, 0 - leg_swing), math.Vec3.init(0.11, 0.58, 0.11), mob.yaw, mob.pos, uv_bone, uv_bone);
+            try appendBox(allocator, verts, inds, math.Vec3.init(-0.12 + shake_x, 0.30, 0 + leg_swing), math.Vec3.init(0.11, 0.58, 0.11), mob.yaw, mob.pos, uv_bone, uv_bone);
+            try appendBox(allocator, verts, inds, math.Vec3.init(0.12 + shake_x, 0.30, 0 - leg_swing), math.Vec3.init(0.11, 0.58, 0.11), mob.yaw, mob.pos, uv_bone, uv_bone);
+            // Unsheared Bogged mushroom caps on skull
+            if (mob.skeleton_variant == .mossy_bogged and !mob.is_sheared) {
+                const uv_red_cap = texture.getTileUV(6, 1);
+                const uv_brown_cap = texture.getTileUV(1, 0);
+                try appendBox(allocator, verts, inds, math.Vec3.init(-0.08 + shake_x, 1.52 + head_bob_y, 0.08), math.Vec3.init(0.14, 0.12, 0.14), mob.yaw, mob.pos, uv_red_cap, uv_red_cap);
+                try appendBox(allocator, verts, inds, math.Vec3.init(0.08 + shake_x, 1.51 + head_bob_y, 0.04), math.Vec3.init(0.12, 0.10, 0.12), mob.yaw, mob.pos, uv_brown_cap, uv_brown_cap);
+            }
         },
         .zombie => {
             const uv_shirt = texture.getTileUV(7, 1); // cyan/teal shirt
@@ -1093,4 +1108,25 @@ test "creaking mob mesh generation" {
     try appendMobMesh(std.testing.allocator, &verts, &inds, creaking);
     try std.testing.expectEqual(@as(usize, 144), verts.items.len);
     try std.testing.expectEqual(@as(usize, 216), inds.items.len);
+}
+
+test "bogged skeleton mushroom cap mesh disappears after shearing" {
+    var verts = std.ArrayList(MobVertex).empty;
+    defer verts.deinit(std.testing.allocator);
+    var inds = std.ArrayList(u32).empty;
+    defer inds.deinit(std.testing.allocator);
+
+    var bogged = mob_mod.Mob.initSkeletonVariant(.mossy_bogged, 0, 0, 0);
+    try appendMobMesh(std.testing.allocator, &verts, &inds, bogged);
+    // 7 base skeleton boxes + 2 mushroom caps = 9 boxes (216 verts, 324 indices)
+    try std.testing.expectEqual(@as(usize, 216), verts.items.len);
+    try std.testing.expectEqual(@as(usize, 324), inds.items.len);
+
+    verts.clearRetainingCapacity();
+    inds.clearRetainingCapacity();
+    _ = bogged.shearBogged(0.2, 0.8);
+    try appendMobMesh(std.testing.allocator, &verts, &inds, bogged);
+    // Sheared Bogged removes the 2 mushroom cap boxes -> 7 boxes (168 verts, 252 indices)
+    try std.testing.expectEqual(@as(usize, 168), verts.items.len);
+    try std.testing.expectEqual(@as(usize, 252), inds.items.len);
 }
