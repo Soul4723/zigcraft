@@ -2760,6 +2760,8 @@ pub fn getBlockDrops(block: BlockId, out: []BlockDrop) usize {
     } else if (block == .amethyst_cluster) {
         out[0] = .{ .item = .amethyst_shard, .count = 4 };
         return 1;
+    } else if (block == .budding_amethyst) {
+        return 0;
     } else if (block == .tinted_glass) {
         out[0] = .{ .item = .tinted_glass, .count = 1 };
         return 1;
