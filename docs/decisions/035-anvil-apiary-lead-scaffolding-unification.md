@@ -1,0 +1,25 @@
+# Decision 035: Anvil, Apiary/Bee, Lead/Leash, and Scaffolding Unification
+
+Accepted: 2026-11-14.
+
+## Context
+Four mechanics remained split across duplicate standalone modules in `src/world/` alongside unused imports and discarded frame-loop calls in `src/main.zig`:
+- Anvil: `src/world/anvil_smithing.zig` (29 tests: `AnvilDamageStage`, `AnvilBlockState`, `computeAnvilCombine`, `fallingAnvilCrushDamage`, Netherite upgrades, and trim matrix) overlapped with `src/world/anvil_repair_mechanics.zig` (15 tests: `AnvilRecipe`, `craftAnvil`, `AnvilDamageStages`, `computeFallDegradationChance`, `computeFallCrushDamage`, `computeHelmetDurabilityAfterFall`, `priorWorkPenaltyLevels`, `resultingAnvilUses`, `isAnvilOperationTooExpensive`, `cappedAnvilXpCost`, `computeUnitRepairDurability`, `computeSacrificeRepairDurability`).
+- Apiary / Bee: `src/world/apiary.zig` (11 tests: `Beehive`, `tickHive`, `harvestHoneycomb`, `harvestHoneyBottle`, `clampHoneySlideVelocity`, `calculateHoneyFallDamage`) overlapped with `src/world/bee_pollination.zig` (17 tests: `BeePollinatorState`, `tickFlowerPollination`, `tryPollinateCropBelowBee`, `resolveBeeStingAttack`, `tickPostStingCountdown`, `doesManualHiveHarvestAngerBees`, `shouldBeeReturnToHive`).
+- Lead / Leash: `src/world/lead_tension_physics.zig` (44 tests: `LeashSystem`, `resolveTension`, `canBeLeashed`, `tieToFence`, `breakKnot`, `LeadCraftingRecipe`) overlapped with `src/world/lead_leash_mechanics.zig` (14 tests: `craftLeads`, `computeLeashPullForce`, `shouldLeashSnap`, `LeashTargetKind`, `LeashFallAccumulation`, `computeLeashBounceVelocity`, `tieLeadsToFencePost`, `releaseLeadsFromKnot`, `canLeashBoat`).
+- Scaffolding: `src/world/scaffolding.zig` (10 tests: `findTopPlacementY`, `isSupportedOverhang`, `calculateBerryBushDamage`) overlapped with `src/world/scaffolding_bamboo.zig` (18 own tests + 122 `block.zig` tests: `ScaffoldingRecipe`, `ScaffoldingCantilever`, `FallingScaffolding`, `ScaffoldingTowerCascade`, `ScaffoldingElevatorKinematics`, `BambooShootGrowth`, `BambooPlant`).
+
+In `src/main.zig`, `anvil_repair_mechanics_mod`, `bee_pollination_mod`, `lead_leash_mechanics_mod`, and `scaffolding_bamboo_mod` were only called with fixed arguments and discarded results, while Anvil F-key repairs skipped prior-work penalties and fracture progression, falling anvils skipped helmet crush reduction, beehive harvests ignored campfire smoke pacification, bee nectar/crop pollination and stings were inactive, mob leash physics bypassed `LeashSystem`/`resolveTension`, and scaffolding lacked cantilever detachment, tower cascade drops, and elevator kinematics.
+
+## Decision
+1. **Unify Anvil rules in `src/world/anvil_smithing.zig`**:
+   - Merged `AnvilRecipe`, `craftAnvil`, `AnvilDamageStages`, `degradeAnvil`, `computeFallDegradationChance`, `computeFallCrushDamage`, `computeHelmetDurabilityAfterFall`, `priorWorkPenaltyLevels`, `resultingAnvilUses`, `isAnvilOperationTooExpensive`, `cappedAnvilXpCost`, `computeUnitRepairDurability`, and `computeSacrificeRepairDurability`, and added `performUnitRepair` for live tool repair with prior-work penalty enforcement and 12% anvil fracture rolls (45 tests total).
+2. **Unify Apiary and Bee rules in `src/world/apiary.zig`**:
+   - Merged `BeePollinatorState`, `tickFlowerPollination`, `tryPollinateCropBelowBee`, `StingResult`, `resolveBeeStingAttack`, `tickPostStingCountdown`, `doesManualHiveHarvestAngerBees`, and `shouldBeeReturnToHive` (28 tests total).
+3. **Unify Lead/Leash rules in `src/world/lead_tension_physics.zig`**:
+   - Unified `LeadCraftingRecipe` (`craft` and `craftLeads`) and merged `computeLeashPullForce`, `shouldLeashSnap`, `LeashTargetKind`, `canAttachLeadToTarget`, `isLeashableEntity`, `LeashFallAccumulation`, `shouldAccumulateLeashFall`, `computeLeashBounceVelocity`, `tieLeadsToFencePost`, `releaseLeadsFromKnot`, and `canLeashBoat` (58 tests total).
+4. **Unify Scaffolding and Bamboo rules in `src/world/scaffolding.zig`**:
+   - Merged `ScaffoldingRecipe`, `ScaffoldingCantilever`, `FallingScaffolding`, `ScaffoldingTowerCascade`, `ScaffoldingElevatorKinematics`, `BambooShootGrowth`, and `BambooPlant` (28 scaffolding/bamboo tests + 122 `block.zig` tests = 150 tests total).
+5. **Delete duplicates and connect unified mechanics to live gameplay**:
+   - Removed `anvil_repair_mechanics.zig`, `bee_pollination.zig`, `lead_leash_mechanics.zig`, and `scaffolding_bamboo.zig`, their `build.zig` `test_files` entries, and their 4 unused imports and discarded calls in `src/main.zig`.
+   - Connected Anvil combine/unit repair, 40-level Survival cap, 12%/fall fracture progression, and helmet-mitigated falling anvil crush damage; Beehive campfire smoke calming, unsmoked angry bee stings, flower nectar foraging, crop pollination, and honey block slide clamping; `LeashSystem` hostile rejection, spring tension, suspended bounce, and fence knot tying/release; and Scaffolding cantilever detachment, base-break cascade collapse, `+3.0`/`-3.0` m/s elevator kinematics with fall-damage immunity, and sword instant-mining on bamboo.

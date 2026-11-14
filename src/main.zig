@@ -106,7 +106,6 @@ const companion_pets_mod = @import("world/companion_pets.zig");
 const panda_genetics_mod = @import("world/panda_genetics.zig");
 const panda_genetics_variants_mod = @import("world/panda_genetics_variants.zig");
 const dolphin_navigation_mod = @import("world/dolphin_navigation.zig");
-const bee_pollination_mod = @import("world/bee_pollination.zig");
 const cartography_maps_mod = @import("world/cartography_maps.zig");
 const processing_workstations_mod = @import("world/processing_workstations.zig");
 const boots_and_armor_stands_mod = @import("world/boots_and_armor_stands.zig");
@@ -158,7 +157,6 @@ const amethyst_geode_budding_mod = @import("world/amethyst_geode_budding.zig");
 const azalea_lush_ecology_mod = @import("world/azalea_lush_ecology.zig");
 const brewing_stand_alchemy_mod = @import("world/brewing_stand_alchemy.zig");
 const fletching_tipped_arrows_mod = @import("world/fletching_tipped_arrows.zig");
-const scaffolding_bamboo_mod = @import("world/scaffolding_bamboo.zig");
 const navigation_timepieces_mod = @import("world/navigation_timepieces.zig");
 const villager_professions_mod = @import("world/villager_professions.zig");
 const wandering_trader_mod = @import("world/wandering_trader.zig");
@@ -170,7 +168,6 @@ const dispenser_dropper_automation_mod = @import("world/dispenser_dropper_automa
 const rail_network_switching_mod = @import("world/rail_network_switching.zig");
 const end_crystal_mechanics_mod = @import("world/end_crystal_mechanics.zig");
 const boat_watercraft_mod = @import("world/boat_watercraft.zig");
-const lead_leash_mechanics_mod = @import("world/lead_leash_mechanics.zig");
 const lead_tension_physics_mod = @import("world/lead_tension_physics.zig");
 const bed_sleep_mechanics_mod = @import("world/bed_sleep_mechanics.zig");
 const igneous_stone_masonry_mod = @import("world/igneous_stone_masonry.zig");
@@ -180,7 +177,6 @@ const wooden_signs_mod = @import("world/wooden_signs.zig");
 const fences_gates_walls_mod = @import("world/fences_gates_walls.zig");
 const doors_trapdoors_crawl_mod = @import("world/doors_trapdoors_crawl.zig");
 const sculk_growth_harvest_mod = @import("world/sculk_growth_harvest.zig");
-const anvil_repair_mechanics_mod = @import("world/anvil_repair_mechanics.zig");
 const loom_shield_banners_mod = @import("world/loom_shield_banners.zig");
 const tnt_demolition_physics_mod = @import("world/tnt_demolition_physics.zig");
 const chunk_loader_tickets_mod = @import("world/chunk_loader_tickets.zig");
@@ -373,6 +369,81 @@ fn dispatchCalibratedVibration(
             }
         }
     }
+}
+
+fn mobKindForLeash(mob_type: inventory_mod.MobType) lead_tension_physics_mod.EntityKind {
+    return switch (mob_type) {
+        .sheep, .pig, .wolf, .turtle, .dolphin, .target_dummy => .passive_mob,
+        else => .hostile_mob,
+    };
+}
+
+fn isFlowerBlock(b: block_mod.BlockId) bool {
+    return b == .torchflower or b == .pink_petals or b == .open_eyeblossom or b == .pitcher_plant;
+}
+
+fn isSwordItem(item: inventory_mod.ItemType) bool {
+    return switch (item) {
+        .wooden_sword, .stone_sword, .golden_sword, .iron_sword, .diamond_sword, .netherite_sword => true,
+        else => false,
+    };
+}
+
+fn playerHasHelmet(inv: *const inventory_mod.Inventory) bool {
+    return inv.hasItem(.leather_helmet) or inv.hasItem(.chainmail_helmet) or inv.hasItem(.iron_helmet) or
+        inv.hasItem(.golden_helmet) or inv.hasItem(.diamond_helmet) or inv.hasItem(.netherite_helmet) or
+        inv.hasItem(.turtle_helmet);
+}
+
+fn hasCampfireSmokeBelowHive(mgr: anytype, x: i32, y: i32, z: i32) struct { has_campfire: bool, has_carpet: bool } {
+    var has_carpet = false;
+    var dy: i32 = 1;
+    while (dy <= 5) : (dy += 1) {
+        if (y - dy < 0) break;
+        const b = mgr.getBlockWorld(x, y - dy, z);
+        if (b == .campfire or b == .soul_campfire) {
+            return .{ .has_campfire = true, .has_carpet = has_carpet };
+        }
+        if (b == .moss_carpet or b == .wool) {
+            has_carpet = true;
+            continue;
+        }
+        if (b != .air) {
+            break;
+        }
+    }
+    return .{ .has_campfire = false, .has_carpet = false };
+}
+
+fn scaffoldingCantileverDist(mgr: anytype, sx: i32, sy: i32, sz: i32) ?u8 {
+    // Search up to 7 blocks horizontally for a scaffolding block that has vertical support beneath it
+    var best: ?u8 = null;
+    var dx: i32 = -6;
+    while (dx <= 6) : (dx += 1) {
+        var dz: i32 = -6;
+        while (dz <= 6) : (dz += 1) {
+            if (dx == 0 and dz == 0) continue;
+            const manhattan = @abs(dx) + @abs(dz);
+            if (manhattan > 6) continue;
+            const cx = sx + dx;
+            const cz = sz + dz;
+            if (mgr.getBlockWorld(cx, sy, cz) != .scaffolding) continue;
+            // Check if this column reaches a solid base
+            var cy = sy - 1;
+            var supported = false;
+            while (cy >= 0) : (cy -= 1) {
+                const below = mgr.getBlockWorld(cx, cy, cz);
+                if (below == .scaffolding) continue;
+                if (below.is_solid()) supported = true;
+                break;
+            }
+            if (supported) {
+                const d_u8: u8 = @intCast(manhattan - 1);
+                if (best == null or d_u8 < best.?) best = d_u8;
+            }
+        }
+    }
+    return best;
 }
 
 fn syncRedstoneSnapshots(repeaters: []const cache_mod.Repeater, red_torches: []const cache_mod.RedTorch) void {
@@ -713,7 +784,10 @@ pub fn main() !void {
     // Wave 7 representative domain states; entity spawning/world mutation remains caller-owned.
     var active_allay = allay_collector_mod.AllayCollectorState.init();
     var active_dolphin = dolphin_navigation_mod.DolphinState{};
-    var active_bee = bee_pollination_mod.BeePollinatorState{};
+    var active_bee = apiary_mod.BeePollinatorState{};
+    var bee_pollination_accum: f32 = 0.0;
+    var leash_system = lead_tension_physics_mod.LeashSystem{};
+    var tool_prior_uses: [6]u5 = [_]u5{0} ** 6;
     const active_map = cartography_maps_mod.CartographyMapState{ .center_x = 0, .center_z = 0 };
     // Wave 8 representative domain state; world/entity mutation remains caller-owned.
     var active_vex = woodland_mansion_mod.VexState.init(woodland_mansion_mod.vex_starvation_min_delay);
@@ -786,7 +860,7 @@ pub fn main() !void {
     const EnchantmentTableState = struct { x: i32, y: i32, z: i32 };
     var enchantment_tables: [cache_mod.enchantment_table_cap]EnchantmentTableState = undefined;
     var enchantment_table_count: usize = 0;
-    const AnvilState = struct { x: i32, y: i32, z: i32, uses_left: u8 = 25 };
+    const AnvilState = struct { x: i32, y: i32, z: i32, block_state: anvil_smithing_mod.AnvilBlockState = .{} };
     var anvils: [cache_mod.anvil_cap]AnvilState = undefined;
     var anvil_count: usize = 0;
     const GrindstoneState = struct { x: i32, y: i32, z: i32 };
@@ -989,7 +1063,41 @@ pub fn main() !void {
         const pre_h_vel = @sqrt(player.vel_x * player.vel_x + player.vel_z * player.vel_z);
         const intended_h_speed = @max(pre_h_vel, if (pre_gliding) (if (active_elytra.rocket_boost_timer > 0.0) player_mod.Player.rocket_boost_speed else player_mod.Player.glide_horizontal_scale * walk_speed) else 0.0);
 
+        const inside_scaffolding = (at_feet_blk == .scaffolding or body_blk == .scaffolding);
+        const on_top_scaffolding = (!inside_scaffolding and floor_blk == .scaffolding);
+        if (inside_scaffolding or on_top_scaffolding) {
+            player.fall_distance = scaffolding_mod.calculateFallDamage(player.fall_distance, true);
+        }
+        const pre_scaf_y = player.pos.y;
         player.tickPhysicsCustom(&pickSolid, &pickLadder, &pickFluid, &pickHay, &pickSlime, norm_wish.x * walk_speed * dt, norm_wish.z * walk_speed * dt, jump, dt);
+        if (inside_scaffolding or on_top_scaffolding) {
+            const clamped_dt = @min(dt, 0.05);
+            const elev_vy = scaffolding_mod.computeElevatorVelocity(inside_scaffolding, on_top_scaffolding, jump, key_shift);
+            player.vel_y = elev_vy;
+            if (elev_vy == 0.0 and on_top_scaffolding) {
+                const platform_top = @as(f32, @floatFromInt(f_py)) + 1.0;
+                if (pre_scaf_y >= platform_top - 0.15) {
+                    player.pos.y = platform_top;
+                    player.on_ground = true;
+                }
+            } else if (elev_vy < 0.0) {
+                const target_y = pre_scaf_y + elev_vy * clamped_dt;
+                const check_y: i32 = @intFromFloat(@floor(target_y));
+                if (!pickSolid(f_px, check_y, f_pz)) {
+                    player.pos.y = target_y;
+                    player.on_ground = false;
+                }
+            } else if (elev_vy > 0.0) {
+                const target_y = pre_scaf_y + elev_vy * clamped_dt;
+                const head_check_y: i32 = @intFromFloat(@floor(target_y + player.height));
+                if (!pickSolid(f_px, head_check_y, f_pz)) {
+                    player.pos.y = target_y;
+                }
+            }
+        }
+        if (floor_blk == .honey_block and player.vel_y < 0.0) {
+            player.vel_y = apiary_mod.clampHoneySlideVelocity(player.vel_y);
+        }
 
         if (player.on_ground or player.in_water or !player.is_gliding) {
             active_elytra.stopGliding();
@@ -1065,7 +1173,6 @@ pub fn main() !void {
         active_strider.update(dt);
         active_axolotl.update(dt, player.in_water);
         _ = active_banner.getLayers();
-        _ = active_anvil.isBroken();
         _ = copper_golem_mod.tickCopperGolem(&active_copper_golem, dt, false);
         _ = active_firefly_bush.is_waterlogged;
         _ = ambient_foliage_mod.FireflyBushState.shouldEmitAmbientPulse(false, 15);
@@ -1187,7 +1294,83 @@ pub fn main() !void {
         turtle_helmet_recipe[5] = .turtle_scute;
         _ = turtle_scute_helmet_mod.craftTurtleHelmet(turtle_helmet_recipe);
         _ = dolphin_navigation_mod.tickDolphinBreathAndMoisture(&active_dolphin, player.in_water, false, false, dt);
-        _ = bee_pollination_mod.tickFlowerPollination(&active_bee, false, dt);
+        // Apiary & Bee pollination, hive maturation, and angry sting countdown
+        {
+            const p_bx: i32 = @intFromFloat(@floor(player.pos.x));
+            const p_by: i32 = @intFromFloat(@floor(player.pos.y));
+            const p_bz: i32 = @intFromFloat(@floor(player.pos.z));
+            var near_flower = false;
+            var fdx: i32 = -3;
+            while (fdx <= 3 and !near_flower) : (fdx += 1) {
+                var fdz: i32 = -3;
+                while (fdz <= 3 and !near_flower) : (fdz += 1) {
+                    if (isFlowerBlock(manager.getBlockWorld(p_bx + fdx, p_by, p_bz + fdz)) or
+                        isFlowerBlock(manager.getBlockWorld(p_bx + fdx, p_by + 1, p_bz + fdz)))
+                    {
+                        near_flower = true;
+                    }
+                }
+            }
+            var bhi: usize = 0;
+            while (bhi < beehive_count) {
+                var hive = &beehives[bhi];
+                if (manager.getBlockWorld(hive.x, hive.y, hive.z) != .beehive) {
+                    cache_mod.swapRemove(&beehives, &beehive_count, bhi);
+                    continue;
+                }
+                var hive_has_flower = near_flower;
+                if (!hive_has_flower) {
+                    var hfx: i32 = -3;
+                    while (hfx <= 3 and !hive_has_flower) : (hfx += 1) {
+                        var hfz: i32 = -3;
+                        while (hfz <= 3 and !hive_has_flower) : (hfz += 1) {
+                            if (isFlowerBlock(manager.getBlockWorld(hive.x + hfx, hive.y, hive.z + hfz))) {
+                                hive_has_flower = true;
+                            }
+                        }
+                    }
+                }
+                hive.has_flowers_nearby = hive_has_flower;
+                if (apiary_mod.tickHive(hive, dt)) {
+                    particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hive.x)) + 0.5, @as(f32, @floatFromInt(hive.y)) + 0.8, @as(f32, @floatFromInt(hive.z)) + 0.5 }, 6);
+                }
+                bhi += 1;
+            }
+            const is_night_bee = @sin(world_time) <= 0.0;
+            const can_forage = !apiary_mod.shouldBeeReturnToHive(is_night_bee, false, true) and (near_flower or beehive_count > 0);
+            if (apiary_mod.tickFlowerPollination(&active_bee, can_forage, dt)) {
+                particles.spawnGlowstoneShimmer(.{ player.pos.x, player.pos.y + 1.0, player.pos.z }, 8);
+                std.debug.print("bee collected nectar from nearby flora!\n", .{});
+            }
+            bee_pollination_accum += dt;
+            if (active_bee.has_nectar and wheat_crop_count > 0 and bee_pollination_accum >= 1.0) {
+                bee_pollination_accum = 0.0;
+                const wc = &wheat_crops[0];
+                if (manager.getBlockWorld(wc.x, wc.y, wc.z) == .wheat_crop) {
+                    const p_roll: u8 = @intCast(@abs(wc.x +% wc.z +% @as(i32, @intFromFloat(current_time * 10.0))) % 100);
+                    const cur_stage_u3: u3 = @intCast(@min(wc.stage, 7));
+                    const next_stage: u8 = apiary_mod.tryPollinateCropBelowBee(&active_bee, true, cur_stage_u3, 7, p_roll);
+                    if (next_stage > wc.stage) {
+                        wc.stage = next_stage;
+                        particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(wc.x)) + 0.5, @as(f32, @floatFromInt(wc.y)) + 0.6, @as(f32, @floatFromInt(wc.z)) + 0.5 }, 8);
+                        std.debug.print("bee pollinated wheat crop to stage {d}/7\n", .{wc.stage});
+                    }
+                }
+            }
+            if (active_bee.is_angry) {
+                const sting = apiary_mod.resolveBeeStingAttack(&active_bee);
+                if (sting.damage > 0.0) {
+                    player.health = @max(0.0, player.health - sting.damage);
+                    player.poison_timer = @max(player.poison_timer, sting.poison_seconds);
+                    audio.play(.hurt, 0.85);
+                    particles.spawnBurnSparks(.{ player.pos.x, player.pos.y + 1.0, player.pos.z }, 8);
+                    std.debug.print("angry bee stung you for {d:.1} damage and {d:.0}s poison!\n", .{ sting.damage, sting.poison_seconds });
+                }
+            }
+            if (apiary_mod.tickPostStingCountdown(&active_bee, dt)) {
+                active_bee = .{};
+            }
+        }
         _ = cartography_maps_mod.computeExplorerMapPlayerCursor(active_map, @intFromFloat(player.pos.x), @intFromFloat(player.pos.z));
         _ = processing_workstations_mod.stonecutterYield(.stairs);
         _ = boots_and_armor_stands_mod.frostWalkerRadius(1);
@@ -1283,8 +1466,6 @@ pub fn main() !void {
         _ = brewing_stand_alchemy_mod.brewPotion(brewing_stand_alchemy_mod.createWaterBottle(), .nether_wart);
         _ = fletching_tipped_arrows_mod.craftTippedArrows(8, 1);
         _ = fletching_tipped_arrows_mod.craftSpectralArrows(2, 1);
-        _ = scaffolding_bamboo_mod.craftScaffolding(6, 1);
-        _ = scaffolding_bamboo_mod.computeCascadeDropCount(8, 2);
         _ = navigation_timepieces_mod.getClockPhaseInDimension(.overworld, 6000);
         _ = navigation_timepieces_mod.calculateClockDialAngle(.overworld, 6000, world_time);
         _ = villager_professions_mod.tierForXp(70);
@@ -1305,8 +1486,6 @@ pub fn main() !void {
         _ = rail_network_switching_mod.poweredRailSignalRange(0);
         _ = end_crystal_mechanics_mod.craftEndCrystal(7, 1, 1);
         _ = boat_watercraft_mod.craftChestBoat(1, 1);
-        _ = lead_leash_mechanics_mod.computeLeashPullForce(7.0);
-        _ = lead_tension_physics_mod.resolveTension(.{}, .{ .x = 7.0 });
         _ = bed_sleep_mechanics_mod.canSleepAtTime(13000, false, false);
         // Wave 14 representative frame-loop hooks keep new domain rules queryable.
         _ = igneous_stone_masonry_mod.craftDioriteFromQuartz(1, 1);
@@ -1316,7 +1495,6 @@ pub fn main() !void {
         _ = fences_gates_walls_mod.getEffectiveHurdleHeight(false);
         _ = doors_trapdoors_crawl_mod.triggersCrawlPosture(true, true);
         _ = sculk_growth_harvest_mod.xpDroppedWithoutSilkTouch(.sculk);
-        _ = anvil_repair_mechanics_mod.priorWorkPenaltyLevels(1);
         _ = loom_shield_banners_mod.SixLayerSurvivalLimit.max_loom_layers;
         _ = tnt_demolition_physics_mod.chainReactionFuseTicks(1);
         // Wave 15 representative frame-loop hooks keep new domain rules queryable.
@@ -3187,35 +3365,54 @@ pub fn main() !void {
             }
         }
 
-        for (mob_manager.mobs.items) |*m| {
+        for (mob_manager.mobs.items, 0..) |*m, mob_idx| {
             if (m.isGlowing()) {
                 particles.spawnGlowstoneShimmer(.{ m.pos.x, m.pos.y + 0.4, m.pos.z }, 1);
             }
             if (m.leashed_to_player) {
-                const broke = entity_mod.mob.applyLeashTension(&m.pos, &m.vel, player.pos, dt);
-                if (broke) {
+                const mob_id: u32 = @intCast(mob_idx + 1);
+                const anchor_v3 = lead_tension_physics_mod.Vec3{ .x = player.pos.x, .y = player.pos.y, .z = player.pos.z };
+                const mob_v3 = lead_tension_physics_mod.Vec3{ .x = m.pos.x, .y = m.pos.y, .z = m.pos.z };
+                _ = leash_system.updatePosition(mob_id, mob_v3);
+                const tension = leash_system.tick(mob_id, anchor_v3) orelse lead_tension_physics_mod.resolveTension(anchor_v3, mob_v3);
+                if (tension.is_snapped) {
                     m.leashed_to_player = false;
-                    _ = inventory.addItem(.lead, 1);
-                    audio.play(.click_off, 0.7);
-                    std.debug.print("lead snapped: excessive distance from player\n", .{});
+                    _ = inventory.addItem(.lead, @max(@as(u8, 1), tension.dropped_leads));
+                    if (tension.snapping_sound) audio.play(.click_off, 0.7);
+                    std.debug.print("lead snapped: excessive distance from player ({d:.1}m)\n", .{tension.distance_m});
                 } else {
-                    // Visual knot/tether string particles connecting mob to player
+                    m.vel.x += tension.acceleration.x * dt * 10.0;
+                    m.vel.y += tension.acceleration.y * dt * 10.0;
+                    m.vel.z += tension.acceleration.z * dt * 10.0;
+                    if (!m.on_ground and !m.in_water and m.pos.y + 1.5 < player.pos.y) {
+                        m.vel.y = @max(m.vel.y, lead_tension_physics_mod.computeLeashBounceVelocity(true));
+                    }
                     particles.spawnBlockDebris(@intFromFloat(m.pos.x), @intFromFloat(m.pos.y + 0.5), @intFromFloat(m.pos.z), .{ 0.82, 0.74, 0.52 }, 1);
                 }
             } else if (m.fence_post) |fp| {
-                const anchor = math.Vec3.init(@as(f32, @floatFromInt(fp.x)) + 0.5, @as(f32, @floatFromInt(fp.y)) + 0.5, @as(f32, @floatFromInt(fp.z)) + 0.5);
+                const mob_id: u32 = @intCast(mob_idx + 1);
                 const cur_b = manager.getBlockWorld(fp.x, fp.y, fp.z);
                 if (!cur_b.is_fence()) {
                     m.fence_post = null;
                     _ = inventory.addItem(.lead, 1);
                 } else {
-                    const broke = entity_mod.mob.applyLeashTension(&m.pos, &m.vel, anchor, dt);
-                    if (broke) {
+                    const anchor_v3 = lead_tension_physics_mod.Vec3{
+                        .x = @as(f32, @floatFromInt(fp.x)) + 0.5,
+                        .y = @as(f32, @floatFromInt(fp.y)) + 0.5,
+                        .z = @as(f32, @floatFromInt(fp.z)) + 0.5,
+                    };
+                    const mob_v3 = lead_tension_physics_mod.Vec3{ .x = m.pos.x, .y = m.pos.y, .z = m.pos.z };
+                    _ = leash_system.updatePosition(mob_id, mob_v3);
+                    const tension = leash_system.tick(mob_id, anchor_v3) orelse lead_tension_physics_mod.resolveTension(anchor_v3, mob_v3);
+                    if (tension.is_snapped) {
                         m.fence_post = null;
-                        _ = inventory.addItem(.lead, 1);
-                        audio.play(.click_off, 0.7);
-                        std.debug.print("lead snapped: excessive distance from hitching post\n", .{});
+                        _ = inventory.addItem(.lead, @max(@as(u8, 1), tension.dropped_leads));
+                        if (tension.snapping_sound) audio.play(.click_off, 0.7);
+                        std.debug.print("lead snapped: excessive distance from hitching post ({d:.1}m)\n", .{tension.distance_m});
                     } else {
+                        m.vel.x += tension.acceleration.x * dt * 10.0;
+                        m.vel.y += tension.acceleration.y * dt * 10.0;
+                        m.vel.z += tension.acceleration.z * dt * 10.0;
                         particles.spawnBlockDebris(fp.x, fp.y, fp.z, .{ 0.82, 0.74, 0.52 }, 1);
                     }
                 }
@@ -3609,7 +3806,9 @@ pub fn main() !void {
 
         // Reset wear counters for slots not holding a damaged tool
         for (0..6) |ws| {
-            tool_wear.clearIfNotTool(ws, inventory.slots[ws].item.isTool());
+            const is_t = inventory.slots[ws].item.isTool();
+            tool_wear.clearIfNotTool(ws, is_t);
+            if (!is_t) tool_prior_uses[ws] = 0;
         }
 
         // Mouse click handling: In-game block editing or Inventory slot clicking
@@ -3765,10 +3964,27 @@ pub fn main() !void {
                     const has_lead = inventory.slots[selected_slot].item == .lead;
                     const leash_action = mob_manager.tryInteractLeash(cam.position, dir, combat_mod.melee_range, has_lead);
                     if (leash_action == .attached_to_player) {
-                        inventory.slots[selected_slot].decrement(1);
-                        audio.play(.step_wood, 0.8);
-                        particles.spawnBlockDebris(@intFromFloat(player.pos.x), @intFromFloat(player.pos.y), @intFromFloat(player.pos.z), .{ 0.82, 0.74, 0.52 }, 6);
-                        std.debug.print("attached lead to mob\n", .{});
+                        var rejected_hostile = false;
+                        for (mob_manager.mobs.items, 0..) |*lm, l_idx| {
+                            if (lm.leashed_to_player) {
+                                const ek = mobKindForLeash(lm.mob_type);
+                                if (!lead_tension_physics_mod.canBeLeashed(ek)) {
+                                    lm.leashed_to_player = false;
+                                    rejected_hostile = true;
+                                } else {
+                                    _ = leash_system.attachToPlayer(@intCast(l_idx + 1), ek, .{ .x = lm.pos.x, .y = lm.pos.y, .z = lm.pos.z }, true);
+                                }
+                            }
+                        }
+                        if (rejected_hostile) {
+                            audio.play(.click_off, 0.7);
+                            std.debug.print("cannot attach lead to hostile mob\n", .{});
+                        } else {
+                            inventory.slots[selected_slot].decrement(1);
+                            audio.play(.step_wood, 0.8);
+                            particles.spawnBlockDebris(@intFromFloat(player.pos.x), @intFromFloat(player.pos.y), @intFromFloat(player.pos.z), .{ 0.82, 0.74, 0.52 }, 6);
+                            std.debug.print("attached lead to mob\n", .{});
+                        }
                         leashed_mob = true;
                     } else if (leash_action == .unleashed_to_item) {
                         _ = inventory.addItem(.lead, 1);
@@ -3906,6 +4122,9 @@ pub fn main() !void {
                         const broken_block = manager.getBlockWorld(hit.x, hit.y, hit.z);
                         const held_item_now = inventory.slots[selected_slot].item;
                         var need = block_mod.mineTime(broken_block, @intFromEnum(held_item_now));
+                        if (broken_block == .bamboo and isSwordItem(held_item_now) and scaffolding_mod.isInstantMineWithSword()) {
+                            need = 0.0;
+                        }
                         if (player.hasMiningFatigue()) need /= 0.3;
                         if (beacon_supercharge_timer > 0.0) need /= beacon_aura_mod.hasteMultiplier(1, true);
                         const key: i64 = mining_mod.targetKey(hit.x, hit.y, hit.z);
@@ -4050,6 +4269,33 @@ pub fn main() !void {
                                         const bonus = mining_mod.checkLeafBonuses(hit.x, hit.y, hit.z);
                                         if (bonus.apple) _ = inventory.addItem(.apple, 1);
                                         if (bonus.sapling) _ = inventory.addItem(.sapling, 1);
+                                    }
+                                    if (broken_block == .scaffolding) {
+                                        var collapsed_col: u16 = 0;
+                                        var collapsed_cant: u16 = 0;
+                                        var sy_up: i32 = hit.y + 1;
+                                        while (sy_up <= 15) : (sy_up += 1) {
+                                            if (manager.getBlockWorld(hit.x, sy_up, hit.z) != .scaffolding) break;
+                                            _ = try manager.editAndRemesh(hit.x, sy_up, hit.z, .air);
+                                            collapsed_col += 1;
+                                        }
+                                        // Also collapse directly cantilevered neighbors at hit.y that lack support
+                                        const scaf_dirs = [_][2]i32{ .{ 1, 0 }, .{ -1, 0 }, .{ 0, 1 }, .{ 0, -1 } };
+                                        for (scaf_dirs) |sd| {
+                                            const nx = hit.x + sd[0];
+                                            const nz = hit.z + sd[1];
+                                            if (manager.getBlockWorld(nx, hit.y, nz) == .scaffolding and scaffoldingCantileverDist(&manager, nx, hit.y, nz) == null) {
+                                                if (hit.y == 0 or (!manager.getBlockWorld(nx, hit.y - 1, nz).is_solid() and manager.getBlockWorld(nx, hit.y - 1, nz) != .scaffolding)) {
+                                                    _ = try manager.editAndRemesh(nx, hit.y, nz, .air);
+                                                    collapsed_cant += 1;
+                                                }
+                                            }
+                                        }
+                                        const cascade_drops = scaffolding_mod.computeCascadeDropCount(collapsed_col, collapsed_cant);
+                                        if (cascade_drops > 0) {
+                                            _ = inventory.addItem(.scaffolding, @intCast(@min(cascade_drops, 64)));
+                                            std.debug.print("scaffolding tower collapsed ({d} connected blocks dropped)\n", .{cascade_drops});
+                                        }
                                     }
                                 } else {
                                     std.debug.print("too hard: {s} needs pickaxe\n", .{@tagName(broken_block)});
@@ -4320,6 +4566,16 @@ pub fn main() !void {
                                         audio.play(.place_block, 0.7);
                                         const pcol = hotbar_slot.item.getColor();
                                         particles.spawnBlockDebris(px, py, pz, .{ pcol[0], pcol[1], pcol[2] }, 8);
+                                        if (place_type == .scaffolding) {
+                                            const has_vert_sup = py > 0 and (manager.getBlockWorld(px, py - 1, pz).is_solid() or manager.getBlockWorld(px, py - 1, pz) == .scaffolding);
+                                            const min_nd = if (has_vert_sup) null else scaffoldingCantileverDist(&manager, px, py, pz);
+                                            const scaf_out = scaffolding_mod.ScaffoldingCantilever.evaluatePlacement(has_vert_sup, min_nd);
+                                            if (scaf_out.action == .detach_and_fall and falling_count < fallings.len) {
+                                                fallings[falling_count] = .{ .x = px, .y = py, .z = pz, .t = 0.0, .dist = 0, .block_type = .scaffolding };
+                                                falling_count += 1;
+                                                std.debug.print("scaffolding cantilever exceeded 6 blocks (dist={d}): detaching!\n", .{scaf_out.distance});
+                                            }
+                                        }
                                         if ((place_type == .torch or place_type == .soul_torch) and cache_mod.canCreateTorch(torch_count, torches.len)) {
                                             torches[torch_count] = .{ .x = px, .y = py, .z = pz };
                                             torch_count += 1;
@@ -4724,23 +4980,69 @@ pub fn main() !void {
                             particles.spawnBlockDebris(f.x, f.y, f.z, .{ 0.8, 0.7, 0.5 }, 4);
                         },
                         .land, .none => {
-                            const dmg: u8 = if (f.block_type == .anvil) falling_mod.calculateAnvilImpactDamage(f.dist) else if (f.block_type == .pointed_dripstone) dripstone_mod.calculateStalactiteImpactDamage(@intCast(@min(f.dist, 255))) else falling_mod.calculateImpactDamage(f.dist);
-                            if (f.block_type == .anvil and f.dist > 0) {
-                                audio.playAt(.anvil_clang, .{ @as(f32, @floatFromInt(f.x)) + 0.5, @as(f32, @floatFromInt(f.y)) + 0.5, @as(f32, @floatFromInt(f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 40.0);
-                                particles.spawnBlockDebris(f.x, f.y, f.z, .{ 0.5, 0.5, 0.55 }, 8);
-                            }
-                            if (dmg > 0) {
-                                for (mob_manager.mobs.items, 0..) |*m, mi| {
-                                    if (falling_mod.isHitByBlock(m.pos.x, m.pos.y, m.pos.z, f.x, f.y, f.z)) {
-                                        if (m.takeHitDmg(math.Vec3.init(0, 1, 0), dmg)) {
-                                            _ = mob_manager.mobs.swapRemove(mi);
+                            if (f.block_type == .anvil) {
+                                const fall_f: f32 = @floatFromInt(f.dist);
+                                if (f.dist > 0) {
+                                    audio.playAt(.anvil_clang, .{ @as(f32, @floatFromInt(f.x)) + 0.5, @as(f32, @floatFromInt(f.y)) + 0.5, @as(f32, @floatFromInt(f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 40.0);
+                                    particles.spawnBlockDebris(f.x, f.y, f.z, .{ 0.5, 0.5, 0.55 }, 8);
+                                }
+                                const mob_crush = anvil_smithing_mod.fallingAnvilCrushDamage(fall_f, false);
+                                if (mob_crush.damage > 0.0) {
+                                    const mob_dmg: u8 = @intFromFloat(@min(255.0, mob_crush.damage));
+                                    for (mob_manager.mobs.items, 0..) |*m, mi| {
+                                        if (falling_mod.isHitByBlock(m.pos.x, m.pos.y, m.pos.z, f.x, f.y, f.z)) {
+                                            if (m.takeHitDmg(math.Vec3.init(0, 1, 0), mob_dmg)) {
+                                                _ = mob_manager.mobs.swapRemove(mi);
+                                            }
+                                            break;
                                         }
-                                        break;
                                     }
                                 }
                                 if (falling_mod.isHitByBlock(player.pos.x, player.pos.y, player.pos.z, f.x, f.y, f.z)) {
-                                    player.health = @max(0.0, player.health - @as(f32, @floatFromInt(dmg)));
-                                    audio.play(.hurt, 0.8);
+                                    const player_crush = anvil_smithing_mod.fallingAnvilCrushDamage(fall_f, playerHasHelmet(&inventory));
+                                    if (player_crush.damage > 0.0) {
+                                        player.health = @max(0.0, player.health - player_crush.damage);
+                                        audio.play(.hurt, 0.8);
+                                        std.debug.print("falling anvil crushed player for {d:.1} dmg (helmet_loss={d})\n", .{ player_crush.damage, player_crush.helmet_durability_loss });
+                                    }
+                                }
+                                if (f.dist > 1) {
+                                    var an_opt = cache_mod.findAnvil(&anvils, anvil_count, f.x, f.y, f.z);
+                                    if (an_opt == null and anvil_count < anvils.len) {
+                                        anvils[anvil_count] = .{ .x = f.x, .y = f.y, .z = f.z };
+                                        an_opt = anvil_count;
+                                        anvil_count += 1;
+                                    }
+                                    if (an_opt) |ai| {
+                                        const fall_roll: u8 = @intCast(@abs(f.x *% 13 +% f.z *% 29 +% f.dist *% 7) % 100);
+                                        const prev_stage = anvils[ai].block_state.stage;
+                                        const new_stage = anvils[ai].block_state.onFall(fall_f, fall_roll);
+                                        active_anvil = anvils[ai].block_state;
+                                        if (anvils[ai].block_state.isBroken()) {
+                                            _ = try manager.editAndRemesh(f.x, f.y, f.z, .air);
+                                            cache_mod.swapRemove(&anvils, &anvil_count, ai);
+                                            audio.play(.break_block, 0.9);
+                                            std.debug.print("falling anvil shattered on landing!\n", .{});
+                                        } else if (new_stage != prev_stage) {
+                                            std.debug.print("falling anvil fractured to {s}\n", .{new_stage.name()});
+                                        }
+                                    }
+                                }
+                            } else {
+                                const dmg: u8 = if (f.block_type == .pointed_dripstone) dripstone_mod.calculateStalactiteImpactDamage(@intCast(@min(f.dist, 255))) else falling_mod.calculateImpactDamage(f.dist);
+                                if (dmg > 0) {
+                                    for (mob_manager.mobs.items, 0..) |*m, mi| {
+                                        if (falling_mod.isHitByBlock(m.pos.x, m.pos.y, m.pos.z, f.x, f.y, f.z)) {
+                                            if (m.takeHitDmg(math.Vec3.init(0, 1, 0), dmg)) {
+                                                _ = mob_manager.mobs.swapRemove(mi);
+                                            }
+                                            break;
+                                        }
+                                    }
+                                    if (falling_mod.isHitByBlock(player.pos.x, player.pos.y, player.pos.z, f.x, f.y, f.z)) {
+                                        player.health = @max(0.0, player.health - @as(f32, @floatFromInt(dmg)));
+                                        audio.play(.hurt, 0.8);
+                                    }
                                 }
                             }
                             cache_mod.swapRemove(&fallings, &falling_count, fi2);
@@ -6266,18 +6568,30 @@ pub fn main() !void {
                     flint_cooldown = interact_mod.flint_feed_cooldown;
                 } else if (target.is_fence()) {
                     // Fence hitching post interaction
-                    const hitched = mob_manager.tryHitchToFence(hit_f.x, hit_f.y, hit_f.z);
-                    if (hitched > 0) {
+                    var held_leads: u8 = 0;
+                    for (mob_manager.mobs.items) |lm| {
+                        if (lm.leashed_to_player) held_leads = @min(255, held_leads + 1);
+                    }
+                    if (lead_tension_physics_mod.tieLeadsToFencePost(held_leads, true)) {
+                        const hitched = mob_manager.tryHitchToFence(hit_f.x, hit_f.y, hit_f.z);
+                        const fence_v3 = lead_tension_physics_mod.Vec3{
+                            .x = @as(f32, @floatFromInt(hit_f.x)) + 0.5,
+                            .y = @as(f32, @floatFromInt(hit_f.y)) + 0.5,
+                            .z = @as(f32, @floatFromInt(hit_f.z)) + 0.5,
+                        };
+                        _ = leash_system.tieToFence(fence_v3, true);
                         audio.play(.step_wood, 0.9);
                         particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.82, 0.74, 0.52 }, 8);
-                        std.debug.print("hitched {d} mob(s) to fence post at ({d},{d},{d})\n", .{ hitched, hit_f.x, hit_f.y, hit_f.z });
+                        std.debug.print("tied {d} lead(s) to fence knot at ({d},{d},{d})\n", .{ hitched, hit_f.x, hit_f.y, hit_f.z });
                     } else {
                         // Unhitch any mobs tied to this fence post
                         const unhitched = mob_manager.unhitchFence(hit_f.x, hit_f.y, hit_f.z);
+                        const knot_res = leash_system.breakKnot(unhitched > 0);
                         if (unhitched > 0) {
-                            _ = inventory.addItem(.lead, @intCast(unhitched));
+                            const leads_back = lead_tension_physics_mod.releaseLeadsFromKnot(@intCast(@min(unhitched, 255)), true);
+                            _ = inventory.addItem(.lead, @max(leads_back, knot_res.leads_dropped));
                             audio.play(.click_off, 0.85);
-                            std.debug.print("unhitched {d} mob(s) from fence post at ({d},{d},{d})\n", .{ unhitched, hit_f.x, hit_f.y, hit_f.z });
+                            std.debug.print("released {d} lead(s) from fence knot at ({d},{d},{d})\n", .{ leads_back, hit_f.x, hit_f.y, hit_f.z });
                         }
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
@@ -6757,6 +7071,8 @@ pub fn main() !void {
                     }
                     if (bh_opt) |bi| {
                         const held_slot = &inventory.slots[selected_slot];
+                        const smoke_info = hasCampfireSmokeBelowHive(&manager, hit_f.x, hit_f.y, hit_f.z);
+                        const angers_bees = apiary_mod.doesManualHiveHarvestAngerBees(smoke_info.has_campfire, smoke_info.has_carpet);
                         if (held_slot.item == .shears and apiary_mod.isReadyForHarvest(beehives[bi].honey_level)) {
                             const combs = apiary_mod.harvestHoneycomb(&beehives[bi]);
                             _ = inventory.addItem(.honeycomb, combs);
@@ -6765,13 +7081,27 @@ pub fn main() !void {
                             }
                             audio.playAt(.shears_snip, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 28.0);
                             particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 10);
-                            std.debug.print("sheared {d}x Honeycomb from beehive at ({d},{d},{d})\n", .{ combs, hit_f.x, hit_f.y, hit_f.z });
+                            if (angers_bees) {
+                                active_bee.is_angry = true;
+                                active_bee.has_stung = false;
+                                active_bee.health = 10.0;
+                                std.debug.print("sheared {d}x Honeycomb (unsmoked hive angered bees!)\n", .{combs});
+                            } else {
+                                std.debug.print("sheared {d}x Honeycomb from smoked beehive at ({d},{d},{d})\n", .{ combs, hit_f.x, hit_f.y, hit_f.z });
+                            }
                         } else if (held_slot.item == .glass and apiary_mod.harvestHoneyBottle(&beehives[bi])) {
                             held_slot.decrement(1);
                             _ = inventory.addItem(.honey_bottle, 1);
                             audio.playAt(.splash, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.85, 24.0);
                             particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 8);
-                            std.debug.print("bottled golden Honey Bottle from beehive at ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                            if (angers_bees) {
+                                active_bee.is_angry = true;
+                                active_bee.has_stung = false;
+                                active_bee.health = 10.0;
+                                std.debug.print("bottled Honey Bottle (unsmoked hive angered bees!)\n", .{});
+                            } else {
+                                std.debug.print("bottled golden Honey Bottle from smoked beehive at ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                            }
                         } else {
                             beehives[bi].has_flowers_nearby = true;
                             _ = apiary_mod.tickHive(&beehives[bi], apiary_mod.pollinated_stage_time);
@@ -7004,16 +7334,77 @@ pub fn main() !void {
                     }
 
                     const held_slot = &inventory.slots[selected_slot];
-                    if (held_slot.item.isTool()) {
-                        // Heavy smithing metalworking: forge-repair worn tool completely
-                        tool_wear.uses[selected_slot] = 0;
-                        audio.playAt(.anvil_clang, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 36.0);
-                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.85, 0.70, 0.20 }, 10);
-                        std.debug.print("forged and restored tool: {s}\n", .{ held_slot.item.name() });
-                    } else {
-                        // Metallic resonant hammer tap
-                        audio.playAt(.anvil_clang, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.6, 24.0);
-                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.45, 0.45, 0.50 }, 4);
+                    if (an_opt) |ai| {
+                        if (held_slot.item.isTool()) {
+                            const max_dur = held_slot.item.maxDurability();
+                            const used = tool_wear.uses[selected_slot];
+                            const cur_dur: u16 = if (used < max_dur) max_dur - used else 0;
+                            var sac_idx: ?usize = null;
+                            for (inventory.slots, 0..) |sl, s_i| {
+                                if (s_i != selected_slot and sl.item == held_slot.item and sl.count > 0) {
+                                    sac_idx = s_i;
+                                    break;
+                                }
+                            }
+                            if (cur_dur < max_dur or sac_idx != null) {
+                                const anvil_roll: u8 = @intCast(@abs(hit_f.x *% 31 +% hit_f.z *% 17 +% @as(i32, @intCast(anvils[ai].block_state.uses_completed * 7))) % 100);
+                                const prev_stage = anvils[ai].block_state.stage;
+                                if (sac_idx) |sac_slot_i| {
+                                    const comb = anvil_smithing_mod.computeAnvilCombine(cur_dur, max_dur, max_dur, tool_prior_uses[selected_slot], 0, false);
+                                    if (comb.too_expensive) {
+                                        audio.play(.click_off, 0.7);
+                                        std.debug.print("anvil combine Too Expensive! ({d} XP levels)\n", .{comb.xp_level_cost});
+                                    } else {
+                                        inventory.slots[sac_slot_i].decrement(1);
+                                        tool_wear.uses[selected_slot] = max_dur - comb.new_durability;
+                                        tool_prior_uses[selected_slot] = comb.new_uses;
+                                        _ = anvils[ai].block_state.onUse(anvil_roll);
+                                        audio.playAt(.anvil_clang, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 36.0);
+                                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.85, 0.70, 0.20 }, 10);
+                                        std.debug.print("combined {s} on anvil (dur={d}/{d}, uses={d}, cost={d} lvl, stage={s})\n", .{ held_slot.item.name(), comb.new_durability, max_dur, comb.new_uses, comb.xp_level_cost, anvils[ai].block_state.stage.name() });
+                                    }
+                                } else {
+                                    const has_ingot = inventory.hasItem(.iron_ingot);
+                                    const units: u8 = if (has_ingot) 2 else 1;
+                                    const rep = anvil_smithing_mod.performUnitRepair(&anvils[ai].block_state, cur_dur, max_dur, tool_prior_uses[selected_slot], units, anvil_roll);
+                                    if (!rep.accepted) {
+                                        audio.play(.click_off, 0.7);
+                                        std.debug.print("anvil repair Too Expensive! ({d} XP levels)\n", .{rep.xp_level_cost});
+                                    } else {
+                                        if (has_ingot) {
+                                            for (&inventory.slots) |*isl| {
+                                                if (isl.item == .iron_ingot and isl.count > 0) {
+                                                    isl.decrement(1);
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        tool_wear.uses[selected_slot] = max_dur - rep.new_durability;
+                                        tool_prior_uses[selected_slot] = rep.new_uses;
+                                        audio.playAt(.anvil_clang, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 36.0);
+                                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.85, 0.70, 0.20 }, 10);
+                                        std.debug.print("repaired {s} on anvil (dur={d}/{d}, uses={d}, cost={d} lvl, stage={s})\n", .{ held_slot.item.name(), rep.new_durability, max_dur, rep.new_uses, rep.xp_level_cost, rep.new_stage.name() });
+                                    }
+                                }
+                                active_anvil = anvils[ai].block_state;
+                                if (anvils[ai].block_state.isBroken()) {
+                                    _ = try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, .air);
+                                    cache_mod.swapRemove(&anvils, &anvil_count, ai);
+                                    audio.play(.break_block, 0.9);
+                                    particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.35, 0.35, 0.38 }, 16);
+                                    std.debug.print("anvil shattered after heavy forging!\n", .{});
+                                } else if (anvils[ai].block_state.stage != prev_stage) {
+                                    std.debug.print("anvil fractured to {s}\n", .{anvils[ai].block_state.stage.name()});
+                                }
+                            } else {
+                                audio.playAt(.anvil_clang, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.6, 24.0);
+                                particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.45, 0.45, 0.50 }, 4);
+                            }
+                        } else {
+                            // Metallic resonant hammer tap
+                            audio.playAt(.anvil_clang, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.6, 24.0);
+                            particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.45, 0.45, 0.50 }, 4);
+                        }
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .enchantment_table) {
