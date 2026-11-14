@@ -16,6 +16,7 @@ const hazard_mod = @import("../world/hazard.zig");
 const inventory_mod = @import("../inventory.zig");
 const pale_garden_mod = @import("../world/pale_garden.zig");
 const skeleton_variants_mod = @import("../world/skeleton_variants.zig");
+const sea_turtle_mod = @import("../world/sea_turtle.zig");
 
 pub const MobManager = struct {
     allocator: std.mem.Allocator,
@@ -26,6 +27,8 @@ pub const MobManager = struct {
     spawner_timer: f32,
     creaking_scan_timer: f32 = 0.0,
     last_stray_conversion_pos: ?math.Vec3 = null,
+    next_mob_id: u32 = 1,
+    pending_scute_drops: u8 = 0,
 
     pub fn init(allocator: std.mem.Allocator, atlas_texture: c.GLuint) !MobManager {
         const r = try mob_renderer_mod.MobRenderer.init(allocator, atlas_texture);
@@ -46,11 +49,31 @@ pub const MobManager = struct {
     }
 
     pub fn spawnMob(self: *MobManager, mob_type: mob_mod.MobType, x: f32, y: f32, z: f32) !void {
-        try self.mobs.append(self.allocator, mob_mod.Mob.init(mob_type, x, y, z));
+        var m = mob_mod.Mob.init(mob_type, x, y, z);
+        m.id = self.next_mob_id;
+        self.next_mob_id +%= 1;
+        if (self.next_mob_id == 0) self.next_mob_id = 1;
+        try self.mobs.append(self.allocator, m);
+    }
+
+    pub fn spawnBabyTurtle(self: *MobManager, x: f32, y: f32, z: f32) !void {
+        var m = mob_mod.Mob.init(.turtle, x, y, z);
+        m.id = self.next_mob_id;
+        self.next_mob_id +%= 1;
+        if (self.next_mob_id == 0) self.next_mob_id = 1;
+        m.is_baby = true;
+        m.growth_timer = 0.0;
+        m.width *= sea_turtle_mod.BABY_SCALE;
+        m.height *= sea_turtle_mod.BABY_SCALE;
+        try self.mobs.append(self.allocator, m);
     }
 
     pub fn spawnSkeletonVariant(self: *MobManager, variant: skeleton_variants_mod.SkeletonVariant, x: f32, y: f32, z: f32) !void {
-        try self.mobs.append(self.allocator, mob_mod.Mob.initSkeletonVariant(variant, x, y, z));
+        var m = mob_mod.Mob.initSkeletonVariant(variant, x, y, z);
+        m.id = self.next_mob_id;
+        self.next_mob_id +%= 1;
+        if (self.next_mob_id == 0) self.next_mob_id = 1;
+        try self.mobs.append(self.allocator, m);
     }
 
     pub fn takeStrayConversionPos(self: *MobManager) ?math.Vec3 {
@@ -332,6 +355,21 @@ pub const MobManager = struct {
                     }
                 }
             }
+            if (mob.mob_type == .turtle and mob.is_baby) {
+                var tstate = sea_turtle_mod.SeaTurtleState{
+                    .home_beach_pos = .{ @intFromFloat(@floor(mob.pos.x)), @intFromFloat(@floor(mob.pos.y)), @intFromFloat(@floor(mob.pos.z)) },
+                    .is_baby = true,
+                    .growth_timer = mob.growth_timer,
+                };
+                const gres = sea_turtle_mod.tickBabyTurtleGrowth(&tstate, dt, false);
+                mob.growth_timer = tstate.growth_timer;
+                if (gres.matured_to_adult) {
+                    mob.is_baby = false;
+                    mob.width = 0.9;
+                    mob.height = 0.4;
+                    self.pending_scute_drops +|= gres.dropped_turtle_scute;
+                }
+            }
             mob.tick(solid, fluid, dt, &self.rng);
 
             const dx0 = mob.pos.x - player_pos.x;
@@ -554,6 +592,63 @@ pub const MobManager = struct {
         return unhitched_count;
     }
 
+
+    pub const TurtleFeedResult = struct {
+        fed: bool = false,
+        spawned_baby: bool = false,
+        matured: bool = false,
+        scutes_dropped: u8 = 0,
+        pos: math.Vec3 = math.Vec3.init(0, 0, 0),
+    };
+
+    /// Feed seagrass to a Sea Turtle in crosshairs: adults produce a baby turtle,
+    /// while babies accelerate growth by 10% and drop a Scute upon maturation.
+    pub fn tryFeedTurtleSeagrass(self: *MobManager, origin: math.Vec3, dir: math.Vec3, max_dist: f32) !TurtleFeedResult {
+        var closest_dist: f32 = max_dist;
+        var hit_idx: ?usize = null;
+
+        for (self.mobs.items, 0..) |mob, i| {
+            if (mob.mob_type != .turtle) continue;
+            if (mob.rayIntersects(origin, dir, closest_dist)) |d| {
+                closest_dist = d;
+                hit_idx = i;
+            }
+        }
+
+        if (hit_idx) |i| {
+            var turtle = &self.mobs.items[i];
+            const tpos = turtle.pos;
+            if (turtle.is_baby) {
+                var tstate = sea_turtle_mod.SeaTurtleState{
+                    .home_beach_pos = .{ @intFromFloat(@floor(tpos.x)), @intFromFloat(@floor(tpos.y)), @intFromFloat(@floor(tpos.z)) },
+                    .is_baby = true,
+                    .growth_timer = turtle.growth_timer,
+                };
+                const gres = sea_turtle_mod.tickBabyTurtleGrowth(&tstate, 0.05, true);
+                turtle.growth_timer = tstate.growth_timer;
+                if (gres.matured_to_adult) {
+                    turtle.is_baby = false;
+                    turtle.width = 0.9;
+                    turtle.height = 0.4;
+                }
+                return .{
+                    .fed = true,
+                    .matured = gres.matured_to_adult,
+                    .scutes_dropped = gres.dropped_turtle_scute,
+                    .pos = tpos,
+                };
+            } else {
+                try self.spawnBabyTurtle(tpos.x + 0.6, tpos.y, tpos.z + 0.6);
+                return .{
+                    .fed = true,
+                    .spawned_baby = true,
+                    .pos = tpos,
+                };
+            }
+        }
+        return .{};
+    }
+
     pub const ShearResult = struct {
         wool_count: u8,
         pos: math.Vec3,
@@ -659,6 +754,9 @@ pub const MobManager = struct {
     /// Create a puppet linked to the supplied heart coordinates.
     pub fn spawnCreaking(self: *MobManager, heart_pos: [3]i32, x: f32, y: f32, z: f32) !void {
         var m = mob_mod.Mob.init(.creaking, x, y, z);
+        m.id = self.next_mob_id;
+        self.next_mob_id +%= 1;
+        if (self.next_mob_id == 0) self.next_mob_id = 1;
         m.creaking_heart_pos = heart_pos;
         try self.mobs.append(self.allocator, m);
     }
@@ -1507,4 +1605,34 @@ test "MobManager tryShearBogged and Powder Snow freeze conversion" {
     }
     try std.testing.expectEqual(skeleton_variants_mod.SkeletonVariant.icy_stray, mm.mobs.items[1].skeleton_variant);
     try std.testing.expect(mm.takeStrayConversionPos() != null);
+}
+
+test "MobManager tryFeedTurtleSeagrass spawns baby and drops scute on maturation" {
+    const allocator = std.testing.allocator;
+    var mm = MobManager{
+        .allocator = allocator,
+        .mobs = std.ArrayList(mob_mod.Mob).empty,
+        .renderer = undefined,
+        .rng = std.Random.DefaultPrng.init(1),
+        .ambient_timer = 0,
+        .spawner_timer = 0,
+    };
+    defer mm.mobs.deinit(allocator);
+
+    try mm.spawnMob(.turtle, 0.5, 1.0, 4.0);
+    try std.testing.expectEqual(@as(u32, 1), mm.mobs.items[0].id);
+
+    const adult_feed = try mm.tryFeedTurtleSeagrass(math.Vec3.init(0.5, 1.2, 0.0), math.Vec3.init(0.0, 0.0, 1.0), 6.0);
+    try std.testing.expect(adult_feed.fed);
+    try std.testing.expect(adult_feed.spawned_baby);
+    try std.testing.expectEqual(@as(usize, 2), mm.mobs.items.len);
+    try std.testing.expect(mm.mobs.items[1].is_baby);
+
+    // Advance baby almost to maturation and feed seagrass to finish and drop scute
+    mm.mobs.items[1].growth_timer = sea_turtle_mod.BABY_GROWTH_SECONDS - 60.0;
+    const baby_feed = try mm.tryFeedTurtleSeagrass(math.Vec3.init(1.1, 1.1, 0.0), math.Vec3.init(0.0, 0.0, 1.0), 6.0);
+    try std.testing.expect(baby_feed.fed);
+    try std.testing.expect(baby_feed.matured);
+    try std.testing.expectEqual(@as(u8, 1), baby_feed.scutes_dropped);
+    try std.testing.expect(!mm.mobs.items[1].is_baby);
 }
