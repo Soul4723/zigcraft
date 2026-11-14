@@ -7,6 +7,7 @@ belong in the pull request description, not in a separate file.
 
 ## Recent sessions
 
+- 2026-11-14: Unified Chiseled Bookshelf storage, 6-slot UV face targeting, comparator signal, and Secret Latch piston-door rules into src/world/chiseled_bookshelf.zig and removed duplicate chiseled_bookshelf_storage.zig and bookshelf_secret_latch.zig. Connected ray-plane UV slot targeting (1..6), expanded book acceptance (Mending, Swift Sneak, Sweeping Edge, Feather Falling, etc.), SecretLatch unlock shimmer/chime, and 6-tick PistonDoor stepping to live gameplay in main.zig.
 - 2026-11-14: Unified 8 Trial Chambers modules into src/world/ominous_trial.zig and removed duplicate ominous_bottle_omen.zig, ominous_bottle_matrix.zig, trial_spawner_dynamics.zig, trial_spawner_waves.zig, vault_loot_dispenser.zig, vault_multiplayer_reset.zig, and trial_vault_reset.zig. Connected Trial Spawner wave scaling, periodic hazard emission, Vault player-unlock tracking and comparator signal, Vault Reset Tokens, and Ominous Bottle Trial Omen duration transmutation to live gameplay in main.zig.
 - 2026-11-14: Unified Copper Bulb rules into src/world/copper_fixtures.zig (91 tests) and removed duplicate copper_bulb_latch.zig and copper_bulb_display.zig. Connected Copper Bulb redstone rising-edge T-flip-flop toggling, oxidation light emission (15/12/8/4), comparator output (15/0, updating adjacent comparators), axe scraping (.anvil_clang + glowstone shimmer), and honeycomb waxing (.glowstone_chime + glowstone shimmer) to live gameplay in src/main.zig.
 - 2026-11-14: Unified Bogged/Stray/Skeleton Variant rules into src/world/skeleton_variants.zig (118 tests), deleted bogged_stray_variants.zig and bogged_poison_harvest.zig and their build.zig entries, and removed 6 discarded main.zig calls. Connected Bogged mushroom shearing (.red_mushroom/.brown_mushroom, shears wear, audio/particles), Poison I and Slowness I skeleton arrow payloads, and Powder Snow freeze conversion to live gameplay.
@@ -22,6 +23,7 @@ belong in the pull request description, not in a separate file.
 - 2026-11-04: Unified Wither boss mechanics into src/world/wither_boss.zig and removed duplicate wither_boss_phases.zig. Connected spawn invulnerability charging (220 ticks), charging smoke/flame VFX, birth explosion detonation with audio and particle burst, and live HUD boss bar tracking to gameplay in main.zig.
 - 2026-11-04: Unified Strider mount and lava locomotion rules into src/world/strider_mount.zig and removed duplicate strider_lava_mount.zig. Connected active_strider update and right-click Warped Fungus on a Stick boost (speed surge to 7.8 m/s, durability wear, lava pop audio and flame VFX) and Warped Fungus feeding to live gameplay in main.zig.
 - 2026-11-04: Unified Beacon pyramid geometry, status powers, and payment activation into beacon_aura.zig and removed duplicate beacon_pyramid.zig and beacon_status_pyramids.zig. Connected Haste mining speed boost (1.40× multiplier) and dynamic aura radius (20m base, 50m supercharged) to live gameplay in main.zig.
+
 
 ## History
 

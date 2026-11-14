@@ -204,8 +204,6 @@ const specialized_furnace_smelting_mod = @import("world/specialized_furnace_smel
 const tripwire_hook_circuit_mod = @import("world/tripwire_hook_circuit.zig");
 const sculk_catalyst_bloom_mod = @import("world/sculk_catalyst_bloom.zig");
 const sculk_bloom_geometry_mod = @import("world/sculk_bloom_geometry.zig");
-const chiseled_bookshelf_storage_mod = @import("world/chiseled_bookshelf_storage.zig");
-const bookshelf_secret_latch_mod = @import("world/bookshelf_secret_latch.zig");
 const hanging_sign_mechanics_mod = @import("world/hanging_sign_mechanics.zig");
 const decorated_pot_storage_mod = @import("world/decorated_pot_storage.zig");
 const mangrove_mud_architecture_mod = @import("world/mangrove_mud_architecture.zig");
@@ -629,7 +627,14 @@ pub fn main() !void {
     var goat_horn_cooldown: f32 = 0.0;
     var camel_mount = camel_mod.CamelState.init();
     var active_decorated_pot = decorated_pot_mod.DecoratedPot.init();
+    var chiseled_bookshelves: [chiseled_bookshelf_mod.max_chiseled_bookshelves]chiseled_bookshelf_mod.ChiseledBookshelf = undefined;
+    var chiseled_bookshelf_count: usize = 0;
     var active_chiseled_bookshelf = chiseled_bookshelf_mod.ChiseledBookshelf.init(0, 64, 0, .north);
+    const secret_latch_password = chiseled_bookshelf_mod.default_latch_password;
+    const active_secret_latch = chiseled_bookshelf_mod.SecretLatch.init(&secret_latch_password);
+    var secret_bookshelf_door = chiseled_bookshelf_mod.PistonDoor{};
+    var secret_bookshelf_signal: u8 = chiseled_bookshelf_mod.locked_signal;
+    var secret_door_tick_accum: f32 = 0.0;
     var active_hanging_sign = hanging_sign_mod.HangingSignText.init();
     var creaking_hearts = pale_garden_mod.CreakingHeartTracker.init();
     var active_petals_cluster = cherry_grove_mod.PinkPetalsCluster.init(0, 64, 0, 1, .north);
@@ -1023,6 +1028,25 @@ pub fn main() !void {
         camel_mount.update(dt);
         active_decorated_pot.updateAnimation(dt);
         active_decorated_pot.tick();
+        if (secret_bookshelf_door.pending_target != null) {
+            secret_door_tick_accum += dt;
+            while (secret_door_tick_accum >= 0.05) {
+                secret_door_tick_accum -= 0.05;
+                if (secret_bookshelf_door.tick(secret_bookshelf_signal)) {
+                    if (secret_bookshelf_door.isPassageOpen()) {
+                        audio.play(.click_on, 0.9);
+                        std.debug.print("Chiseled Bookshelf secret piston door opened!\n", .{});
+                    } else {
+                        audio.play(.click_off, 0.9);
+                        std.debug.print("Chiseled Bookshelf secret piston door sealed!\n", .{});
+                    }
+                }
+                if (secret_bookshelf_door.pending_target == null) {
+                    secret_door_tick_accum = 0.0;
+                    break;
+                }
+            }
+        }
         creaking_hearts.tickSeconds(dt);
         active_armadillo.tick(dt, false);
         player_trial_omen_timer = @max(0.0, player_trial_omen_timer - dt);
@@ -1347,8 +1371,6 @@ pub fn main() !void {
         // Wave 17 representative frame-loop hooks keep new domain rules queryable.
         _ = sculk_catalyst_bloom_mod.catalyst_radius;
         _ = sculk_bloom_geometry_mod.BLOOM_TICKS;
-        _ = chiseled_bookshelf_storage_mod.total_slots;
-        _ = bookshelf_secret_latch_mod.door_transition_ticks;
         _ = hanging_sign_mechanics_mod.crafting_yield;
         _ = decorated_pot_storage_mod.wobble_duration_seconds;
         _ = mangrove_mud_architecture_mod.generateRootCage(2, .{ false, false, false, false });
@@ -6529,19 +6551,75 @@ pub fn main() !void {
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .chiseled_bookshelf) {
                     const held_slot = &inventory.slots[selected_slot];
-                    const held_is_book = chiseled_bookshelf_mod.isBookItem(@intFromEnum(held_slot.item));
-                    const slot_idx: u3 = @intCast(@min(5, @as(usize, @intCast(@abs(hit_f.x +% hit_f.y +% hit_f.z))) % 6));
-                    const res = active_chiseled_bookshelf.interactSlot(slot_idx, held_is_book, @intFromEnum(held_slot.item));
+                    const held_is_book = chiseled_bookshelf_mod.isAcceptedBook(@intFromEnum(held_slot.item));
+                    const hit_facing = chiseled_bookshelf_mod.Facing.fromHitNormal(hit_f.nx, hit_f.ny, hit_f.nz) orelse .north;
+                    var shelf_ptr: *chiseled_bookshelf_mod.ChiseledBookshelf = &active_chiseled_bookshelf;
+                    if (chiseled_bookshelf_mod.findBookshelf(&chiseled_bookshelves, chiseled_bookshelf_count, hit_f.x, hit_f.y, hit_f.z)) |shelf_idx| {
+                        shelf_ptr = &chiseled_bookshelves[shelf_idx];
+                    } else if (chiseled_bookshelf_count < chiseled_bookshelves.len) {
+                        chiseled_bookshelves[chiseled_bookshelf_count] = chiseled_bookshelf_mod.ChiseledBookshelf.init(hit_f.x, hit_f.y, hit_f.z, hit_facing);
+                        shelf_ptr = &chiseled_bookshelves[chiseled_bookshelf_count];
+                        chiseled_bookshelf_count += 1;
+                    } else {
+                        active_chiseled_bookshelf.x = hit_f.x;
+                        active_chiseled_bookshelf.y = hit_f.y;
+                        active_chiseled_bookshelf.z = hit_f.z;
+                        active_chiseled_bookshelf.facing = hit_facing;
+                    }
+                    const slot_idx = chiseled_bookshelf_mod.raycastBlockFaceSlot(
+                        .{ cam.position.x, cam.position.y, cam.position.z },
+                        .{ dir_f.x, dir_f.y, dir_f.z },
+                        hit_f.x,
+                        hit_f.y,
+                        hit_f.z,
+                        hit_f.nx,
+                        hit_f.ny,
+                        hit_f.nz,
+                    );
+                    const res = shelf_ptr.interactSlot(slot_idx, held_is_book, @intFromEnum(held_slot.item));
                     if (res.action == .inserted) {
                         held_slot.decrement(1);
                         audio.play(.click_on, 0.85);
                         particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.72, 0.54, 0.36 }, 6);
-                        std.debug.print("inserted book into Chiseled Bookshelf slot {d} (signal={d})\n", .{ slot_idx, active_chiseled_bookshelf.comparatorSignal() });
                     } else if (res.action == .retrieved and res.item_id != 0) {
                         const out_item: inventory_mod.ItemType = @enumFromInt(res.item_id);
                         _ = inventory.addItem(out_item, 1);
                         audio.play(.click_off, 0.85);
-                        std.debug.print("retrieved {s} from Chiseled Bookshelf slot {d}\n", .{ out_item.name(), slot_idx });
+                    }
+                    if (res.success()) {
+                        active_chiseled_bookshelf = shelf_ptr.*;
+                        const tracked_slice = if (chiseled_bookshelf_count > 0) chiseled_bookshelves[0..chiseled_bookshelf_count] else (&active_chiseled_bookshelf)[0..1];
+                        const latch_eval = chiseled_bookshelf_mod.evaluateBookshelfLatch(tracked_slice, active_secret_latch, &secret_bookshelf_door);
+                        secret_bookshelf_signal = latch_eval.signal;
+                        if (latch_eval.just_unlocked) {
+                            audio.play(.glowstone_chime, 0.95);
+                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 16);
+                        }
+                        const slot_num: u4 = @as(u4, slot_idx) + 1;
+                        const latch_status = if (latch_eval.unlocked) "unlocked" else "locked";
+                        const door_status = if (latch_eval.door_open) "open" else "sealed";
+                        if (res.action == .inserted) {
+                            std.debug.print("inserted {s} into Chiseled Bookshelf slot {d}/6 (signal={d}, mask=0b{b:0>6}, latch={s}, latch_signal={d}, door={s})\n", .{
+                                (@as(inventory_mod.ItemType, @enumFromInt(res.item_id))).name(),
+                                slot_num,
+                                shelf_ptr.comparatorSignal(),
+                                shelf_ptr.occupiedMask(),
+                                latch_status,
+                                latch_eval.signal,
+                                door_status,
+                            });
+                        } else {
+                            const out_item: inventory_mod.ItemType = @enumFromInt(res.item_id);
+                            std.debug.print("retrieved {s} from Chiseled Bookshelf slot {d}/6 (signal={d}, mask=0b{b:0>6}, latch={s}, latch_signal={d}, door={s})\n", .{
+                                out_item.name(),
+                                slot_num,
+                                shelf_ptr.comparatorSignal(),
+                                shelf_ptr.occupiedMask(),
+                                latch_status,
+                                latch_eval.signal,
+                                door_status,
+                            });
+                        }
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .hanging_sign) {
