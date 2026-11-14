@@ -317,11 +317,16 @@ pub const Player = struct {
         return self.dolphins_grace_timer > 0.0;
     }
 
-    pub const levitation_duration: f32 = 10.0;
-    pub const levitation_lift_speed: f32 = 2.5;
+    const shulker_end_city_mod = @import("world/shulker_end_city.zig");
+    pub const levitation_duration: f32 = shulker_end_city_mod.levitation_duration_seconds;
+    pub const levitation_lift_speed: f32 = shulker_end_city_mod.levitation_upward_velocity;
 
     pub fn applyLevitation(self: *Player) void {
         self.levitation_timer = levitation_duration;
+    }
+
+    pub fn cureLevitation(self: *Player) void {
+        self.levitation_timer = 0.0;
     }
 
     pub fn isLevitating(self: Player) bool {

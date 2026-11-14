@@ -68,9 +68,6 @@ const fox_sweet_berry_mod = @import("world/fox_sweet_berry.zig");
 const conduit_frame_mod = @import("world/conduit_frame.zig");
 const enderman_ai_mod = @import("world/enderman_ai.zig");
 const piglin_bastion_mod = @import("world/piglin_bastion.zig");
-const piglin_bartering_economy_mod = @import("world/piglin_bartering_economy.zig");
-const piglin_brute_bastion_mod = @import("world/piglin_brute_bastion.zig");
-const zombified_piglin_swarm_mod = @import("world/zombified_piglin_swarm.zig");
 const charged_creeper_mod = @import("world/charged_creeper.zig");
 const swamp_witch_mod = @import("world/swamp_witch.zig");
 const blaze_fortress_mod = @import("world/blaze_fortress.zig");
@@ -98,8 +95,6 @@ const end_ship_vault_mod = @import("world/end_ship_vault.zig");
 const end_gateway_transit_mod = @import("world/end_gateway_transit.zig");
 const end_city_layout_mod = @import("world/end_city_layout.zig");
 const dragons_breath_alchemy_mod = @import("world/dragons_breath_alchemy.zig");
-const shulker_shell_defense_mod = @import("world/shulker_shell_defense.zig");
-const shulker_box_storage_mod = @import("world/shulker_box_storage.zig");
 const equine_genetics_mod = @import("world/equine_genetics.zig");
 const companion_pets_mod = @import("world/companion_pets.zig");
 const panda_genetics_mod = @import("world/panda_genetics.zig");
@@ -125,7 +120,6 @@ const zombie_conversions_mod = @import("world/zombie_conversions.zig");
 const spider_arachnids_mod = @import("world/spider_arachnids.zig");
 const mountain_goat_mod = @import("world/mountain_goat.zig");
 const hoglin_zoglin_mod = @import("world/hoglin_zoglin.zig");
-const hoglin_warped_repellent_mod = @import("world/hoglin_warped_repellent.zig");
 const ranged_enchantments_mod = @import("world/ranged_enchantments.zig");
 const item_frames_paintings_mod = @import("world/item_frames_paintings.zig");
 const armor_toughness_epf_mod = @import("world/armor_toughness_epf.zig");
@@ -224,7 +218,6 @@ const archaeology_brush_excavation_mod = @import("world/archaeology_brush_excava
 const brushing_visual_particles_mod = @import("world/brushing_visual_particles.zig");
 const trial_chamber_traps_mod = @import("world/trial_chamber_traps.zig");
 const netherite_smithing_pipeline_mod = @import("world/netherite_smithing_pipeline.zig");
-const shulker_bullet_levitation_mod = @import("world/shulker_bullet_levitation.zig");
 const riptide_trident_kinematics_mod = @import("world/riptide_trident_kinematics.zig");
 const skeleton_trap_combat_mod = @import("world/skeleton_trap_combat.zig");
 const witch_potion_combat_mod = @import("world/witch_potion_combat.zig");
@@ -385,6 +378,18 @@ fn syncRedstoneSnapshots(repeaters: []const cache_mod.Repeater, red_torches: []c
         }
     }
     chunk_manager_mod.ChunkManager.setBurnoutSnapshot(bsnap[0..bn]);
+}
+
+fn shulkerDyeForItem(item: inventory_mod.ItemType) ?shulker_end_city_mod.DyeColor {
+    return switch (item) {
+        .bone_meal => .white,
+        .lapis_lazuli => .blue,
+        .cocoa_beans => .brown,
+        .glow_ink_sac => .cyan,
+        .cactus => .green,
+        .rose_bush => .red,
+        else => null,
+    };
 }
 
 fn tryDrainContainerBreak(
@@ -572,7 +577,7 @@ pub fn main() !void {
     var portal_targets: [32]PortalTarget = undefined;
     var portal_target_count: usize = 0;
     const ThrownKind = enum { snowball, hostile_fireball, hostile_arrow, player_fire_charge, spectral_arrow, arrow, firework_rocket, ender_pearl, eye_of_ender, shulker_bullet, trident };
-    const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball, damage: u8 = 1, pierce: u8 = 0, last_hit_mob: ?usize = null, arrow_variant: skeleton_variants_mod.SkeletonVariant = .standard_skeleton };
+    const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball, damage: u8 = 1, pierce: u8 = 0, last_hit_mob: ?usize = null, arrow_variant: skeleton_variants_mod.SkeletonVariant = .standard_skeleton, homing_accum: f32 = 0.0 };
     var thrown: [proj_mod.thrown_cap]Thrown = undefined;
     var thrown_count: usize = 0;
     const FurnaceJob = smelt_mod.FurnaceJob;
@@ -585,6 +590,8 @@ pub fn main() !void {
     const Chest = struct { x: i32, y: i32, z: i32, items: [4]inventory_mod.ItemStack };
     var chests: [cache_mod.chest_cap]Chest = undefined;
     var chest_count: usize = 0;
+    var placed_shulker_colors = [_]?shulker_end_city_mod.DyeColor{null} ** cache_mod.chest_cap;
+    var held_shulker_box_color: ?shulker_end_city_mod.DyeColor = null;
     if (manager.persistence.loadContainers(&chests, &chest_count) == .corrupt) {
         std.debug.print("fatal: container save is corrupt or unreadable\n", .{});
         return error.CorruptContainerSave;
@@ -673,12 +680,11 @@ pub fn main() !void {
     var active_turtle = sea_turtle_mod.SeaTurtleState.init(.{ 0, 64, 0 }, true);
     var active_fox = taiga_fox_mod.FoxState.init(.red_taiga, .{ 0.0, 64.0, 0.0 });
     var active_composter = redstone_workstations_mod.ComposterState{};
-    var active_levitation = shulker_end_city_mod.Levitation{};
+    var active_levitation = shulker_end_city_mod.Levitation{ .duration = 0.0, .active = false };
     var conduit_zap_timer: f32 = 0.0;
     var active_raid = village_raid_mod.triggerRaid(.normal, 0);
     // Wave 5 representative domain state, advanced by the frame loop.
     var active_enderman = enderman_ai_mod.EndermanState{};
-    var active_piglin_barter = piglin_bastion_mod.PiglinBarterState.init(false);
     var active_creeper = charged_creeper_mod.CreeperState{};
     var active_blaze_attack = blaze_fortress_mod.BlazeAttackState{};
     var active_blaze_brewing = blaze_fortress_mod.BrewingStandFuelState{};
@@ -718,13 +724,10 @@ pub fn main() !void {
     var active_mooshroom = mushroom_island_mod.MooshroomState{};
     var active_melee_elapsed: f32 = 0.0;
     var active_zombie_submersion = zombie_conversions_mod.ZombieSubmersionState{ .variant = .desert_husk };
-    const active_hoglin = hoglin_zoglin_mod.HoglinState.init();
-    var active_warped_hoglin = hoglin_warped_repellent_mod.Hoglin.init();
     var active_item_frame = item_frames_paintings_mod.ItemFrameState{};
     var active_hopper = hopper_item_sorter_mod.HopperContainerState{};
     var active_hopper_source: ?hopper_item_sorter_mod.ItemStack = null;
     var active_hopper_target: ?hopper_item_sorter_mod.ItemStack = null;
-    var hoglin_zombify_timer: f32 = 0.0;
     const active_cauldron = cauldron_fluids_mod.CauldronState{};
     const active_weather = weather_lightning_mod.WeatherState.clear_sky;
     const IgnitedFlame = struct { x: i32, y: i32, z: i32, t: f32 };
@@ -1091,8 +1094,6 @@ pub fn main() !void {
         _ = conduit_frame_mod.tickConduitHostileZap(active_raid.active, 0.0, false, &conduit_zap_timer, dt);
         active_enderman.tick(dt);
         _ = enderman_ai_mod.isDryShelter(player.in_water, false, false);
-        _ = piglin_bastion_mod.isPiglinPacifiedByPlayer(true, false, false);
-        _ = active_piglin_barter.tick(@intFromFloat(@max(0.0, dt * 20.0)));
         _ = charged_creeper_mod.tickCreeperFuse(&active_creeper, 0.0, false, false, dt);
         _ = swamp_witch_mod.applyWitchMagicResistance(0.0);
         _ = active_blaze_brewing.tick(dt);
@@ -1176,9 +1177,6 @@ pub fn main() !void {
         _ = companion_pets_mod.detectParrotHostileMimicry(20.0);
         _ = panda_genetics_mod.canBreedPandasWithBamboo(true, 1);
         _ = panda_genetics_variants_mod.PandaGenetics.breedingState(true, 8, 8);
-        _ = piglin_bartering_economy_mod.rollBarterLootByWeight(0);
-        _ = piglin_brute_bastion_mod.calculateDefeatDrops(0, 0.0);
-        _ = zombified_piglin_swarm_mod.sampleAngerTicks(0.0);
         _ = nether_fungus_forest_mod.sproutItem(.crimson_fungus);
         _ = fox_sweet_berry_mod.harvestBerryBush(2, 0);
         var turtle_helmet_recipe = [_]turtle_scute_helmet_mod.CraftSlot{.none} ** 9;
@@ -1219,11 +1217,6 @@ pub fn main() !void {
         _ = spider_arachnids_mod.computeSpiderWallClimbVelocity(false, false);
         _ = mountain_goat_mod.computeGoatFallDamage(0.0);
         _ = mountain_goat_mod.milkGoatWithBucket(false);
-        _ = hoglin_zoglin_mod.tickHoglinOverworldZombification(false, &hoglin_zombify_timer, dt);
-        _ = hoglin_zoglin_mod.isHoglinRepelledByBlock(active_hoglin.is_zoglin, false, 0.0);
-        _ = active_warped_hoglin.updateRepellent(.{}, .{}, .other);
-        _ = hoglin_warped_repellent_mod.attackDamage(.normal);
-        _ = active_warped_hoglin.tickDimension(.nether, 1);
         _ = ranged_enchantments_mod.computePowerBowDamage(2.0, 0);
         _ = ranged_enchantments_mod.computeCrossbowReloadSeconds(0);
         _ = item_frames_paintings_mod.itemFrameComparatorSignal(active_item_frame);
@@ -1372,7 +1365,6 @@ pub fn main() !void {
         // Wave 20 representative frame-loop hooks keep all ten domains queryable.
         _ = trial_chamber_traps_mod.HAZARD_INTERVAL_TICKS;
         _ = netherite_smithing_pipeline_mod.NETHERITE_BLOCK_BLAST_RESISTANCE;
-        _ = shulker_bullet_levitation_mod.LEVITATION_DURATION_TICKS;
         _ = riptide_trident_kinematics_mod.BASE_LAUNCH_SPEED;
         _ = skeleton_trap_combat_mod.TRIGGER_DISTANCE;
         _ = witch_potion_combat_mod.witch_max_health;
@@ -1387,8 +1379,6 @@ pub fn main() !void {
         // ticking are already queried in their active simulation paths above.
         _ = chorus_teleport_purpur_mod.smelt(.chorus_fruit);
         _ = end_gateway_transit_mod.canEnter(.ender_pearl);
-        _ = shulker_shell_defense_mod.shulkerShellDropChance(0);
-        _ = (shulker_box_storage_mod.ShulkerBox{}).comparatorSignal();
         _ = dragon_head_acoustics_mod.resolveNoteBlockSound(.dragon, .default_note_block_instrument);
         _ = dragons_breath_alchemy_mod.brewLingering(.splash_potion, .poison, .dragons_breath, 1);
         _ = end_city_layout_mod.generateEndCity(.{ .x = 0, .y = 64, .z = 0 });
@@ -3129,12 +3119,24 @@ pub fn main() !void {
             }
         }
         const held_warped_fungus = (inventory.slots[selected_slot].item == .warped_fungus or inventory.slots[selected_slot].item == .warped_fungus_on_a_stick);
+        mob_manager.player_wearing_gold_armor = inventory.hasAnyGoldenArmor();
+        mob_manager.in_overworld_or_end = !manager.is_nether;
         mob_manager.tick(&pickSolid, &pickFluid, &pickBlockWorld, player.pos, player.radius, held_warped_fungus, &audio, dt);
         if (mob_manager.takeStrayConversionPos()) |conv_pos| {
             particles.spawnBlockDebris(@intFromFloat(@floor(conv_pos.x)), @intFromFloat(@floor(conv_pos.y + 1.0)), @intFromFloat(@floor(conv_pos.z)), .{ 0.85, 0.95, 1.0 }, 16);
             toast.timer = 1.8;
             toast.color = .{ 0.72, 0.90, 1.0 };
             std.debug.print("skeleton froze in powder snow and converted to Stray!\n", .{});
+        }
+        var barter_rewards: [8]entity_mod.mob_manager.MobManager.BarterResult = undefined;
+        const barter_count = mob_manager.tickGoldIngotBarters(dt, &barter_rewards);
+        for (barter_rewards[0..barter_count]) |br| {
+            _ = inventory.addItem(br.item, br.count);
+            audio.play(.glowstone_chime, 0.9);
+            particles.spawnBurnSparks(.{ br.pos.x, br.pos.y + 0.8, br.pos.z }, 12);
+            toast.timer = 1.5;
+            toast.color = .{ 1.0, 0.85, 0.2 };
+            std.debug.print("piglin completed 6s gold ingot barter: {s} x{d}\n", .{ br.item.name(), br.count });
         }
         // In The End: emit soaring celestial violet gateway sky-beams from nearby End Gateways
         if (manager.is_end) {
@@ -3291,11 +3293,13 @@ pub fn main() !void {
         // Wolf bites & mob melee attacks: contact damage with per-second cooldown
         wolf_bite_cooldown = combat_mod.tickCooldown(wolf_bite_cooldown, dt);
         if (wolf_bite_cooldown <= 0.0) {
-            const held_gold = (inventory.slots[selected_slot].item == .gold_nugget or inventory.slots[selected_slot].item == .golden_apple or inventory.hasAnyGoldenItem());
+            const wearing_gold_armor = inventory.hasAnyGoldenArmor();
             for (mob_manager.mobs.items) |*m| {
-                if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .blaze and m.mob_type != .spider and m.mob_type != .cave_spider and m.mob_type != .endermite and m.mob_type != .drowned and m.mob_type != .phantom and m.mob_type != .guardian and m.mob_type != .elder_guardian and m.mob_type != .slime and m.mob_type != .creaking) continue;
+                if (m.mob_type != .wolf and m.mob_type != .emberbeast and m.mob_type != .wither_skeleton and m.mob_type != .piglin and m.mob_type != .piglin_brute and m.mob_type != .zombified_piglin and m.mob_type != .hoglin and m.mob_type != .zoglin and m.mob_type != .blaze and m.mob_type != .spider and m.mob_type != .cave_spider and m.mob_type != .endermite and m.mob_type != .drowned and m.mob_type != .phantom and m.mob_type != .guardian and m.mob_type != .elder_guardian and m.mob_type != .slime and m.mob_type != .creaking) continue;
                 if (m.mob_type == .creaking and m.is_frozen) continue;
-                if (m.mob_type == .piglin and (held_gold or m.barter_timer > 0.0 or entity_mod.mob_manager.MobManager.isPiglinRepelled(m.pos, player.pos, held_warped_fungus, &pickBlockWorld) != null)) continue;
+                if (m.mob_type == .piglin and (piglin_bastion_mod.isPiglinPacifiedByPlayer(wearing_gold_armor, m.anger_timer > 0.0, false) or m.barter_timer > 0.0 or m.barter_state.isAdmiring() or entity_mod.mob_manager.MobManager.isPiglinRepelled(m.pos, player.pos, held_warped_fungus, &pickBlockWorld) != null)) continue;
+                if (m.mob_type == .zombified_piglin and m.anger_timer <= 0.0) continue;
+                if (m.mob_type == .hoglin and (m.is_repelled or m.love_mode)) continue;
                 const bdx = m.pos.x - player.pos.x;
                 const bdz = m.pos.z - player.pos.z;
                 const bdy = m.pos.y - player.pos.y;
@@ -3322,7 +3326,7 @@ pub fn main() !void {
                         }
                         std.debug.print("shield blocked attack from {s}\n", .{@tagName(m.mob_type)});
                     } else {
-                        const raw_dmg = if (m.is_champion) hit.damage * 2.5 else if (m.mob_type == .piglin_brute) hit.damage * 2.5 else if (m.mob_type == .blaze or m.mob_type == .emberbeast) hit.damage * 2.0 else if (m.mob_type == .wither_skeleton or m.mob_type == .piglin) hit.damage * 1.5 else hit.damage;
+                        const raw_dmg = if (m.is_champion) hit.damage * 2.5 else if (m.mob_type == .piglin_brute) piglin_bastion_mod.piglin_brute_axe_damage else if (m.mob_type == .hoglin or m.mob_type == .zoglin) hoglin_zoglin_mod.attackDamage(.normal) else if (m.mob_type == .zombified_piglin) piglin_bastion_mod.BASE_ATTACK_DAMAGE else if (m.mob_type == .blaze or m.mob_type == .emberbeast) hit.damage * 2.0 else if (m.mob_type == .wither_skeleton or m.mob_type == .piglin) hit.damage * 1.5 else hit.damage;
                         const dmg = combat_mod.applyArmorReductionEveryTier(raw_dmg, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
                         player.health = @max(0.0, player.health - dmg);
                         if (m.mob_type == .wither_skeleton) {
@@ -3378,6 +3382,11 @@ pub fn main() !void {
                         const has_leggings = inventory.hasItem(.netherite_leggings);
                         player.pos.x -= combat_mod.applyKnockbackResistance(hit.knockback_x, has_leggings);
                         player.pos.z -= combat_mod.applyKnockbackResistance(hit.knockback_z, has_leggings);
+                        if (m.mob_type == .hoglin or m.mob_type == .zoglin) {
+                            const fling = hoglin_zoglin_mod.computeTuskFlingImpulse(.{ -bdx, -bdz }, false);
+                            player.vel_y = @max(player.vel_y, fling.vy);
+                            player.on_ground = false;
+                        }
                         std.debug.print("mob attack (hp={d:.1}, type={s})\n", .{ player.health, @tagName(m.mob_type) });
                     }
                     wolf_bite_cooldown = combat_mod.wolf_bite_cooldown;
@@ -3780,7 +3789,24 @@ pub fn main() !void {
                     combat_mod.calculatePlayerAttackDamageWithWooden(held_weapon == .netherite_sword, held_weapon == .diamond_sword, held_weapon == .iron_sword, held_weapon == .stone_sword, held_weapon == .golden_sword, held_weapon == .wooden_sword, player.isWeakened());
                 const hit_dmg: u8 = alchemy_buffs_mod.applyStrengthBonus(base_hit_dmg, buff_timers);
                 var bartered = false;
-                if (right and !right_down and inventory.slots[selected_slot].item == .gold_nugget) {
+                if (right and !right_down and inventory.slots[selected_slot].item == .gold_ingot) {
+                    if (mob_manager.tryStartGoldIngotBarter(cam.position, dir, combat_mod.melee_range)) |bpos| {
+                        inventory.slots[selected_slot].decrement(1);
+                        audio.play(.mob_oink, 0.9);
+                        particles.spawnGlowstoneShimmer(.{ bpos.x, bpos.y + 0.8, bpos.z }, 8);
+                        std.debug.print("piglin started 6s gold ingot barter inspection\n", .{});
+                        bartered = true;
+                    }
+                } else if (right and !right_down and inventory.slots[selected_slot].item == .crimson_fungus) {
+                    if (mob_manager.tryFeedHoglin(cam.position, dir, combat_mod.melee_range)) |hres| {
+                        inventory.slots[selected_slot].decrement(1);
+                        audio.play(.eat, 0.85);
+                        particles.spawnGlowstoneShimmer(.{ hres.pos.x, hres.pos.y + 0.8, hres.pos.z }, 10);
+                        std.debug.print("fed crimson fungus to hoglin (bred={})\n", .{hres.bred});
+                        bartered = true;
+                    }
+                }
+                if (right and !right_down and !bartered and inventory.slots[selected_slot].item == .gold_nugget) {
                     if (mob_manager.tryBarter(cam.position, dir, combat_mod.melee_range)) |b| {
                         inventory.slots[selected_slot].decrement(1);
                         _ = inventory.addItem(b.item, b.count);
@@ -3844,7 +3870,34 @@ pub fn main() !void {
                     }
                 }
 
-                const hit_mob_opt = if (!bartered and !sheared_sheep and !leashed_mob and left and !left_down and mob_hit_cooldown <= 0.0) mob_manager.tryHitMobDmg(cam.position, dir, combat_mod.melee_range, hit_dmg) else null;
+                var swatted_bullet = false;
+                if (!bartered and !sheared_sheep and !leashed_mob and left and !left_down) {
+                    var bti: usize = 0;
+                    while (bti < thrown_count) {
+                        if (thrown[bti].kind == .shulker_bullet) {
+                            const bdx = thrown[bti].pos.x - cam.position.x;
+                            const bdy = thrown[bti].pos.y - cam.position.y;
+                            const bdz = thrown[bti].pos.z - cam.position.z;
+                            const bdist = @sqrt(bdx * bdx + bdy * bdy + bdz * bdz);
+                            if (bdist <= combat_mod.melee_range and bdist > 0.001) {
+                                const bdot = (bdx * dir.x + bdy * dir.y + bdz * dir.z) / bdist;
+                                if (bdot >= 0.7) {
+                                    var sb = shulker_end_city_mod.ShulkerBullet.init(.{ thrown[bti].pos.x, thrown[bti].pos.y, thrown[bti].pos.z }, .{ player.pos.x, player.pos.y, player.pos.z });
+                                    if (sb.swatWithMelee()) {
+                                        audio.play(.shield_block, 0.8);
+                                        particles.spawnPortalParticles(.{ thrown[bti].pos.x, thrown[bti].pos.y, thrown[bti].pos.z }, 10);
+                                        cache_mod.swapRemove(&thrown, &thrown_count, bti);
+                                        swatted_bullet = true;
+                                        std.debug.print("swatted shulker bullet out of the air\n", .{});
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        bti += 1;
+                    }
+                }
+                const hit_mob_opt = if (!bartered and !sheared_sheep and !leashed_mob and !swatted_bullet and left and !left_down and mob_hit_cooldown <= 0.0) mob_manager.tryHitMobDmg(cam.position, dir, combat_mod.melee_range, hit_dmg) else null;
                 if (!bartered) {
                 if (hit_mob_opt) |hit_mob| {
                     player.addActivityExhaustion(.attack_melee);
@@ -3905,7 +3958,19 @@ pub fn main() !void {
                     }
                     if (hit_mob.died) {
                         const drop = inventory_mod.getMobMeatDrop(hit_mob.mob_type);
-                        _ = inventory.addItem(drop, 1);
+                        if (hit_mob.mob_type == .shulker) {
+                            const s_roll: f32 = @as(f32, @floatFromInt(@abs(px +% pz) % 100)) / 100.0;
+                            const s_drops = shulker_end_city_mod.rollDefeatDrops(s_roll, 0);
+                            if (s_drops.shell_count > 0) _ = inventory.addItem(.shulker_shell, s_drops.shell_count);
+                        } else {
+                            if (hit_mob.mob_type == .hoglin) {
+                                const h_drops = hoglin_zoglin_mod.HoglinState.init().deathDrops(hit_mob.was_burning, @intCast(@abs(px) % 3), @intCast(@abs(pz) % 2));
+                                if (h_drops.leather_count > 0) _ = inventory.addItem(.leather, h_drops.leather_count);
+                                _ = inventory.addItem(if (hit_mob.was_burning) .cooked_pork else drop, h_drops.porkchop_count);
+                            } else {
+                                _ = inventory.addItem(drop, 1);
+                            }
+                        }
                         if (hit_mob.mob_type == .emberbeast) {
                             const bonus = inventory_mod.getEmberBonus(px, pz);
                             if (bonus > 0) _ = inventory.addItem(.nether_wart, bonus);
@@ -3983,9 +4048,21 @@ pub fn main() !void {
                         if (mine.done(need)) {
                             mine.reset();
                             player.addActivityExhaustion(.mine_block);
+                            const broken_chest_idx = if (broken_block == .shulker_box) cache_mod.findChest(&chests, chest_count, hit.x, hit.y, hit.z) else null;
                             if (!tryDrainContainerBreak(broken_block, hit.x, hit.y, hit.z, &chests, &chest_count, &hoppers, &hopper_count, &droppers, &dropper_count, &inventory)) {
                                 std.debug.print("inventory full; container retained overflow items\n", .{});
                             } else {
+                                if (broken_block == .shulker_box) {
+                                    if (broken_chest_idx) |bci| {
+                                        if (placed_shulker_colors[bci]) |col| held_shulker_box_color = col;
+                                        placed_shulker_colors[bci] = placed_shulker_colors[chest_count];
+                                        placed_shulker_colors[chest_count] = null;
+                                    }
+                                }
+                                if (broken_block == .gold_block or broken_block == .gilded_blackstone or broken_block == .gold_ore) {
+                                    const angered = mob_manager.provokePiglinsNear(@as(f32, @floatFromInt(hit.x)) + 0.5, @as(f32, @floatFromInt(hit.y)) + 0.5, @as(f32, @floatFromInt(hit.z)) + 0.5);
+                                    if (angered > 0) audio.play(.mob_oink, 0.9);
+                                }
                                 const above_before = if (broken_block == .creaking_heart) manager.getBlockWorld(hit.x, hit.y + 1, hit.z) else .air;
                                 const below_before = if (broken_block == .creaking_heart) manager.getBlockWorld(hit.x, hit.y - 1, hit.z) else .air;
                                 if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .air)) {
@@ -4398,6 +4475,11 @@ pub fn main() !void {
                                         }
                                         if (place_type == .chest or place_type == .shulker_box) {
                                             cache_mod.initPlacedChest(&chests, &chest_count, px, py, pz);
+                                            if (place_type == .shulker_box) {
+                                                if (cache_mod.findChest(&chests, chest_count, px, py, pz)) |sci| {
+                                                    placed_shulker_colors[sci] = held_shulker_box_color;
+                                                }
+                                            }
                                         }
                                         if (place_type == .brewing_stand and brewing_stand_count < brewing_stands.len) {
                                             brewing_stands[brewing_stand_count] = .{ .x = px, .y = py, .z = pz };
@@ -5002,10 +5084,28 @@ pub fn main() !void {
             var ti: usize = 0;
             while (ti < thrown_count) {
                 var t = &thrown[ti];
-                const st = proj_mod.stepMotion(t.pos.x, t.pos.y, t.pos.z, t.vel.x, t.vel.y, t.vel.z, t.life, dt);
-                t.pos = math.Vec3.init(st.pos[0], st.pos[1], st.pos[2]);
-                t.vel = math.Vec3.init(st.vel[0], st.vel[1], st.vel[2]);
-                t.life = st.life;
+                if (t.kind == .shulker_bullet) {
+                    t.homing_accum += dt;
+                    if (t.homing_accum >= 0.2) {
+                        t.homing_accum -= 0.2;
+                        const next_step = shulker_end_city_mod.chooseNextAxisStep(.{ t.pos.x, t.pos.y, t.pos.z }, .{ player.pos.x, player.pos.y + 0.9, player.pos.z });
+                        const sdx = next_step[0] - t.pos.x;
+                        const sdy = next_step[1] - t.pos.y;
+                        const sdz = next_step[2] - t.pos.z;
+                        const slen = @sqrt(sdx * sdx + sdy * sdy + sdz * sdz);
+                        if (slen > 0.0001) {
+                            const bullet_speed: f32 = 4.5;
+                            t.vel = math.Vec3.init((sdx / slen) * bullet_speed, (sdy / slen) * bullet_speed, (sdz / slen) * bullet_speed);
+                        }
+                    }
+                    t.pos = math.Vec3.init(t.pos.x + t.vel.x * dt, t.pos.y + t.vel.y * dt, t.pos.z + t.vel.z * dt);
+                    t.life -= dt;
+                } else {
+                    const st = proj_mod.stepMotion(t.pos.x, t.pos.y, t.pos.z, t.vel.x, t.vel.y, t.vel.z, t.life, dt);
+                    t.pos = math.Vec3.init(st.pos[0], st.pos[1], st.pos[2]);
+                    t.vel = math.Vec3.init(st.vel[0], st.vel[1], st.vel[2]);
+                    t.life = st.life;
+                }
                 const mbc = proj_mod.projectileBlockCoords(t.pos.x, t.pos.y, t.pos.z);
                 const mbx = mbc[0];
                 const mby = mbc[1];
@@ -5058,15 +5158,20 @@ pub fn main() !void {
                             if (blocked) {
                                 audio.play(.shield_block, 0.9);
                                 particles.spawnBlockDebris(@intFromFloat(@floor(player.pos.x + cf.x * 0.6)), @intFromFloat(@floor(player.pos.y + 0.8)), @intFromFloat(@floor(player.pos.z + cf.z * 0.6)), .{ 0.85, 0.85, 0.85 }, 8);
+                                if (tool_wear.use(selected_slot, inventory_mod.ItemType.shield.maxDurability())) {
+                                    inventory.slots[selected_slot].clear();
+                                    audio.play(.break_block, 0.8);
+                                }
                             } else {
                                 const has_chestplate = inventory.hasItem(.netherite_chestplate);
                                 const has_full = inventory.hasFullNetheriteSet();
-                                const bullet_dmg = combat_mod.applyArmorReductionEveryTier(4.0, has_chestplate, has_full, inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
+                                const bullet_dmg = combat_mod.applyArmorReductionEveryTier(shulker_end_city_mod.shulker_bullet_damage, has_chestplate, has_full, inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
                                 player.health = @max(0.0, player.health - bullet_dmg);
                                 player.applyLevitation();
+                                active_levitation = .{ .duration = shulker_end_city_mod.levitation_duration_seconds, .upward_velocity = shulker_end_city_mod.levitation_upward_velocity, .active = true };
                                 audio.play(.hurt, 0.8);
                                 particles.spawnPortalParticles(.{ t.pos.x, t.pos.y, t.pos.z }, 16);
-                                std.debug.print("shulker bullet hit player: 4 dmg + levitation! (hp={d:.1})\n", .{player.health});
+                                std.debug.print("shulker bullet hit player: 4 dmg + levitation I! (hp={d:.1})\n", .{player.health});
                             }
                             dead = true;
                         } else if (pickSolid(mbx, mby, mbz)) {
@@ -5376,6 +5481,18 @@ pub fn main() !void {
                             if (t.last_hit_mob != null and t.last_hit_mob.? == mi) continue;
                             const d = proj_mod.mobDelta(m.pos.x, m.pos.y, m.pos.z, t.pos.x, t.pos.y, t.pos.z);
                             if (proj_mod.hitsMob(d[0], d[1], d[2])) {
+                                if (m.mob_type == .shulker and shulker_end_city_mod.deflectsProjectile(m.shulker_peek_state)) {
+                                    audio.play(.shield_block, 0.9);
+                                    particles.spawnBurnSparks(.{ m.pos.x, m.pos.y + 0.5, m.pos.z }, 8);
+                                    std.debug.print("projectile deflected by closed Shulker shell!\n", .{});
+                                    dead = true;
+                                    break;
+                                }
+                                if (m.mob_type == .piglin or m.mob_type == .piglin_brute) {
+                                    _ = mob_manager.provokePiglinsNear(m.pos.x, m.pos.y, m.pos.z);
+                                } else if (m.mob_type == .zombified_piglin) {
+                                    _ = mob_manager.alertZombifiedSwarm(m.pos);
+                                }
                                 if (m.mob_type == .ender_dragon) {
                                     const d_phase: ender_dragon_fight_mod.DragonCombatPhase = switch (active_dragon_arena_fight.dragon.phase) {
                                         .perching => .perched_on_fountain,
@@ -5432,8 +5549,20 @@ pub fn main() !void {
                                     const md = inventory_mod.getMobMeatDrop(m.mob_type);
                                     const mp = m.pos;
                                     const was_ember = (m.mob_type == .emberbeast);
+                                    const killed_type = m.mob_type;
+                                    const was_burning = m.burn_timer > 0.0;
                                     _ = mob_manager.mobs.swapRemove(mi);
-                                    _ = inventory.addItem(md, 1);
+                                    if (killed_type == .shulker) {
+                                        const s_roll: f32 = @as(f32, @floatFromInt(@abs(mbx +% mbz) % 100)) / 100.0;
+                                        const s_drops = shulker_end_city_mod.rollDefeatDrops(s_roll, 0);
+                                        if (s_drops.shell_count > 0) _ = inventory.addItem(.shulker_shell, s_drops.shell_count);
+                                    } else if (killed_type == .hoglin) {
+                                        const h_drops = hoglin_zoglin_mod.HoglinState.init().deathDrops(was_burning, @intCast(@abs(mbx) % 3), @intCast(@abs(mbz) % 2));
+                                        if (h_drops.leather_count > 0) _ = inventory.addItem(.leather, h_drops.leather_count);
+                                        _ = inventory.addItem(if (was_burning) .cooked_pork else md, h_drops.porkchop_count);
+                                    } else {
+                                        _ = inventory.addItem(md, 1);
+                                    }
                                     if (was_ember) {
                                         const bonus = inventory_mod.getEmberBonus(mbx, mbz);
                                         if (bonus > 0) _ = inventory.addItem(.nether_wart, bonus);
@@ -5952,8 +6081,9 @@ pub fn main() !void {
         // Shulker bullet fire: homing levitation missile cadence every 3.0s when player is within 20m
         shulker_shot_cooldown = combat_mod.tickCooldown(shulker_shot_cooldown, dt);
         if (shulker_shot_cooldown <= 0.0) {
-            for (mob_manager.mobs.items) |m| {
+            for (mob_manager.mobs.items) |*m| {
                 if (m.mob_type != .shulker) continue;
+                if (m.shulker_peek_state != .open_firing) continue;
                 const sdx = player.pos.x - m.pos.x;
                 const sdz = player.pos.z - m.pos.z;
                 const sdy = (player.pos.y + 0.8) - (m.pos.y + 0.5);
@@ -6357,6 +6487,8 @@ pub fn main() !void {
                     }
                     flint_cooldown = interact_mod.flint_feed_cooldown;
                 } else if (target == .chest or target == .shulker_box) {
+                    const angered_p = mob_manager.provokePiglinsNear(@as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5);
+                    if (angered_p > 0) audio.play(.mob_oink, 0.9);
                     var k_opt = cache_mod.findChest(&chests, chest_count, hit_f.x, hit_f.y, hit_f.z);
                     if (k_opt == null and cache_mod.canCreateChest(chest_count, chests.len)) {
                         chests[chest_count] = .{ .x = hit_f.x, .y = hit_f.y, .z = hit_f.z, .items = [_]inventory_mod.ItemStack{.{}} ** 4 };
@@ -6384,7 +6516,18 @@ pub fn main() !void {
                     }
                     if (k_opt) |k| {
                         const held_item = inventory.slots[selected_slot].item;
-                        if (held_item != .none) {
+                        if (target == .shulker_box and !shulker_end_city_mod.ShulkerBoxContainer.canInsertIntoShulkerBox(held_item == .shulker_box)) {
+                            audio.play(.click_off, 0.85);
+                            std.debug.print("cannot nest shulker box inside shulker box\n", .{});
+                        } else if (target == .shulker_box and shulkerDyeForItem(held_item) != null) {
+                            const dye_col = shulkerDyeForItem(held_item).?;
+                            placed_shulker_colors[k] = dye_col;
+                            held_shulker_box_color = dye_col;
+                            inventory.slots[selected_slot].decrement(1);
+                            audio.play(.splash, 0.75);
+                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 8);
+                            std.debug.print("dyed shulker box {s}\n", .{@tagName(dye_col)});
+                        } else if (held_item != .none) {
                             if (cache_mod.findDepositSlot(&chests[k].items, held_item)) |slot_idx| {
                                 var cslot = &chests[k].items[slot_idx];
                                 if (cslot.isEmpty()) {
@@ -7378,6 +7521,19 @@ pub fn main() !void {
                             audio.play(.lava_pop, 0.85);
                             particles.spawnFlame(hit_f.x, hit_f.y + 1, hit_f.z, 8);
                             std.debug.print("filled cauldron with lava (level=3)\n", .{});
+                        } else if (held_item == .shulker_box and cs.fluid == .water and cs.level > 0 and held_shulker_box_color != null) {
+                            const box_item = shulker_end_city_mod.PortableShulkerBoxItem{
+                                .contents = [_]shulker_end_city_mod.ItemStack{.{}} ** shulker_end_city_mod.SLOT_COUNT,
+                                .color = held_shulker_box_color,
+                            };
+                            if (shulker_end_city_mod.washInWaterCauldron(box_item, true)) |washed| {
+                                held_shulker_box_color = washed.color;
+                                cs.level -= 1;
+                                if (cs.level == 0) cs.fluid = .empty;
+                                audio.play(.splash, 0.8);
+                                particles.spawnWaterSplash(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 6);
+                                std.debug.print("washed dyed shulker box in cauldron (remaining level={d})\n", .{cs.level});
+                            }
                         } else if (held_item == .dyed_bundle_package and cs.fluid == .water and cs.level > 0) {
                             inventory.slots[selected_slot].item = .bundle;
                             cs.level -= 1;
@@ -8074,6 +8230,13 @@ pub fn main() !void {
                 _ = armadillo_wolf_armor_mod.repairWolfArmor(&active_wolf_armor);
                 audio.play(.anvil_clang, 0.7);
                 std.debug.print("inspected Wolf Armor (durability={d}/{d}, crack_stage={s})\n", .{ active_wolf_armor.durability, armadillo_wolf_armor_mod.wolf_armor_max_durability, @tagName(active_wolf_armor.currentCrackStage()) });
+            } else if (held_eat.item == .milk_bucket and player.isLevitating()) {
+                player.cureLevitation();
+                active_levitation.active = false;
+                active_levitation.duration = 0.0;
+                inventory.slots[selected_slot].decrement(1);
+                audio.play(.eat, 0.85);
+                std.debug.print("drank milk bucket and cured levitation\n", .{});
             } else if (held_eat.item == .golden_apple) {
                 player.eatGolden();
                 inventory.slots[selected_slot].decrement(1);
