@@ -274,8 +274,6 @@ pub fn build(b: *std.Build) void {
         "src/world/tripwire_hook_circuit.zig",
         "src/world/sculk_catalyst_bloom.zig",
         "src/world/sculk_bloom_geometry.zig",
-        "src/world/chiseled_bookshelf_storage.zig",
-        "src/world/bookshelf_secret_latch.zig",
         "src/world/hanging_sign_mechanics.zig",
         "src/world/decorated_pot_storage.zig",
         "src/world/mangrove_mud_architecture.zig",
