@@ -44,7 +44,6 @@ const ominous_trial_mod = @import("world/ominous_trial.zig");
 const trial_alchemy_mod = @import("world/trial_alchemy.zig");
 const bundle_pouch_mod = @import("world/bundle_pouch.zig");
 const copper_fixtures_mod = @import("world/copper_fixtures.zig");
-const copper_bulb_latch_mod = @import("world/copper_bulb_latch.zig");
 const jukebox_discs_mod = @import("world/jukebox_discs.zig");
 const allay_amethyst_duplication_mod = @import("world/allay_amethyst_duplication.zig");
 const happy_ghast_mod = @import("world/happy_ghast.zig");
@@ -225,7 +224,6 @@ const froglight_predation_mod = @import("world/froglight_predation.zig");
 const armadillo_wolf_defense_mod = @import("world/armadillo_wolf_defense.zig");
 const goat_horn_acoustics_mod = @import("world/goat_horn_acoustics.zig");
 const copper_horn_acoustics_mod = @import("world/copper_horn_acoustics.zig");
-const copper_bulb_display_mod = @import("world/copper_bulb_display.zig");
 const sculk_sensor_multiplexing_mod = @import("world/sculk_sensor_multiplexing.zig");
 const deepslate_mineralogy_mod = @import("world/deepslate_mineralogy.zig");
 const recovery_compass_echo_mod = @import("world/recovery_compass_echo.zig");
@@ -1384,9 +1382,6 @@ pub fn main() !void {
         _ = skeleton_trap_combat_mod.TRIGGER_DISTANCE;
         _ = witch_potion_combat_mod.witch_max_health;
         _ = evoker_fangs_vex_mod.EVOKER_MAX_HEALTH;
-        // Wave 22's remaining copper display domain hook; the other nine modules
-        // already have representative queries in their existing wave sections.
-        _ = copper_bulb_display_mod.decodeDigit(9);
         // Wave 23 representative frame-loop hooks keep all ten domains queryable.
         _ = magma_cube_splitting_mod.MagmaCubeSize.big.meleeDamage();
         _ = ghast_fireball_tennis_mod.SIGHT_RANGE;
@@ -1409,7 +1404,16 @@ pub fn main() !void {
         _ = ominous_bottle_matrix_mod.DRINKING_DURATION_TICKS;
         _ = eyeblossom_bloom_toxicity_mod.POISON_DURATION_TICKS;
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
-            _ = cf.tickOxidation(dt);
+            if (cf.tickOxidation(dt) and cf.kind == .copper_bulb) {
+                std.debug.print("copper bulb oxidized to {s} ({d},{d},{d}) [light={d}, comparator={d}]\n", .{
+                    @tagName(cf.stage),
+                    cf.x,
+                    cf.y,
+                    cf.z,
+                    cf.getLightLevel(),
+                    cf.getComparatorOutput(),
+                });
+            }
         }
         beacon_supercharge_timer = @max(0.0, beacon_supercharge_timer - dt);
         if (beacon_supercharge_timer > 0.0) {
@@ -2445,6 +2449,13 @@ pub fn main() !void {
                                         }
                                     }
                                 },
+                                .copper_bulb_off, .copper_bulb_on => {
+                                    if (copper_fixtures_mod.findFixture(&copper_fixtures, copper_fixture_count, wx, wy, wz)) |idx| {
+                                        copper_fixtures[idx].bulb_lit = (rb == .copper_bulb_on);
+                                    } else if (copper_fixtures_mod.ensureFixture(&copper_fixtures, &copper_fixture_count, .copper_bulb, .unoxidized, wx, wy, wz)) |cf| {
+                                        cf.bulb_lit = (rb == .copper_bulb_on);
+                                    }
+                                },
                                 .redstone_torch_off, .redstone_torch_on => {
                                     if (cache_mod.findRedTorch(&red_torches, red_torch_count, wx, wy, wz)) |idx| {
                                         red_torches[idx].lit = (rb == .redstone_torch_on);
@@ -2867,6 +2878,69 @@ pub fn main() !void {
                     .none => {},
                 }
                 li += 1;
+            }
+        }
+
+        // Copper Fixtures: Copper Bulb redstone rising-edge T-flip-flop (and doors/trapdoors)
+        {
+            var cfi: usize = 0;
+            while (cfi < copper_fixture_count) {
+                const cf = &copper_fixtures[cfi];
+                const cur_b = manager.getBlockWorld(cf.x, cf.y, cf.z);
+                if (cf.kind == .copper_bulb) {
+                    if (cur_b != .copper_bulb_off and cur_b != .copper_bulb_on) {
+                        cache_mod.swapRemove(&copper_fixtures, &copper_fixture_count, cfi);
+                        continue;
+                    }
+                    const power_in = redstone_mod.isBlockPowered(&pickBlockWorld, cf.x, cf.y, cf.z);
+                    if (cf.updateRedstonePower(power_in)) {
+                        const target_block: block_mod.BlockId = if (cf.bulb_lit) .copper_bulb_on else .copper_bulb_off;
+                        _ = try manager.editAndRemesh(cf.x, cf.y, cf.z, target_block);
+                        const comp_block: block_mod.BlockId = if (cf.getComparatorOutput() > 0) .redstone_comparator_on else .redstone_comparator_off;
+                        const adj_dirs = [_][3]i32{ .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 } };
+                        for (adj_dirs) |ad| {
+                            const nb = manager.getBlockWorld(cf.x + ad[0], cf.y + ad[1], cf.z + ad[2]);
+                            if (nb == .redstone_comparator_off or nb == .redstone_comparator_on) {
+                                _ = try manager.editAndRemesh(cf.x + ad[0], cf.y + ad[1], cf.z + ad[2], comp_block);
+                            }
+                        }
+                        audio.playAt(if (cf.bulb_lit) .click_on else .click_off, .{ @as(f32, @floatFromInt(cf.x)) + 0.5, @as(f32, @floatFromInt(cf.y)) + 0.5, @as(f32, @floatFromInt(cf.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.85, 24.0);
+                        if (cf.bulb_lit) {
+                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(cf.x)) + 0.5, @as(f32, @floatFromInt(cf.y)) + 0.5, @as(f32, @floatFromInt(cf.z)) + 0.5 }, 6);
+                        }
+                        std.debug.print("copper bulb T-flip-flop toggled {s} ({d},{d},{d}) [stage={s}, waxed={}, light={d}, comparator={d}]\n", .{
+                            if (cf.bulb_lit) "ON" else "OFF",
+                            cf.x,
+                            cf.y,
+                            cf.z,
+                            @tagName(cf.stage),
+                            cf.is_waxed,
+                            cf.getLightLevel(),
+                            cf.getComparatorOutput(),
+                        });
+                    }
+                } else if (cf.kind == .copper_door) {
+                    if (cur_b != .copper_door_closed and cur_b != .copper_door_open) {
+                        cache_mod.swapRemove(&copper_fixtures, &copper_fixture_count, cfi);
+                        continue;
+                    }
+                    const power_in = redstone_mod.isBlockPowered(&pickBlockWorld, cf.x, cf.y, cf.z);
+                    if (cf.updateRedstonePower(power_in)) {
+                        _ = try manager.editAndRemesh(cf.x, cf.y, cf.z, if (cf.is_open) .copper_door_open else .copper_door_closed);
+                        audio.playAt(if (cf.is_open) .click_on else .click_off, .{ @as(f32, @floatFromInt(cf.x)) + 0.5, @as(f32, @floatFromInt(cf.y)) + 0.5, @as(f32, @floatFromInt(cf.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.85, 24.0);
+                    }
+                } else if (cf.kind == .copper_trapdoor) {
+                    if (cur_b != .copper_trapdoor_closed and cur_b != .copper_trapdoor_open) {
+                        cache_mod.swapRemove(&copper_fixtures, &copper_fixture_count, cfi);
+                        continue;
+                    }
+                    const power_in = redstone_mod.isBlockPowered(&pickBlockWorld, cf.x, cf.y, cf.z);
+                    if (cf.updateRedstonePower(power_in)) {
+                        _ = try manager.editAndRemesh(cf.x, cf.y, cf.z, if (cf.is_open) .copper_trapdoor_open else .copper_trapdoor_closed);
+                        audio.playAt(if (cf.is_open) .click_on else .click_off, .{ @as(f32, @floatFromInt(cf.x)) + 0.5, @as(f32, @floatFromInt(cf.y)) + 0.5, @as(f32, @floatFromInt(cf.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.85, 24.0);
+                    }
+                }
+                cfi += 1;
             }
         }
 
@@ -4408,6 +4482,21 @@ pub fn main() !void {
                                         if (place_type == .conduit and conduit_count < conduits.len) {
                                             conduits[conduit_count] = .{ .x = px, .y = py, .z = pz };
                                             conduit_count += 1;
+                                        }
+                                        if (place_type == .copper_bulb_off) {
+                                            if (copper_fixtures_mod.ensureFixture(&copper_fixtures, &copper_fixture_count, .copper_bulb, .unoxidized, px, py, pz)) |cf| {
+                                                cf.bulb_lit = false;
+                                            }
+                                        }
+                                        if (place_type == .copper_door_closed) {
+                                            if (copper_fixtures_mod.ensureFixture(&copper_fixtures, &copper_fixture_count, .copper_door, .unoxidized, px, py, pz)) |cf| {
+                                                cf.is_open = false;
+                                            }
+                                        }
+                                        if (place_type == .copper_trapdoor_closed) {
+                                            if (copper_fixtures_mod.ensureFixture(&copper_fixtures, &copper_fixture_count, .copper_trapdoor, .unoxidized, px, py, pz)) |cf| {
+                                                cf.is_open = false;
+                                            }
                                         }
                                         if (place_type == .sponge) {
                                             var absorbed: usize = 0;
@@ -6137,25 +6226,77 @@ pub fn main() !void {
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .copper_door_closed or target == .copper_door_open) {
-                    const toggled: block_mod.BlockId = if (target == .copper_door_closed) .copper_door_open else .copper_door_closed;
-                    if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, toggled)) {
-                        if (copper_fixture_count < copper_fixtures.len) {
-                            copper_fixtures[copper_fixture_count] = copper_fixtures_mod.CopperFixtureState.initAt(.copper_door, .unoxidized, hit_f.x, hit_f.y, hit_f.z);
-                            copper_fixture_count += 1;
+                    const held_slot = &inventory.slots[selected_slot];
+                    const is_axe = held_slot.item == .wooden_axe or held_slot.item == .stone_axe or held_slot.item == .golden_axe or held_slot.item == .iron_axe or held_slot.item == .diamond_axe or held_slot.item == .netherite_axe;
+                    if (held_slot.item == .honeycomb) {
+                        if (copper_fixtures_mod.ensureFixture(&copper_fixtures, &copper_fixture_count, .copper_door, .unoxidized, hit_f.x, hit_f.y, hit_f.z)) |cf| {
+                            cf.is_open = (target == .copper_door_open);
+                            if (cf.applyHoneycomb()) {
+                                held_slot.decrement(1);
+                                audio.playAt(.glowstone_chime, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 24.0);
+                                particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 10);
+                                std.debug.print("waxed copper door ({d},{d},{d}) [stage={s}]\n", .{ hit_f.x, hit_f.y, hit_f.z, @tagName(cf.stage) });
+                            }
                         }
-                        audio.play(.click_on, 0.9);
-                        std.debug.print("toggled copper door to {s} ({d},{d},{d})\n", .{ @tagName(toggled), hit_f.x, hit_f.y, hit_f.z });
+                    } else if (is_axe) {
+                        if (copper_fixtures_mod.ensureFixture(&copper_fixtures, &copper_fixture_count, .copper_door, .unoxidized, hit_f.x, hit_f.y, hit_f.z)) |cf| {
+                            cf.is_open = (target == .copper_door_open);
+                            if (cf.scrapeWithAxe()) {
+                                if (tool_wear.use(selected_slot, held_slot.item.maxDurability())) {
+                                    held_slot.clear();
+                                }
+                                audio.playAt(.anvil_clang, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.85, 24.0);
+                                particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 10);
+                                std.debug.print("scraped copper door ({d},{d},{d}) [stage={s}, waxed={}]\n", .{ hit_f.x, hit_f.y, hit_f.z, @tagName(cf.stage), cf.is_waxed });
+                            }
+                        }
+                    } else {
+                        const toggled: block_mod.BlockId = if (target == .copper_door_closed) .copper_door_open else .copper_door_closed;
+                        if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, toggled)) {
+                            if (copper_fixtures_mod.ensureFixture(&copper_fixtures, &copper_fixture_count, .copper_door, .unoxidized, hit_f.x, hit_f.y, hit_f.z)) |cf| {
+                                _ = cf.interactHand();
+                                cf.is_open = (toggled == .copper_door_open);
+                            }
+                            audio.play(.click_on, 0.9);
+                            std.debug.print("toggled copper door to {s} ({d},{d},{d})\n", .{ @tagName(toggled), hit_f.x, hit_f.y, hit_f.z });
+                        }
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .copper_trapdoor_closed or target == .copper_trapdoor_open) {
-                    const toggled: block_mod.BlockId = if (target == .copper_trapdoor_closed) .copper_trapdoor_open else .copper_trapdoor_closed;
-                    if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, toggled)) {
-                        if (copper_fixture_count < copper_fixtures.len) {
-                            copper_fixtures[copper_fixture_count] = copper_fixtures_mod.CopperFixtureState.initAt(.copper_trapdoor, .unoxidized, hit_f.x, hit_f.y, hit_f.z);
-                            copper_fixture_count += 1;
+                    const held_slot = &inventory.slots[selected_slot];
+                    const is_axe = held_slot.item == .wooden_axe or held_slot.item == .stone_axe or held_slot.item == .golden_axe or held_slot.item == .iron_axe or held_slot.item == .diamond_axe or held_slot.item == .netherite_axe;
+                    if (held_slot.item == .honeycomb) {
+                        if (copper_fixtures_mod.ensureFixture(&copper_fixtures, &copper_fixture_count, .copper_trapdoor, .unoxidized, hit_f.x, hit_f.y, hit_f.z)) |cf| {
+                            cf.is_open = (target == .copper_trapdoor_open);
+                            if (cf.applyHoneycomb()) {
+                                held_slot.decrement(1);
+                                audio.playAt(.glowstone_chime, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 24.0);
+                                particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 10);
+                                std.debug.print("waxed copper trapdoor ({d},{d},{d}) [stage={s}]\n", .{ hit_f.x, hit_f.y, hit_f.z, @tagName(cf.stage) });
+                            }
                         }
-                        audio.play(.click_on, 0.9);
-                        std.debug.print("toggled copper trapdoor to {s} ({d},{d},{d})\n", .{ @tagName(toggled), hit_f.x, hit_f.y, hit_f.z });
+                    } else if (is_axe) {
+                        if (copper_fixtures_mod.ensureFixture(&copper_fixtures, &copper_fixture_count, .copper_trapdoor, .unoxidized, hit_f.x, hit_f.y, hit_f.z)) |cf| {
+                            cf.is_open = (target == .copper_trapdoor_open);
+                            if (cf.scrapeWithAxe()) {
+                                if (tool_wear.use(selected_slot, held_slot.item.maxDurability())) {
+                                    held_slot.clear();
+                                }
+                                audio.playAt(.anvil_clang, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.85, 24.0);
+                                particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 10);
+                                std.debug.print("scraped copper trapdoor ({d},{d},{d}) [stage={s}, waxed={}]\n", .{ hit_f.x, hit_f.y, hit_f.z, @tagName(cf.stage), cf.is_waxed });
+                            }
+                        }
+                    } else {
+                        const toggled: block_mod.BlockId = if (target == .copper_trapdoor_closed) .copper_trapdoor_open else .copper_trapdoor_closed;
+                        if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, toggled)) {
+                            if (copper_fixtures_mod.ensureFixture(&copper_fixtures, &copper_fixture_count, .copper_trapdoor, .unoxidized, hit_f.x, hit_f.y, hit_f.z)) |cf| {
+                                _ = cf.interactHand();
+                                cf.is_open = (toggled == .copper_trapdoor_open);
+                            }
+                            audio.play(.click_on, 0.9);
+                            std.debug.print("toggled copper trapdoor to {s} ({d},{d},{d})\n", .{ @tagName(toggled), hit_f.x, hit_f.y, hit_f.z });
+                        }
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .ominous_vault) {
@@ -6563,9 +6704,62 @@ pub fn main() !void {
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .copper_bulb_off or target == .copper_bulb_on) {
-                    const next_lit = archaeology_mod.toggleCopperBulb(target == .copper_bulb_on);
-                    _ = try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, if (next_lit) .copper_bulb_on else .copper_bulb_off);
-                    audio.play(if (next_lit) .click_on else .click_off, 0.85);
+                    const held_slot = &inventory.slots[selected_slot];
+                    const is_axe = held_slot.item == .wooden_axe or held_slot.item == .stone_axe or held_slot.item == .golden_axe or held_slot.item == .iron_axe or held_slot.item == .diamond_axe or held_slot.item == .netherite_axe;
+                    var fallback_bulb = copper_fixtures_mod.CopperFixtureState.initAt(.copper_bulb, .unoxidized, hit_f.x, hit_f.y, hit_f.z);
+                    fallback_bulb.bulb_lit = (target == .copper_bulb_on);
+                    const cf = copper_fixtures_mod.ensureFixture(&copper_fixtures, &copper_fixture_count, .copper_bulb, .unoxidized, hit_f.x, hit_f.y, hit_f.z) orelse &fallback_bulb;
+                    cf.bulb_lit = (target == .copper_bulb_on);
+                    if (held_slot.item == .honeycomb) {
+                        if (cf.applyHoneycomb()) {
+                            held_slot.decrement(1);
+                            audio.playAt(.glowstone_chime, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 24.0);
+                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 10);
+                            std.debug.print("waxed copper bulb at ({d},{d},{d}) [stage={s}, light={d}, comparator={d}]\n", .{ hit_f.x, hit_f.y, hit_f.z, @tagName(cf.stage), cf.getLightLevel(), cf.getComparatorOutput() });
+                        } else {
+                            audio.play(.click_off, 0.5);
+                            std.debug.print("copper bulb already waxed at ({d},{d},{d}) [stage={s}, light={d}, comparator={d}]\n", .{ hit_f.x, hit_f.y, hit_f.z, @tagName(cf.stage), cf.getLightLevel(), cf.getComparatorOutput() });
+                        }
+                    } else if (is_axe) {
+                        if (cf.scrapeWithAxe()) {
+                            if (tool_wear.use(selected_slot, held_slot.item.maxDurability())) {
+                                held_slot.clear();
+                            }
+                            audio.playAt(.anvil_clang, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.85, 24.0);
+                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 10);
+                            std.debug.print("scraped copper bulb at ({d},{d},{d}) [stage={s}, waxed={}, light={d}, comparator={d}]\n", .{ hit_f.x, hit_f.y, hit_f.z, @tagName(cf.stage), cf.is_waxed, cf.getLightLevel(), cf.getComparatorOutput() });
+                        } else {
+                            audio.play(.click_off, 0.5);
+                            std.debug.print("copper bulb already clean and unwaxed at ({d},{d},{d}) [stage={s}, light={d}, comparator={d}]\n", .{ hit_f.x, hit_f.y, hit_f.z, @tagName(cf.stage), cf.getLightLevel(), cf.getComparatorOutput() });
+                        }
+                    } else {
+                        cf.bulb_lit = !cf.bulb_lit;
+                        const target_block: block_mod.BlockId = if (cf.bulb_lit) .copper_bulb_on else .copper_bulb_off;
+                        if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, target_block)) {
+                            const comp_block: block_mod.BlockId = if (cf.getComparatorOutput() > 0) .redstone_comparator_on else .redstone_comparator_off;
+                            const adj_dirs = [_][3]i32{ .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 } };
+                            for (adj_dirs) |ad| {
+                                const nb = manager.getBlockWorld(hit_f.x + ad[0], hit_f.y + ad[1], hit_f.z + ad[2]);
+                                if (nb == .redstone_comparator_off or nb == .redstone_comparator_on) {
+                                    _ = try manager.editAndRemesh(hit_f.x + ad[0], hit_f.y + ad[1], hit_f.z + ad[2], comp_block);
+                                }
+                            }
+                            audio.play(if (cf.bulb_lit) .click_on else .click_off, 0.85);
+                            if (cf.bulb_lit) {
+                                particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 6);
+                            }
+                            std.debug.print("copper bulb toggled {s} at ({d},{d},{d}) [stage={s}, waxed={}, light={d}, comparator={d}]\n", .{
+                                if (cf.bulb_lit) "ON" else "OFF",
+                                hit_f.x,
+                                hit_f.y,
+                                hit_f.z,
+                                @tagName(cf.stage),
+                                cf.is_waxed,
+                                cf.getLightLevel(),
+                                cf.getComparatorOutput(),
+                            });
+                        }
+                    }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .suspicious_sand and inventory.slots[selected_slot].item == .brush) {
                     if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, .sand)) {

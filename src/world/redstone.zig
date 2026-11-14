@@ -216,6 +216,21 @@ pub fn isTargetHitPowered(is_hit_active: bool) bool {
     return is_hit_active;
 }
 
+/// True when any of the 6 orthogonal neighbors is powered wire or an active redstone source.
+pub fn isBlockPowered(get: *const fn (x: i32, y: i32, z: i32) BlockId, bx: i32, by: i32, bz: i32) bool {
+    const adj_dirs = [_][3]i32{
+        .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 },
+        .{ 0, 1, 0 }, .{ 0, -1, 0 },
+    };
+    for (adj_dirs) |ad| {
+        const nb = get(bx + ad[0], by + ad[1], bz + ad[2]);
+        if (nb == .redstone_wire_on or isSource(nb)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 pub fn isLampPowered(get: *const fn (x: i32, y: i32, z: i32) BlockId, lx: i32, ly: i32, lz: i32) bool {
     const adj_dirs = [_][3]i32{
         .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 },
@@ -256,6 +271,8 @@ test "redstone power detector helpers" {
 
     // Lamp at (10, 9, 10) has redstone_torch_on above it at (10, 10, 10).
     try std.testing.expect(isLampPowered(&mockDetectorWorld, 10, 9, 10));
+    try std.testing.expect(isBlockPowered(&mockDetectorWorld, 10, 9, 10));
+    try std.testing.expect(!isBlockPowered(&mockDetectorWorld, 0, 5, 0));
     try std.testing.expect(!isLampPowered(&mockDetectorWorld, 0, 5, 0));
 
     // Repeater at (20, 20, 20) checks (20, 20, 19) which is repeater_on in mock world.
