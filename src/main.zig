@@ -222,12 +222,9 @@ const trial_vault_reset_mod = @import("world/trial_vault_reset.zig");
 const vault_multiplayer_reset_mod = @import("world/vault_multiplayer_reset.zig");
 const sculk_shrieker_fog_mod = @import("world/sculk_shrieker_fog.zig");
 const calibrated_sensor_chains_mod = @import("world/calibrated_sensor_chains.zig");
-const crafter_pulsed_grid_mod = @import("world/crafter_pulsed_grid.zig");
 const bogged_poison_harvest_mod = @import("world/bogged_poison_harvest.zig");
 const ominous_bottle_matrix_mod = @import("world/ominous_bottle_matrix.zig");
 const eyeblossom_bloom_toxicity_mod = @import("world/eyeblossom_bloom_toxicity.zig");
-const crafter_automation_mod = @import("world/crafter_automation.zig");
-const crafter_factory_clocking_mod = @import("world/crafter_factory_clocking.zig");
 const trial_chamber_generation_mod = @import("world/trial_chamber_generation.zig");
 const ominous_bottle_omen_mod = @import("world/ominous_bottle_omen.zig");
 const froglight_predation_mod = @import("world/froglight_predation.zig");
@@ -622,6 +619,10 @@ pub fn main() !void {
     var active_happy_ghast = happy_ghast_mod.HappyGhastMount.init();
     var active_sculk_catalyst = warden_deep_dark_mod.SculkCatalyst.init(0, 64, 0);
     var active_shrieker_warning = warden_deep_dark_mod.SculkShriekerWarning.init();
+    var active_crafter_grid = autocrafter_mod.CrafterGrid{};
+    var active_crafter_clock = autocrafter_mod.FactoryClock{ .mode = .four_redstone_ticks };
+    var active_crafter_pos: ?[3]i32 = null;
+    var crafter_tick_accum: f32 = 0.0;
     var active_warden_anger = warden_deep_dark_mod.WardenAngerTracker.init();
     var active_strider = strider_mount_mod.StriderState.init();
     var active_axolotl = axolotl_mod.AxolotlState.init(.leucistic);
@@ -1314,8 +1315,6 @@ pub fn main() !void {
         _ = trial_vault_reset_mod.dropsVaultResetToken(true, 4);
         _ = vault_multiplayer_reset_mod.requiredKey(.standard);
         _ = vault_multiplayer_reset_mod.dropsVaultResetToken(true, 4);
-        _ = crafter_automation_mod.slot_count;
-        _ = crafter_factory_clocking_mod.ClockMode.four_redstone_ticks.periodGameTicks();
         _ = trial_chamber_generation_mod.FOOTPRINT_X;
         _ = ominous_bottle_omen_mod.amplifierForTier(.tier_1);
         _ = froglight_predation_mod.nativeVariant(.swamp);
@@ -1364,7 +1363,6 @@ pub fn main() !void {
         _ = calibrated_sensor_chains_mod.CALIBRATED_SENSOR_RANGE;
         _ = trial_spawner_waves_mod.scaleTotalMobs(6, 2);
         _ = vault_multiplayer_reset_mod.requiredKey(.standard);
-        _ = crafter_pulsed_grid_mod.slot_count;
         _ = bogged_poison_harvest_mod.BOGGED_MAX_HEALTH;
         _ = ominous_bottle_matrix_mod.DRINKING_DURATION_TICKS;
         _ = eyeblossom_bloom_toxicity_mod.POISON_DURATION_TICKS;
@@ -2164,6 +2162,49 @@ pub fn main() !void {
                     drop.powered = false;
                 }
                 dpi += 1;
+            }
+        }
+
+        // Crafter block: 20 Hz game-tick clock and redstone rising-edge pulsed grid crafting
+        crafter_tick_accum += dt;
+        while (crafter_tick_accum >= 0.05) {
+            crafter_tick_accum -= 0.05;
+            _ = active_crafter_clock.tick();
+            if (active_crafter_pos) |cpos| {
+                if (manager.isBlockLoaded(cpos[0], cpos[1], cpos[2])) {
+                    if (manager.getBlockWorld(cpos[0], cpos[1], cpos[2]) == .crafter) {
+                        const powered_now = redstone_mod.isDispenserPowered(&pickBlockWorld, cpos[0], cpos[1], cpos[2]);
+                        const c_res = active_crafter_grid.tick(powered_now, .north);
+                        if (c_res == .crafted) {
+                            if (active_crafter_grid.ejected) |ej| {
+                                if (autocrafter_mod.tagFromGridItem(ej.stack.item)) |out_tag| {
+                                    const out_item: inventory_mod.ItemType = @enumFromInt(out_tag);
+                                    _ = inventory.addItem(out_item, ej.stack.count);
+                                    const nvec = autocrafter_mod.directionVector(.north);
+                                    particles.spawnGlowstoneShimmer(.{
+                                        @as(f32, @floatFromInt(cpos[0])) + 0.5 + nvec[0] * 0.65,
+                                        @as(f32, @floatFromInt(cpos[1])) + 0.5 + nvec[1] * 0.65,
+                                        @as(f32, @floatFromInt(cpos[2])) + 0.5 + nvec[2] * 0.65,
+                                    }, 10);
+                                    audio.playAt(.craft_item, .{
+                                        @as(f32, @floatFromInt(cpos[0])) + 0.5,
+                                        @as(f32, @floatFromInt(cpos[1])) + 0.5,
+                                        @as(f32, @floatFromInt(cpos[2])) + 0.5,
+                                    }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 24.0);
+                                    std.debug.print("Crafter pulsed at ({d},{d},{d}): ejected {d}x {s} (signal={d}/9, clock_tick={d})\n", .{ cpos[0], cpos[1], cpos[2], ej.stack.count, out_item.name(), active_crafter_grid.comparatorSignal(), active_crafter_clock.elapsed_game_ticks });
+                                }
+                            }
+                        } else if (c_res == .failed) {
+                            audio.playAt(.click_off, .{
+                                @as(f32, @floatFromInt(cpos[0])) + 0.5,
+                                @as(f32, @floatFromInt(cpos[1])) + 0.5,
+                                @as(f32, @floatFromInt(cpos[2])) + 0.5,
+                            }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.6, 24.0);
+                        }
+                    } else {
+                        active_crafter_pos = null;
+                    }
+                }
             }
         }
 
@@ -6301,14 +6342,55 @@ pub fn main() !void {
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .crafter) {
+                    active_crafter_pos = .{ hit_f.x, hit_f.y, hit_f.z };
                     const held_slot = &inventory.slots[selected_slot];
+                    const nvec = autocrafter_mod.directionVector(.north);
+                    const nozzle_pos = [3]f32{
+                        @as(f32, @floatFromInt(hit_f.x)) + 0.5 + nvec[0] * 0.65,
+                        @as(f32, @floatFromInt(hit_f.y)) + 0.5 + nvec[1] * 0.65,
+                        @as(f32, @floatFromInt(hit_f.z)) + 0.5 + nvec[2] * 0.65,
+                    };
                     if (autocrafter_mod.autoCraftSingleInput(@intFromEnum(held_slot.item))) |acr| {
                         held_slot.decrement(1);
                         const out_item: inventory_mod.ItemType = @enumFromInt(acr.output_tag);
                         _ = inventory.addItem(out_item, acr.output_count);
+                        _ = active_crafter_clock.tick();
                         audio.play(.craft_item, 0.9);
                         particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.85, 0.75, 0.50 }, 8);
-                        std.debug.print("autocrafted {d}x {s} at Crafter ({d},{d},{d})\n", .{ acr.output_count, out_item.name(), hit_f.x, hit_f.y, hit_f.z });
+                        particles.spawnGlowstoneShimmer(nozzle_pos, 8);
+                        std.debug.print("autocrafted {d}x {s} at Crafter ({d},{d},{d}) (signal={d}/9)\n", .{ acr.output_count, out_item.name(), hit_f.x, hit_f.y, hit_f.z, active_crafter_grid.comparatorSignal() });
+                    } else if (held_slot.isEmpty() or held_slot.item == .redstone_dust or held_slot.item == .crafter_pulse_core or held_slot.item == .crafter_pulsed_grid_controller) {
+                        active_crafter_grid.is_powered = false;
+                        active_crafter_grid.cooldown_ticks_remaining = 0;
+                        const pulse_res = active_crafter_grid.tick(true, .north);
+                        active_crafter_grid.is_powered = false;
+                        if (pulse_res == .crafted) {
+                            if (active_crafter_grid.ejected) |ej| {
+                                if (autocrafter_mod.tagFromGridItem(ej.stack.item)) |out_tag| {
+                                    const out_item: inventory_mod.ItemType = @enumFromInt(out_tag);
+                                    _ = inventory.addItem(out_item, ej.stack.count);
+                                    audio.play(.craft_item, 0.9);
+                                    particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.85, 0.75, 0.50 }, 8);
+                                    particles.spawnGlowstoneShimmer(nozzle_pos, 10);
+                                    std.debug.print("Crafter pulsed: ejected {d}x {s} (signal={d}/9)\n", .{ ej.stack.count, out_item.name(), active_crafter_grid.comparatorSignal() });
+                                }
+                            }
+                        } else {
+                            audio.play(.click_off, 0.7);
+                            std.debug.print("Crafter pulse: no matching recipe (signal={d}/9, failed_clicks={d})\n", .{ active_crafter_grid.comparatorSignal(), active_crafter_grid.mechanical_failure_clicks });
+                        }
+                    } else if (autocrafter_mod.gridItemFromTag(@intFromEnum(held_slot.item))) |grid_item| {
+                        const loaded_name = held_slot.item.name();
+                        const overflow = active_crafter_grid.insertFromHopper(grid_item, 1, held_slot.item.maxStackSize());
+                        if (overflow == 0) {
+                            held_slot.decrement(1);
+                            audio.play(.click_on, 0.8);
+                            particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.75, 0.75, 0.82 }, 4);
+                            std.debug.print("loaded 1x {s} into Crafter grid (signal={d}/9)\n", .{ loaded_name, active_crafter_grid.comparatorSignal() });
+                        } else {
+                            audio.play(.click_off, 0.7);
+                            std.debug.print("Crafter grid full (signal={d}/9)\n", .{ active_crafter_grid.comparatorSignal() });
+                        }
                     } else {
                         audio.play(.click_on, 0.7);
                     }
