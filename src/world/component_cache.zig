@@ -174,6 +174,7 @@ pub fn isTrackedRedstoneComponent(block: @import("block.zig").BlockId) bool {
         .repeater_off, .repeater_on, .redstone_comparator_off, .redstone_comparator_on,
         .redstone_lamp_off, .redstone_lamp_on,
         .redstone_torch_off, .redstone_torch_on,
+        .copper_bulb_off, .copper_bulb_on,
         => true,
         else => false,
     };
