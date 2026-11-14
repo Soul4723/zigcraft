@@ -1906,7 +1906,7 @@ pub fn resolveCraftOutput(craft_grid: [4]ItemStack) ItemStack {
         var bwl_cnt: u8 = 0;
         for (craft_grid) |sl| {
             if (sl.item == .beetroot) btr_cnt += 1;
-            if (sl.item == .crimson_fungus or sl.item == .warped_fungus) fng_cnt += 1;
+            if (sl.item == .crimson_fungus or sl.item == .warped_fungus or sl.item == .red_mushroom or sl.item == .brown_mushroom) fng_cnt += 1;
             if (sl.item == .bowl) bwl_cnt += 1;
         }
         if (btr_cnt >= 2 and bwl_cnt == 1 and (btr_cnt + bwl_cnt == non_empty)) {

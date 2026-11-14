@@ -651,6 +651,8 @@ pub const ItemType = enum(u16) {
     crafter_pulsed_grid_controller = 646,
     bogged_poison_harvest_quiver = 647,
     ominous_omen_transmutation_matrix = 648,
+    red_mushroom = 649,
+    brown_mushroom = 650,
     clock = 510,
 
     pub const netherite_upgrade_smithing_template = ItemType.netherite_upgrade_template;
@@ -1900,6 +1902,8 @@ pub const ItemType = enum(u16) {
             .crafter_pulsed_grid_controller => "Crafter Pulsed Grid Controller",
             .bogged_poison_harvest_quiver => "Bogged Poison Harvest Quiver",
             .ominous_omen_transmutation_matrix => "Ominous Omen Transmutation Matrix",
+            .red_mushroom => "Red Mushroom",
+            .brown_mushroom => "Brown Mushroom",
             .raw_pork => "Raw Pork",
             .raw_mutton => "Raw Mutton",
             .cooked_pork => "Cooked Pork",
@@ -2553,6 +2557,8 @@ pub const ItemType = enum(u16) {
             .crafter_pulsed_grid_controller => .{ 0.82, 0.32, 0.22, 0.95 },
             .bogged_poison_harvest_quiver => .{ 0.38, 0.68, 0.28, 0.95 },
             .ominous_omen_transmutation_matrix => .{ 0.58, 0.18, 0.52, 0.95 },
+            .red_mushroom => .{ 0.85, 0.18, 0.16, 0.95 },
+            .brown_mushroom => .{ 0.58, 0.40, 0.25, 0.95 },
             .raw_pork => .{ 0.95, 0.55, 0.55, 0.95 },
             .raw_mutton => .{ 0.80, 0.45, 0.40, 0.95 },
             .cooked_pork => .{ 0.72, 0.38, 0.22, 0.95 },
@@ -2848,4 +2854,13 @@ test "ItemType block roundtrips, ItemStack operations, and getBlockDrops" {
 
 test "MobType creaking meat drop yields resin clump" {
     try std.testing.expectEqual(ItemType.resin_clump, getMobMeatDrop(.creaking));
+}
+
+test "red and brown mushroom items have expected IDs, stack sizes, and names" {
+    try std.testing.expectEqual(@as(u16, 649), @intFromEnum(ItemType.red_mushroom));
+    try std.testing.expectEqual(@as(u16, 650), @intFromEnum(ItemType.brown_mushroom));
+    try std.testing.expectEqual(@as(u8, 64), ItemType.red_mushroom.maxStackSize());
+    try std.testing.expectEqual(@as(u8, 64), ItemType.brown_mushroom.maxStackSize());
+    try std.testing.expectEqualStrings("Red Mushroom", ItemType.red_mushroom.name());
+    try std.testing.expectEqualStrings("Brown Mushroom", ItemType.brown_mushroom.name());
 }

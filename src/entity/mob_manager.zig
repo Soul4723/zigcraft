@@ -15,6 +15,7 @@ const block_mod = @import("../world/block.zig");
 const hazard_mod = @import("../world/hazard.zig");
 const inventory_mod = @import("../inventory.zig");
 const pale_garden_mod = @import("../world/pale_garden.zig");
+const skeleton_variants_mod = @import("../world/skeleton_variants.zig");
 
 pub const MobManager = struct {
     allocator: std.mem.Allocator,
@@ -24,6 +25,7 @@ pub const MobManager = struct {
     ambient_timer: f32,
     spawner_timer: f32,
     creaking_scan_timer: f32 = 0.0,
+    last_stray_conversion_pos: ?math.Vec3 = null,
 
     pub fn init(allocator: std.mem.Allocator, atlas_texture: c.GLuint) !MobManager {
         const r = try mob_renderer_mod.MobRenderer.init(allocator, atlas_texture);
@@ -45,6 +47,16 @@ pub const MobManager = struct {
 
     pub fn spawnMob(self: *MobManager, mob_type: mob_mod.MobType, x: f32, y: f32, z: f32) !void {
         try self.mobs.append(self.allocator, mob_mod.Mob.init(mob_type, x, y, z));
+    }
+
+    pub fn spawnSkeletonVariant(self: *MobManager, variant: skeleton_variants_mod.SkeletonVariant, x: f32, y: f32, z: f32) !void {
+        try self.mobs.append(self.allocator, mob_mod.Mob.initSkeletonVariant(variant, x, y, z));
+    }
+
+    pub fn takeStrayConversionPos(self: *MobManager) ?math.Vec3 {
+        const p = self.last_stray_conversion_pos;
+        self.last_stray_conversion_pos = null;
+        return p;
     }
 
     /// Ensure surface population plus dark-cave wolves around center.
@@ -155,7 +167,13 @@ pub const MobManager = struct {
             if (!spawn_rules.isCaveSpawn(chunk_manager, ix, iy, iz, 15)) continue;
             const roll_m = self.rng.random().float(f32);
             const cave_mtype: mob_mod.MobType = if (roll_m < 0.18) .enderman else if (roll_m < 0.36) .creeper else if (roll_m < 0.54) .zombie else if (roll_m < 0.72) .skeleton else if (roll_m < 0.84) .spider else if (roll_m < 0.94) .slime else .wolf;
-            try self.spawnMob(cave_mtype, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
+            if (cave_mtype == .skeleton) {
+                const roll_v = self.rng.random().float(f32);
+                const sk_var: skeleton_variants_mod.SkeletonVariant = if (roll_v < 0.25) .mossy_bogged else if (roll_v < 0.45) .icy_stray else .standard_skeleton;
+                try self.spawnSkeletonVariant(sk_var, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
+            } else {
+                try self.spawnMob(cave_mtype, @as(f32, @floatFromInt(ix)) + 0.5, @as(f32, @floatFromInt(iy + 1)), @as(f32, @floatFromInt(iz)) + 0.5);
+            }
         }
     }
 
@@ -301,6 +319,18 @@ pub const MobManager = struct {
                         }
                     }
                 }
+                // Skeleton Powder Snow freeze conversion -> Stray
+                if (mob.mob_type == .skeleton) {
+                    const in_powder_snow = (floor_b == .powder_snow or body_b == .powder_snow or bat(mx, my + 1, mz) == .powder_snow);
+                    if (skeleton_variants_mod.tickSkeletonPowderSnowConversion(&mob.freeze_conversion, dt, in_powder_snow)) {
+                        mob.skeleton_variant = mob.freeze_conversion.variant;
+                        mob.health = @intFromFloat(mob.freeze_conversion.health);
+                        self.last_stray_conversion_pos = mob.pos;
+                        if (audio) |a| {
+                            a.playAt(.step_snow, .{ mob.pos.x, mob.pos.y, mob.pos.z }, .{ player_pos.x, player_pos.y, player_pos.z }, 0.9, 24.0);
+                        }
+                    }
+                }
             }
             mob.tick(solid, fluid, dt, &self.rng);
 
@@ -420,7 +450,7 @@ pub const MobManager = struct {
         }
     }
 
-    pub const HitResult = struct { mob_type: mob_mod.MobType, pos: math.Vec3, died: bool, drop: ?mob_mod.MobType, wool: bool, is_champion: bool = false, creaking_heart_pos: ?[3]i32 = null };
+    pub const HitResult = struct { mob_type: mob_mod.MobType, pos: math.Vec3, died: bool, drop: ?mob_mod.MobType, wool: bool, is_champion: bool = false, creaking_heart_pos: ?[3]i32 = null, skeleton_variant: skeleton_variants_mod.SkeletonVariant = .standard_skeleton };
 
     /// Try hitting a mob with raycast from camera. Returns hit info incl. death/drop.
     pub fn tryHitMobDmg(self: *MobManager, origin: math.Vec3, dir: math.Vec3, max_dist: f32, dmg: u8) ?HitResult {
@@ -438,6 +468,7 @@ pub const MobManager = struct {
             const mtype = self.mobs.items[i].mob_type;
             const was_champ = self.mobs.items[i].is_champion;
             const heart_pos = self.mobs.items[i].creaking_heart_pos;
+            const sk_var = self.mobs.items[i].skeleton_variant;
             if (mtype == .piglin) {
                 self.mobs.items[i].barter_timer = 0.0;
             }
@@ -445,9 +476,9 @@ pub const MobManager = struct {
             if (died) {
                 const pos = self.mobs.items[i].pos;
                 _ = self.mobs.swapRemove(i);
-                return .{ .mob_type = mtype, .pos = pos, .died = true, .drop = mtype, .wool = mtype == .sheep, .is_champion = was_champ, .creaking_heart_pos = heart_pos };
+                return .{ .mob_type = mtype, .pos = pos, .died = true, .drop = mtype, .wool = mtype == .sheep, .is_champion = was_champ, .creaking_heart_pos = heart_pos, .skeleton_variant = sk_var };
             }
-            return .{ .mob_type = mtype, .pos = self.mobs.items[i].pos, .died = false, .drop = null, .wool = false, .is_champion = was_champ, .creaking_heart_pos = heart_pos };
+            return .{ .mob_type = mtype, .pos = self.mobs.items[i].pos, .died = false, .drop = null, .wool = false, .is_champion = was_champ, .creaking_heart_pos = heart_pos, .skeleton_variant = sk_var };
         }
 
         return null;
@@ -527,6 +558,39 @@ pub const MobManager = struct {
         wool_count: u8,
         pos: math.Vec3,
     };
+
+    pub const BoggedShearResult = struct {
+        mushrooms: [2]skeleton_variants_mod.MushroomType,
+        pos: math.Vec3,
+    };
+
+    /// Shear an unsheared Bogged skeleton in raycast crosshairs while holding shears.
+    pub fn tryShearBogged(self: *MobManager, origin: math.Vec3, dir: math.Vec3, max_dist: f32) ?BoggedShearResult {
+        var closest_dist: f32 = max_dist;
+        var hit_idx: ?usize = null;
+
+        for (self.mobs.items, 0..) |mob, i| {
+            if (mob.mob_type != .skeleton or mob.skeleton_variant != .mossy_bogged or mob.is_sheared) continue;
+            if (mob.rayIntersects(origin, dir, closest_dist)) |d| {
+                closest_dist = d;
+                hit_idx = i;
+            }
+        }
+
+        if (hit_idx) |i| {
+            const r0 = self.rng.random().float(f32);
+            const r1 = self.rng.random().float(f32);
+            if (self.mobs.items[i].shearBogged(r0, r1)) |res| {
+                if (res.success) {
+                    return .{
+                        .mushrooms = res.mushrooms_dropped,
+                        .pos = self.mobs.items[i].pos,
+                    };
+                }
+            }
+        }
+        return null;
+    }
 
     /// Shear a sheep in raycast crosshairs while holding shears.
     pub fn tryShearSheep(self: *MobManager, origin: math.Vec3, dir: math.Vec3, max_dist: f32) ?ShearResult {
@@ -1407,4 +1471,40 @@ test "Creaking spawn requires safe supported three-block clearance" {
             } else try std.testing.expect(mgr.setBlockWorld(@intCast(x), 2, @intCast(z), .air));
         };
     }
+}
+
+test "MobManager tryShearBogged and Powder Snow freeze conversion" {
+    const alloc = std.testing.allocator;
+    var mm = try MobManager.init(alloc, 0);
+    defer mm.deinit();
+
+    try mm.spawnSkeletonVariant(.mossy_bogged, 0.0, 1.0, 3.0);
+    try mm.spawnSkeletonVariant(.standard_skeleton, 4.0, 1.0, 0.0);
+
+    // Raycast shears Bogged once and drops 2 mushrooms
+    const shear1 = mm.tryShearBogged(math.Vec3.init(0.0, 1.8, 0.0), math.Vec3.init(0.0, 0.0, 1.0), 5.0);
+    try std.testing.expect(shear1 != null);
+    try std.testing.expect(mm.mobs.items[0].is_sheared);
+
+    // Second shear attempt on the same Bogged returns null
+    const shear2 = mm.tryShearBogged(math.Vec3.init(0.0, 1.8, 0.0), math.Vec3.init(0.0, 0.0, 1.0), 5.0);
+    try std.testing.expect(shear2 == null);
+
+    // Powder Snow converts standard_skeleton to icy_stray after 22s (440 ticks at 0.05s)
+    const PowderWorld = struct {
+        fn solid(_: i32, y: i32, _: i32) bool { return y <= 0; }
+        fn fluid(_: i32, _: i32, _: i32) bool { return false; }
+        fn blockAt(x: i32, y: i32, z: i32) block_mod.BlockId {
+            _ = z;
+            if (x == 4 and (y == 1 or y == 2)) return .powder_snow;
+            return if (y <= 0) .stone else .air;
+        }
+    };
+
+    var i: usize = 0;
+    while (i < 440) : (i += 1) {
+        mm.tick(PowderWorld.solid, PowderWorld.fluid, PowderWorld.blockAt, math.Vec3.init(4.0, 1.0, 10.0), 0.3, false, null, 0.05);
+    }
+    try std.testing.expectEqual(skeleton_variants_mod.SkeletonVariant.icy_stray, mm.mobs.items[1].skeleton_variant);
+    try std.testing.expect(mm.takeStrayConversionPos() != null);
 }

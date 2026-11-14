@@ -50,6 +50,8 @@ pub const Player = struct {
     insomnia_timer: f32 = 0.0,
     slow_falling_timer: f32 = 0.0,
     mining_fatigue_timer: f32 = 0.0,
+    slowness_timer: f32 = 0.0,
+    slowness_speed_multiplier: f32 = 1.0,
     dolphins_grace_timer: f32 = 0.0,
     riptide_timer: f32 = 0.0,
     lodestone_target: ?math.Vec3 = null,
@@ -208,6 +210,8 @@ pub const Player = struct {
         self.fire_resistance_timer = 0.0;
         self.slow_falling_timer = 0.0;
         self.mining_fatigue_timer = 0.0;
+        self.slowness_timer = 0.0;
+        self.slowness_speed_multiplier = 1.0;
         self.dolphins_grace_timer = 0.0;
         self.is_gliding = false;
         self.rocket_boost_timer = 0.0;
@@ -279,6 +283,28 @@ pub const Player = struct {
 
     pub fn hasMiningFatigue(self: Player) bool {
         return self.mining_fatigue_timer > 0.0;
+    }
+
+    /// Apply Stray / Slowness I movement impairment for `duration_seconds`.
+    pub fn applySlowness(self: *Player, duration_seconds: f32, speed_multiplier: f32) void {
+        if (duration_seconds <= 0.0) return;
+        const clamped_mult = std.math.clamp(speed_multiplier, 0.1, 1.0);
+        if (self.slowness_timer <= 0.0) {
+            self.slowness_speed_multiplier = clamped_mult;
+        } else {
+            self.slowness_speed_multiplier = @min(self.slowness_speed_multiplier, clamped_mult);
+        }
+        self.slowness_timer = @max(self.slowness_timer, duration_seconds);
+    }
+
+    /// Returns whether the Slowness status effect is currently active.
+    pub fn isSlowed(self: Player) bool {
+        return self.slowness_timer > 0.0;
+    }
+
+    /// Returns the active movement speed multiplier from Slowness (1.0 when inactive).
+    pub fn effectiveSlownessMultiplier(self: Player) f32 {
+        return if (self.slowness_timer > 0.0) self.slowness_speed_multiplier else 1.0;
     }
 
     pub const dolphins_grace_duration: f32 = 30.0;
@@ -355,6 +381,8 @@ pub const Player = struct {
         self.poison_timer = 0.0;
         self.weakness_timer = 0.0;
         self.hunger_debuff_timer = 0.0;
+        self.slowness_timer = 0.0;
+        self.slowness_speed_multiplier = 1.0;
     }
 
     pub fn tickVitals(self: *Player, dt: f32) void {
@@ -363,6 +391,8 @@ pub const Player = struct {
         self.water_breathing_timer = @max(0.0, self.water_breathing_timer - dt);
         self.slow_falling_timer = @max(0.0, self.slow_falling_timer - dt);
         self.mining_fatigue_timer = @max(0.0, self.mining_fatigue_timer - dt);
+        self.slowness_timer = @max(0.0, self.slowness_timer - dt);
+        if (self.slowness_timer <= 0.0) self.slowness_speed_multiplier = 1.0;
         self.dolphins_grace_timer = @max(0.0, self.dolphins_grace_timer - dt);
         self.riptide_timer = @max(0.0, self.riptide_timer - dt);
         self.regen_timer = @max(0.0, self.regen_timer - dt);
@@ -1583,6 +1613,33 @@ test "slime block cancels fall damage and bounces upward" {
     try std.testing.expectEqual(@as(f32, 20.0), player.health);
     // Bounced upward: ~15.0 * 0.80 = ~12.0 rebound velocity
     try std.testing.expect(player.vel_y > 5.0);
+}
+
+
+test "player slowness timer impairs movement multiplier and clears on expiry, milk, and respawn" {
+    var p = Player.init(0.0, 2.0, 0.0);
+    try std.testing.expect(!p.isSlowed());
+    try std.testing.expectEqual(@as(f32, 1.0), p.effectiveSlownessMultiplier());
+
+    p.applySlowness(30.0, 0.85);
+    try std.testing.expect(p.isSlowed());
+    try std.testing.expectApproxEqAbs(@as(f32, 0.85), p.effectiveSlownessMultiplier(), 0.001);
+
+    p.tickVitals(15.0);
+    try std.testing.expect(p.isSlowed());
+    p.tickVitals(16.0);
+    try std.testing.expect(!p.isSlowed());
+    try std.testing.expectEqual(@as(f32, 1.0), p.effectiveSlownessMultiplier());
+
+    p.applySlowness(10.0, 0.85);
+    p.drinkMilk();
+    try std.testing.expect(!p.isSlowed());
+    try std.testing.expectEqual(@as(f32, 1.0), p.effectiveSlownessMultiplier());
+
+    p.applySlowness(10.0, 0.85);
+    p.respawn(1.0, 2.0, 3.0);
+    try std.testing.expect(!p.isSlowed());
+    try std.testing.expectEqual(@as(f32, 1.0), p.effectiveSlownessMultiplier());
 }
 
 fn approachZero(val: f32, delta: f32) f32 {

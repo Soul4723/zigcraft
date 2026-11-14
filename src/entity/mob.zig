@@ -2,6 +2,7 @@ const std = @import("std");
 const math = @import("../math.zig");
 
 const inventory_mod = @import("../inventory.zig");
+const skeleton_variants_mod = @import("../world/skeleton_variants.zig");
 pub const MobType = inventory_mod.MobType;
 
 
@@ -48,6 +49,8 @@ pub const Mob = struct {
     is_primed: bool = false,
     is_sheared: bool = false,
     regrow_timer: f32 = 0.0,
+    skeleton_variant: skeleton_variants_mod.SkeletonVariant = .standard_skeleton,
+    freeze_conversion: skeleton_variants_mod.SkeletonFreezeConversionState = .{},
 
     pub fn isLeashed(self: Mob) bool {
         return self.leashed_to_player or self.fence_post != null;
@@ -62,6 +65,39 @@ pub const Mob = struct {
         self.is_sheared = true;
         self.regrow_timer = 45.0; // 45 seconds to regrow wool
         return 2; // drops 2 wool
+    }
+
+    /// Shear mushrooms from an unsheared Bogged skeleton using unified variant rules.
+    pub fn shearBogged(self: *Mob, roll0: f32, roll1: f32) ?skeleton_variants_mod.ShearingResult {
+        if (self.mob_type != .skeleton or self.skeleton_variant != .mossy_bogged or self.is_sheared) return null;
+        var bogged_ent = skeleton_variants_mod.BoggedEntity.init(.{ self.pos.x, self.pos.y, self.pos.z });
+        bogged_ent.is_sheared = self.is_sheared;
+        bogged_ent.has_mushrooms = !self.is_sheared;
+        const res = skeleton_variants_mod.shearBoggedWithRolls(&bogged_ent, true, roll0, roll1);
+        if (!res.success) return null;
+        self.is_sheared = bogged_ent.is_sheared;
+        return res;
+    }
+
+    /// Initialize a specific skeleton variant (standard, stray, bogged, or wither skeleton).
+    pub fn initSkeletonVariant(variant: skeleton_variants_mod.SkeletonVariant, x: f32, y: f32, z: f32) Mob {
+        if (variant == .nether_wither_skeleton) return Mob.init(.wither_skeleton, x, y, z);
+        var m = Mob.init(.skeleton, x, y, z);
+        m.skeleton_variant = variant;
+        const max_hp: f32 = switch (variant) {
+            .mossy_bogged => skeleton_variants_mod.bogged_max_health,
+            .icy_stray => skeleton_variants_mod.stray_max_health,
+            else => @as(f32, @floatFromInt(m.health)),
+        };
+        if (variant == .mossy_bogged or variant == .icy_stray) {
+            m.health = @intFromFloat(max_hp);
+        }
+        m.freeze_conversion = .{
+            .variant = variant,
+            .health = max_hp,
+            .converted = (variant == .icy_stray),
+        };
+        return m;
     }
 
     pub fn init(mob_type: MobType, x: f32, y: f32, z: f32) Mob {
@@ -165,6 +201,8 @@ pub const Mob = struct {
             .glow_timer = 0.0,
             .leashed_to_player = false,
             .fence_post = null,
+            .skeleton_variant = if (mob_type == .wither_skeleton) .nether_wither_skeleton else .standard_skeleton,
+            .freeze_conversion = .{ .variant = if (mob_type == .wither_skeleton) .nether_wither_skeleton else .standard_skeleton },
         };
     }
 
@@ -174,7 +212,7 @@ pub const Mob = struct {
 
         self.barter_timer = @max(0.0, self.barter_timer - clamped_dt);
         self.glow_timer = @max(0.0, self.glow_timer - clamped_dt);
-        if (self.is_sheared) {
+        if (self.mob_type == .sheep and self.is_sheared) {
             self.regrow_timer = @max(0.0, self.regrow_timer - clamped_dt);
             if (self.regrow_timer <= 0.0) {
                 self.is_sheared = false;
@@ -1176,4 +1214,31 @@ test "Creaking pursuit yaw survives wander timer" {
     m.tick(World.solid, World.fluid, 0.05, &rng);
     try std.testing.expectEqual(@as(f32, 1), m.yaw);
     try std.testing.expect(m.walk_timer > 0);
+}
+
+test "bogged skeleton variant shears once and does not regrow mushrooms" {
+    const World = struct {
+        fn solid(_: i32, _: i32, _: i32) bool { return false; }
+        fn fluid(_: i32, _: i32, _: i32) bool { return false; }
+    };
+    var rng = std.Random.DefaultPrng.init(7);
+    var bogged = Mob.initSkeletonVariant(.mossy_bogged, 0.0, 2.0, 0.0);
+    try std.testing.expectEqual(skeleton_variants_mod.SkeletonVariant.mossy_bogged, bogged.skeleton_variant);
+    try std.testing.expectEqual(@as(u8, 16), bogged.health);
+    try std.testing.expect(!bogged.is_sheared);
+
+    const first = bogged.shearBogged(0.1, 0.9);
+    try std.testing.expect(first != null);
+    try std.testing.expect(first.?.success);
+    try std.testing.expectEqual(skeleton_variants_mod.MushroomType.brown, first.?.mushrooms_dropped[0]);
+    try std.testing.expectEqual(skeleton_variants_mod.MushroomType.red, first.?.mushrooms_dropped[1]);
+    try std.testing.expect(bogged.is_sheared);
+
+    // Second shear rejected
+    try std.testing.expect(bogged.shearBogged(0.1, 0.9) == null);
+
+    // Ticking past sheep regrow time does not regrow Bogged mushrooms
+    bogged.regrow_timer = 0.01;
+    bogged.tick(World.solid, World.fluid, 0.05, &rng);
+    try std.testing.expect(bogged.is_sheared);
 }
