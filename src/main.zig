@@ -211,15 +211,8 @@ const decorated_pot_storage_mod = @import("world/decorated_pot_storage.zig");
 const mangrove_mud_architecture_mod = @import("world/mangrove_mud_architecture.zig");
 const chorus_teleport_purpur_mod = @import("world/chorus_teleport_purpur.zig");
 const sniffer_digging_flora_mod = @import("world/sniffer_digging_flora.zig");
-const trial_spawner_dynamics_mod = @import("world/trial_spawner_dynamics.zig");
-const trial_spawner_waves_mod = @import("world/trial_spawner_waves.zig");
-const vault_loot_dispenser_mod = @import("world/vault_loot_dispenser.zig");
-const trial_vault_reset_mod = @import("world/trial_vault_reset.zig");
-const vault_multiplayer_reset_mod = @import("world/vault_multiplayer_reset.zig");
-const ominous_bottle_matrix_mod = @import("world/ominous_bottle_matrix.zig");
 const eyeblossom_bloom_toxicity_mod = @import("world/eyeblossom_bloom_toxicity.zig");
 const trial_chamber_generation_mod = @import("world/trial_chamber_generation.zig");
-const ominous_bottle_omen_mod = @import("world/ominous_bottle_omen.zig");
 const froglight_predation_mod = @import("world/froglight_predation.zig");
 const armadillo_wolf_defense_mod = @import("world/armadillo_wolf_defense.zig");
 const goat_horn_acoustics_mod = @import("world/goat_horn_acoustics.zig");
@@ -644,6 +637,8 @@ pub fn main() !void {
     var active_wolf_armor = armadillo_wolf_armor_mod.WolfArmor.init();
     var ominous_spawner = ominous_trial_mod.OminousTrialSpawner.init(0.0, 64.0, 0.0, false);
     var ominous_vault_state = ominous_trial_mod.OminousVault.init(0, 64, 0);
+    var standard_vault_state = ominous_trial_mod.vault_multiplayer.Vault.init(.standard, .{ 0.0, 64.0, 0.0 });
+    var player_trial_omen_timer: f32 = 0.0;
     var trial_alchemy_effects = trial_alchemy_mod.TrialPotionEffects.init();
     var player_bundle = bundle_pouch_mod.BundlePouch{};
     var copper_fixtures: [copper_fixtures_mod.max_tracked_fixtures]copper_fixtures_mod.CopperFixtureState = undefined;
@@ -1030,7 +1025,16 @@ pub fn main() !void {
         active_decorated_pot.tick();
         creaking_hearts.tickSeconds(dt);
         active_armadillo.tick(dt, false);
-        _ = ominous_spawner.tickHazardTimer(dt);
+        player_trial_omen_timer = @max(0.0, player_trial_omen_timer - dt);
+        if (player_trial_omen_timer > 0.0 and @sin(world_time * 3.5) > 0.75) {
+            particles.spawnPortalParticles(.{ player.pos.x, player.pos.y + 0.9, player.pos.z }, 1);
+        }
+        if (ominous_spawner.tickHazardTimer(dt)) |hazard| {
+            particles.spawnPortalParticles(.{ ominous_spawner.pos[0], ominous_spawner.pos[1] + 1.0, ominous_spawner.pos[2] }, 8);
+            audio.play(.firework_blast, 0.8);
+            std.debug.print("Ominous Trial Spawner hazard triggered: {s}!\n", .{hazard.name()});
+        }
+        standard_vault_state.display_ticks +%= 1;
         trial_alchemy_effects.tickEffects(dt);
         active_jukebox.tickPlayback(dt);
         _ = active_dried_ghast.tick();
@@ -1350,16 +1354,7 @@ pub fn main() !void {
         _ = mangrove_mud_architecture_mod.generateRootCage(2, .{ false, false, false, false });
         // Wave 18 representative frame-loop hooks keep all ten domains queryable.
         _ = sniffer_digging_flora_mod.isSniffable(.dirt);
-        _ = trial_spawner_dynamics_mod.mobCategory(.bogged);
-        _ = trial_spawner_dynamics_mod.OMINOUS_RESET_TOKEN_CHANCE;
-        _ = trial_spawner_waves_mod.scaleTotalMobs(6, 2);
-        _ = trial_spawner_waves_mod.COOLDOWN_TICKS;
-        _ = vault_loot_dispenser_mod.requiredKey(.standard);
-        _ = trial_vault_reset_mod.dropsVaultResetToken(true, 4);
-        _ = vault_multiplayer_reset_mod.requiredKey(.standard);
-        _ = vault_multiplayer_reset_mod.dropsVaultResetToken(true, 4);
         _ = trial_chamber_generation_mod.FOOTPRINT_X;
-        _ = ominous_bottle_omen_mod.amplifierForTier(.tier_1);
         _ = froglight_predation_mod.nativeVariant(.swamp);
         _ = enchanting_grindstone_mod.computeEnchantSlotOffers(0);
         // Wave 19 representative frame-loop hooks keep all ten domains queryable.
@@ -1399,9 +1394,6 @@ pub fn main() !void {
         _ = end_city_layout_mod.generateEndCity(.{ .x = 0, .y = 64, .z = 0 });
         _ = end_ship_vault_mod.generateEndShip(.{ .x = 0, .y = 64, .z = 0 });
         // Wave 25 representative frame-loop hooks keep all ten domains queryable.
-        _ = trial_spawner_waves_mod.scaleTotalMobs(6, 2);
-        _ = vault_multiplayer_reset_mod.requiredKey(.standard);
-        _ = ominous_bottle_matrix_mod.DRINKING_DURATION_TICKS;
         _ = eyeblossom_bloom_toxicity_mod.POISON_DURATION_TICKS;
         for (copper_fixtures[0..copper_fixture_count]) |*cf| {
             if (cf.tickOxidation(dt) and cf.kind == .copper_bulb) {
@@ -6301,16 +6293,33 @@ pub fn main() !void {
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .ominous_vault) {
                     const held_slot = &inventory.slots[selected_slot];
-                    if (held_slot.item == .ominous_trial_key) {
+                    if (held_slot.item == .vault_reset_token and ominous_vault_state.unlocked) {
                         held_slot.decrement(1);
-                        const oroll: u8 = @intCast(@abs(hit_f.x *% 17 +% hit_f.z *% 31) & 0xFF);
-                        const oloot = ominous_vault_state.tryUnlock(ominous_trial_mod.OminousTrialKeyTag, oroll) catch ominous_trial_mod.ominousVaultLootForRoll(oroll);
-                        const oloot_item: inventory_mod.ItemType = @enumFromInt(oloot.output_tag);
-                        _ = inventory.addItem(oloot_item, oloot.output_count);
-                        audio.play(.glowstone_chime, 1.0);
-                        audio.play(.end_portal_open, 0.85);
-                        particles.spawnFireworkBurst(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 24);
-                        std.debug.print("unlocked Ominous Vault with Ominous Trial Key: dispensed {d}x {s}!\n", .{ oloot.output_count, oloot_item.name() });
+                        ominous_vault_state.unlocked = false;
+                        audio.play(.click_off, 0.9);
+                        std.debug.print("reset Ominous Vault lock with Vault Reset Token!\n", .{});
+                    } else if (held_slot.item == .ominous_trial_key) {
+                        if (ominous_vault_state.unlocked) {
+                            audio.play(.click_off, 0.7);
+                            std.debug.print("Ominous Vault keyhole is dark: already unlocked by player\n", .{});
+                        } else {
+                            held_slot.decrement(1);
+                            const oroll: u8 = @intCast(@abs(hit_f.x *% 17 +% hit_f.z *% 31) & 0xFF);
+                            const oloot = ominous_vault_state.tryUnlock(ominous_trial_mod.OminousTrialKeyTag, oroll) catch ominous_trial_mod.ominousVaultLootForRoll(oroll);
+                            const oloot_item: inventory_mod.ItemType = @enumFromInt(oloot.output_tag);
+                            _ = inventory.addItem(oloot_item, oloot.output_count);
+                            const token_roll: u8 = @intCast((@abs(hit_f.x *% 29 +% hit_f.z *% 43) +% oroll) % 100);
+                            if (ominous_trial_mod.vault_multiplayer.dropsVaultResetToken(true, token_roll)) {
+                                _ = inventory.addItem(.vault_reset_token, 1);
+                                std.debug.print("Ominous Vault dropped bonus 1x Vault Reset Token!\n", .{});
+                            }
+                            audio.play(.glowstone_chime, 1.0);
+                            audio.play(.end_portal_open, 0.85);
+                            particles.spawnFireworkBurst(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 24);
+                            const ppos = [_]ominous_trial_mod.vault_multiplayer.PlayerPosition{.{ .player_id = 0, .position = .{ player.pos.x, player.pos.y, player.pos.z } }};
+                            const c_sig = standard_vault_state.comparatorOutput(&ppos);
+                            std.debug.print("unlocked Ominous Vault with Ominous Trial Key: dispensed {d}x {s}! (comparator signal={d})\n", .{ oloot.output_count, oloot_item.name(), c_sig });
+                        }
                     } else {
                         audio.play(.click_off, 0.7);
                         std.debug.print("Ominous Vault locked: requires an Ominous Trial Key\n", .{});
@@ -6663,16 +6672,36 @@ pub fn main() !void {
                         audio.play(.click_on, 0.7);
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
-                } else if (target == .vault and inventory.slots[selected_slot].item == .trial_key) {
-                    inventory.slots[selected_slot].decrement(1);
-                    const vroll: u8 = @intCast(@abs(hit_f.x +% hit_f.z) & 0xFF);
-                    const vloot = autocrafter_mod.vaultLootForRoll(vroll);
-                    const vitem: inventory_mod.ItemType = @enumFromInt(vloot.output_tag);
-                    _ = inventory.addItem(vitem, vloot.output_count);
-                    audio.play(.glowstone_chime, 1.0);
-                    audio.play(.anvil_clang, 0.8);
-                    particles.spawnFireworkBurst(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 18);
-                    std.debug.print("unlocked Trial Vault with Trial Key: dispensed {d}x {s}!\n", .{ vloot.output_count, vitem.name() });
+                } else if (target == .vault) {
+                    const held_slot = &inventory.slots[selected_slot];
+                    if (held_slot.item == .vault_reset_token and standard_vault_state.hasPlayerUnlocked(0)) {
+                        held_slot.decrement(1);
+                        _ = standard_vault_state.resetPlayerLock(0);
+                        audio.play(.click_off, 0.9);
+                        std.debug.print("reset Trial Vault lock with Vault Reset Token!\n", .{});
+                    } else if (held_slot.item == .trial_key) {
+                        if (standard_vault_state.hasPlayerUnlocked(0)) {
+                            audio.play(.click_off, 0.7);
+                            std.debug.print("Trial Vault keyhole is dark: already unlocked by player\n", .{});
+                        } else {
+                            held_slot.decrement(1);
+                            standard_vault_state.unlocked_players[standard_vault_state.unlocked_player_count] = 0;
+                            standard_vault_state.unlocked_player_count += 1;
+                            const vroll: u8 = @intCast(@abs(hit_f.x +% hit_f.z) & 0xFF);
+                            const vloot = autocrafter_mod.vaultLootForRoll(vroll);
+                            const vitem: inventory_mod.ItemType = @enumFromInt(vloot.output_tag);
+                            _ = inventory.addItem(vitem, vloot.output_count);
+                            audio.play(.glowstone_chime, 1.0);
+                            audio.play(.anvil_clang, 0.8);
+                            particles.spawnFireworkBurst(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 1.0, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 18);
+                            const ppos = [_]ominous_trial_mod.vault_multiplayer.PlayerPosition{.{ .player_id = 0, .position = .{ player.pos.x, player.pos.y, player.pos.z } }};
+                            const c_sig = standard_vault_state.comparatorOutput(&ppos);
+                            std.debug.print("unlocked Trial Vault with Trial Key: dispensed {d}x {s}! (comparator signal={d})\n", .{ vloot.output_count, vitem.name(), c_sig });
+                        }
+                    } else {
+                        audio.play(.click_off, 0.7);
+                        std.debug.print("Trial Vault locked: requires a Trial Key\n", .{});
+                    }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .ender_chest) {
                     const held_slot = &inventory.slots[selected_slot];
@@ -8004,8 +8033,11 @@ pub fn main() !void {
                 audio.play(.eat, 0.9);
                 audio.play(.glowstone_chime, 1.0);
                 particles.spawnGlowstoneShimmer(.{ player.pos.x, player.pos.y + 1.2, player.pos.z }, 16);
+                player_trial_omen_timer = ominous_trial_mod.calculateTrialOmenDuration(1);
                 _ = ominous_spawner.upgradeToOminous();
-                std.debug.print("drank Ominous Bottle: Bad Omen active!\n", .{});
+                const wave_mobs = ominous_trial_mod.waves.scaleTotalMobs(ominous_trial_mod.waves.BASE_TOTAL_MOBS, 1);
+                ominous_spawner.activate(@intCast(wave_mobs));
+                std.debug.print("drank Ominous Bottle: Bad Omen transmuted to Trial Omen ({d:.0}s, wave scaled to {d} mobs)!\n", .{ player_trial_omen_timer, wave_mobs });
             } else if (held_eat.item == .potion_of_infested) {
                 trial_alchemy_effects.apply(.infested);
                 inventory.slots[selected_slot].decrement(1);
