@@ -29,7 +29,6 @@ const beacon_aura_mod = @import("world/beacon_aura.zig");
 const archaeology_mod = @import("world/archaeology.zig");
 const wind_charge_mod = @import("world/wind_charge.zig");
 const mace_smash_kinematics_mod = @import("world/mace_smash_kinematics.zig");
-const mace_aerial_combos_mod = @import("world/mace_aerial_combos.zig");
 const autocrafter_mod = @import("world/autocrafter.zig");
 const calibrated_sculk_mod = @import("world/calibrated_sculk.zig");
 const frog_mod = @import("world/frog.zig");
@@ -223,7 +222,6 @@ const trial_vault_reset_mod = @import("world/trial_vault_reset.zig");
 const vault_multiplayer_reset_mod = @import("world/vault_multiplayer_reset.zig");
 const sculk_shrieker_fog_mod = @import("world/sculk_shrieker_fog.zig");
 const calibrated_sensor_chains_mod = @import("world/calibrated_sensor_chains.zig");
-const mace_velocity_scaling_mod = @import("world/mace_velocity_scaling.zig");
 const crafter_pulsed_grid_mod = @import("world/crafter_pulsed_grid.zig");
 const bogged_poison_harvest_mod = @import("world/bogged_poison_harvest.zig");
 const ominous_bottle_matrix_mod = @import("world/ominous_bottle_matrix.zig");
@@ -1316,8 +1314,6 @@ pub fn main() !void {
         _ = trial_vault_reset_mod.dropsVaultResetToken(true, 4);
         _ = vault_multiplayer_reset_mod.requiredKey(.standard);
         _ = vault_multiplayer_reset_mod.dropsVaultResetToken(true, 4);
-        _ = mace_smash_kinematics_mod.calculateSmashDamage(2.0, 0);
-        _ = mace_aerial_combos_mod.damageMultiplier(1);
         _ = crafter_automation_mod.slot_count;
         _ = crafter_factory_clocking_mod.ClockMode.four_redstone_ticks.periodGameTicks();
         _ = trial_chamber_generation_mod.FOOTPRINT_X;
@@ -1367,7 +1363,6 @@ pub fn main() !void {
         _ = sculk_shrieker_fog_mod.DARKNESS_RADIUS;
         _ = calibrated_sensor_chains_mod.CALIBRATED_SENSOR_RANGE;
         _ = trial_spawner_waves_mod.scaleTotalMobs(6, 2);
-        _ = mace_velocity_scaling_mod.BASE_DAMAGE;
         _ = vault_multiplayer_reset_mod.requiredKey(.standard);
         _ = crafter_pulsed_grid_mod.slot_count;
         _ = bogged_poison_harvest_mod.BOGGED_MAX_HEALTH;
@@ -3674,8 +3669,12 @@ pub fn main() !void {
                     player.addActivityExhaustion(.attack_melee);
                     mob_hit_cooldown = combat_mod.melee_cooldown;
                     if (held_weapon == .mace and mace_smash_kinematics_mod.isSmashAttack(fall_blocks)) {
-                        player.vel_y = 0.0;
+                        player.fall_distance = 0.0;
+                        player.vel_y = mace_smash_kinematics_mod.WIND_BURST_I_VELOCITY;
                         audio.play(.anvil_clang, 1.0);
+                        audio.play(.firework_blast, 0.85);
+                        particles.spawnFireworkBurst(.{ hit_mob.pos.x, hit_mob.pos.y + 0.8, hit_mob.pos.z }, 32);
+                        std.debug.print("mace smash landed: {d} damage (fall={d:.1}m, rebound vy={d:.1})\n", .{ hit_dmg, fall_blocks, player.vel_y });
                     }
                     if (held_weapon.isTool()) {
                         if (tool_wear.use(selected_slot, held_weapon.maxDurability())) {
