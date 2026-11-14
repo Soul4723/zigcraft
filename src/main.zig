@@ -209,7 +209,6 @@ const sculk_bloom_geometry_mod = @import("world/sculk_bloom_geometry.zig");
 const chiseled_bookshelf_storage_mod = @import("world/chiseled_bookshelf_storage.zig");
 const bookshelf_secret_latch_mod = @import("world/bookshelf_secret_latch.zig");
 const hanging_sign_mechanics_mod = @import("world/hanging_sign_mechanics.zig");
-const decorated_pot_storage_mod = @import("world/decorated_pot_storage.zig");
 const mangrove_mud_architecture_mod = @import("world/mangrove_mud_architecture.zig");
 const chorus_teleport_purpur_mod = @import("world/chorus_teleport_purpur.zig");
 const sniffer_digging_flora_mod = @import("world/sniffer_digging_flora.zig");
@@ -232,8 +231,6 @@ const copper_bulb_display_mod = @import("world/copper_bulb_display.zig");
 const sculk_sensor_multiplexing_mod = @import("world/sculk_sensor_multiplexing.zig");
 const deepslate_mineralogy_mod = @import("world/deepslate_mineralogy.zig");
 const recovery_compass_echo_mod = @import("world/recovery_compass_echo.zig");
-const archaeology_brush_excavation_mod = @import("world/archaeology_brush_excavation.zig");
-const brushing_visual_particles_mod = @import("world/brushing_visual_particles.zig");
 const trial_chamber_traps_mod = @import("world/trial_chamber_traps.zig");
 const netherite_smithing_pipeline_mod = @import("world/netherite_smithing_pipeline.zig");
 const shulker_bullet_levitation_mod = @import("world/shulker_bullet_levitation.zig");
@@ -641,6 +638,8 @@ pub fn main() !void {
     var goat_horn_cooldown: f32 = 0.0;
     var camel_mount = camel_mod.CamelState.init();
     var active_decorated_pot = decorated_pot_mod.DecoratedPot.init();
+    var active_excavation = archaeology_mod.ActiveExcavation{};
+    var excavation_brush_slot: usize = 0;
     var active_chiseled_bookshelf = chiseled_bookshelf_mod.ChiseledBookshelf.init(0, 64, 0, .north);
     var active_hanging_sign = hanging_sign_mod.HangingSignText.init();
     var creaking_hearts = pale_garden_mod.CreakingHeartTracker.init();
@@ -1033,7 +1032,6 @@ pub fn main() !void {
         goat_horn_cooldown = goat_horn_mod.tickHornCooldown(goat_horn_cooldown, dt);
         camel_mount.update(dt);
         active_decorated_pot.updateAnimation(dt);
-        active_decorated_pot.tick();
         creaking_hearts.tickSeconds(dt);
         active_armadillo.tick(dt, false);
         _ = ominous_spawner.tickHazardTimer(dt);
@@ -1357,7 +1355,6 @@ pub fn main() !void {
         _ = chiseled_bookshelf_storage_mod.total_slots;
         _ = bookshelf_secret_latch_mod.door_transition_ticks;
         _ = hanging_sign_mechanics_mod.crafting_yield;
-        _ = decorated_pot_storage_mod.wobble_duration_seconds;
         _ = mangrove_mud_architecture_mod.generateRootCage(2, .{ false, false, false, false });
         // Wave 18 representative frame-loop hooks keep all ten domains queryable.
         _ = sniffer_digging_flora_mod.isSniffable(.dirt);
@@ -1383,8 +1380,6 @@ pub fn main() !void {
         _ = deepslate_mineralogy_mod.deepslateProbability(-4.0);
         _ = mangrove_mud_architecture_mod.MUD_HARDNESS;
         _ = recovery_compass_echo_mod.isAncientCityExclusive(.echo_shard);
-        _ = archaeology_brush_excavation_mod.TOTAL_EXCAVATION_TICKS;
-        _ = brushing_visual_particles_mod.TOTAL_EXCAVATION_TICKS;
         // Wave 20 representative frame-loop hooks keep all ten domains queryable.
         _ = trial_chamber_traps_mod.HAZARD_INTERVAL_TICKS;
         _ = netherite_smithing_pipeline_mod.NETHERITE_BLOCK_BLAST_RESISTANCE;
@@ -4001,10 +3996,27 @@ pub fn main() !void {
                                 }
 
                                 if (tier_ok) {
-                                    var drops_buf: [2]inventory_mod.BlockDrop = undefined;
-                                    const drop_count = inventory_mod.getBlockDrops(broken_block, &drops_buf);
-                                    for (drops_buf[0..drop_count]) |d| {
-                                        _ = inventory.addItem(d.item, d.count);
+                                    if (broken_block == .decorated_pot) {
+                                        const pot_outcome = active_decorated_pot.resolveToolBreak(potToolKind(held), false);
+                                        for (pot_outcome.getDrops()) |pd| {
+                                            const drop_item: inventory_mod.ItemType = @enumFromInt(pd.item_id);
+                                            _ = inventory.addItem(drop_item, pd.count);
+                                        }
+                                        if (pot_outcome.shattered) {
+                                            audio.play(.anvil_clang, 0.75);
+                                            particles.spawnBlockDebris(hit.x, hit.y, hit.z, .{ 0.78, 0.38, 0.26 }, 12);
+                                            std.debug.print("shattered Decorated Pot into {d} drop(s)!\n", .{pot_outcome.drop_count});
+                                            active_decorated_pot = decorated_pot_mod.DecoratedPot.init();
+                                        } else {
+                                            active_decorated_pot.clearInventory();
+                                            std.debug.print("harvested intact Decorated Pot (sherds={d})\n", .{active_decorated_pot.countSherds()});
+                                        }
+                                    } else {
+                                        var drops_buf: [2]inventory_mod.BlockDrop = undefined;
+                                        const drop_count = inventory_mod.getBlockDrops(broken_block, &drops_buf);
+                                        for (drops_buf[0..drop_count]) |d| {
+                                            _ = inventory.addItem(d.item, d.count);
+                                        }
                                     }
                                     if (broken_block == .creaking_heart) {
                                         const bonus_clumps = pale_garden_mod.brokenHeartClumpCount(.{ hit.x, hit.y, hit.z }, above_before, below_before);
@@ -4080,6 +4092,17 @@ pub fn main() !void {
                                 toast.color = .{ 0.82, 0.20, 0.96 };
                                 std.debug.print("activated 3x3 End Portal altar at ({d},{d},{d})! (cells={d})\n", .{ altar.center_x, altar.center_y, altar.center_z, filled_portal_count });
                             }
+                        }
+                    } else if (right and !right_down and inventory.slots[selected_slot].item == .none and manager.getBlockWorld(hit.x, hit.y, hit.z) == .decorated_pot) {
+                        if (active_decorated_pot.punch()) |extracted| {
+                            const out_item: inventory_mod.ItemType = @enumFromInt(extracted.item_id);
+                            _ = inventory.addItem(out_item, extracted.count);
+                            audio.play(.anvil_clang, 0.75);
+                            particles.spawnBlockDebris(hit.x, hit.y, hit.z, .{ 0.78, 0.38, 0.26 }, 8);
+                            std.debug.print("punched Decorated Pot: extracted {d}x {s} (wobble={d:.1}deg)\n", .{ extracted.count, out_item.name(), active_decorated_pot.getWobbleAngle() });
+                        } else {
+                            audio.play(.click_on, 0.7);
+                            std.debug.print("punched empty Decorated Pot (wobble={d:.1}deg)\n", .{active_decorated_pot.getWobbleAngle()});
                         }
                     } else if (right and !right_down and inventory.slots[selected_slot].item != .bow and inventory.slots[selected_slot].item != .crossbow and !is_blocking) {
                         const px = hit.x + hit.nx;
@@ -4704,6 +4727,18 @@ pub fn main() !void {
                             particles.spawnBlockDebris(f.x, f.y, f.z, .{ 0.8, 0.7, 0.5 }, 4);
                         },
                         .land, .none => {
+                            if (f.block_type == .suspicious_sand and f.dist > 0) {
+                                var fragile = archaeology_mod.SuspiciousBlock.init(.{ f.x, f.y, f.z }, .suspicious_sand, .desert_pyramid, .{ .coal = {} });
+                                const impact = fragile.onFallImpact();
+                                if (impact.shattered) {
+                                    _ = try manager.editAndRemesh(f.x, f.y, f.z, .air);
+                                    particles.spawnBlockDebris(f.x, f.y, f.z, .{ 0.88, 0.80, 0.58 }, 12);
+                                    audio.playAt(.break_block, .{ @as(f32, @floatFromInt(f.x)) + 0.5, @as(f32, @floatFromInt(f.y)) + 0.5, @as(f32, @floatFromInt(f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 30.0);
+                                    std.debug.print("suspicious sand shattered on fall impact at ({d},{d},{d}) (0 drops)\n", .{ f.x, f.y, f.z });
+                                    cache_mod.swapRemove(&fallings, &falling_count, fi2);
+                                    continue;
+                                }
+                            }
                             const dmg: u8 = if (f.block_type == .anvil) falling_mod.calculateAnvilImpactDamage(f.dist) else if (f.block_type == .pointed_dripstone) dripstone_mod.calculateStalactiteImpactDamage(@intCast(@min(f.dist, 255))) else falling_mod.calculateImpactDamage(f.dist);
                             if (f.block_type == .anvil and f.dist > 0) {
                                 audio.playAt(.anvil_clang, .{ @as(f32, @floatFromInt(f.x)) + 0.5, @as(f32, @floatFromInt(f.y)) + 0.5, @as(f32, @floatFromInt(f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 40.0);
@@ -5096,7 +5131,27 @@ pub fn main() !void {
                             std.debug.print("firework rocket impact burst\n", .{});
                         }
                         const struck = manager.getBlockWorld(mbx, mby, mbz);
-                        if (struck == .end_crystal) {
+                        if (struck == .decorated_pot) {
+                            const proj_kind: decorated_pot_mod.ProjectileKind = switch (t.kind) {
+                                .trident => .trident,
+                                .snowball => .snowball,
+                                .firework_rocket => .firework_rocket,
+                                .player_fire_charge, .hostile_fireball => .fireball,
+                                else => .arrow,
+                            };
+                            const pot_outcome = active_decorated_pot.resolveProjectileHit(proj_kind);
+                            _ = try manager.editAndRemesh(mbx, mby, mbz, .air);
+                            for (pot_outcome.getDrops()) |pd| {
+                                const drop_item: inventory_mod.ItemType = @enumFromInt(pd.item_id);
+                                _ = inventory.addItem(drop_item, pd.count);
+                            }
+                            active_decorated_pot = decorated_pot_mod.DecoratedPot.init();
+                            audio.playAt(.break_block, .{ @as(f32, @floatFromInt(mbx)) + 0.5, @as(f32, @floatFromInt(mby)) + 0.5, @as(f32, @floatFromInt(mbz)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 32.0);
+                            audio.play(.anvil_clang, 0.7);
+                            particles.spawnBlockDebris(mbx, mby, mbz, .{ 0.78, 0.38, 0.26 }, 14);
+                            std.debug.print("projectile shattered Decorated Pot at ({d},{d},{d}) into {d} drop(s)!\n", .{ mbx, mby, mbz, pot_outcome.drop_count });
+                            dead = true;
+                        } else if (struck == .end_crystal) {
                             _ = try manager.editAndRemesh(mbx, mby, mbz, .air);
                             audio.play(.firework_blast, 1.0);
                             particles.spawnFireworkBurst(.{ @as(f32, @floatFromInt(mbx)) + 0.5, @as(f32, @floatFromInt(mby)) + 0.5, @as(f32, @floatFromInt(mbz)) + 0.5 }, 36);
@@ -6404,13 +6459,36 @@ pub fn main() !void {
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .decorated_pot) {
                     const held_slot = &inventory.slots[selected_slot];
-                    if (!held_slot.isEmpty()) {
+                    if (key_shift and (held_slot.item == .pottery_sherd or held_slot.item == .decorated_pot_motif)) {
+                        const mseed: u32 = @bitCast(hit_f.x *% 31 +% hit_f.z *% 17 +% @as(i32, active_decorated_pot.countSherds()));
+                        const motif = decorated_pot_mod.sherdMotifForSeed(mseed);
+                        if (active_decorated_pot.applyNextSherdFacet(motif)) |facet| {
+                            held_slot.decrement(1);
+                            audio.play(.anvil_clang, 0.7);
+                            particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.78, 0.38, 0.26 }, 8);
+                            std.debug.print("applied {s} to Decorated Pot {s} facet (sherds={d}/4)\n", .{ motif.name(), @tagName(facet), active_decorated_pot.countSherds() });
+                        } else {
+                            audio.play(.click_off, 0.7);
+                            std.debug.print("Decorated Pot already has 4 decorated facets\n", .{});
+                        }
+                    } else if (key_shift) {
+                        if (active_decorated_pot.punch()) |extracted| {
+                            const out_item: inventory_mod.ItemType = @enumFromInt(extracted.item_id);
+                            _ = inventory.addItem(out_item, extracted.count);
+                            audio.play(.anvil_clang, 0.75);
+                            particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.78, 0.38, 0.26 }, 8);
+                            std.debug.print("punched Decorated Pot: extracted {d}x {s} (wobble={d:.1}deg)\n", .{ extracted.count, out_item.name(), active_decorated_pot.getWobbleAngle() });
+                        } else {
+                            audio.play(.click_on, 0.7);
+                            std.debug.print("punched empty Decorated Pot (wobble={d:.1}deg)\n", .{active_decorated_pot.getWobbleAngle()});
+                        }
+                    } else if (!held_slot.isEmpty()) {
                         const accepted = active_decorated_pot.insertItem(@intFromEnum(held_slot.item), 1, held_slot.item.maxStackSize());
                         if (accepted > 0) {
                             held_slot.decrement(accepted);
                             audio.play(.anvil_clang, 0.6);
                             particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.85, 0.45, 0.25 }, 6);
-                            std.debug.print("stored 1x {s} in Decorated Pot (count={d}, fullness signal={d})\n", .{ held_slot.item.name(), active_decorated_pot.count, active_decorated_pot.comparatorSignal() });
+                            std.debug.print("stored 1x {s} in Decorated Pot (count={d}, signal={d}/{d})\n", .{ held_slot.item.name(), active_decorated_pot.count, active_decorated_pot.comparatorSignal(), active_decorated_pot.comparatorSignalCeil() });
                         } else {
                             audio.play(.click_off, 0.7);
                         }
@@ -6524,17 +6602,11 @@ pub fn main() !void {
                     audio.play(if (next_lit) .click_on else .click_off, 0.85);
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .suspicious_sand and inventory.slots[selected_slot].item == .brush) {
-                    if (try manager.editAndRemesh(hit_f.x, hit_f.y, hit_f.z, .sand)) {
-                        const relic_roll: u8 = @intCast(@abs(hit_f.x +% hit_f.z) & 0xFF);
-                        const relic_item: inventory_mod.ItemType = @enumFromInt(archaeology_mod.relicForRoll(relic_roll));
-                        _ = inventory.addItem(relic_item, 1);
-                        if (tool_wear.use(selected_slot, inventory.slots[selected_slot].item.maxDurability())) {
-                            inventory.slots[selected_slot].clear();
-                        }
-                        audio.play(.step_sand, 0.9);
-                        particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.88, 0.80, 0.58 }, 10);
-                        std.debug.print("excavated {s} from Suspicious Sand at ({d},{d},{d})\n", .{ relic_item.name(), hit_f.x, hit_f.y, hit_f.z });
-                    }
+                    const brush_rem: u16 = inventory_mod.ItemType.brush.maxDurability() -| tool_wear.uses[selected_slot];
+                    const bseed: u32 = @bitCast(hit_f.x *% 73856093 ^ hit_f.y *% 19349663 ^ hit_f.z *% 83492791);
+                    const bstep = active_excavation.advanceStageStep(.{ hit_f.x, hit_f.y, hit_f.z }, .{ player.pos.x, player.pos.y, player.pos.z }, brush_rem, bseed);
+                    excavation_brush_slot = selected_slot;
+                    try applyArchaeologyStep(bstep, &manager, &inventory, selected_slot, &tool_wear, &audio, &particles);
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .sweet_berry_bush) {
                     _ = inventory.addItem(.sweet_berries, 2);
@@ -7452,6 +7524,26 @@ pub fn main() !void {
                 }
             }
         }
+        // Continuous right-hold brush excavation (20 Hz stages, particle bursts, decay on release)
+        if (!inventory_open) {
+            const brush_held = inventory.slots[selected_slot].item == .brush;
+            var aiming_suspicious = false;
+            var brush_hit_pos = [3]i32{ 0, 0, 0 };
+            if (right and brush_held) {
+                excavation_brush_slot = selected_slot;
+                if (pick_mod.raycast(&pickSolid, cam.position, cam.front(), 6)) |bhit| {
+                    if (manager.getBlockWorld(bhit.x, bhit.y, bhit.z) == .suspicious_sand) {
+                        aiming_suspicious = true;
+                        brush_hit_pos = .{ bhit.x, bhit.y, bhit.z };
+                    }
+                }
+            }
+            const wear_slot = if (brush_held) selected_slot else excavation_brush_slot;
+            const brush_rem: u16 = if (inventory.slots[wear_slot].item == .brush) (inventory_mod.ItemType.brush.maxDurability() -| tool_wear.uses[wear_slot]) else 0;
+            const bseed: u32 = @bitCast(brush_hit_pos[0] *% 73856093 ^ brush_hit_pos[1] *% 19349663 ^ brush_hit_pos[2] *% 83492791);
+            const rstep = active_excavation.stepFrame(dt, right and brush_held, aiming_suspicious, brush_hit_pos, .{ player.pos.x, player.pos.y, player.pos.z }, brush_rem, bseed);
+            try applyArchaeologyStep(rstep, &manager, &inventory, wear_slot, &tool_wear, &audio, &particles);
+        }
         // Right-click eats held meat (edge triggered, in-game only)
         if (right and !right_down and !inventory_open) {
             const held_eat = inventory.slots[selected_slot];
@@ -7793,12 +7885,16 @@ pub fn main() !void {
                 particles.spawnFireworkBurst(.{ player.pos.x, player.pos.y + 1.0, player.pos.z }, 10);
                 std.debug.print("drank Potion of Wind Charged (180s: wind burst impulse on death)!\n", .{});
             } else if (held_eat.item == .brush) {
-                const bres = armadillo_wolf_armor_mod.brushArmadillo(64);
+                const brush_aim = pick_mod.raycast(&pickSolid, cam.position, cam.front(), 6);
+                const on_suspicious = brush_aim != null and manager.getBlockWorld(brush_aim.?.x, brush_aim.?.y, brush_aim.?.z) == .suspicious_sand;
+                if (!on_suspicious) {
+                    const bres = armadillo_wolf_armor_mod.brushArmadillo(64);
                 if (bres.scutes_dropped > 0) {
                     _ = inventory.addItem(.armadillo_scute, bres.scutes_dropped);
                     audio.play(.anvil_clang, 0.6);
                     particles.spawnGlowstoneShimmer(.{ player.pos.x, player.pos.y + 0.5, player.pos.z }, 8);
                     std.debug.print("brushed Armadillo: dropped {d}x Armadillo Scute!\n", .{bres.scutes_dropped});
+                }
                 }
             } else if (held_eat.item == .wolf_armor) {
                 _ = armadillo_wolf_armor_mod.repairWolfArmor(&active_wolf_armor);
@@ -8023,6 +8119,61 @@ pub fn main() !void {
     if (!manager.persistence.saveContainers(chests[0..chest_count])) std.debug.print("container save failed during shutdown\n", .{});
     savePlayerState(manager, &player, &cam, &inventory, cursor_stack, selected_slot, &tool_wear);
     std.debug.print("shutting down\n", .{});
+}
+
+fn potToolKind(item: inventory_mod.ItemType) decorated_pot_mod.ToolKind {
+    return switch (item) {
+        .wooden_pickaxe, .stone_pickaxe, .golden_pickaxe, .iron_pickaxe, .diamond_pickaxe, .netherite_pickaxe => .pickaxe,
+        .wooden_axe, .stone_axe, .golden_axe, .iron_axe, .diamond_axe, .netherite_axe => .axe,
+        .wooden_shovel, .stone_shovel, .golden_shovel, .iron_shovel, .diamond_shovel, .netherite_shovel => .shovel,
+        .wooden_hoe, .stone_hoe, .golden_hoe, .iron_hoe, .diamond_hoe, .netherite_hoe => .hoe,
+        .wooden_sword, .stone_sword, .golden_sword, .iron_sword, .diamond_sword, .netherite_sword => .sword,
+        else => .bare_hand,
+    };
+}
+
+fn applyArchaeologyStep(step: archaeology_mod.ActiveExcavation.StepResult, manager: anytype, inventory: anytype, selected_slot: usize, tool_wear: anytype, audio: anytype, particles: anytype) !void {
+    if (step.emitted_burst) |burst| {
+        if (burst.count > 0) {
+            const bpos = burst.particles[0].position;
+            var golden_cnt: usize = 0;
+            for (burst.slice()) |p| {
+                if (p.golden) golden_cnt += 1;
+            }
+            const dust_cnt: usize = @as(usize, burst.count) - golden_cnt;
+            if (dust_cnt > 0) particles.spawnDustParticles(bpos, dust_cnt);
+            if (golden_cnt > 0) particles.spawnGlowstoneShimmer(.{ bpos[0], bpos[1] + 0.3, bpos[2] }, golden_cnt);
+        }
+    }
+    if (step.stage_changed and step.stage != .idle and !step.completed) {
+        std.debug.print("brushing Suspicious Sand: {s} ({d}%)\n", .{ @tagName(step.stage), step.stage.progressPercent() });
+    }
+    if (step.play_brush_cycle_sound) {
+        audio.play(.step_sand, @min(0.65 + (step.brush_pitch - 0.8) * 0.35, 1.0));
+    }
+    if (step.durability_consumed > 0 and inventory.slots[selected_slot].item == .brush) {
+        var w: u16 = 0;
+        while (w < step.durability_consumed) : (w += 1) {
+            if (tool_wear.use(selected_slot, inventory.slots[selected_slot].item.maxDurability())) {
+                inventory.slots[selected_slot].clear();
+                audio.play(.break_block, 0.8);
+                std.debug.print("brush broke!\n", .{});
+                break;
+            }
+        }
+    }
+    if (step.completed) {
+        const cpos = step.completed_pos;
+        if (try manager.editAndRemesh(cpos[0], cpos[1], cpos[2], .sand)) {
+            const relic_item: inventory_mod.ItemType = @enumFromInt(step.extracted_item_tag);
+            _ = inventory.addItem(relic_item, 1);
+            if (step.play_completion_chime) audio.play(.glowstone_chime, 0.9);
+            audio.play(.step_sand, 0.95);
+            if (step.loot) |loot| {
+                std.debug.print("excavated {s} ({s}) from Suspicious Sand at ({d},{d},{d})\n", .{ loot.name(), relic_item.name(), cpos[0], cpos[1], cpos[2] });
+            }
+        }
+    }
 }
 
 fn savePlayerState(manager: anytype, player: anytype, cam: anytype, inventory: anytype, cursor_stack: anytype, selected_slot: usize, tool_wear: anytype) void {
