@@ -225,9 +225,6 @@ const eyeblossom_bloom_toxicity_mod = @import("world/eyeblossom_bloom_toxicity.z
 const trial_chamber_generation_mod = @import("world/trial_chamber_generation.zig");
 const ominous_bottle_omen_mod = @import("world/ominous_bottle_omen.zig");
 const froglight_predation_mod = @import("world/froglight_predation.zig");
-const armadillo_wolf_defense_mod = @import("world/armadillo_wolf_defense.zig");
-const goat_horn_acoustics_mod = @import("world/goat_horn_acoustics.zig");
-const copper_horn_acoustics_mod = @import("world/copper_horn_acoustics.zig");
 const copper_bulb_display_mod = @import("world/copper_bulb_display.zig");
 const sculk_sensor_multiplexing_mod = @import("world/sculk_sensor_multiplexing.zig");
 const deepslate_mineralogy_mod = @import("world/deepslate_mineralogy.zig");
@@ -639,6 +636,10 @@ pub fn main() !void {
     var ender_vault = ender_chest_mod.EnderVault{};
     var beacon_supercharge_timer: f32 = 0.0;
     var goat_horn_cooldown: f32 = 0.0;
+    var active_horn_playback = goat_horn_mod.HornPlaybackState{};
+    var active_copper_horn_playback = goat_horn_mod.PlaybackState{};
+    var active_horn_variant_idx: usize = 0;
+    var horn_tick_accum: f32 = 0.0;
     var camel_mount = camel_mod.CamelState.init();
     var active_decorated_pot = decorated_pot_mod.DecoratedPot.init();
     var active_chiseled_bookshelf = chiseled_bookshelf_mod.ChiseledBookshelf.init(0, 64, 0, .north);
@@ -646,7 +647,11 @@ pub fn main() !void {
     var creaking_hearts = pale_garden_mod.CreakingHeartTracker.init();
     var active_petals_cluster = cherry_grove_mod.PinkPetalsCluster.init(0, 64, 0, 1, .north);
     var active_armadillo = armadillo_wolf_armor_mod.Armadillo.init();
+    var active_armadillo_prev_state = armadillo_wolf_armor_mod.ArmadilloState.unrolled;
+    var armadillo_tick_accum: f32 = 0.0;
     var active_wolf_armor = armadillo_wolf_armor_mod.WolfArmor.init();
+    var active_wolf_armor_equipped: bool = false;
+    var active_wolf_armor_dye_idx: usize = 0;
     var ominous_spawner = ominous_trial_mod.OminousTrialSpawner.init(0.0, 64.0, 0.0, false);
     var ominous_vault_state = ominous_trial_mod.OminousVault.init(0, 64, 0);
     var trial_alchemy_effects = trial_alchemy_mod.TrialPotionEffects.init();
@@ -1031,11 +1036,52 @@ pub fn main() !void {
         night_vision_timer = lush_caves_mod.tickNightVision(night_vision_timer, dt);
         alchemy_buffs_mod.tickBuffs(&buff_timers, dt);
         goat_horn_cooldown = goat_horn_mod.tickHornCooldown(goat_horn_cooldown, dt);
+        horn_tick_accum += dt;
+        while (horn_tick_accum >= 0.05) {
+            horn_tick_accum -= 0.05;
+            active_horn_playback.tick(1);
+            active_copper_horn_playback.tick(1);
+        }
         camel_mount.update(dt);
         active_decorated_pot.updateAnimation(dt);
         active_decorated_pot.tick();
         creaking_hearts.tickSeconds(dt);
-        active_armadillo.tick(dt, false);
+        var armadillo_min_threat_dist_sq: f32 = if (player.is_sprinting) 0.0 else 1_000_000.0;
+        var armadillo_undead_threat = false;
+        for (mob_manager.mobs.items) |m| {
+            if (m.health <= 0) continue;
+            const is_threat_mob = (m.mob_type == .zombie or m.mob_type == .skeleton or m.mob_type == .wither_skeleton or m.mob_type == .drowned or m.mob_type == .spider or m.mob_type == .cave_spider);
+            if (!is_threat_mob) continue;
+            const dx = m.pos.x - player.pos.x;
+            const dy = m.pos.y - player.pos.y;
+            const dz = m.pos.z - player.pos.z;
+            const d2 = dx * dx + dy * dy + dz * dz;
+            if (d2 < armadillo_min_threat_dist_sq) armadillo_min_threat_dist_sq = d2;
+            if (armadillo_wolf_armor_mod.isThreatWithinRadius(d2)) armadillo_undead_threat = true;
+        }
+        const armadillo_recent_dmg = wolf_bite_cooldown > (combat_mod.wolf_bite_cooldown - 0.5);
+        if (armadillo_recent_dmg) armadillo_min_threat_dist_sq = 0.0;
+        const armadillo_threat_nearby = armadillo_wolf_armor_mod.shouldTriggerRollUp(armadillo_min_threat_dist_sq, player.is_sprinting, armadillo_undead_threat, armadillo_recent_dmg);
+        active_armadillo.tick(dt, armadillo_threat_nearby);
+        if (active_armadillo.state != active_armadillo_prev_state) {
+            if (active_armadillo.state == .rolling_up or active_armadillo.state == .rolled_up) {
+                audio.play(.click_on, 0.75);
+                std.debug.print("Armadillo startled: state={s}\n", .{@tagName(active_armadillo.state)});
+            } else if (active_armadillo.state == .unrolled) {
+                audio.play(.click_off, 0.55);
+            }
+            active_armadillo_prev_state = active_armadillo.state;
+        }
+        armadillo_tick_accum += dt;
+        while (armadillo_tick_accum >= 0.05) {
+            armadillo_tick_accum -= 0.05;
+            if (active_armadillo.state == .unrolled and active_armadillo.tickNaturalScute()) {
+                _ = inventory.addItem(.armadillo_scute, 1);
+                audio.play(.click_off, 0.65);
+                particles.spawnGlowstoneShimmer(.{ player.pos.x, player.pos.y + 0.5, player.pos.z }, 6);
+                std.debug.print("Armadillo shed a natural Armadillo Scute!\n", .{});
+            }
+        }
         _ = ominous_spawner.tickHazardTimer(dt);
         trial_alchemy_effects.tickEffects(dt);
         active_jukebox.tickPlayback(dt);
@@ -1374,11 +1420,8 @@ pub fn main() !void {
         _ = froglight_predation_mod.nativeVariant(.swamp);
         _ = enchanting_grindstone_mod.computeEnchantSlotOffers(0);
         // Wave 19 representative frame-loop hooks keep all ten domains queryable.
-        _ = armadillo_wolf_defense_mod.threat_radius;
         _ = allay_amethyst_duplication_mod.DUPLICATION_COOLDOWN_TICKS;
         _ = froglight_predation_mod.acquisition_range;
-        _ = goat_horn_acoustics_mod.ACOUSTIC_RADIUS;
-        _ = copper_horn_acoustics_mod.registerForCameraPitch(0);
         _ = sculk_sensor_multiplexing_mod.SENSOR_RANGE;
         _ = deepslate_mineralogy_mod.deepslateProbability(-4.0);
         _ = mangrove_mud_architecture_mod.MUD_HARDNESS;
@@ -3262,6 +3305,24 @@ pub fn main() !void {
                     } else {
                         const raw_dmg = if (m.is_champion) hit.damage * 2.5 else if (m.mob_type == .piglin_brute) hit.damage * 2.5 else if (m.mob_type == .blaze or m.mob_type == .emberbeast) hit.damage * 2.0 else if (m.mob_type == .wither_skeleton or m.mob_type == .piglin) hit.damage * 1.5 else hit.damage;
                         const dmg = combat_mod.applyArmorReductionEveryTier(raw_dmg, inventory.hasItem(.netherite_chestplate), inventory.hasFullNetheriteSet(), inventory.hasItem(.diamond_chestplate), inventory.hasFullDiamondSet(), inventory.hasItem(.iron_chestplate), inventory.hasFullIronSet(), inventory.hasItem(.golden_chestplate), inventory.hasFullGoldenSet(), inventory.hasItem(.leather_chestplate), inventory.hasFullLeatherSet());
+                        if (active_wolf_armor_equipped and !active_wolf_armor.isBroken()) {
+                            const abs_dmg: u16 = @max(@as(u16, 1), @as(u16, @intFromFloat(@ceil(dmg))));
+                            const prev_stage = active_wolf_armor.crackStage();
+                            const abs_res = armadillo_wolf_armor_mod.absorbWolfDamageWithKind(&active_wolf_armor, abs_dmg, .melee);
+                            const new_stage = active_wolf_armor.crackStage();
+                            if (abs_res.armor_broken) {
+                                active_wolf_armor_equipped = false;
+                                audio.play(.break_block, 0.9);
+                                particles.spawnBlockDebris(@intFromFloat(@floor(player.pos.x)), @intFromFloat(@floor(player.pos.y + 0.8)), @intFromFloat(@floor(player.pos.z)), .{ 0.72, 0.50, 0.40 }, 14);
+                                std.debug.print("Wolf Armor shattered absorbing {d} damage! (crack_stage={s})\n", .{ abs_dmg, @tagName(new_stage) });
+                            } else {
+                                audio.play(.anvil_clang, 0.75);
+                                if (new_stage != prev_stage) {
+                                    particles.spawnBlockDebris(@intFromFloat(@floor(player.pos.x)), @intFromFloat(@floor(player.pos.y + 0.8)), @intFromFloat(@floor(player.pos.z)), .{ 0.68, 0.46, 0.36 }, 8);
+                                }
+                                std.debug.print("Wolf Armor absorbed {d} damage (durability={d}/{d}, crack_stage={s})\n", .{ abs_dmg, active_wolf_armor.durability, armadillo_wolf_armor_mod.wolf_armor_max_durability, @tagName(new_stage) });
+                            }
+                        } else {
                         player.health = @max(0.0, player.health - dmg);
                         if (m.mob_type == .wither_skeleton) {
                             player.applyWither();
@@ -3317,6 +3378,7 @@ pub fn main() !void {
                         player.pos.x -= combat_mod.applyKnockbackResistance(hit.knockback_x, has_leggings);
                         player.pos.z -= combat_mod.applyKnockbackResistance(hit.knockback_z, has_leggings);
                         std.debug.print("mob attack (hp={d:.1}, type={s})\n", .{ player.health, @tagName(m.mob_type) });
+                        }
                     }
                     wolf_bite_cooldown = combat_mod.wolf_bite_cooldown;
                     break;
@@ -7119,6 +7181,16 @@ pub fn main() !void {
                             audio.play(.splash, 0.8);
                             particles.spawnWaterSplash(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 6);
                             std.debug.print("washed dyed bundle in cauldron (remaining level={d})\n", .{cs.level});
+                        } else if (held_item == .wolf_armor and cs.fluid == .water and cs.level > 0) {
+                            if (armadillo_wolf_armor_mod.washArmorInCauldron(&active_wolf_armor)) {
+                                cs.level -= 1;
+                                if (cs.level == 0) cs.fluid = .empty;
+                                audio.play(.splash, 0.8);
+                                particles.spawnWaterSplash(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 6);
+                                std.debug.print("washed dyed Wolf Armor in cauldron (remaining level={d})\n", .{cs.level});
+                            } else {
+                                std.debug.print("Wolf Armor is already undyed (durability={d}/{d}, crack_stage={s})\n", .{ active_wolf_armor.durability, armadillo_wolf_armor_mod.wolf_armor_max_durability, @tagName(active_wolf_armor.crackStage()) });
+                            }
                         } else if (held_item == .glass and cs.fluid == .water and cs.level > 0) {
                             // Dip glass vial into water cauldron to scoop a water bottle
                             cs.level -= 1;
@@ -7793,28 +7865,122 @@ pub fn main() !void {
                 particles.spawnFireworkBurst(.{ player.pos.x, player.pos.y + 1.0, player.pos.z }, 10);
                 std.debug.print("drank Potion of Wind Charged (180s: wind burst impulse on death)!\n", .{});
             } else if (held_eat.item == .brush) {
-                const bres = armadillo_wolf_armor_mod.brushArmadillo(64);
+                const brush_max = held_eat.item.maxDurability();
+                const brush_rem: u16 = brush_max -| tool_wear.uses[selected_slot];
+                const bres = armadillo_wolf_armor_mod.brushArmadillo(brush_rem);
                 if (bres.scutes_dropped > 0) {
                     _ = inventory.addItem(.armadillo_scute, bres.scutes_dropped);
-                    audio.play(.anvil_clang, 0.6);
+                    var brush_broke = false;
+                    var wu: u16 = 0;
+                    while (wu < bres.brush_damage) : (wu += 1) {
+                        if (tool_wear.use(selected_slot, brush_max)) {
+                            inventory.slots[selected_slot].clear();
+                            brush_broke = true;
+                            break;
+                        }
+                    }
+                    audio.play(if (brush_broke) .break_block else .anvil_clang, 0.7);
                     particles.spawnGlowstoneShimmer(.{ player.pos.x, player.pos.y + 0.5, player.pos.z }, 8);
-                    std.debug.print("brushed Armadillo: dropped {d}x Armadillo Scute!\n", .{bres.scutes_dropped});
+                    std.debug.print("brushed Armadillo (state={s}): dropped {d}x Armadillo Scute (brush_wear={d})\n", .{ @tagName(active_armadillo.state), bres.scutes_dropped, bres.brush_damage });
+                }
+            } else if (held_eat.item == .armadillo_scute) {
+                if (armadillo_wolf_armor_mod.repairWolfArmor(&active_wolf_armor)) {
+                    inventory.slots[selected_slot].decrement(1);
+                    audio.play(.anvil_clang, 0.8);
+                    particles.spawnGlowstoneShimmer(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 8);
+                    std.debug.print("repaired Wolf Armor with Armadillo Scute (durability={d}/{d}, crack_stage={s})\n", .{ active_wolf_armor.durability, armadillo_wolf_armor_mod.wolf_armor_max_durability, @tagName(active_wolf_armor.crackStage()) });
+                } else {
+                    std.debug.print("Wolf Armor already at full durability ({d}/{d}, crack_stage={s})\n", .{ active_wolf_armor.durability, armadillo_wolf_armor_mod.wolf_armor_max_durability, @tagName(active_wolf_armor.crackStage()) });
                 }
             } else if (held_eat.item == .wolf_armor) {
-                _ = armadillo_wolf_armor_mod.repairWolfArmor(&active_wolf_armor);
-                audio.play(.anvil_clang, 0.7);
-                std.debug.print("inspected Wolf Armor (durability={d}/{d}, crack_stage={s})\n", .{ active_wolf_armor.durability, armadillo_wolf_armor_mod.wolf_armor_max_durability, @tagName(active_wolf_armor.currentCrackStage()) });
+                if (key_shift) {
+                    const chosen_color: armadillo_wolf_armor_mod.DyeColor = blk: {
+                        for (0..6) |i| {
+                            if (i == selected_slot) continue;
+                            const pslot = &inventory.slots[i];
+                            if (pslot.isEmpty()) continue;
+                            const mapped: ?armadillo_wolf_armor_mod.DyeColor = switch (pslot.item) {
+                                .bone_meal => .white,
+                                .lapis_lazuli => .blue,
+                                .glow_ink_sac => .cyan,
+                                .cocoa_beans => .brown,
+                                .cactus => .green,
+                                .sunflower => .yellow,
+                                .pink_petals => .pink,
+                                .torchflower => .orange,
+                                .redstone_dust => .red,
+                                .coal => .black,
+                                else => null,
+                            };
+                            if (mapped) |dc| {
+                                pslot.decrement(1);
+                                break :blk dc;
+                            }
+                        }
+                        const dc: armadillo_wolf_armor_mod.DyeColor = @enumFromInt(@as(u8, @intCast(active_wolf_armor_dye_idx % 16)));
+                        active_wolf_armor_dye_idx = (active_wolf_armor_dye_idx + 1) % 16;
+                        break :blk dc;
+                    };
+                    armadillo_wolf_armor_mod.dyeWolfArmor(&active_wolf_armor, chosen_color);
+                    audio.play(.click_on, 0.85);
+                    particles.spawnGlowstoneShimmer(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 8);
+                    std.debug.print("dyed Wolf Armor {s} (rgb=0x{X:0>6}, durability={d}/{d}, crack_stage={s})\n", .{ @tagName(chosen_color), chosen_color.rgb(), active_wolf_armor.durability, armadillo_wolf_armor_mod.wolf_armor_max_durability, @tagName(active_wolf_armor.crackStage()) });
+                } else {
+                    if (active_wolf_armor.isBroken()) {
+                        active_wolf_armor = armadillo_wolf_armor_mod.WolfArmor.init();
+                    }
+                    active_wolf_armor_equipped = !active_wolf_armor_equipped;
+                    audio.play(if (active_wolf_armor_equipped) .anvil_clang else .click_off, 0.75);
+                    const dye_name: []const u8 = if (active_wolf_armor.color) |dc| @tagName(dc) else "undyed";
+                    std.debug.print("Wolf Armor {s} (durability={d}/{d}, crack_stage={s}, visual={s}, dye={s})\n", .{ if (active_wolf_armor_equipped) "equipped" else "stowed", active_wolf_armor.durability, armadillo_wolf_armor_mod.wolf_armor_max_durability, @tagName(active_wolf_armor.crackStage()), @tagName(active_wolf_armor.currentCrackStage()), dye_name });
+                }
             } else if (held_eat.item == .golden_apple) {
                 player.eatGolden();
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.8);
                 std.debug.print("ate golden apple (hp={d:.1})\n", .{player.health});
-            } else if (held_eat.item == .goat_horn and goat_horn_mod.canBlowHorn(goat_horn_cooldown)) {
+            } else if ((held_eat.item == .goat_horn or held_eat.item == .screamer_goat_horn or held_eat.item == .copper_horn or held_eat.item == .copper_horn_instrument) and goat_horn_mod.canBlowHorn(goat_horn_cooldown)) {
                 goat_horn_cooldown = goat_horn_mod.horn_cooldown_duration;
-                audio.play(.end_portal_open, 0.95);
-                audio.play(.glowstone_chime, 1.0);
-                particles.spawnFireworkBurst(.{ player.pos.x, player.pos.y + 1.2, player.pos.z }, 20);
-                std.debug.print("sounded triumphant Goat Horn across 64m!\n", .{});
+                const camera_pitch_deg = -std.math.radiansToDegrees(cam.pitch);
+                const register = goat_horn_mod.registerForCameraPitch(camera_pitch_deg);
+                const pitch_mult = register.multiplier();
+                const is_screamer_horn = (held_eat.item == .screamer_goat_horn);
+                const variant = if (is_screamer_horn)
+                    goat_horn_mod.screamer_variants[active_horn_variant_idx % goat_horn_mod.screamer_variants.len]
+                else
+                    goat_horn_mod.standard_variants[active_horn_variant_idx % goat_horn_mod.standard_variants.len];
+                active_horn_variant_idx = (active_horn_variant_idx + 1) % 4;
+                const origin = goat_horn_mod.Vec3{ .x = player.pos.x, .y = player.pos.y + 1.5, .z = player.pos.z };
+                const cf = cam.front();
+                const register_sound: audio_mod.synth.SoundType = switch (register) {
+                    .low => .note_bass,
+                    .mid => .note_harp,
+                    .high => .note_chime,
+                };
+                if (held_eat.item == .copper_horn or held_eat.item == .copper_horn_instrument) {
+                    active_copper_horn_playback.cooldown_ticks = 0;
+                    if (active_copper_horn_playback.play(goat_horn_mod.CopperHorn.craft(variant), origin, camera_pitch_deg, key_shift)) |cwave| {
+                        audio.play(register_sound, 1.0);
+                        audio.play(if (cwave.vibrato_mode == .sneaking_vibrato) .glowstone_chime else .end_portal_open, 0.85);
+                        for ([_]f32{ 1.5, 3.0, 4.5 }) |dist| {
+                            particles.spawnGlowstoneShimmer(.{ origin.x + cf.x * dist, origin.y + cf.y * dist, origin.z + cf.z * dist }, 8);
+                        }
+                        particles.spawnFireworkBurst(.{ origin.x + cf.x * 2.5, origin.y + cf.y * 2.5, origin.z + cf.z * 2.5 }, 16);
+                        std.debug.print("blew Copper Horn ({s}): register={s} ({s}, {d:.2}x), vibrato={s}, radius={d:.0}m, sculk_freq={d}\n", .{ @tagName(cwave.theme), register.musicalRole(), @tagName(cwave.pitch_register), cwave.pitch_multiplier, @tagName(cwave.vibrato_mode), cwave.radius, cwave.sculk_frequency });
+                    }
+                } else {
+                    active_horn_playback.cooldown_ticks = 0;
+                    if (active_horn_playback.play(variant, origin, .{ .x = cf.x, .y = cf.y, .z = cf.z })) |wave| {
+                        const cone = wave.sonicConeAt(0.02, 20);
+                        audio.play(.end_portal_open, 0.95);
+                        audio.play(register_sound, 0.9);
+                        for ([_]f32{ 1.5, 3.0, cone.radius }) |dist| {
+                            particles.spawnGlowstoneShimmer(.{ cone.origin.x + cone.direction.x * dist, cone.origin.y + cone.direction.y * dist, cone.origin.z + cone.direction.z * dist }, 6);
+                        }
+                        particles.spawnFireworkBurst(.{ cone.origin.x + cone.direction.x * 2.5, cone.origin.y + cone.direction.y * 2.5, cone.origin.z + cone.direction.z * 2.5 }, @as(usize, cone.particle_count));
+                        std.debug.print("sounded Goat Horn ({s}, call={s}, +{d}st): register={s} ({d:.2}x), radius={d:.0}m, sculk_freq={d}\n", .{ @tagName(wave.variant), wave.audio_call_id, wave.pitch_interval_semitones, register.musicalRole(), pitch_mult, wave.radius, wave.sculk_frequency });
+                    }
+                }
             } else if (held_eat.item == .cactus) {
                 if (camel_mount.feedCactus()) {
                     inventory.slots[selected_slot].decrement(1);

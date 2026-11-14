@@ -1,0 +1,21 @@
+# Decision 033: Armadillo/Wolf Armor and Goat/Copper Horn unification
+
+Accepted: 2026-11-14.
+
+## Context
+Armadillo defense, Wolf Armor degradation/dyeing, and Goat/Copper Horn acoustic rules were split across five overlapping modules in `src/world/`:
+- `src/world/armadillo_wolf_armor.zig` (28 tests): Continuous-time `Armadillo` defense/breeding state machine (`unrolled`, `rolling_up`, `rolled_up`, `peeking`, `unrolling`), `shouldTriggerRollUp`, `rolledDamageReduction`, `brushArmadillo`, `WolfArmor`, `CrackStage` (`none`, `low_cracks`, `medium_cracks`, `high_cracks`), `DyeColor`, `absorbWolfDamageWithKind`, `repairWolfArmor`, and `dyeWolfArmor` / `removeWolfArmorDye`.
+- `src/world/armadillo_wolf_defense.zig` (36 tests): Tick-discrete `Armadillo` threat-list defense (`standing`, `rolling_up`, `curled_ball`, `unrolling`), 24,000-tick `tickNaturalScute` shedding, 5-stage `CrackStage` (`pristine`, `slightly_cracked`, `moderately_cracked`, `heavily_cracked`, `broken`), owner-gated `Wolf` interaction, and `washArmorInCauldron`. Imported into `src/main.zig` only for a discarded `_ = armadillo_wolf_defense_mod.threat_radius;`.
+- `src/world/goat_horn.zig` (13 tests): `horn_cooldown_duration`, `horn_audible_radius`, `canBlowHorn`, `tickHornCooldown`, `isWithinHornAudibleRange`, and `calculateRamImpulse`.
+- `src/world/goat_horn_acoustics.zig` (40 tests): 8 `GoatHornVariant` calls (4 standard + 4 screamer-exclusive), `HornPlaybackState`, `HornSoundWave` (256m radius, linear attenuation, `sonicConeAt`), and `Goat` ram windup/shedding rules. Imported into `src/main.zig` only for a discarded `_ = goat_horn_acoustics_mod.ACOUSTIC_RADIUS;`.
+- `src/world/copper_horn_acoustics.zig` (38 tests): `registerForCameraPitch` (`high` melody <= -30°, `mid` harmony, `low` bass >= +30°), `PitchRegister.multiplier` (1.33x / 1.0x / 0.75x), `VibratoMode` (`steady` / `sneaking_vibrato`), `CraftingRecipe`, `CopperHorn`, `HornWave`, and `PlaybackState`. Imported into `src/main.zig` only for a discarded `_ = copper_horn_acoustics_mod.registerForCameraPitch(0);`.
+
+## Decision
+1. **Armadillo & Wolf Armor ownership**: `src/world/armadillo_wolf_armor.zig` is the single authoritative module (64 tests total).
+   - Retained all continuous-time `Armadillo` and `WolfArmor` APIs, added `ticks_since_scute_drop` and `tickNaturalScute()` to `Armadillo`, added 5-stage `DefenseCrackStage` + `WolfArmor.crackStage()`, `WolfArmor.dye`, `WolfArmor.undye`, `washArmorInCauldron`, and incorporated `DefenseArmadillo`, `Threat`, `Wolf`, and all 36 tests from `armadillo_wolf_defense.zig`.
+2. **Goat & Copper Horn ownership**: `src/world/goat_horn.zig` is the single authoritative module (91 tests total).
+   - Retained all cooldown, 64m range, and ram impulse APIs, and merged all 8 `GoatHornVariant` (`GoatHornTheme`) variants, `HornPlaybackState`, `HornSoundWave`, `sonicConeAt`, `Goat` shedding/ramming, `PitchRegister` (with `musicalRole` returning `"melody"`, `"harmony"`, `"bass"`), `registerForCameraPitch`, `VibratoMode`, `CopperHorn`, `CraftingRecipe`, `HornWave`, and `PlaybackState` along with all 78 acoustic tests.
+3. **Cleanup & Gameplay connection in `src/main.zig`**:
+   - Removed `src/world/armadillo_wolf_defense.zig`, `src/world/goat_horn_acoustics.zig`, and `src/world/copper_horn_acoustics.zig` via `git rm`, removed their `build.zig` `test_files` entries, and removed their 3 unused imports and 3 discarded calls from `src/main.zig`.
+   - Connected Armadillo threat roll-up (sprinting player, nearby undead/spider mobs within 7m, recent player damage) and 20 Hz natural scute shedding (`tickNaturalScute`) in the frame loop, real brush durability wear on `.brush` use, `.armadillo_scute` repair, shift-right-click `.wolf_armor` dyeing (consuming hotbar pigment items or cycling 16 colors), water cauldron washing (`washArmorInCauldron`), and Wolf Armor damage absorption with `crackStage()` transitions.
+   - Connected Goat/Copper Horn blowing (`.goat_horn`, `.screamer_goat_horn`, `.copper_horn`, `.copper_horn_instrument`) using `-std.math.radiansToDegrees(cam.pitch)` passed to `registerForCameraPitch` (selecting bass/harmony/melody register and register-matched audio), `sneaking_vibrato` when sneaking, variant cycling, and directional sonic cone particle emission (`sonicConeAt`).

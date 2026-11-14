@@ -7,11 +7,17 @@ const std = @import("std");
 /// Distance in blocks within which threats (sprinting player, undead mob, recent damage)
 /// cause an armadillo to roll up into its protective ball (7 blocks).
 pub const threat_detection_radius: f32 = 7.0;
+pub const threat_radius: f32 = threat_detection_radius;
 pub const threat_detection_radius_sq: f32 = 49.0;
 
 /// Distance in blocks within which spiders and cave spiders flee from unrolled armadillos (6 blocks).
 pub const spider_flee_radius: f32 = 6.0;
 pub const spider_flee_radius_sq: f32 = 36.0;
+
+/// Ticks without a threat before a curled armadillo starts unrolling (200 ticks = 10s).
+pub const unthreatened_ticks_to_unroll: u16 = 200;
+/// Ticks between natural armadillo scute drops (24,000 ticks = 20 minutes).
+pub const natural_scute_interval_ticks: u32 = 24_000;
 
 /// Brush durability consumed when harvesting an armadillo scute.
 pub const brush_durability_cost: u16 = 16;
@@ -20,6 +26,7 @@ pub const scutes_per_brush: u8 = 1;
 
 /// Maximum durability points for Wolf Armor.
 pub const wolf_armor_max_durability: u16 = 64;
+pub const wolf_armor_durability: u16 = wolf_armor_max_durability;
 /// Number of armadillo scutes required to craft Wolf Armor.
 pub const wolf_armor_craft_scutes: u8 = 6;
 /// Durability restored per armadillo scute when repairing Wolf Armor in place.
@@ -47,12 +54,20 @@ pub const armadillo_love_duration: f32 = 30.0;
 // Enums
 // ============================================================================
 
-/// Behavioral state of an Armadillo.
+/// Behavioral state of an Armadillo (continuous-time state machine).
 pub const ArmadilloState = enum {
     unrolled,
     rolling_up,
     rolled_up,
     peeking,
+    unrolling,
+};
+
+/// Tick-discrete defensive posture state of an Armadillo.
+pub const DefenseArmadilloState = enum {
+    standing,
+    rolling_up,
+    curled_ball,
     unrolling,
 };
 
@@ -64,12 +79,34 @@ pub const ThreatType = enum {
     recent_damage,
 };
 
+/// Detailed entity/event threat classification for tick-based evaluation.
+pub const ThreatKind = enum {
+    sprinting_player,
+    zombie,
+    husk,
+    drowned,
+    skeleton,
+    spider,
+    cave_spider,
+    environmental_damage,
+    other,
+};
+
 /// Crack stages for Wolf Armor visual degradation.
 pub const CrackStage = enum {
     none,
     low_cracks,
     medium_cracks,
     high_cracks,
+};
+
+/// Five-stage crack progression including pristine and broken states.
+pub const DefenseCrackStage = enum {
+    pristine,
+    slightly_cracked,
+    moderately_cracked,
+    heavily_cracked,
+    broken,
 };
 
 /// Standard 16 Minecraft dye colors supported for dying Wolf Armor.
@@ -132,14 +169,47 @@ pub const DamageKind = enum {
     environmental, // drowning, freezing, suffocation, magic/wither, void
 };
 
+/// Damage classes for curled armadillo mitigation.
+pub const DefenseDamageKind = enum { weak, blast, melee, other };
+
+/// Acoustic cues emitted by armadillo shell roll-up and wolf armor shatter.
+pub const Sound = enum { shell_clack, armor_shatter };
+
+/// Interaction item categories for tick-based wolf and armadillo interactions.
+pub const InteractionItem = enum { brush, armadillo_scute, wolf_armor, shears, other };
+
 // ============================================================================
 // Core Functions: Armadillo Defense & Brushing
 // ============================================================================
+
+/// Computes 3D Euclidean distance between two coordinates.
+pub fn distance3d(ax: f32, ay: f32, az: f32, bx: f32, by: f32, bz: f32) f32 {
+    const dx = ax - bx;
+    const dy = ay - by;
+    const dz = az - bz;
+    return @sqrt(dx * dx + dy * dy + dz * dz);
+}
 
 /// Calculates whether a squared distance is within the 7-block threat detection radius.
 pub fn isThreatWithinRadius(distance_sq: f32) bool {
     return distance_sq <= threat_detection_radius_sq;
 }
+
+/// Calculates whether a linear Euclidean distance is within the 7-block threat radius.
+pub fn isThreatDistanceWithinRadius(distance: f32) bool {
+    return distance >= 0 and distance <= threat_radius;
+}
+
+/// Threat descriptor with distance for tick-based armadillo detection.
+pub const Threat = struct {
+    kind: ThreatKind,
+    distance: f32 = 0,
+
+    pub fn isRelevant(self: Threat) bool {
+        if (self.kind == .environmental_damage) return true;
+        return self.distance >= 0 and self.distance <= threat_radius and self.kind != .other;
+    }
+};
 
 /// Evaluates whether a nearby entity or event constitutes an armadillo threat within 7 blocks.
 pub fn shouldTriggerRollUp(distance_sq: f32, is_sprinting_player: bool, is_undead_mob: bool, has_recent_damage: bool) bool {
@@ -159,6 +229,12 @@ pub fn rolledDamageReduction(raw_damage: f32) f32 {
 pub const BrushResult = struct {
     scutes_dropped: u8,
     brush_damage: u16,
+};
+
+/// Result of brushing an armadillo with explicit tool classification.
+pub const DefenseBrushResult = struct {
+    scutes_dropped: u8 = 0,
+    brush_durability_used: u16 = 0,
 };
 
 pub fn brushArmadillo(brush_durability_remaining: u16) BrushResult {
@@ -187,6 +263,7 @@ pub const Armadillo = struct {
     state: ArmadilloState = .unrolled,
     state_timer: f32 = 0.0,
     threat_cooldown: f32 = 0.0,
+    ticks_since_scute_drop: u32 = 0,
     is_baby: bool = false,
     baby_age: f32 = 0.0,
     breed_cooldown: f32 = 0.0,
@@ -276,6 +353,15 @@ pub const Armadillo = struct {
         }
     }
 
+    /// Advances natural scute drop counter by 1 game tick; returns true every 24,000 ticks.
+    pub fn tickNaturalScute(self: *Armadillo) bool {
+        if (self.is_baby) return false;
+        self.ticks_since_scute_drop += 1;
+        if (self.ticks_since_scute_drop < natural_scute_interval_ticks) return false;
+        self.ticks_since_scute_drop = 0;
+        return true;
+    }
+
     /// Handles incoming damage to the armadillo, taking defense roll-up state into account.
     pub fn applyDamage(self: *Armadillo, raw_damage: f32) f32 {
         const was_rolled = (self.state == .rolled_up or self.state == .rolling_up);
@@ -284,6 +370,87 @@ pub const Armadillo = struct {
             return rolledDamageReduction(raw_damage);
         }
         return raw_damage;
+    }
+};
+
+/// Result of a tick-based armadillo defense step.
+pub const TickResult = struct { sound: ?Sound = null };
+
+/// Tick-based armadillo defense state machine supporting threat lists, curled mitigation,
+/// and natural scute shedding intervals.
+pub const DefenseArmadillo = struct {
+    state: DefenseArmadilloState = .standing,
+    state_ticks: u8 = 0,
+    threat_clear_ticks: u16 = 0,
+    ticks_since_scute_drop: u32 = 0,
+
+    pub fn tick(self: *DefenseArmadillo, threats: []const Threat) TickResult {
+        var threatened = false;
+        for (threats) |threat| {
+            if (threat.isRelevant()) {
+                threatened = true;
+                break;
+            }
+        }
+
+        var began_rolling = false;
+        if (threatened) {
+            self.threat_clear_ticks = 0;
+            if (self.state == .standing or self.state == .unrolling) {
+                self.state = .rolling_up;
+                self.state_ticks = 0;
+                began_rolling = true;
+            }
+        } else if (self.state == .curled_ball) {
+            self.threat_clear_ticks +|= 1;
+        }
+
+        self.state_ticks +|= 1;
+        switch (self.state) {
+            .standing => {},
+            .rolling_up => {
+                if (began_rolling) return .{};
+                if (self.state_ticks >= 1) {
+                    self.state = .curled_ball;
+                    self.state_ticks = 0;
+                    return .{ .sound = .shell_clack };
+                }
+            },
+            .curled_ball => {
+                if (self.threat_clear_ticks >= unthreatened_ticks_to_unroll) {
+                    self.state = .unrolling;
+                    self.state_ticks = 0;
+                }
+            },
+            .unrolling => {
+                if (self.state_ticks >= 1) {
+                    self.state = .standing;
+                    self.state_ticks = 0;
+                }
+            },
+        }
+        return .{};
+    }
+
+    pub fn applyDamage(self: *DefenseArmadillo, amount: f32, kind: DefenseDamageKind) f32 {
+        if (self.state != .curled_ball) return amount;
+        return switch (kind) {
+            .weak => 0,
+            .blast, .melee => amount * 0.15,
+            .other => amount,
+        };
+    }
+
+    pub fn brush(_: DefenseArmadillo, tool: InteractionItem, brush_durability: u16) DefenseBrushResult {
+        if (tool != .brush or brush_durability == 0) return .{};
+        return .{ .scutes_dropped = 1, .brush_durability_used = @min(brush_durability, brush_durability_cost) };
+    }
+
+    pub fn tickNaturalScute(self: *DefenseArmadillo) bool {
+        self.ticks_since_scute_drop += 1;
+        if (self.ticks_since_scute_drop < natural_scute_interval_ticks) return false;
+        self.ticks_since_scute_drop = 0;
+        return true;
     }
 };
 
@@ -331,7 +498,7 @@ pub fn tryBreedArmadillos(parent1: *Armadillo, parent2: *Armadillo) ?Armadillo {
 }
 
 // ============================================================================
-// Wolf Armor
+// Wolf Armor & Tamed Wolf Interaction
 // ============================================================================
 
 pub const WolfArmor = struct {
@@ -349,6 +516,27 @@ pub const WolfArmor = struct {
         return getCrackStage(self.durability);
     }
 
+    /// Returns the 5-stage visual crack progression (pristine, slightly/moderately/heavily cracked, broken).
+    pub fn crackStage(self: WolfArmor) DefenseCrackStage {
+        if (self.durability == 0) return .broken;
+        if (self.durability == wolf_armor_durability) return .pristine;
+        if (self.durability >= 48) return .slightly_cracked;
+        if (self.durability >= 32) return .moderately_cracked;
+        return .heavily_cracked;
+    }
+
+    /// Applies one of the 16 dye colors to this Wolf Armor.
+    pub fn dye(self: *WolfArmor, color: DyeColor) void {
+        self.color = color;
+    }
+
+    /// Removes dye from this Wolf Armor; returns true if dye was present.
+    pub fn undye(self: *WolfArmor) bool {
+        if (self.color == null) return false;
+        self.color = null;
+        return true;
+    }
+
     pub fn isBroken(self: WolfArmor) bool {
         return self.durability == 0;
     }
@@ -358,6 +546,19 @@ pub const WolfArmor = struct {
 pub fn craftWolfArmor(scutes_available: u8) ?WolfArmor {
     if (scutes_available < wolf_armor_craft_scutes) return null;
     return WolfArmor.init();
+}
+
+/// Crafting outcome descriptor preserving consumed scute count.
+pub const CraftResult = struct {
+    item: InteractionItem = .other,
+    count: u8 = 0,
+    scutes_consumed: u8 = 0,
+};
+
+/// Evaluates Wolf Armor crafting from 6 scutes and reports consumed scutes.
+pub fn craftWolfArmorResult(scutes: u8) CraftResult {
+    if (scutes < 6) return .{};
+    return .{ .item = .wolf_armor, .count = 1, .scutes_consumed = 6 };
 }
 
 /// Returns the crack stage for Wolf Armor based on remaining durability:
@@ -448,10 +649,85 @@ pub fn dyeWolfArmor(armor: *WolfArmor, color: DyeColor) void {
 
 /// Clears dye from Wolf Armor (e.g. by washing in a cauldron).
 pub fn removeWolfArmorDye(armor: *WolfArmor) bool {
-    if (armor.color == null) return false;
-    armor.color = null;
-    return true;
+    return armor.undye();
 }
+
+/// Washes dyed Wolf Armor in a cauldron, clearing applied dye.
+pub fn washArmorInCauldron(armor: *WolfArmor) bool {
+    return armor.undye();
+}
+
+pub const WolfInteractionAction = enum {
+    armor_equipped,
+    armor_removed,
+    repaired,
+    nothing_to_repair,
+    no_interaction,
+    not_owner,
+};
+
+pub const WolfInteractionResult = struct {
+    action: WolfInteractionAction,
+    consumed_item: ?InteractionItem = null,
+    returned_armor: ?WolfArmor = null,
+};
+
+pub const WolfDamageResult = struct {
+    damage_to_wolf: u16 = 0,
+    armor_broke: bool = false,
+    sound: ?Sound = null,
+};
+
+/// Tamed Wolf entity supporting owner-gated armor equipping, scute repair, shears removal,
+/// damage absorption with shatter sound, and dyeing.
+pub const Wolf = struct {
+    owner_id: u64,
+    armor: ?WolfArmor = null,
+
+    pub fn interact(self: *Wolf, player_id: u64, item: InteractionItem) WolfInteractionResult {
+        if (player_id != self.owner_id) return .{ .action = .not_owner };
+        if (self.armor) |*armor| {
+            switch (item) {
+                .armadillo_scute => {
+                    if (armor.durability == wolf_armor_durability) return .{ .action = .nothing_to_repair };
+                    armor.durability = @min(wolf_armor_durability, armor.durability + scute_repair_amount);
+                    return .{ .action = .repaired, .consumed_item = .armadillo_scute };
+                },
+                .shears => {
+                    const returned_armor = armor.*;
+                    self.armor = null;
+                    return .{ .action = .armor_removed, .returned_armor = returned_armor };
+                },
+                else => return .{ .action = .no_interaction },
+            }
+        }
+        if (item == .wolf_armor) {
+            self.armor = WolfArmor{};
+            return .{ .action = .armor_equipped, .consumed_item = .wolf_armor };
+        }
+        return .{ .action = .no_interaction };
+    }
+
+    pub fn applyDamage(self: *Wolf, damage: u16) WolfDamageResult {
+        if (self.armor) |*armor| {
+            if (damage == 0) return .{};
+            armor.durability -|= damage;
+            if (armor.durability == 0) {
+                self.armor = null;
+                return .{ .damage_to_wolf = 0, .armor_broke = true, .sound = .armor_shatter };
+            }
+            return .{ .damage_to_wolf = 0 };
+        }
+        return .{ .damage_to_wolf = damage };
+    }
+
+    pub fn dyeArmor(self: *Wolf, player_id: u64, color: DyeColor) bool {
+        if (player_id != self.owner_id) return false;
+        const armor = if (self.armor) |*value| value else return false;
+        armor.color = color;
+        return true;
+    }
+};
 
 // ============================================================================
 // Unit Tests
@@ -473,33 +749,23 @@ test "constants have expected values" {
 }
 
 test "threat detection radius within 7 blocks" {
-    // 0 blocks
     try std.testing.expect(isThreatWithinRadius(0.0));
-    // 5 blocks (25 sq)
     try std.testing.expect(isThreatWithinRadius(25.0));
-    // Exactly 7 blocks (49 sq)
     try std.testing.expect(isThreatWithinRadius(49.0));
-    // Outside 7 blocks (50 sq)
     try std.testing.expect(!isThreatWithinRadius(50.0));
-    // Far away
     try std.testing.expect(!isThreatWithinRadius(100.0));
 }
 
 test "shouldTriggerRollUp triggers on threats within radius" {
-    // Sprinting player within 7 blocks
     try std.testing.expect(shouldTriggerRollUp(30.0, true, false, false));
-    // Undead mob within 7 blocks
     try std.testing.expect(shouldTriggerRollUp(40.0, false, true, false));
-    // Recent damage within 7 blocks
     try std.testing.expect(shouldTriggerRollUp(10.0, false, false, true));
-    // Threat beyond 7 blocks does not trigger
     try std.testing.expect(!shouldTriggerRollUp(50.0, true, false, false));
     try std.testing.expect(!shouldTriggerRollUp(50.0, false, true, false));
     try std.testing.expect(!shouldTriggerRollUp(50.0, false, false, true));
 }
 
 test "shouldTriggerRollUp ignores non-threats" {
-    // Walking player (not sprinting), no undead, no damage
     try std.testing.expect(!shouldTriggerRollUp(1.0, false, false, false));
     try std.testing.expect(!shouldTriggerRollUp(25.0, false, false, false));
 }
@@ -508,27 +774,21 @@ test "armadillo state transition lifecycle" {
     var armadillo = Armadillo.init();
     try std.testing.expectEqual(ArmadilloState.unrolled, armadillo.state);
 
-    // Threat triggers rolling_up
     armadillo.tick(0.1, true);
     try std.testing.expectEqual(ArmadilloState.rolling_up, armadillo.state);
 
-    // Advances to rolled_up after rolling_up_duration (0.75s)
     armadillo.tick(0.65, false); // total 0.75s in rolling_up
     try std.testing.expectEqual(ArmadilloState.rolled_up, armadillo.state);
 
-    // Stays rolled up while threat cooldown is active
     armadillo.tick(2.5, false);
     try std.testing.expectEqual(ArmadilloState.rolled_up, armadillo.state);
 
-    // After threat cooldown clears and rolled_up_duration elapses, enters peeking
     armadillo.tick(1.0, false);
     try std.testing.expectEqual(ArmadilloState.peeking, armadillo.state);
 
-    // After peeking_duration (2.0s), transitions to unrolling
     armadillo.tick(2.0, false);
     try std.testing.expectEqual(ArmadilloState.unrolling, armadillo.state);
 
-    // After unrolling_duration (0.75s), returns to unrolled
     armadillo.tick(0.75, false);
     try std.testing.expectEqual(ArmadilloState.unrolled, armadillo.state);
 }
@@ -549,7 +809,6 @@ test "rolledDamageReduction fully resists weak attacks" {
 }
 
 test "rolledDamageReduction scales according to Minecraft formula" {
-    // formula: (raw_damage - 1.0) / 2.0
     try std.testing.expectApproxEqAbs(@as(f32, 0.5), rolledDamageReduction(2.0), 0.0001);
     try std.testing.expectApproxEqAbs(@as(f32, 1.0), rolledDamageReduction(3.0), 0.0001);
     try std.testing.expectApproxEqAbs(@as(f32, 2.0), rolledDamageReduction(5.0), 0.0001);
@@ -560,12 +819,10 @@ test "rolledDamageReduction scales according to Minecraft formula" {
 test "armadillo applyDamage applies reduction only when rolled up" {
     var armadillo = Armadillo.init();
 
-    // When unrolled, first hit does unreduced damage but triggers roll-up
     const dmg1 = armadillo.applyDamage(5.0);
     try std.testing.expectEqual(@as(f32, 5.0), dmg1);
     try std.testing.expectEqual(ArmadilloState.rolling_up, armadillo.state);
 
-    // Next hit while rolling_up or rolled_up gets reduced
     const dmg2 = armadillo.applyDamage(5.0);
     try std.testing.expectApproxEqAbs(@as(f32, 2.0), dmg2, 0.0001);
 
@@ -622,7 +879,6 @@ test "wolf armor absorbs lethal shattering blow completely" {
     var armor = WolfArmor.init();
     armor.durability = 10;
 
-    // Incoming 25 damage exceeds 10 durability, armor absorbs fully and breaks
     const res = absorbWolfDamage(&armor, 25);
     try std.testing.expectEqual(@as(u16, 0), res.damage_to_wolf);
     try std.testing.expectEqual(true, res.armor_broken);
@@ -642,26 +898,22 @@ test "shattered wolf armor lets damage penetrate to wolf" {
 test "environmental damage bypasses wolf armor" {
     var armor = WolfArmor.init();
 
-    // Drowning / Freezing / Environmental damage penetrates directly
     const res = absorbWolfDamageWithKind(&armor, 8, .environmental);
     try std.testing.expectEqual(@as(u16, 8), res.damage_to_wolf);
     try std.testing.expectEqual(false, res.armor_broken);
-    try std.testing.expectEqual(@as(u16, 64), armor.durability); // Armor undamaged
+    try std.testing.expectEqual(@as(u16, 64), armor.durability);
 }
 
 test "crack stage thresholds at 60, 44, 20" {
     try std.testing.expectEqual(CrackStage.none, getCrackStage(64));
     try std.testing.expectEqual(CrackStage.none, getCrackStage(61));
 
-    // Threshold 60 -> low_cracks
     try std.testing.expectEqual(CrackStage.low_cracks, getCrackStage(60));
     try std.testing.expectEqual(CrackStage.low_cracks, getCrackStage(45));
 
-    // Threshold 44 -> medium_cracks
     try std.testing.expectEqual(CrackStage.medium_cracks, getCrackStage(44));
     try std.testing.expectEqual(CrackStage.medium_cracks, getCrackStage(21));
 
-    // Threshold 20 -> high_cracks
     try std.testing.expectEqual(CrackStage.high_cracks, getCrackStage(20));
     try std.testing.expectEqual(CrackStage.high_cracks, getCrackStage(1));
     try std.testing.expectEqual(CrackStage.high_cracks, getCrackStage(0));
@@ -671,22 +923,19 @@ test "repairWolfArmor restores 8 durability per scute up to 64" {
     var armor = WolfArmor.init();
     armor.durability = 50;
 
-    // First repair: 50 + 8 = 58
     try std.testing.expect(repairWolfArmor(&armor));
     try std.testing.expectEqual(@as(u16, 58), armor.durability);
 
-    // Second repair: 58 + 8 = 64 (clamped)
     try std.testing.expect(repairWolfArmor(&armor));
     try std.testing.expectEqual(@as(u16, 64), armor.durability);
 
-    // Cannot repair when full
     try std.testing.expect(!repairWolfArmor(&armor));
     try std.testing.expectEqual(@as(u16, 64), armor.durability);
 }
 
 test "repairWolfArmorWithScutes consumes exact scutes needed" {
     var armor = WolfArmor.init();
-    armor.durability = 40; // Needs 24 durability -> 3 scutes
+    armor.durability = 40;
 
     const consumed = repairWolfArmorWithScutes(&armor, 5);
     try std.testing.expectEqual(@as(u8, 3), consumed);
@@ -698,10 +947,10 @@ test "wolf armor dye colors: 16 colors supported" {
     try std.testing.expect(armor.color == null);
 
     const colors = [_]DyeColor{
-        .white, .orange,   .magenta, .light_blue,
-        .yellow, .lime,    .pink,    .gray,
-        .light_gray, .cyan, .purple,  .blue,
-        .brown, .green,    .red,     .black,
+        .white, .orange,     .magenta, .light_blue,
+        .yellow, .lime,      .pink,    .gray,
+        .light_gray, .cyan,  .purple,  .blue,
+        .brown, .green,      .red,     .black,
     };
     try std.testing.expectEqual(@as(usize, 16), colors.len);
 
@@ -721,7 +970,6 @@ test "removeWolfArmorDye clears applied dye" {
     try std.testing.expect(removeWolfArmorDye(&armor));
     try std.testing.expect(armor.color == null);
 
-    // Removing when already null returns false
     try std.testing.expect(!removeWolfArmorDye(&armor));
 }
 
@@ -763,27 +1011,257 @@ test "tryBreedArmadillos produces baby and sets cooldown" {
     try std.testing.expect(maybe_baby != null);
     try std.testing.expect(maybe_baby.?.is_baby);
 
-    // Both parents exit love mode and enter 300s breed cooldown
     try std.testing.expect(!parent1.is_in_love);
     try std.testing.expect(!parent2.is_in_love);
     try std.testing.expectApproxEqAbs(armadillo_breed_cooldown, parent1.breed_cooldown, 0.0001);
     try std.testing.expectApproxEqAbs(armadillo_breed_cooldown, parent2.breed_cooldown, 0.0001);
 
-    // Feeding during cooldown is refused
     try std.testing.expectEqual(FeedResult.refused_on_cooldown, feedSpiderEye(&parent1, true));
 }
 
 test "spiders flee from unrolled armadillos within 6 blocks" {
-    // Unrolled within 6 blocks -> flee
     try std.testing.expect(shouldSpiderFlee(.unrolled, 20.0));
     try std.testing.expect(shouldSpiderFlee(.unrolled, 36.0));
-
-    // Beyond 6 blocks -> do not flee
     try std.testing.expect(!shouldSpiderFlee(.unrolled, 37.0));
 
-    // Rolled up armadillo -> spiders do not flee
     try std.testing.expect(!shouldSpiderFlee(.rolled_up, 10.0));
     try std.testing.expect(!shouldSpiderFlee(.rolling_up, 10.0));
     try std.testing.expect(!shouldSpiderFlee(.peeking, 10.0));
     try std.testing.expect(!shouldSpiderFlee(.unrolling, 10.0));
+}
+
+// ============================================================================
+// Unified Defense & Tamed Wolf Interaction Tests (from armadillo_wolf_defense)
+// ============================================================================
+
+test "threat radius includes exactly seven meters and rejects farther entities" {
+    try std.testing.expect(isThreatDistanceWithinRadius(7));
+    try std.testing.expect(!isThreatDistanceWithinRadius(7.001));
+    try std.testing.expect(!(Threat{ .kind = .zombie, .distance = 7.01 }).isRelevant());
+}
+
+test "threat range uses three dimensional Euclidean distance" {
+    try std.testing.expectApproxEqAbs(@as(f32, 7), distance3d(0, 0, 0, 3, 4, @sqrt(@as(f32, 24))), 0.0001);
+    try std.testing.expect(!isThreatDistanceWithinRadius(distance3d(0, 0, 0, 3, 4, 5)));
+}
+
+test "sprinting player triggers roll-up" {
+    var armadillo = DefenseArmadillo{};
+    _ = armadillo.tick(&.{.{ .kind = .sprinting_player, .distance = 2 }});
+    try std.testing.expectEqual(DefenseArmadilloState.rolling_up, armadillo.state);
+}
+
+test "zombies trigger roll-up" {
+    try threatStartsRoll(.zombie);
+}
+test "husks trigger roll-up" {
+    try threatStartsRoll(.husk);
+}
+test "drowned trigger roll-up" {
+    try threatStartsRoll(.drowned);
+}
+test "skeletons trigger roll-up" {
+    try threatStartsRoll(.skeleton);
+}
+test "spiders trigger roll-up" {
+    try threatStartsRoll(.spider);
+}
+test "cave spiders trigger roll-up" {
+    try threatStartsRoll(.cave_spider);
+}
+
+fn threatStartsRoll(kind: ThreatKind) !void {
+    var armadillo = DefenseArmadillo{};
+    _ = armadillo.tick(&.{.{ .kind = kind, .distance = 6.9 }});
+    try std.testing.expectEqual(DefenseArmadilloState.rolling_up, armadillo.state);
+}
+
+test "environmental damage triggers roll-up" {
+    var armadillo = DefenseArmadillo{};
+    _ = armadillo.tick(&.{.{ .kind = .environmental_damage, .distance = 100 }});
+    try std.testing.expectEqual(DefenseArmadilloState.rolling_up, armadillo.state);
+}
+
+test "ordinary nearby entity is ignored" {
+    var armadillo = DefenseArmadillo{};
+    _ = armadillo.tick(&.{.{ .kind = .other, .distance = 1 }});
+    try std.testing.expectEqual(DefenseArmadilloState.standing, armadillo.state);
+}
+
+test "rolling closes into curled ball and emits clack" {
+    var armadillo = DefenseArmadillo{};
+    _ = armadillo.tick(&.{.{ .kind = .sprinting_player, .distance = 1 }});
+    const result = armadillo.tick(&.{});
+    try std.testing.expectEqual(DefenseArmadilloState.curled_ball, armadillo.state);
+    try std.testing.expectEqual(Sound.shell_clack, result.sound.?);
+}
+
+test "weak attack is fully negated while curled" {
+    var armadillo = DefenseArmadillo{ .state = .curled_ball };
+    try std.testing.expectEqual(@as(f32, 0), armadillo.applyDamage(10, .weak));
+}
+
+test "blast attack is reduced by eighty five percent" {
+    var armadillo = DefenseArmadillo{ .state = .curled_ball };
+    try std.testing.expectApproxEqAbs(@as(f32, 1.5), armadillo.applyDamage(10, .blast), 0.0001);
+}
+
+test "melee attack is reduced by eighty five percent" {
+    var armadillo = DefenseArmadillo{ .state = .curled_ball };
+    try std.testing.expectApproxEqAbs(@as(f32, 0.75), armadillo.applyDamage(5, .melee), 0.0001);
+}
+
+test "uncurled armadillo takes full damage" {
+    var armadillo = DefenseArmadillo{};
+    try std.testing.expectEqual(@as(f32, 5), armadillo.applyDamage(5, .weak));
+}
+
+test "threat resets the 200 tick clear counter" {
+    var armadillo = DefenseArmadillo{ .state = .curled_ball, .threat_clear_ticks = 199 };
+    _ = armadillo.tick(&.{.{ .kind = .spider, .distance = 7 }});
+    try std.testing.expectEqual(@as(u16, 0), armadillo.threat_clear_ticks);
+    try std.testing.expectEqual(DefenseArmadilloState.curled_ball, armadillo.state);
+}
+
+test "starts unrolling on the two hundredth clear tick" {
+    var armadillo = DefenseArmadillo{ .state = .curled_ball };
+    for (0..199) |_| _ = armadillo.tick(&.{});
+    try std.testing.expectEqual(DefenseArmadilloState.curled_ball, armadillo.state);
+    _ = armadillo.tick(&.{});
+    try std.testing.expectEqual(DefenseArmadilloState.unrolling, armadillo.state);
+}
+
+test "unrolling returns to standing after transition tick" {
+    var armadillo = DefenseArmadillo{ .state = .unrolling };
+    _ = armadillo.tick(&.{});
+    try std.testing.expectEqual(DefenseArmadilloState.standing, armadillo.state);
+}
+
+test "brush drops one scute and consumes sixteen durability" {
+    const result = (DefenseArmadillo{}).brush(.brush, 64);
+    try std.testing.expectEqual(@as(u8, 1), result.scutes_dropped);
+    try std.testing.expectEqual(@as(u16, 16), result.brush_durability_used);
+}
+
+test "wrong tool does not brush armadillo" {
+    const result = (DefenseArmadillo{}).brush(.other, 64);
+    try std.testing.expectEqual(@as(u8, 0), result.scutes_dropped);
+}
+
+test "broken brush yields no scute" {
+    const result = (DefenseArmadillo{}).brush(.brush, 0);
+    try std.testing.expectEqual(@as(u8, 0), result.scutes_dropped);
+}
+
+test "brush use never spends more remaining durability" {
+    const result = (DefenseArmadillo{}).brush(.brush, 5);
+    try std.testing.expectEqual(@as(u16, 5), result.brush_durability_used);
+}
+
+test "natural scute drop occurs every 24000 ticks" {
+    var armadillo = DefenseArmadillo{ .ticks_since_scute_drop = 23_998 };
+    try std.testing.expect(!armadillo.tickNaturalScute());
+    try std.testing.expect(armadillo.tickNaturalScute());
+    try std.testing.expectEqual(@as(u32, 0), armadillo.ticks_since_scute_drop);
+}
+
+test "crafting requires six scutes and consumes six" {
+    try std.testing.expectEqual(@as(u8, 0), craftWolfArmorResult(5).count);
+    const result = craftWolfArmorResult(6);
+    try std.testing.expectEqual(InteractionItem.wolf_armor, result.item);
+    try std.testing.expectEqual(@as(u8, 1), result.count);
+    try std.testing.expectEqual(@as(u8, 6), result.scutes_consumed);
+}
+
+test "only owner may equip wolf armor" {
+    var wolf = Wolf{ .owner_id = 12 };
+    try std.testing.expectEqual(WolfInteractionAction.not_owner, wolf.interact(13, .wolf_armor).action);
+    try std.testing.expectEqual(@as(?WolfArmor, null), wolf.armor);
+    const equipped = wolf.interact(12, .wolf_armor);
+    try std.testing.expectEqual(WolfInteractionAction.armor_equipped, equipped.action);
+    try std.testing.expectEqual(InteractionItem.wolf_armor, equipped.consumed_item.?);
+}
+
+test "only owner may remove armor with shears" {
+    var wolf = Wolf{ .owner_id = 12, .armor = .{ .durability = 23, .color = .cyan } };
+    try std.testing.expectEqual(WolfInteractionAction.not_owner, wolf.interact(13, .shears).action);
+    try std.testing.expect(wolf.armor != null);
+    const removed = wolf.interact(12, .shears);
+    try std.testing.expectEqual(WolfInteractionAction.armor_removed, removed.action);
+    try std.testing.expectEqual(@as(u16, 23), removed.returned_armor.?.durability);
+    try std.testing.expectEqual(DyeColor.cyan, removed.returned_armor.?.color.?);
+    try std.testing.expect(wolf.armor == null);
+}
+
+test "wolf armor absorbs damage and loses matching durability" {
+    var wolf = Wolf{ .owner_id = 1, .armor = .{} };
+    const result = wolf.applyDamage(10);
+    try std.testing.expectEqual(@as(u16, 0), result.damage_to_wolf);
+    try std.testing.expectEqual(@as(u16, 54), wolf.armor.?.durability);
+}
+
+test "wolf armor break absorbs final hit and emits shatter sound" {
+    var wolf = Wolf{ .owner_id = 1, .armor = .{ .durability = 3 } };
+    const result = wolf.applyDamage(10);
+    try std.testing.expectEqual(@as(u16, 0), result.damage_to_wolf);
+    try std.testing.expect(result.armor_broke);
+    try std.testing.expectEqual(Sound.armor_shatter, result.sound.?);
+    try std.testing.expect(wolf.armor == null);
+}
+
+test "unarmored wolf takes full damage" {
+    var wolf = Wolf{ .owner_id = 1 };
+    try std.testing.expectEqual(@as(u16, 9), wolf.applyDamage(9).damage_to_wolf);
+}
+
+test "armor crack stages match requested durability ranges" {
+    try std.testing.expectEqual(DefenseCrackStage.pristine, (WolfArmor{ .durability = 64 }).crackStage());
+    try std.testing.expectEqual(DefenseCrackStage.slightly_cracked, (WolfArmor{ .durability = 63 }).crackStage());
+    try std.testing.expectEqual(DefenseCrackStage.slightly_cracked, (WolfArmor{ .durability = 48 }).crackStage());
+    try std.testing.expectEqual(DefenseCrackStage.moderately_cracked, (WolfArmor{ .durability = 47 }).crackStage());
+    try std.testing.expectEqual(DefenseCrackStage.moderately_cracked, (WolfArmor{ .durability = 32 }).crackStage());
+    try std.testing.expectEqual(DefenseCrackStage.heavily_cracked, (WolfArmor{ .durability = 31 }).crackStage());
+    try std.testing.expectEqual(DefenseCrackStage.heavily_cracked, (WolfArmor{ .durability = 1 }).crackStage());
+    try std.testing.expectEqual(DefenseCrackStage.broken, (WolfArmor{ .durability = 0 }).crackStage());
+}
+
+test "owner repairs armor by eight durability with scute" {
+    var wolf = Wolf{ .owner_id = 1, .armor = .{ .durability = 40 } };
+    const repair = wolf.interact(1, .armadillo_scute);
+    try std.testing.expectEqual(WolfInteractionAction.repaired, repair.action);
+    try std.testing.expectEqual(InteractionItem.armadillo_scute, repair.consumed_item.?);
+    try std.testing.expectEqual(@as(u16, 48), wolf.armor.?.durability);
+    try std.testing.expectEqual(DefenseCrackStage.slightly_cracked, wolf.armor.?.crackStage());
+}
+
+test "scute repair caps armor durability at sixty four" {
+    var wolf = Wolf{ .owner_id = 1, .armor = .{ .durability = 60 } };
+    _ = wolf.interact(1, .armadillo_scute);
+    try std.testing.expectEqual(@as(u16, 64), wolf.armor.?.durability);
+}
+
+test "dye enum exposes all sixteen named colors and RGB values" {
+    const colors = [_]DyeColor{ .white, .orange, .magenta, .light_blue, .yellow, .lime, .pink, .gray, .light_gray, .cyan, .purple, .blue, .brown, .green, .red, .black };
+    try std.testing.expectEqual(@as(usize, 16), colors.len);
+    for (colors) |color| try std.testing.expect(color.rgb() != 0);
+    try std.testing.expectEqual(@as(u32, 0xF9FFFE), DyeColor.white.rgb());
+    try std.testing.expectEqual(@as(u32, 0x1D1D21), DyeColor.black.rgb());
+}
+
+test "owner can dye armor and cauldron washes it" {
+    var wolf = Wolf{ .owner_id = 4, .armor = .{} };
+    try std.testing.expect(!wolf.dyeArmor(5, .cyan));
+    try std.testing.expect(wolf.dyeArmor(4, .cyan));
+    try std.testing.expectEqual(DyeColor.cyan, wolf.armor.?.color.?);
+    if (wolf.armor) |*armor| {
+        try std.testing.expect(washArmorInCauldron(armor));
+    } else {
+        return error.TestUnexpectedResult;
+    }
+    try std.testing.expect(wolf.armor.?.color == null);
+}
+
+test "washing undyed armor is a no-op" {
+    var armor = WolfArmor{};
+    try std.testing.expect(!washArmorInCauldron(&armor));
 }
