@@ -20,6 +20,7 @@ pub const Mob = struct {
     pub const bubble_column_lift_speed: f32 = 6.5;
     pub const whirlpool_pull_speed: f32 = -7.0;
 
+    id: u32 = 0,
     mob_type: MobType,
     pos: math.Vec3, // base / feet position
     vel: math.Vec3,
@@ -51,6 +52,8 @@ pub const Mob = struct {
     regrow_timer: f32 = 0.0,
     skeleton_variant: skeleton_variants_mod.SkeletonVariant = .standard_skeleton,
     freeze_conversion: skeleton_variants_mod.SkeletonFreezeConversionState = .{},
+    is_baby: bool = false,
+    growth_timer: f32 = 0.0,
 
     pub fn isLeashed(self: Mob) bool {
         return self.leashed_to_player or self.fence_post != null;

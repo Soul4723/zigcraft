@@ -62,9 +62,7 @@ const redstone_workstations_mod = @import("world/redstone_workstations.zig");
 const shulker_end_city_mod = @import("world/shulker_end_city.zig");
 const elytra_aerodynamics_mod = @import("world/elytra_aerodynamics.zig");
 const sea_turtle_mod = @import("world/sea_turtle.zig");
-const turtle_scute_helmet_mod = @import("world/turtle_scute_helmet.zig");
 const taiga_fox_mod = @import("world/taiga_fox.zig");
-const fox_sweet_berry_mod = @import("world/fox_sweet_berry.zig");
 const conduit_frame_mod = @import("world/conduit_frame.zig");
 const enderman_ai_mod = @import("world/enderman_ai.zig");
 const piglin_bastion_mod = @import("world/piglin_bastion.zig");
@@ -75,7 +73,6 @@ const charged_creeper_mod = @import("world/charged_creeper.zig");
 const swamp_witch_mod = @import("world/swamp_witch.zig");
 const blaze_fortress_mod = @import("world/blaze_fortress.zig");
 const ghast_deflection_mod = @import("world/ghast_deflection.zig");
-const ghast_fireball_tennis_mod = @import("world/ghast_fireball_tennis.zig");
 const slime_mitosis_mod = @import("world/slime_mitosis.zig");
 const magma_cube_splitting_mod = @import("world/magma_cube_splitting.zig");
 const phantom_insomnia_mod = @import("world/phantom_insomnia.zig");
@@ -103,7 +100,6 @@ const shulker_box_storage_mod = @import("world/shulker_box_storage.zig");
 const equine_genetics_mod = @import("world/equine_genetics.zig");
 const companion_pets_mod = @import("world/companion_pets.zig");
 const panda_genetics_mod = @import("world/panda_genetics.zig");
-const panda_genetics_variants_mod = @import("world/panda_genetics_variants.zig");
 const dolphin_navigation_mod = @import("world/dolphin_navigation.zig");
 const bee_pollination_mod = @import("world/bee_pollination.zig");
 const cartography_maps_mod = @import("world/cartography_maps.zig");
@@ -579,7 +575,7 @@ pub fn main() !void {
     var portal_targets: [32]PortalTarget = undefined;
     var portal_target_count: usize = 0;
     const ThrownKind = enum { snowball, hostile_fireball, hostile_arrow, player_fire_charge, spectral_arrow, arrow, firework_rocket, ender_pearl, eye_of_ender, shulker_bullet, trident };
-    const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball, damage: u8 = 1, pierce: u8 = 0, last_hit_mob: ?usize = null, arrow_variant: skeleton_variants_mod.SkeletonVariant = .standard_skeleton };
+    const Thrown = struct { pos: math.Vec3, vel: math.Vec3, life: f32, kind: ThrownKind = .snowball, damage: u8 = 1, pierce: u8 = 0, last_hit_mob: ?usize = null, arrow_variant: skeleton_variants_mod.SkeletonVariant = .standard_skeleton, deflected: bool = false, owner_mob_id: u32 = 0 };
     var thrown: [proj_mod.thrown_cap]Thrown = undefined;
     var thrown_count: usize = 0;
     const FurnaceJob = smelt_mod.FurnaceJob;
@@ -676,7 +672,14 @@ pub fn main() !void {
     // Wave 4 domain states keep the new mechanics available to the live frame loop.
     var active_elytra = elytra_aerodynamics_mod.ElytraFlightState.init();
     var active_turtle = sea_turtle_mod.SeaTurtleState.init(.{ 0, 64, 0 }, true);
+    var turtle_helmet_breathing = sea_turtle_mod.HelmetBreathing{};
+    var turtle_helmet_tick_accum: f32 = 0.0;
     var active_fox = taiga_fox_mod.FoxState.init(.red_taiga, .{ 0.0, 64.0, 0.0 });
+    var berry_bushes = taiga_fox_mod.BerryBushTracker{};
+    var fox_pounce_vel: [3]f32 = .{ 0.0, 0.0, 0.0 };
+    var fox_pounce_timer: f32 = 0.0;
+    var active_panda = panda_genetics_mod.ActivePandaState{};
+    var panda_scroll_step: u8 = 0;
     var active_composter = redstone_workstations_mod.ComposterState{};
     var active_levitation = shulker_end_city_mod.Levitation{};
     var conduit_zap_timer: f32 = 0.0;
@@ -1079,8 +1082,122 @@ pub fn main() !void {
         if (player.is_gliding and !active_elytra.is_gliding) {
             player.stopGliding();
         }
-        _ = sea_turtle_mod.tickBabyTurtleGrowth(&active_turtle, dt, false);
-        active_fox.tick(dt, false, false, false);
+        {
+            const turtle_growth = sea_turtle_mod.tickBabyTurtleGrowth(&active_turtle, dt, false);
+            const total_scutes: u8 = turtle_growth.dropped_turtle_scute +| mob_manager.pending_scute_drops;
+            if (total_scutes > 0) {
+                mob_manager.pending_scute_drops = 0;
+                _ = inventory.addItem(.scute, total_scutes);
+                audio.play(.glowstone_chime, 0.9);
+                particles.spawnGlowstoneShimmer(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 10);
+                std.debug.print("baby sea turtle matured to adult and dropped {d}x Scute!\n", .{total_scutes});
+            }
+        }
+        {
+            berry_bushes.tickGrowth(dt);
+            var bbi: usize = 0;
+            while (bbi < berry_bushes.count) {
+                const bn = berry_bushes.nodes[bbi];
+                if (manager.getBlockWorld(bn.x, bn.y, bn.z) != .sweet_berry_bush) {
+                    berry_bushes.removeAt(bn.x, bn.y, bn.z);
+                } else {
+                    bbi += 1;
+                }
+            }
+            const is_day_fox = !manager.is_nether and !manager.is_end and @sin(world_time) > 0.0;
+            const fbx: i32 = @intFromFloat(@floor(active_fox.pos[0]));
+            const fby: i32 = @intFromFloat(@floor(active_fox.pos[1]));
+            const fbz: i32 = @intFromFloat(@floor(active_fox.pos[2]));
+            var fox_shade = false;
+            var sy_scan: i32 = fby + 1;
+            while (sy_scan <= 15) : (sy_scan += 1) {
+                const ab = manager.getBlockWorld(fbx, sy_scan, fbz);
+                if (ab == .leaves or ab.is_solid()) {
+                    fox_shade = true;
+                    break;
+                }
+            }
+            if (active_fox.is_pouncing) {
+                fox_pounce_timer += dt;
+                active_fox.pos[0] += fox_pounce_vel[0] * dt;
+                fox_pounce_vel[1] -= taiga_fox_mod.pounce_gravity * dt;
+                active_fox.pos[1] += fox_pounce_vel[1] * dt;
+                active_fox.pos[2] += fox_pounce_vel[2] * dt;
+                const land_bx: i32 = @intFromFloat(@floor(active_fox.pos[0]));
+                const land_by: i32 = @intFromFloat(@floor(active_fox.pos[1]));
+                const land_bz: i32 = @intFromFloat(@floor(active_fox.pos[2]));
+                if (fox_pounce_timer >= 0.35 and (fox_pounce_vel[1] <= 0.0) and (manager.getBlockWorld(land_bx, land_by - 1, land_bz).is_solid() or active_fox.pos[1] <= 64.0)) {
+                    const landing_blk = manager.getBlockWorld(land_bx, land_by, land_bz);
+                    const below_blk = manager.getBlockWorld(land_bx, land_by - 1, land_bz);
+                    const on_snow = (landing_blk == .powder_snow or landing_blk == .snow or below_blk == .snow or below_blk == .powder_snow);
+                    var hit_prey = false;
+                    for (mob_manager.mobs.items) |*pm| {
+                        const pdx = pm.pos.x - active_fox.pos[0];
+                        const pdz = pm.pos.z - active_fox.pos[2];
+                        if (pdx * pdx + pdz * pdz <= 2.25) {
+                            const dmg: u8 = @intFromFloat(@floor(taiga_fox_mod.computeAttackDamage(active_fox)));
+                            _ = pm.takeHitDmg(cam.front(), dmg);
+                            hit_prey = true;
+                            break;
+                        }
+                    }
+                    const lres = taiga_fox_mod.resolvePounceLanding(&active_fox, hit_prey, on_snow);
+                    if (lres.stuck_in_snow) {
+                        particles.spawnBlockDebris(land_bx, land_by, land_bz, .{ 0.93, 0.96, 1.0 }, 10);
+                        std.debug.print("fox missed pounce and got stuck head-first in snow for {d:.1}s!\n", .{lres.stuck_timer});
+                    }
+                }
+            } else {
+                active_fox.tick(dt, is_day_fox, false, fox_shade);
+            }
+            const fdx = player.pos.x - active_fox.pos[0];
+            const fdy = player.pos.y - active_fox.pos[1];
+            const fdz = player.pos.z - active_fox.pos[2];
+            const fox_dist = @sqrt(fdx * fdx + fdy * fdy + fdz * fdz);
+            if (active_fox.is_sleeping and taiga_fox_mod.checkSleepDisturbance(fox_dist, key_shift, false)) {
+                active_fox.wakeUp();
+                audio.play(.mob_baa, 0.6);
+                std.debug.print("approaching player woke sleeping fox\n", .{});
+            }
+            if (active_fox.is_crouching_to_pounce and active_fox.crouch_timer >= taiga_fox_mod.pounce_crouch_duration) {
+                const arc = taiga_fox_mod.computeFoxPounceArc(active_fox.pos[1], cam.front().x * 3.0, cam.front().z * 3.0);
+                active_fox.is_crouching_to_pounce = false;
+                active_fox.is_pouncing = true;
+                fox_pounce_vel = .{ arc.vx, arc.vy, arc.vz };
+                fox_pounce_timer = 0.0;
+                audio.play(.mob_baa, 0.75);
+                particles.spawnDustParticles(.{ active_fox.pos[0], active_fox.pos[1] + 0.2, active_fox.pos[2] }, 8);
+                std.debug.print("fox launched pounce arc (vy={d:.1}, clears_fence={any})!\n", .{ arc.vy, arc.can_clear_fence });
+            }
+            if (active_fox.mouth_item_id == taiga_fox_mod.ChorusFruitItemId) {
+                const warp_res = taiga_fox_mod.resolveChorusFruitMouthWarp(&active_fox, active_fox.pos, .{ 3.0, 0.0, 2.0 });
+                if (warp_res.warped) {
+                    audio.play(.mob_teleport, 0.8);
+                    particles.spawnPortalParticles(warp_res.new_pos, 16);
+                    std.debug.print("fox ate Chorus Fruit and warped to ({d:.1},{d:.1},{d:.1})!\n", .{ warp_res.new_pos[0], warp_res.new_pos[1], warp_res.new_pos[2] });
+                }
+            }
+        }
+        if (active_panda.baby != null) {
+            const r_sneeze = mob_manager.rng.random().uintLessThan(u16, 200);
+            const r_slime = mob_manager.rng.random().uintLessThan(u16, 700);
+            if (active_panda.tickSneeze(dt, r_sneeze, r_slime)) |sres| {
+                if (sres.sneezed) {
+                    audio.play(.mob_baa, 0.75);
+                    particles.spawnDustParticles(.{ player.pos.x, player.pos.y + 0.6, player.pos.z }, 8);
+                    if (sres.dropped_slimeball) {
+                        _ = inventory.addItem(.slimeball, 1);
+                        audio.play(.glowstone_chime, 0.9);
+                        particles.spawnBlockDebris(@intFromFloat(@floor(player.pos.x)), @intFromFloat(@floor(player.pos.y + 1.0)), @intFromFloat(@floor(player.pos.z)), .{ 0.45, 0.82, 0.35 }, 12);
+                        toast.timer = 2.0;
+                        toast.color = .{ 0.45, 0.82, 0.35 };
+                        std.debug.print("Baby panda sneezed and dropped a Slimeball!\n", .{});
+                    } else {
+                        std.debug.print("Baby panda sneezed (startled_adults={any}, baby_hp={d:.1})\n", .{ sres.startled_adults_jump, active_panda.baby_health });
+                    }
+                }
+            }
+        }
         _ = active_composter.tick(dt);
         active_levitation.tick(dt);
         active_raid.tick(dt);
@@ -1092,7 +1209,6 @@ pub fn main() !void {
         _ = charged_creeper_mod.tickCreeperFuse(&active_creeper, 0.0, false, false, dt);
         _ = swamp_witch_mod.applyWitchMagicResistance(0.0);
         _ = active_blaze_brewing.tick(dt);
-        _ = ghast_deflection_mod.canGhastSeeTarget(0.0, true);
         _ = slime_mitosis_mod.swampMoonPhaseSpawnChance(0, 0, 64);
         _ = magma_cube_splitting_mod.MagmaCubeSize.big.meleeDamage();
         _ = magma_cube_splitting_mod.takesFallDamage();
@@ -1170,20 +1286,10 @@ pub fn main() !void {
         _ = end_ship_vault_mod.generateEndShip(.{ .x = 0, .y = 64, .z = 0 });
         _ = equine_genetics_mod.computeHorseJumpHeight(1.0, 0.5);
         _ = companion_pets_mod.detectParrotHostileMimicry(20.0);
-        _ = panda_genetics_mod.canBreedPandasWithBamboo(true, 1);
-        _ = panda_genetics_variants_mod.PandaGenetics.breedingState(true, 8, 8);
         _ = piglin_bartering_economy_mod.rollBarterLootByWeight(0);
         _ = piglin_brute_bastion_mod.calculateDefeatDrops(0, 0.0);
         _ = zombified_piglin_swarm_mod.sampleAngerTicks(0.0);
         _ = nether_fungus_forest_mod.sproutItem(.crimson_fungus);
-        _ = fox_sweet_berry_mod.harvestBerryBush(2, 0);
-        var turtle_helmet_recipe = [_]turtle_scute_helmet_mod.CraftSlot{.none} ** 9;
-        turtle_helmet_recipe[0] = .turtle_scute;
-        turtle_helmet_recipe[1] = .turtle_scute;
-        turtle_helmet_recipe[2] = .turtle_scute;
-        turtle_helmet_recipe[3] = .turtle_scute;
-        turtle_helmet_recipe[5] = .turtle_scute;
-        _ = turtle_scute_helmet_mod.craftTurtleHelmet(turtle_helmet_recipe);
         _ = dolphin_navigation_mod.tickDolphinBreathAndMoisture(&active_dolphin, player.in_water, false, false, dt);
         _ = bee_pollination_mod.tickFlowerPollination(&active_bee, false, dt);
         _ = cartography_maps_mod.computeExplorerMapPlayerCursor(active_map, @intFromFloat(player.pos.x), @intFromFloat(player.pos.z));
@@ -1384,7 +1490,6 @@ pub fn main() !void {
         _ = evoker_fangs_vex_mod.EVOKER_MAX_HEALTH;
         // Wave 23 representative frame-loop hooks keep all ten domains queryable.
         _ = magma_cube_splitting_mod.MagmaCubeSize.big.meleeDamage();
-        _ = ghast_fireball_tennis_mod.SIGHT_RANGE;
         _ = wither_skeleton_effect_mod.WITHER_DURATION_TICKS;
         _ = conduit_underwater_power_mod.evaluateActivation(true, conduit_underwater_power_mod.complete_frame_blocks);
         _ = nether_portal_scaling_mod.overworldToNether(.{ .x = 0, .y = 64, .z = 0 });
@@ -1476,7 +1581,26 @@ pub fn main() !void {
                 was_in_water = player.in_water;
             }
 
-            const has_water_breathing = player.hasWaterBreathing() or inventory.hasItem(.turtle_helmet);
+            const has_turtle_helmet = inventory.hasItem(.turtle_helmet);
+            if (!is_underwater or !turtle_helmet_breathing.was_in_water) {
+                const entered_with_helmet = is_underwater and !turtle_helmet_breathing.was_in_water and has_turtle_helmet;
+                turtle_helmet_breathing.tick(has_turtle_helmet, is_underwater, !is_underwater);
+                turtle_helmet_tick_accum = 0.0;
+                if (entered_with_helmet) {
+                    std.debug.print("Turtle Shell Helmet: 10s Water Breathing active\n", .{});
+                }
+            } else {
+                turtle_helmet_tick_accum += dt;
+                while (turtle_helmet_tick_accum >= 0.05) {
+                    turtle_helmet_tick_accum -= 0.05;
+                    const had_wb = turtle_helmet_breathing.effect == .water_breathing;
+                    turtle_helmet_breathing.tick(has_turtle_helmet, true, false);
+                    if (had_wb and turtle_helmet_breathing.effect == null) {
+                        std.debug.print("Turtle Shell Water Breathing expired; oxygen depleting\n", .{});
+                    }
+                }
+            }
+            const has_water_breathing = player.hasWaterBreathing() or (turtle_helmet_breathing.effect == .water_breathing);
             player.oxygen = hazard_mod.tickOxygenRespiration(player.oxygen, is_underwater, inventory.hasItem(.netherite_helmet), has_water_breathing, dt);
             const drown_dmg = hazard_mod.calculateDrowningDamage(player.oxygen, dt);
             if (drown_dmg > 0.0) {
@@ -3852,7 +3976,39 @@ pub fn main() !void {
                     }
                 }
 
-                const hit_mob_opt = if (!bartered and !sheared_sheep and !leashed_mob and left and !left_down and mob_hit_cooldown <= 0.0) mob_manager.tryHitMobDmg(cam.position, dir, combat_mod.melee_range, hit_dmg) else null;
+                var deflected_fireball = false;
+                if (!bartered and !sheared_sheep and !leashed_mob and left and !left_down and mob_hit_cooldown <= 0.0) {
+                    for (thrown[0..thrown_count]) |*tfb| {
+                        if (tfb.kind == .hostile_fireball and !tfb.deflected) {
+                            if (ghast_deflection_mod.canMeleeHitFireball(
+                                .{ cam.position.x, cam.position.y, cam.position.z },
+                                .{ dir.x, dir.y, dir.z },
+                                .{ tfb.pos.x, tfb.pos.y, tfb.pos.z },
+                                combat_mod.melee_range + 1.5,
+                            )) {
+                                var fb = ghast_deflection_mod.GhastFireball{
+                                    .pos = .{ tfb.pos.x, tfb.pos.y, tfb.pos.z },
+                                    .vel = .{ tfb.vel.x, tfb.vel.y, tfb.vel.z },
+                                    .was_deflected_by_player = tfb.deflected,
+                                    .owner_ghast_id = tfb.owner_mob_id,
+                                };
+                                if (ghast_deflection_mod.deflectGhastFireball(&fb, .{ dir.x, dir.y, dir.z }, true)) {
+                                    tfb.vel = math.Vec3.init(fb.vel[0], fb.vel[1], fb.vel[2]);
+                                    tfb.deflected = true;
+                                    tfb.life = proj_mod.fireball_life;
+                                    mob_hit_cooldown = combat_mod.melee_cooldown;
+                                    audio.play(.shield_block, 1.0);
+                                    audio.play(.firework_blast, 0.8);
+                                    particles.spawnBurnSparks(.{ tfb.pos.x, tfb.pos.y, tfb.pos.z }, 16);
+                                    std.debug.print("melee deflected fireball back toward aim!\n", .{});
+                                    deflected_fireball = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                const hit_mob_opt = if (!bartered and !sheared_sheep and !leashed_mob and !deflected_fireball and left and !left_down and mob_hit_cooldown <= 0.0) mob_manager.tryHitMobDmg(cam.position, dir, combat_mod.melee_range, hit_dmg) else null;
                 if (!bartered) {
                 if (hit_mob_opt) |hit_mob| {
                     player.addActivityExhaustion(.attack_melee);
@@ -5010,10 +5166,15 @@ pub fn main() !void {
             var ti: usize = 0;
             while (ti < thrown_count) {
                 var t = &thrown[ti];
-                const st = proj_mod.stepMotion(t.pos.x, t.pos.y, t.pos.z, t.vel.x, t.vel.y, t.vel.z, t.life, dt);
-                t.pos = math.Vec3.init(st.pos[0], st.pos[1], st.pos[2]);
-                t.vel = math.Vec3.init(st.vel[0], st.vel[1], st.vel[2]);
-                t.life = st.life;
+                if (t.kind == .hostile_fireball and t.deflected) {
+                    t.pos = math.Vec3.init(t.pos.x + t.vel.x * dt, t.pos.y + t.vel.y * dt, t.pos.z + t.vel.z * dt);
+                    t.life -= dt;
+                } else {
+                    const st = proj_mod.stepMotion(t.pos.x, t.pos.y, t.pos.z, t.vel.x, t.vel.y, t.vel.z, t.life, dt);
+                    t.pos = math.Vec3.init(st.pos[0], st.pos[1], st.pos[2]);
+                    t.vel = math.Vec3.init(st.vel[0], st.vel[1], st.vel[2]);
+                    t.life = st.life;
+                }
                 const mbc = proj_mod.projectileBlockCoords(t.pos.x, t.pos.y, t.pos.z);
                 const mbx = mbc[0];
                 const mby = mbc[1];
@@ -5135,11 +5296,49 @@ pub fn main() !void {
                     } else if (t.kind == .ender_pearl) {
                         particles.spawnPortalParticles(.{ t.pos.x, t.pos.y, t.pos.z }, 2);
                     } else if (t.kind == .hostile_fireball) {
+                        if (t.deflected) {
+                            for (mob_manager.mobs.items, 0..) |*m, mi| {
+                                const mdx = m.pos.x - t.pos.x;
+                                const mdy = (m.pos.y + m.height * 0.5) - t.pos.y;
+                                const mdz = m.pos.z - t.pos.z;
+                                if (mdx * mdx + mdy * mdy + mdz * mdz <= 1.69) {
+                                    const fb_hit = ghast_deflection_mod.GhastFireball{
+                                        .pos = .{ t.pos.x, t.pos.y, t.pos.z },
+                                        .vel = .{ t.vel.x, t.vel.y, t.vel.z },
+                                        .was_deflected_by_player = true,
+                                        .is_deflected = true,
+                                        .owner_ghast_id = t.owner_mob_id,
+                                    };
+                                    const impact = ghast_deflection_mod.resolveFireballImpactOnGhast(fb_hit, m.id);
+                                    const dmg_u8: u8 = @intFromFloat(@min(255.0, impact.damage_dealt));
+                                    const died = m.takeHitDmg(cam.front(), dmg_u8);
+                                    audio.playAt(.firework_blast, .{ m.pos.x, m.pos.y, m.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 1.0, 32.0);
+                                    particles.spawnFlame(@intFromFloat(@floor(m.pos.x)), @intFromFloat(@floor(m.pos.y)), @intFromFloat(@floor(m.pos.z)), 16);
+                                    if (impact.return_to_sender_achievement) {
+                                        audio.play(.glowstone_chime, 1.0);
+                                        particles.spawnFireworkBurst(.{ m.pos.x, m.pos.y + 0.8, m.pos.z }, 24);
+                                        toast.timer = 3.0;
+                                        toast.color = .{ 1.0, 0.85, 0.20 };
+                                        std.debug.print("Return to Sender! Reflected fireball struck its sender ({s})!\n", .{@tagName(m.mob_type)});
+                                    }
+                                    if (died) {
+                                        const md = inventory_mod.getMobMeatDrop(m.mob_type);
+                                        _ = mob_manager.mobs.swapRemove(mi);
+                                        _ = inventory.addItem(md, 1);
+                                        if (impact.return_to_sender_achievement) {
+                                            _ = inventory.addItem(.ghast_tear, 1);
+                                        }
+                                    }
+                                    dead = true;
+                                    break;
+                                }
+                            }
+                        }
                         // Fireball vs player: 3 dmg on close pass, flame burst on block
                         const pdx = player.pos.x - t.pos.x;
                         const pdy = (player.pos.y + 1.0) - t.pos.y;
                         const pdz = player.pos.z - t.pos.z;
-                        if (pdx * pdx + pdy * pdy + pdz * pdz < 1.0) {
+                        if (!dead and !t.deflected and pdx * pdx + pdy * pdy + pdz * pdz < 1.0) {
                             const cf = cam.front();
                             const blocked = is_blocking and combat_mod.canBlockAttack(cf.x, cf.z, -pdx, -pdz);
                             if (blocked) {
@@ -5163,9 +5362,21 @@ pub fn main() !void {
                                 particles.spawnFlame(mbx, mby, mbz, 8);
                             }
                             dead = true;
-                        } else if (pickSolid(mbx, mby, mbz)) {
+                        } else if (!dead and pickSolid(mbx, mby, mbz)) {
                             // Ignite flammable floors: set struck cell's air above ablaze as campfire or soul campfire.
                             const struck = manager.getBlockWorld(mbx, mby, mbz);
+                            const approx_blast_res: f32 = switch (struck) {
+                                .obsidian, .crying_obsidian, .respawn_anchor, .ancient_debris => 1200.0,
+                                .cobblestone, .stone, .brick, .nether_brick, .blackstone, .gilded_blackstone => 6.0,
+                                .basalt => 4.2,
+                                .netherrack => 0.4,
+                                else => block_mod.hardness(struck) * 2.0,
+                            };
+                            if (mby > 0 and struck != .end_portal_frame and struck != .end_portal_frame_filled and struck != .end_gateway and struck != .end_portal and struck != .nether_portal and ghast_deflection_mod.canGhastFireballDestroyBlock(approx_blast_res)) {
+                                if (tryDrainContainerBreak(struck, mbx, mby, mbz, &chests, &chest_count, &hoppers, &hopper_count, &droppers, &dropper_count, &inventory)) {
+                                    _ = try manager.editAndRemesh(mbx, mby, mbz, .air);
+                                }
+                            }
                             if (hazard_mod.isFlammable(struck) and manager.getBlockWorld(mbx, mby + 1, mbz) == .air) {
                                 const flame_block = hazard_mod.ignitedFlameBlock(struck);
                                 if (try manager.editAndRemesh(mbx, mby + 1, mbz, flame_block)) {
@@ -5379,6 +5590,36 @@ pub fn main() !void {
                         }
                         dead = true;
                     } else if (!dead and t.kind != .hostile_fireball and t.kind != .hostile_arrow) {
+                        if (t.kind == .arrow or t.kind == .spectral_arrow or t.kind == .snowball or t.kind == .trident or t.kind == .player_fire_charge) {
+                            for (thrown[0..thrown_count]) |*tfb| {
+                                if (tfb.kind == .hostile_fireball and !tfb.deflected) {
+                                    const fdx = tfb.pos.x - t.pos.x;
+                                    const fdy = tfb.pos.y - t.pos.y;
+                                    const fdz = tfb.pos.z - t.pos.z;
+                                    if (fdx * fdx + fdy * fdy + fdz * fdz <= 1.44) {
+                                        var fb = ghast_deflection_mod.GhastFireball{
+                                            .pos = .{ tfb.pos.x, tfb.pos.y, tfb.pos.z },
+                                            .vel = .{ tfb.vel.x, tfb.vel.y, tfb.vel.z },
+                                            .was_deflected_by_player = tfb.deflected,
+                                            .owner_ghast_id = tfb.owner_mob_id,
+                                        };
+                                        if (ghast_deflection_mod.deflectGhastFireball(&fb, .{ t.vel.x, t.vel.y, t.vel.z }, true)) {
+                                            tfb.vel = math.Vec3.init(fb.vel[0], fb.vel[1], fb.vel[2]);
+                                            tfb.deflected = true;
+                                            tfb.life = proj_mod.fireball_life;
+                                            audio.play(.shield_block, 1.0);
+                                            particles.spawnBurnSparks(.{ tfb.pos.x, tfb.pos.y, tfb.pos.z }, 12);
+                                            if (t.kind == .trident) _ = inventory.addItem(.trident, 1);
+                                            dead = true;
+                                            std.debug.print("projectile deflected hostile fireball!\n", .{});
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (!dead and t.kind != .hostile_fireball and t.kind != .hostile_arrow) {
                         // mob hit test (generous radius)
                         for (mob_manager.mobs.items, 0..) |*m, mi| {
                             if (t.last_hit_mob != null and t.last_hit_mob.? == mi) continue;
@@ -5746,6 +5987,7 @@ pub fn main() !void {
                         .vel = math.Vec3.init(fv[0], fv[1], fv[2]),
                         .life = proj_mod.fireball_life,
                         .kind = .hostile_fireball,
+                        .owner_mob_id = m.id,
                     };
                     thrown_count += 1;
                     audio.playAt(.lava_pop, .{ m.pos.x, m.pos.y, m.pos.z }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.8, 25.0);
@@ -5789,6 +6031,7 @@ pub fn main() !void {
                             .vel = math.Vec3.init(fv[0], fv[1], fv[2]),
                             .life = proj_mod.fireball_life,
                             .kind = .hostile_fireball,
+                            .owner_mob_id = bm.id,
                         };
                         thrown_count += 1;
                     }
@@ -6775,10 +7018,25 @@ pub fn main() !void {
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .sweet_berry_bush) {
-                    _ = inventory.addItem(.sweet_berries, 2);
-                    audio.play(.step_grass, 0.85);
-                    particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.86, 0.14, 0.22 }, 6);
-                    std.debug.print("harvested 2x Sweet Berries at ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                    if (inventory.slots[selected_slot].item == .bone_meal) {
+                        if (berry_bushes.applyBoneMealAt(hit_f.x, hit_f.y, hit_f.z)) |new_stage| {
+                            inventory.slots[selected_slot].decrement(1);
+                            audio.play(.place_block, 0.8);
+                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 8);
+                            std.debug.print("fertilized Sweet Berry Bush at ({d},{d},{d}) to stage {d}/3\n", .{ hit_f.x, hit_f.y, hit_f.z, new_stage });
+                        }
+                    } else {
+                        const roll_b: u8 = @intCast(@as(u32, @truncate(frame_count)) % 2);
+                        if (berry_bushes.harvestAt(hit_f.x, hit_f.y, hit_f.z, roll_b)) |harvest| {
+                            _ = inventory.addItem(.sweet_berries, harvest.drops);
+                            audio.play(.step_grass, 0.85);
+                            particles.spawnBlockDebris(hit_f.x, hit_f.y, hit_f.z, .{ 0.86, 0.14, 0.22 }, 8);
+                            std.debug.print("harvested {d}x Sweet Berries at ({d},{d},{d}) (stage->{d})\n", .{ harvest.drops, hit_f.x, hit_f.y, hit_f.z, harvest.next_stage });
+                        } else {
+                            audio.play(.click_off, 0.5);
+                            std.debug.print("Sweet Berry Bush at ({d},{d},{d}) is still growing\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                        }
+                    }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .scaffolding and inventory.slots[selected_slot].item == .scaffolding) {
                     var occ: u8 = 1;
@@ -7844,7 +8102,7 @@ pub fn main() !void {
                 audio.play(.eat, 0.8);
                 particles.spawnWaterSplash(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 10);
                 std.debug.print("drank water breathing potion (timer={d:.1}s)\n", .{player.water_breathing_timer});
-            } else if (held_eat.item == .chorus_fruit) {
+            } else if (held_eat.item == .chorus_fruit and !key_shift) {
                 // Chorus fruit can be eaten at full hunger; resolve a safe destination before moving.
                 player.hunger = @min(20.0, player.hunger + 4.0);
                 inventory.slots[selected_slot].decrement(1);
@@ -8145,7 +8403,7 @@ pub fn main() !void {
                 player.hunger = @min(20.0, player.hunger + 1.0);
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.7);
-            } else if ((held_eat.item == .cookie or held_eat.item == .sweet_berries) and player.hunger < 20.0) {
+            } else if ((held_eat.item == .cookie or (held_eat.item == .sweet_berries and !key_shift)) and player.hunger < 20.0) {
                 player.hunger = @min(20.0, player.hunger + 2.0);
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.75);
@@ -8173,7 +8431,7 @@ pub fn main() !void {
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.75);
                 std.debug.print("ate Carrot (hunger={d:.1})\n", .{player.hunger});
-            } else if (held_eat.item == .glow_berries and player.hunger < 20.0) {
+            } else if (held_eat.item == .glow_berries and !key_shift and player.hunger < 20.0) {
                 player.hunger = @min(20.0, player.hunger + lush_caves_mod.glow_berry_hunger);
                 inventory.slots[selected_slot].decrement(1);
                 audio.play(.eat, 0.75);
@@ -8230,6 +8488,119 @@ pub fn main() !void {
                 }
             } else if (held_eat.item == .warped_fungus) {
                 _ = active_strider.feedWarpedFungus();
+            } else if (held_eat.item == .sweet_berry_fox_treat or ((held_eat.item == .sweet_berries or held_eat.item == .glow_berries) and (key_shift or player.hunger >= 20.0))) {
+                const food_id = if (held_eat.item == .glow_berries) taiga_fox_mod.GlowBerriesItemId else taiga_fox_mod.SweetBerriesItemId;
+                const swap_res = taiga_fox_mod.offerMouthItem(&active_fox, food_id);
+                if (swap_res.accepted) {
+                    inventory.slots[selected_slot].decrement(1);
+                    if (swap_res.dropped_previous) |prev_id| {
+                        const prev_item: inventory_mod.ItemType = @enumFromInt(prev_id);
+                        _ = inventory.addItem(prev_item, 1);
+                        std.debug.print("fox swapped mouth item {s} for berries!\n", .{prev_item.name()});
+                    }
+                } else {
+                    inventory.slots[selected_slot].decrement(1);
+                }
+                active_fox.wakeUp();
+                active_fox.startCrouching();
+                audio.play(.eat, 0.8);
+                particles.spawnGlowstoneShimmer(.{ active_fox.pos[0], active_fox.pos[1] + 0.5, active_fox.pos[2] }, 8);
+                std.debug.print("fed fox {s}; crouching to pounce!\n", .{held_eat.item.name()});
+            } else if (key_shift and (held_eat.item == .totem_of_undying or held_eat.item == .emerald or held_eat.item == .chorus_fruit)) {
+                const offer_id: u16 = switch (held_eat.item) {
+                    .totem_of_undying => taiga_fox_mod.TotemOfUndyingItemId,
+                    .emerald => taiga_fox_mod.EmeraldItemId,
+                    else => taiga_fox_mod.ChorusFruitItemId,
+                };
+                const swap_res = taiga_fox_mod.offerMouthItem(&active_fox, offer_id);
+                if (swap_res.accepted) {
+                    inventory.slots[selected_slot].decrement(1);
+                    if (swap_res.dropped_previous) |prev_id| {
+                        const prev_item: inventory_mod.ItemType = @enumFromInt(prev_id);
+                        _ = inventory.addItem(prev_item, 1);
+                    }
+                    audio.play(.click_on, 0.8);
+                    std.debug.print("fox picked up {s} in mouth\n", .{held_eat.item.name()});
+                }
+            } else if (held_eat.item == .seagrass) {
+                const dir_t = cam.front();
+                const tfeed = mob_manager.tryFeedTurtleSeagrass(cam.position, dir_t, combat_mod.melee_range + 2.0) catch entity_mod.mob_manager.MobManager.TurtleFeedResult{};
+                if (tfeed.fed) {
+                    inventory.slots[selected_slot].decrement(1);
+                    audio.play(.eat, 0.8);
+                    particles.spawnGlowstoneShimmer(.{ tfeed.pos.x, tfeed.pos.y + 0.4, tfeed.pos.z }, 10);
+                    if (tfeed.spawned_baby) {
+                        std.debug.print("fed Seagrass to Sea Turtle: baby turtle hatched!\n", .{});
+                    } else if (tfeed.matured and tfeed.scutes_dropped > 0) {
+                        _ = inventory.addItem(.scute, tfeed.scutes_dropped);
+                        audio.play(.glowstone_chime, 0.95);
+                        std.debug.print("baby sea turtle matured and dropped {d}x Scute!\n", .{tfeed.scutes_dropped});
+                    } else {
+                        std.debug.print("fed Seagrass to baby Sea Turtle (+10%% growth)\n", .{});
+                    }
+                } else if (active_turtle.is_baby) {
+                    inventory.slots[selected_slot].decrement(1);
+                    const tg = sea_turtle_mod.tickBabyTurtleGrowth(&active_turtle, dt, true);
+                    audio.play(.eat, 0.8);
+                    particles.spawnGlowstoneShimmer(.{ player.pos.x, player.pos.y + 0.5, player.pos.z }, 8);
+                    if (tg.matured_to_adult and tg.dropped_turtle_scute > 0) {
+                        _ = inventory.addItem(.scute, tg.dropped_turtle_scute);
+                        audio.play(.glowstone_chime, 0.95);
+                        std.debug.print("active baby sea turtle matured and dropped {d}x Scute!\n", .{tg.dropped_turtle_scute});
+                    } else {
+                        std.debug.print("fed Seagrass to active baby sea turtle (growth={d:.0}/{d:.0}s)\n", .{ active_turtle.growth_timer, sea_turtle_mod.BABY_GROWTH_SECONDS });
+                    }
+                }
+            } else if (held_eat.item == .panda_gene_scroll or (held_eat.item == .bamboo and (key_shift or pick_mod.raycast(&pickSolid, cam.position, cam.front(), 8) == null))) {
+                const px_b: i32 = @intFromFloat(@floor(player.pos.x));
+                const py_b: i32 = @intFromFloat(@floor(player.pos.y));
+                const pz_b: i32 = @intFromFloat(@floor(player.pos.z));
+                var bamboo_nearby: u8 = 0;
+                var bdx: i32 = -5;
+                while (bdx <= 5) : (bdx += 1) {
+                    var bdy: i32 = -2;
+                    while (bdy <= 3) : (bdy += 1) {
+                        var bdz: i32 = -5;
+                        while (bdz <= 5) : (bdz += 1) {
+                            if (manager.getBlockWorld(px_b + bdx, py_b + bdy, pz_b + bdz) == .bamboo) {
+                                bamboo_nearby +|= 1;
+                            }
+                        }
+                    }
+                }
+                if (held_eat.item == .panda_gene_scroll) {
+                    const expr = active_panda.cycleAlleles(panda_scroll_step);
+                    panda_scroll_step +%= 1;
+                    const behav = panda_genetics_mod.PandaGenetics.behavior(expr);
+                    audio.play(.map_rustle, 0.85);
+                    particles.spawnGlowstoneShimmer(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 8);
+                    std.debug.print("Panda Gene Scroll: personality={s}, hp={d:.0}, speed={d:.1}, brown_coat={any}, nearby_bamboo={d}/8\n", .{ @tagName(expr), behav.max_health_hp, behav.walk_speed_mps, behav.brown_and_white_coat, bamboo_nearby });
+                } else {
+                    inventory.slots[selected_slot].decrement(1);
+                    var prng = mob_manager.rng.random();
+                    const genes = [_]panda_genetics_mod.PandaGene{ .normal, .lazy, .worried, .playful, .aggressive, .weak, .brown };
+                    const f_res = active_panda.feedBamboo(
+                        bamboo_nearby,
+                        prng.int(u1),
+                        prng.int(u1),
+                        prng.int(u5),
+                        prng.int(u5),
+                        genes[prng.uintLessThan(usize, genes.len)],
+                        genes[prng.uintLessThan(usize, genes.len)],
+                    );
+                    if (f_res.bred) {
+                        audio.play(.glowstone_chime, 0.95);
+                        audio.play(.eat, 0.8);
+                        particles.spawnGlowstoneShimmer(.{ player.pos.x, player.pos.y + 0.8, player.pos.z }, 14);
+                        toast.timer = 2.5;
+                        toast.color = .{ 0.90, 0.88, 0.76 };
+                        std.debug.print("Pandas bred with {d} bamboo! Baby personality={s} (hp={d:.0})\n", .{ bamboo_nearby, @tagName(f_res.baby_personality.?), f_res.baby_max_health });
+                    } else {
+                        audio.play(.mob_growl, 0.7);
+                        particles.spawnSmoke(px_b, py_b + 1, pz_b, 4);
+                        std.debug.print("Panda whimpers: needs 8 bamboo blocks within 5m to breed (found {d})\n", .{bamboo_nearby});
+                    }
+                }
             } else
             if (cooked) |is_cooked| {
                 if (player.hunger < 20.0) {
