@@ -206,8 +206,6 @@ const specialized_furnace_smelting_mod = @import("world/specialized_furnace_smel
 const tripwire_hook_circuit_mod = @import("world/tripwire_hook_circuit.zig");
 const sculk_catalyst_bloom_mod = @import("world/sculk_catalyst_bloom.zig");
 const sculk_bloom_geometry_mod = @import("world/sculk_bloom_geometry.zig");
-const sculk_shrieker_warning_mod = @import("world/sculk_shrieker_warning.zig");
-const calibrated_sculk_resonance_mod = @import("world/calibrated_sculk_resonance.zig");
 const chiseled_bookshelf_storage_mod = @import("world/chiseled_bookshelf_storage.zig");
 const bookshelf_secret_latch_mod = @import("world/bookshelf_secret_latch.zig");
 const hanging_sign_mechanics_mod = @import("world/hanging_sign_mechanics.zig");
@@ -220,8 +218,7 @@ const trial_spawner_waves_mod = @import("world/trial_spawner_waves.zig");
 const vault_loot_dispenser_mod = @import("world/vault_loot_dispenser.zig");
 const trial_vault_reset_mod = @import("world/trial_vault_reset.zig");
 const vault_multiplayer_reset_mod = @import("world/vault_multiplayer_reset.zig");
-const sculk_shrieker_fog_mod = @import("world/sculk_shrieker_fog.zig");
-const calibrated_sensor_chains_mod = @import("world/calibrated_sensor_chains.zig");
+
 const bogged_poison_harvest_mod = @import("world/bogged_poison_harvest.zig");
 const ominous_bottle_matrix_mod = @import("world/ominous_bottle_matrix.zig");
 const eyeblossom_bloom_toxicity_mod = @import("world/eyeblossom_bloom_toxicity.zig");
@@ -336,6 +333,49 @@ fn getFootstepSound(block: block_mod.BlockId) audio_mod.synth.SoundType {
         .snow => .step_snow,
         .wool => .step_wool,
     };
+}
+
+fn adjacentAmethystPos(manager: *chunk_manager_mod.ChunkManager, x: i32, y: i32, z: i32) ?[3]i32 {
+    const dirs = [_][3]i32{ .{ 1, 0, 0 }, .{ -1, 0, 0 }, .{ 0, 1, 0 }, .{ 0, -1, 0 }, .{ 0, 0, 1 }, .{ 0, 0, -1 } };
+    for (dirs) |d| {
+        if (manager.getBlockWorld(x + d[0], y + d[1], z + d[2]) == .amethyst_block) {
+            return .{ x + d[0], y + d[1], z + d[2] };
+        }
+    }
+    return null;
+}
+
+fn dispatchCalibratedVibration(
+    manager: *chunk_manager_mod.ChunkManager,
+    sensors: []calibrated_sculk_mod.CalibratedSensor,
+    count: usize,
+    vx: f32,
+    vy: f32,
+    vz: f32,
+    freq: u8,
+    player_pos: [3]f32,
+    audio: *audio_mod.AudioSystem,
+    particles: *particles_mod.ParticleSystem,
+) void {
+    const n = @min(count, sensors.len);
+    for (sensors[0..n]) |*cs| {
+        if (calibrated_sculk_mod.triggerVibration(cs, vx, vy, vz, freq)) {
+            const sx = @as(f32, @floatFromInt(cs.x)) + 0.5;
+            const sy = @as(f32, @floatFromInt(cs.y)) + 0.8;
+            const sz = @as(f32, @floatFromInt(cs.z)) + 0.5;
+            particles.spawnGlowstoneShimmer(.{ sx, sy, sz }, 10);
+            if (adjacentAmethystPos(manager, cs.x, cs.y, cs.z)) |am| {
+                audio.playAt(.note_chime, .{ @as(f32, @floatFromInt(am[0])) + 0.5, @as(f32, @floatFromInt(am[1])) + 0.5, @as(f32, @floatFromInt(am[2])) + 0.5 }, player_pos, 0.95, 32.0);
+                audio.playAt(.portal_hum, .{ sx, sy, sz }, player_pos, 0.9, 32.0);
+                particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(am[0])) + 0.5, @as(f32, @floatFromInt(am[1])) + 0.8, @as(f32, @floatFromInt(am[2])) + 0.5 }, 12);
+                const relayed = calibrated_sculk_mod.emitResonanceToNeighbors(sensors, n, am[0], am[1], am[2], cs.x, cs.y, cs.z, freq);
+                std.debug.print("calibrated sculk sensor freq={d} ({s}) signal={d} amethyst_resonance=true (relayed={d}) at ({d},{d},{d})\n", .{ cs.filter_frequency, calibrated_sculk_mod.frequencyLabel(cs.filter_frequency), calibrated_sculk_mod.comparatorSignal(cs.*), relayed, cs.x, cs.y, cs.z });
+            } else {
+                audio.playAt(.portal_hum, .{ sx, sy, sz }, player_pos, 0.9, 32.0);
+                std.debug.print("calibrated sculk sensor freq={d} ({s}) signal={d} amethyst_resonance=false at ({d},{d},{d})\n", .{ cs.filter_frequency, calibrated_sculk_mod.frequencyLabel(cs.filter_frequency), calibrated_sculk_mod.comparatorSignal(cs.*), cs.x, cs.y, cs.z });
+            }
+        }
+    }
 }
 
 fn syncRedstoneSnapshots(repeaters: []const cache_mod.Repeater, red_torches: []const cache_mod.RedTorch) void {
@@ -589,6 +629,8 @@ pub fn main() !void {
     var campfire_rack_count: usize = 0;
     var sculk_sensors: [sculk_mod.max_sensors]sculk_mod.SculkSensor = undefined;
     var sculk_sensor_count: usize = 0;
+    var calibrated_sensors: [calibrated_sculk_mod.max_calibrated_sensors]calibrated_sculk_mod.CalibratedSensor = undefined;
+    var calibrated_sensor_count: usize = 0;
     var cakes: [cake_mod.max_cakes]cake_mod.CakeState = undefined;
     var cake_count: usize = 0;
     var night_vision_timer: f32 = 0.0;
@@ -1001,6 +1043,20 @@ pub fn main() !void {
         _ = active_ghastling.tick();
         _ = active_happy_ghast.riderCount();
         active_sculk_catalyst.tick(dt);
+        {
+            var csi: usize = 0;
+            while (csi < calibrated_sensor_count) {
+                const cs = &calibrated_sensors[csi];
+                if (manager.getBlockWorld(cs.x, cs.y, cs.z) != .calibrated_sculk_sensor) {
+                    cache_mod.swapRemove(&calibrated_sensors, &calibrated_sensor_count, csi);
+                    continue;
+                }
+                if (calibrated_sculk_mod.tickSensor(cs, dt)) {
+                    std.debug.print("calibrated sculk sensor ({d},{d},{d}) returned to idle\n", .{ cs.x, cs.y, cs.z });
+                }
+                csi += 1;
+            }
+        }
         active_shrieker_warning.tick(dt);
         if (active_shrieker_warning.hasDarkness()) {
             const fog_intensity = warden_deep_dark_mod.computeDarknessFogIntensity(active_shrieker_warning.darkness_timer);
@@ -1298,8 +1354,6 @@ pub fn main() !void {
         // Wave 17 representative frame-loop hooks keep new domain rules queryable.
         _ = sculk_catalyst_bloom_mod.catalyst_radius;
         _ = sculk_bloom_geometry_mod.BLOOM_TICKS;
-        _ = sculk_shrieker_warning_mod.MAX_WARNING_LEVEL;
-        _ = calibrated_sculk_resonance_mod.matchesFilter(8, 8);
         _ = chiseled_bookshelf_storage_mod.total_slots;
         _ = bookshelf_secret_latch_mod.door_transition_ticks;
         _ = hanging_sign_mechanics_mod.crafting_yield;
@@ -1359,8 +1413,6 @@ pub fn main() !void {
         _ = end_city_layout_mod.generateEndCity(.{ .x = 0, .y = 64, .z = 0 });
         _ = end_ship_vault_mod.generateEndShip(.{ .x = 0, .y = 64, .z = 0 });
         // Wave 25 representative frame-loop hooks keep all ten domains queryable.
-        _ = sculk_shrieker_fog_mod.DARKNESS_RADIUS;
-        _ = calibrated_sensor_chains_mod.CALIBRATED_SENSOR_RANGE;
         _ = trial_spawner_waves_mod.scaleTotalMobs(6, 2);
         _ = vault_multiplayer_reset_mod.requiredKey(.standard);
         _ = bogged_poison_harvest_mod.BOGGED_MAX_HEALTH;
@@ -1493,6 +1545,9 @@ pub fn main() !void {
                 const has_legs = inventory.hasItem(.leather_leggings) or inventory.hasItem(.iron_leggings) or inventory.hasItem(.diamond_leggings) or inventory.hasItem(.netherite_leggings);
                 const bush_dmg = scaffolding_mod.calculateBerryBushDamage(norm_wish.x != 0 or norm_wish.z != 0, has_legs, dt);
                 if (bush_dmg > 0.0) player.health = @max(0.0, player.health - bush_dmg);
+            }
+            if (calibrated_sensor_count > 0 and !key_shift and (norm_wish.x != 0 or norm_wish.z != 0)) {
+                dispatchCalibratedVibration(&manager, &calibrated_sensors, calibrated_sensor_count, player.pos.x, player.pos.y, player.pos.z, @intFromEnum(calibrated_sculk_mod.ResonanceFrequency.movement), .{ player.pos.x, player.pos.y, player.pos.z }, &audio, &particles);
             }
             if (manager.getBlockWorld(px_i, py_i, pz_i) == .sculk_shrieker or manager.getBlockWorld(px_i, py_i - 1, pz_i) == .sculk_shrieker) {
                 const s_sy = if (manager.getBlockWorld(px_i, py_i, pz_i) == .sculk_shrieker) py_i else py_i - 1;
@@ -2666,6 +2721,10 @@ pub fn main() !void {
                                 strength[wi] = @max(strength[wi], tp.strength);
                                 break;
                             }
+                        }
+                    } else if (nb == .calibrated_sculk_sensor) {
+                        if (calibrated_sculk_mod.findSensor(calibrated_sensors[0..calibrated_sensor_count], calibrated_sensor_count, w.x + ad[0], w.y + ad[1], w.z + ad[2])) |csi| {
+                            strength[wi] = @max(strength[wi], calibrated_sculk_mod.comparatorSignal(calibrated_sensors[csi]));
                         }
                     }
                 }
@@ -3844,6 +3903,9 @@ pub fn main() !void {
                                 const above_before = if (broken_block == .creaking_heart) manager.getBlockWorld(hit.x, hit.y + 1, hit.z) else .air;
                                 const below_before = if (broken_block == .creaking_heart) manager.getBlockWorld(hit.x, hit.y - 1, hit.z) else .air;
                                 if (try manager.editAndRemesh(hit.x, hit.y, hit.z, .air)) {
+                                if (calibrated_sensor_count > 0) {
+                                    dispatchCalibratedVibration(&manager, &calibrated_sensors, calibrated_sensor_count, @as(f32, @floatFromInt(hit.x)) + 0.5, @as(f32, @floatFromInt(hit.y)) + 0.5, @as(f32, @floatFromInt(hit.z)) + 0.5, @intFromEnum(calibrated_sculk_mod.ResonanceFrequency.block_destroy), .{ player.pos.x, player.pos.y, player.pos.z }, &audio, &particles);
+                                }
                                 if (broken_block == .creaking_heart) {
                                     creaking_hearts.onBroken(.{ hit.x, hit.y, hit.z });
                                     mob_manager.removeCreakingLinkedTo(.{ hit.x, hit.y, hit.z });
@@ -4391,6 +4453,11 @@ pub fn main() !void {
                                         if (place_type == .blast_furnace and cache_mod.canCreateFurnace(blast_furnace_count, blast_furnaces.len)) {
                                             blast_furnaces[blast_furnace_count] = .{ .x = px, .y = py, .z = pz, .t = 0, .fuel = 0, .input = smelt_mod.None };
                                             blast_furnace_count += 1;
+                                        }
+                                        if (place_type == .calibrated_sculk_sensor) {
+                                            _ = calibrated_sculk_mod.findOrRegisterSensor(&calibrated_sensors, &calibrated_sensor_count, px, py, pz);
+                                        } else if (calibrated_sensor_count > 0) {
+                                            dispatchCalibratedVibration(&manager, &calibrated_sensors, calibrated_sensor_count, @as(f32, @floatFromInt(px)) + 0.5, @as(f32, @floatFromInt(py)) + 0.5, @as(f32, @floatFromInt(pz)) + 0.5, @intFromEnum(calibrated_sculk_mod.ResonanceFrequency.block_place), .{ player.pos.x, player.pos.y, player.pos.z }, &audio, &particles);
                                         }
                                         hotbar_slot.decrement(1);
                                         std.debug.print("placed {s} ({d},{d},{d})\n", .{ @tagName(place_type), px, py, pz });
@@ -6246,9 +6313,25 @@ pub fn main() !void {
                     }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .calibrated_sculk_sensor) {
-                    audio.playAt(.portal_hum, .{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.5, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 32.0);
-                    particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(hit_f.x)) + 0.5, @as(f32, @floatFromInt(hit_f.y)) + 0.8, @as(f32, @floatFromInt(hit_f.z)) + 0.5 }, 12);
-                    std.debug.print("calibrated sculk sensor filtered resonance at ({d},{d},{d})\n", .{ hit_f.x, hit_f.y, hit_f.z });
+                    if (calibrated_sculk_mod.findOrRegisterSensor(&calibrated_sensors, &calibrated_sensor_count, hit_f.x, hit_f.y, hit_f.z)) |cs| {
+                        const freq = calibrated_sculk_mod.cycleFilterFrequency(cs);
+                        cs.active_timer = 0.0;
+                        _ = calibrated_sculk_mod.triggerVibration(cs, player.pos.x, player.pos.y, player.pos.z, freq);
+                        const sx = @as(f32, @floatFromInt(hit_f.x)) + 0.5;
+                        const sy = @as(f32, @floatFromInt(hit_f.y)) + 0.8;
+                        const sz = @as(f32, @floatFromInt(hit_f.z)) + 0.5;
+                        particles.spawnGlowstoneShimmer(.{ sx, sy, sz }, 12);
+                        if (adjacentAmethystPos(&manager, hit_f.x, hit_f.y, hit_f.z)) |am| {
+                            audio.playAt(.note_chime, .{ @as(f32, @floatFromInt(am[0])) + 0.5, @as(f32, @floatFromInt(am[1])) + 0.5, @as(f32, @floatFromInt(am[2])) + 0.5 }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.95, 32.0);
+                            audio.playAt(.portal_hum, .{ sx, sy, sz }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 32.0);
+                            particles.spawnGlowstoneShimmer(.{ @as(f32, @floatFromInt(am[0])) + 0.5, @as(f32, @floatFromInt(am[1])) + 0.8, @as(f32, @floatFromInt(am[2])) + 0.5 }, 12);
+                            const relayed = calibrated_sculk_mod.emitResonanceToNeighbors(&calibrated_sensors, calibrated_sensor_count, am[0], am[1], am[2], cs.x, cs.y, cs.z, freq);
+                            std.debug.print("calibrated sculk sensor tuned freq={d} ({s}) signal={d} amethyst_resonance=true (relayed={d}) at ({d},{d},{d})\n", .{ freq, calibrated_sculk_mod.frequencyLabel(freq), calibrated_sculk_mod.comparatorSignal(cs.*), relayed, hit_f.x, hit_f.y, hit_f.z });
+                        } else {
+                            audio.playAt(.portal_hum, .{ sx, sy, sz }, .{ player.pos.x, player.pos.y, player.pos.z }, 0.9, 32.0);
+                            std.debug.print("calibrated sculk sensor tuned freq={d} ({s}) signal={d} amethyst_resonance=false at ({d},{d},{d})\n", .{ freq, calibrated_sculk_mod.frequencyLabel(freq), calibrated_sculk_mod.comparatorSignal(cs.*), hit_f.x, hit_f.y, hit_f.z });
+                        }
+                    }
                     flint_cooldown = interact_mod.flint_action_cooldown;
                 } else if (target == .chiseled_bookshelf) {
                     const held_slot = &inventory.slots[selected_slot];
